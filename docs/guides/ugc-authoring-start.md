@@ -1,6 +1,6 @@
 # 创建与调试资料包和环境
 
-在桌面客户端的“内容包与创作”页点击“安装终端命令”，会同时安装 `arcadia-content` 和 `arcadia`。用前者创建、调试和安装内容，用后者对战、验证回放和开服。两条命令都可以直接交给能运行终端的 agent。若终端找不到命令，使用页面返回的完整路径，或将其目录加入 `PATH`。独立安装的作者 SDK 也提供 `arcadia-content`。运行 `arcadia-content commands --json` 可查询创作命令，运行 `arcadia --help` 可查看客户端附带的完整 CLI。
+在桌面客户端的“内容包与创作”页打开“终端命令”，即可复制带完整路径的命令，粘贴到终端或发给能执行命令的 agent。`arcadia-content` 用于创建、调试和安装内容，`arcadia` 用于对战、验证回放和开服。下文用这两个短名称代表对应的启动命令，实际使用时保留复制出的路径和引号，把 `--help` 换成示例参数即可。例如，把创作命令末尾的 `--help` 换成 `init pack frost-pack`，就会在当前目录创建资料包。
 
 Linux AppImage 首次为项目连接 SDK 时，会把创作依赖保存在 `${XDG_DATA_HOME:-$HOME/.local/share}/arcadia-eternity/author-sdks`。同一 AppImage 的项目共用一份，关闭客户端后项目内的命令仍能找到依赖。
 

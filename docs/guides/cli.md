@@ -1,6 +1,6 @@
 # Native CLI (#207)
 
-In the desktop client's content creation page, choose **Install terminal commands** to register `arcadia` and `arcadia-content`. The app supplies the runtime for both commands. Use `arcadia --help` for battles and servers, and `arcadia-content commands --json` for authoring and installation. Built-in offline battles and standalone servers also run with the desktop window closed.
+Open **终端命令** on the desktop client's content creation page to copy a command for your terminal or agent. Each command includes the full launcher path and uses the runtime shipped with your copy of the app. Replace `--help` with the desired arguments. In the examples below, `arcadia` stands for the game launcher and `arcadia-content` for the authoring launcher. Built-in offline battles and standalone servers also run with the desktop window closed.
 
 To build and run the native CLI from a source checkout, use Node 24:
 

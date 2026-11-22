@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict'
-import { spawn } from 'node:child_process'
-import { copyFile, mkdir, mkdtemp, readFile, realpath, rename, rm, symlink, writeFile } from 'node:fs/promises'
+import { execFile, spawn } from 'node:child_process'
+import { copyFile, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative } from 'node:path'
 import { test } from 'node:test'
+import { promisify } from 'node:util'
 import { writeDesktopCliLauncher } from './desktop-cli-launcher.mjs'
 
 const windows = process.platform === 'win32'
@@ -30,6 +31,20 @@ function run(command, args, options, input = '') {
     launched.on('error', reject)
     launched.on('close', code => resolve({ code, output, errors }))
   })
+}
+
+async function getPaths(runtime, privateBin, env) {
+  const code = `import { join } from 'node:path'
+    import { pathToFileURL } from 'node:url'
+    const {getDesktopCommandPaths} = await import(pathToFileURL(join(process.argv[1], 'bin/desktop-author-cli.mjs')))
+    const paths = await Promise.all([getDesktopCommandPaths(process.argv[2]), getDesktopCommandPaths(process.argv[2])])
+    console.log(JSON.stringify(paths[0]))`
+  const { stdout } = await promisify(execFile)(
+    process.execPath,
+    ['--input-type=module', '-e', code, '--', runtime, privateBin],
+    { env },
+  )
+  return JSON.parse(stdout)
 }
 
 async function fixture(t) {
@@ -101,6 +116,21 @@ test('relocated desktop command forwards stdin, arguments, cwd and exit status w
   })
 })
 
+test('direct command paths run from the installation without touching a fresh user directory or PATH', async t => {
+  const { root, launcher, runtime } = await fixture(t)
+  const home = join(root, 'Fresh home')
+  await mkdir(home)
+  const env = { ...process.env, HOME: home, USERPROFILE: home, APPDIR: '', APPIMAGE: '', PATH: '' }
+  const { shell, commandPaths: commands } = await getPaths(runtime, join(home, 'app-data/cli'), env)
+  assert.equal(shell, windows ? 'powershell' : 'posix')
+  assert.deepEqual(commands, {
+    arcadia: join(dirname(launcher), windows ? 'arcadia.cmd' : 'arcadia'),
+    'arcadia-content': launcher,
+  })
+  assert.deepEqual(await readdir(home), [])
+  for (const path of Object.values(commands)) assert.equal((await run(path, ['check'], { cwd: root, env })).code, 0)
+})
+
 test('explicit registration uses a user bin on PATH, is repeatable, and preserves unrelated commands', async t => {
   const { root, launcher } = await fixture(t)
   const home = join(root, 'User home')
@@ -168,15 +198,38 @@ test('AppImage registration reopens the original image and resolves its new moun
   const quote = value => "'" + value.replaceAll("'", "'\\''") + "'"
   await writeFile(
     image,
-    '#!/bin/sh\nexport APPDIR=' + quote(remount) + '\nexec ' + quote(process.execPath) + ' "$@"\n',
+    '#!/usr/bin/env bash\nexport APPDIR=' +
+      quote(remount) +
+      '\nflags=(--no-sandbox)\nfor arg in "$@"; do if [[ $arg == --no-sandbox ]]; then flags=(); fi; done\nexec ' +
+      quote(process.execPath) +
+      ' "${flags[@]}" "$@"\n',
     { mode: 0o755 },
   )
-  const env = { ...process.env, PATH: '', APPDIR: app, APPIMAGE: image }
+  const home = join(root, 'Fresh home')
+  const data = join(home, 'app-data')
+  const privateBin = join(data, 'cli')
+  await mkdir(home)
+  const env = { ...process.env, HOME: home, USERPROFILE: home, PATH: '', APPDIR: app, APPIMAGE: image }
+  await assert.rejects(getPaths(runtime, join(app, 'transient'), env))
+  await assert.rejects(getPaths(runtime, join(home, '.local/bin'), env))
+  assert.deepEqual(await readdir(home), [])
+  const privatePaths = await getPaths(runtime, privateBin, env)
+  assert.deepEqual(privatePaths, {
+    shell: 'posix',
+    commandPaths: { arcadia: join(privateBin, 'arcadia'), 'arcadia-content': join(privateBin, 'arcadia-content') },
+  })
+  assert.deepEqual(await readdir(home), ['app-data'])
+  assert.deepEqual((await readdir(privateBin)).sort(), ['arcadia', 'arcadia-content'])
   const install = await run(launcher, ['--install-user-command', homeBin], { cwd: root, env })
   assert.equal(install.code, 0, install.errors)
   const { commandPath, commandPaths } = JSON.parse(install.output)
   assert.ok(!(await readFile(commandPath, 'utf8')).includes(app))
   await rename(app, remount)
+  for (const path of Object.values(privatePaths.commandPaths)) {
+    const direct = await run(path, ['check'], { cwd: root, env: { ...process.env, PATH: '' } })
+    assert.equal(direct.code, 0, direct.errors)
+    assert.deepEqual(JSON.parse(direct.output).args, ['check'])
+  }
   const game = await run(commandPaths.arcadia, ['simulate', 'second launch'], {
     cwd: root,
     env: { ...process.env, PATH: '' },

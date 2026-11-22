@@ -1116,11 +1116,11 @@ function setupIpcHandlers() {
   handle('desktop:author', async (event, input) => {
     try {
       if (!input || typeof input.action !== 'string') throw new Error('作者操作无效')
-      if (input.action === 'install-terminal-command') {
-        if (!app.isPackaged) throw new Error('请在已安装的桌面客户端中安装终端命令。')
+      if (input.action === 'terminal-command-paths') {
+        if (!app.isPackaged) throw new Error('请在已安装的桌面客户端中查看终端命令。')
         const modulePath = path.join(process.resourcesPath, 'arcadia-server/bin/desktop-author-cli.mjs')
-        const { registerDesktopUserCommand } = await import(pathToFileURL(modulePath).href)
-        return { result: await registerDesktopUserCommand() }
+        const { getDesktopCommandPaths } = await import(pathToFileURL(modulePath).href)
+        return { result: await getDesktopCommandPaths(path.join(app.getPath('userData'), 'cli')) }
       }
       const manager = getAuthorWorkspaces()
       let result

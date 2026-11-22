@@ -2,7 +2,7 @@
 import { constants } from 'node:fs'
 import { copyFile, lstat, mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { basename, delimiter, dirname, isAbsolute, join, resolve } from 'node:path'
+import { basename, delimiter, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const entry = fileURLToPath(import.meta.url)
@@ -14,6 +14,22 @@ const shellQuote = value => "'" + value.replaceAll("'", "'\\''") + "'"
 const batchQuote = value => '"' + value.replaceAll('%', '%%') + '"'
 
 const entryNames = { arcadia: 'desktop-root-cli.mjs', 'arcadia-content': 'desktop-author-cli.mjs' }
+
+const commandPathsIn = directory =>
+  Object.fromEntries(Object.keys(entryNames).map(name => [name, join(directory, name + (windows ? '.cmd' : ''))]))
+const pathKey = value => (windows ? resolve(value).toLowerCase() : resolve(value))
+const privateInstallations = new Map()
+
+function mountedImageDirectory() {
+  if (
+    !windows &&
+    process.env.APPDIR &&
+    resolve(process.env.APPDIR, 'resources/arcadia-server/bin/desktop-author-cli.mjs') === entry
+  )
+    return resolve(process.env.APPDIR)
+  if (process.platform === 'linux' && /\/\.mount_[^/]+\//.test(entry))
+    throw new Error('Open the running Arcadia AppImage to obtain permanent terminal command paths')
+}
 
 function userShim(command) {
   const target = join(dirname(entry), entryNames[command])
@@ -27,24 +43,50 @@ function userShim(command) {
       ' %*\r\nexit /b %errorlevel%\r\n'
     )
   let invocation = shellQuote(process.execPath) + ' ' + shellQuote(target)
-  if (
-    process.env.APPDIR &&
-    resolve(process.env.APPDIR, 'resources/arcadia-server/bin/desktop-author-cli.mjs') === entry
-  ) {
+  if (mountedImageDirectory()) {
     const image = process.env.APPIMAGE
     if (!image || !isAbsolute(image))
       throw new Error('Cannot register a persistent command without the original AppImage path')
-    // A new AppImage launch mounts at a new APPDIR. Locate the SDK inside that launch.
+    // AppRun can prepend Chromium's --no-sandbox when user namespaces are unavailable.
+    // Pass the marker after Node's option terminator and consume it here before invoking the CLI.
+    // The original image will mount at a new APPDIR on each launch.
     const load =
       'const p=require("node:path").join(process.env.APPDIR,"resources/arcadia-server/bin/' +
       entryNames[command] +
-      '");process.argv.splice(1,0,p);import(require("node:url").pathToFileURL(p).href).catch(e=>{console.error(e);process.exitCode=1})'
-    invocation = shellQuote(image) + ' -e ' + shellQuote(load) + ' --'
-  } else if (process.platform === 'linux' && /\/\.mount_[^/]+\//.test(entry)) {
-    // A terminal outside a running AppImage's mount does not inherit its APPDIR/APPIMAGE.
-    throw new Error('Register the terminal command from the running Arcadia AppImage')
+      '");process.argv.splice(1,1,p);import(require("node:url").pathToFileURL(p).href).catch(e=>{console.error(e);process.exitCode=1})'
+    invocation = shellQuote(image) + ' -e ' + shellQuote(load) + ' -- --no-sandbox'
+    // Builder's AppRun uses /usr/bin/env bash, even when shell tools run with an empty PATH.
+    return (
+      header +
+      'export ELECTRON_RUN_AS_NODE=1\ncommand -v bash >/dev/null 2>&1 || export PATH="${PATH:+$PATH:}/usr/bin:/bin"\nexec ' +
+      invocation +
+      ' "$@"\n'
+    )
   }
   return header + 'export ELECTRON_RUN_AS_NODE=1\nexec ' + invocation + ' "$@"\n'
+}
+
+// macOS, Windows and unpacked Linux launchers are already at permanent paths. Only an AppImage
+// needs private wrappers, because its resource directory disappears when it unmounts.
+export async function getDesktopCommandPaths(privateBinDirectory) {
+  const imageDirectory = mountedImageDirectory()
+  const shell = windows ? 'powershell' : 'posix'
+  if (!imageDirectory) return { commandPaths: commandPathsIn(dirname(entry)), shell }
+  if (typeof privateBinDirectory !== 'string' || !isAbsolute(privateBinDirectory))
+    throw new Error('An absolute private command directory is required for the AppImage')
+  const directory = resolve(privateBinDirectory)
+  const inside = relative(imageDirectory, directory)
+  if (
+    (!isAbsolute(inside) && inside !== '..' && !inside.startsWith('..' + sep)) ||
+    directory === join(homedir(), '.local/bin')
+  )
+    throw new Error('Use a private application data directory outside the mounted AppImage')
+  let pending = privateInstallations.get(directory)
+  if (!pending) {
+    pending = installDesktopShims(directory, 0o700).finally(() => privateInstallations.delete(directory))
+    privateInstallations.set(directory, pending)
+  }
+  return { commandPaths: await pending, shell }
 }
 
 /** Explicit user action only. Registration never modifies shell startup files or the user/system PATH. */
@@ -58,21 +100,28 @@ export async function registerDesktopUserCommand({ binDirectory } = {}) {
         join(process.env.APPDATA || join(home, 'AppData/Roaming'), 'npm'),
       ]
     : [join(home, '.local/bin'), join(home, 'bin')]
-  const key = value => (windows ? resolve(value).toLowerCase() : resolve(value))
   const paths = new Set(
     (process.env.PATH ?? '')
       .split(delimiter)
       .map(dir => dir.replace(/^"(.*)"$/, '$1'))
       .filter(isAbsolute)
-      .map(key),
+      .map(pathKey),
   )
-  const pathDirectory = resolve(binDirectory ?? candidates.find(dir => paths.has(key(dir))) ?? candidates[0])
-  if (key(pathDirectory) === key(dirname(entry)))
+  const pathDirectory = resolve(binDirectory ?? candidates.find(dir => paths.has(pathKey(dir))) ?? candidates[0])
+  const commandPaths = await installDesktopShims(pathDirectory, 0o755)
+  return {
+    commandPath: commandPaths['arcadia-content'],
+    commandPaths,
+    pathDirectory,
+    onPath: paths.has(pathKey(pathDirectory)),
+  }
+}
+
+async function installDesktopShims(pathDirectory, mode) {
+  if (pathKey(pathDirectory) === pathKey(dirname(entry)))
     throw new Error('Choose a user command directory outside the installed application')
-  const commandPaths = Object.fromEntries(
-    Object.keys(entryNames).map(name => [name, join(pathDirectory, name + (windows ? '.cmd' : ''))]),
-  )
-  await mkdir(pathDirectory, { recursive: true, mode: 0o755 })
+  const commandPaths = commandPathsIn(pathDirectory)
+  await mkdir(pathDirectory, { recursive: true, mode })
   const staging = await mkdtemp(join(pathDirectory, '.arcadia-cli-register-' + process.pid + '-'))
   const changes = []
   const committed = []
@@ -129,12 +178,7 @@ export async function registerDesktopUserCommand({ binDirectory } = {}) {
       }
       committed.push(change)
     }
-    return {
-      commandPath: commandPaths['arcadia-content'],
-      commandPaths,
-      pathDirectory,
-      onPath: paths.has(key(pathDirectory)),
-    }
+    return commandPaths
   } catch (error) {
     for (const change of committed.reverse()) {
       // Keep any intervening user edit. Only undo the exact shim we just wrote.

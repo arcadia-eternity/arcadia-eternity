@@ -18,8 +18,27 @@ const busy = ref(false)
 const initialized = ref(false)
 const error = ref('')
 const canAuthor = !!window.arcadiaDesktop?.author
-const canInstallCli = canAuthor && import.meta.env.PROD
-const cliNotice = ref('')
+const canShowTerminal = canAuthor && import.meta.env.PROD
+const terminalOpen = ref(false)
+const commandNames = ['arcadia', 'arcadia-content'] as const
+type CommandName = (typeof commandNames)[number]
+interface TerminalPaths {
+  shell: 'posix' | 'powershell'
+  commandPaths: Record<CommandName, string>
+}
+const terminal = ref<TerminalPaths>()
+const commandFields = ref<HTMLInputElement[]>([])
+const copyNotice = ref('')
+const commands = computed(() => {
+  if (!terminal.value) return []
+  const { shell, commandPaths } = terminal.value
+  return commandNames.map(name => {
+    const path = commandPaths[name]
+    const invocation =
+      shell === 'powershell' ? "& '" + path.replaceAll("'", "''") + "'" : "'" + path.replaceAll("'", "'\\''") + "'"
+    return { name, path, line: invocation + ' --help' }
+  })
+})
 const editable = computed(() => projects.value.filter(project => !project.readOnly))
 async function run(action: () => Promise<void>) {
   if (busy.value) return
@@ -74,18 +93,23 @@ async function choose() {
     if (project) await open(project)
   })
 }
-async function installCli() {
-  cliNotice.value = ''
+async function showTerminalCommands() {
   await run(async () => {
-    const { commandPaths, pathDirectory, onPath } = await authorCall<{
-      commandPaths: { arcadia: string; 'arcadia-content': string }
-      pathDirectory: string
-      onPath: boolean
-    }>({ action: 'install-terminal-command' })
-    cliNotice.value = onPath
-      ? '已安装 arcadia 和 arcadia-content。运行 arcadia --help 查看对战与开服命令，运行 arcadia-content --help 查看创作命令。'
-      : `已安装 ${commandPaths.arcadia} 和 ${commandPaths['arcadia-content']}。如果终端找不到命令，请将 ${pathDirectory} 加入 PATH。`
+    terminal.value = await authorCall<TerminalPaths>({ action: 'terminal-command-paths' })
+    copyNotice.value = ''
+    terminalOpen.value = true
   })
+}
+async function copyCommand(name: CommandName, line: string) {
+  try {
+    await navigator.clipboard.writeText(line)
+    copyNotice.value = '已复制 ' + name + ' 命令'
+  } catch {
+    const field = commandFields.value.find(field => field.name === name)
+    field?.focus()
+    field?.select()
+    copyNotice.value = '请手动复制所选命令。'
+  }
 }
 async function forget(project: SourceProject) {
   await run(async () => {
@@ -105,7 +129,6 @@ onMounted(() => {
   <section class="creation-page" aria-labelledby="creation-title" :aria-busy="busy">
     <h1 id="creation-title">内容包与创作</h1>
     <ElAlert v-if="error" :title="error" type="error" :closable="false" role="alert" />
-    <ElAlert v-if="cliNotice" :title="cliNotice" type="success" role="status" @close="cliNotice = ''" />
     <section v-if="canAuthor && githubOpen" class="github-clone" aria-label="从 GitHub 打开">
       <CreatorGitHubPanel mode="clone" @cloned="open" />
     </section>
@@ -120,7 +143,7 @@ onMounted(() => {
         <ElButton :disabled="busy" @click="choose">打开项目文件夹</ElButton>
         <ElButton :aria-expanded="githubOpen" @click="githubOpen = !githubOpen">从 GitHub 打开</ElButton>
         <ElButton :disabled="busy" @click="cloneProject">克隆源项目</ElButton>
-        <ElButton v-if="canInstallCli" :disabled="busy" @click="installCli">安装终端命令</ElButton>
+        <ElButton v-if="canShowTerminal" :disabled="busy" @click="showTerminalCommands">终端命令</ElButton>
         <ElButton v-if="cloning" @click="authorCall({ action: 'git-cancel', id: 'clone' })">取消克隆</ElButton>
       </template>
       <template #project-detail="{ project }">
@@ -140,6 +163,31 @@ onMounted(() => {
         </div>
       </template>
     </ContentPackagesPanel>
+    <ElDialog
+      v-model="terminalOpen"
+      append-to-body
+      :title="terminal?.shell === 'powershell' ? '终端命令（PowerShell）' : '终端命令'"
+      width="min(42rem, 92vw)"
+    >
+      <section v-for="command in commands" :key="command.name" class="terminal-command">
+        <div class="command-actions">
+          <h3>{{ command.name === 'arcadia' ? '对战与服务器' : '内容创作' }}</h3>
+          <ElButton :aria-label="'复制 ' + command.name + ' 命令'" @click="copyCommand(command.name, command.line)"
+            >复制命令</ElButton
+          >
+        </div>
+        <code class="command-path" tabindex="0">{{ command.path }}</code>
+        <input
+          ref="commandFields"
+          class="command-line"
+          :name="command.name"
+          :aria-label="command.name + ' 帮助命令'"
+          :value="command.line"
+          readonly
+        />
+      </section>
+      <p v-if="copyNotice" role="status">{{ copyNotice }}</p>
+    </ElDialog>
     <ElDialog
       v-model="creating"
       append-to-body
@@ -180,6 +228,35 @@ onMounted(() => {
   margin: 16px clamp(12px, 2vw, 20px) 4px;
   font-size: 24px;
   font-weight: 600;
+}
+.terminal-command + .terminal-command {
+  margin-top: 20px;
+}
+.command-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.command-actions h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.command-path {
+  display: block;
+  margin: 6px 0;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+.command-line {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 7px 10px;
+  font-family: monospace;
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-border-radius-base);
 }
 .project-path {
   overflow-wrap: anywhere;

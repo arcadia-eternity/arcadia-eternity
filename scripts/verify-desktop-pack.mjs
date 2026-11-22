@@ -65,18 +65,19 @@ async function verifyPackagedServer(invocation) {
   }
 }
 
-/** Exercise both registered shell commands from a fresh home with no system Node or npm on PATH. */
+/** Invoke both bundled commands from a fresh home with no Node, npm or Arcadia commands on PATH. */
 export async function verifyPackagedAuthoring(launcher) {
   const directory = await mkdtemp(join(tmpdir(), 'arcadia-packaged-author-'))
   let preserveDirectory = false
-  const userBin = join(directory, 'command bin')
+  const authorCli = resolve(launcher)
+  const rootCli = join(dirname(authorCli), process.platform === 'win32' ? 'arcadia.cmd' : 'arcadia')
   const env = {
     ...Object.fromEntries(
       Object.entries(process.env).filter(([key]) => /^(systemroot|comspec|pathext|tmpdir|temp|tmp)$/i.test(key)),
     ),
     HOME: directory,
     USERPROFILE: directory,
-    PATH: userBin,
+    PATH: process.platform === 'win32' ? join(process.env.SystemRoot, 'System32') : '',
     npm_config_cache: join(directory, 'npm-cache'),
     npm_config_offline: 'true',
   }
@@ -90,7 +91,7 @@ export async function verifyPackagedAuthoring(launcher) {
         options.env[key] = value
         return '"%' + key + '%"'
       })
-      entry = process.env.ComSpec ?? join(process.env.SystemRoot, 'System32/cmd.exe')
+      entry = join(process.env.SystemRoot, 'System32/cmd.exe')
       args = ['/d', '/v:off', '/s', '/c', '"' + quoted.join(' ') + '"']
       options.windowsVerbatimArguments = true
     }
@@ -109,37 +110,28 @@ export async function verifyPackagedAuthoring(launcher) {
     return JSON.parse(receipt[1])
   }
   try {
-    const alias = process.platform === 'win32' ? 'arcadia-content.cmd' : 'arcadia-content'
-    const rootCli = process.platform === 'win32' ? 'arcadia.cmd' : 'arcadia'
-    const registration = JSON.parse(await run(launcher, directory, ['--install-user-command', userBin]))
-    if (
-      relative(join(userBin, alias), registration.commandPath) ||
-      relative(join(userBin, rootCli), registration.commandPaths.arcadia) ||
-      !registration.onPath
-    )
-      throw new Error('Packaged CLI did not register both shell commands in the requested directory')
-    const { instances } = JSON.parse(await run(alias, directory, ['desktop', 'instances']))
+    const { instances } = JSON.parse(await run(authorCli, directory, ['desktop', 'instances']))
     if (!Array.isArray(instances) || instances.length)
       throw new Error('Packaged CLI returned an unexpected player instance in a fresh home')
     const pack = join(directory, 'starter pack')
-    await run(alias, directory, ['init', 'pack', pack, '--id', 'smoke-pack'])
-    const built = result(await run(alias, pack, ['pack']))
+    await run(authorCli, directory, ['init', 'pack', pack, '--id', 'smoke-pack'])
+    const built = result(await run(authorCli, pack, ['pack']))
     if (!built?.integrity?.startsWith('sha512-'))
       throw new Error('Packaged author SDK did not build the starter archive')
     const environment = join(directory, 'smoke-environment')
-    await run(alias, directory, ['init', 'environment', environment])
-    const recipe = result(await run(alias, environment, ['pack']))
+    await run(authorCli, directory, ['init', 'environment', environment])
+    const recipe = result(await run(authorCli, environment, ['pack']))
     const file = 'environment.tgz'
     await cp(join(environment, recipe.filename), join(pack, file))
     const { result: installed } = JSON.parse(
-      await run(alias, pack, ['workspace', '.', 'environment-install'], {
+      await run(authorCli, pack, ['workspace', '.', 'environment-install'], {
         source: { kind: 'archive', file },
         offline: true,
       }),
     )
     if (installed?.id !== 'smoke-environment' || installed.integrity !== recipe.integrity)
       throw new Error('Packaged author SDK did not install the environment archive')
-    const demo = result(await run(alias, installed.directory, ['demo', '--seed', 'packaged-author']))
+    const demo = result(await run(authorCli, installed.directory, ['demo', '--seed', 'packaged-author']))
     if (
       demo?.status !== 'completed' ||
       demo.seed !== 'packaged-author' ||
