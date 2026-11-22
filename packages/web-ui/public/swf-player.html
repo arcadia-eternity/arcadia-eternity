@@ -212,7 +212,8 @@
               maxExecutionDuration: 5,
             })
             if (disposed || task !== loadingTask) return
-            for (let i = 0; i < 80 && !disposed && task === loadingTask; i++) {
+            const statesDeadline = performance.now() + 5 * 60_000
+            while (performance.now() < statesDeadline && !disposed && task === loadingTask) {
               const available = player?.getAvailableStates?.()
               if (Array.isArray(available) && available.length) {
                 send('ready', { states: available.filter(s => states.includes(s)).slice(0, 15) })
