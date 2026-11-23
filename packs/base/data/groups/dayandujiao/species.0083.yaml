@@ -1,0 +1,159 @@
+- id: pet_dayandujiao
+  num: 146
+  element: Bug
+  baseStats:
+    hp: 78
+    atk: 116
+    def: 113
+    spa: 116
+    spd: 113
+    spe: 105
+  heightRange:
+    - 20
+    - 25
+  weightRange:
+    - 10
+    - 15
+  learnable_skills:
+    - skill_id: skill_chongding
+      level: 1
+      hidden: false
+    - skill_id: skill_miaozhun
+      level: 5
+      hidden: false
+    - skill_id: skill_jiaotu
+      level: 9
+      hidden: false
+    - skill_id: skill_jiaodianfushi
+      level: 13
+      hidden: false
+  ability:
+    - mark_ability_dayandujiao
+  emblem:
+    - mark_emblem_dayandujiao
+  genderRatio:
+    - 2
+    - 8
+- id: pet_yingkedujiao
+  num: 147
+  element: Bug
+  baseStats:
+    hp: 118
+    atk: 146
+    def: 138
+    spa: 146
+    spd: 138
+    spe: 125
+  heightRange:
+    - 40
+    - 45
+  weightRange:
+    - 20
+    - 25
+  learnable_skills:
+    - skill_id: skill_chongding
+      level: 1
+      hidden: false
+    - skill_id: skill_miaozhun
+      level: 5
+      hidden: false
+    - skill_id: skill_jiaotu
+      level: 9
+      hidden: false
+    - skill_id: skill_jiaodianfushi
+      level: 13
+      hidden: false
+    - skill_id: skill_yingjiazhongji
+      level: 18
+      hidden: false
+    - skill_id: skill_bujiuzhongji
+      level: 23
+      hidden: false
+    - skill_id: skill_lingduzhongji
+      level: 28
+      hidden: false
+    - skill_id: skill_chongqunqianfu
+      level: 33
+      hidden: false
+  ability:
+    - mark_ability_dayandujiao
+  emblem:
+    - mark_emblem_dayandujiao
+  genderRatio:
+    - 2
+    - 8
+- id: pet_zhongjiadujiao
+  num: 148
+  element: Bug
+  baseStats:
+    hp: 178
+    atk: 176
+    def: 163
+    spa: 176
+    spd: 163
+    spe: 145
+  heightRange:
+    - 80
+    - 85
+  weightRange:
+    - 60
+    - 65
+  learnable_skills:
+    - skill_id: skill_chongding
+      level: 1
+      hidden: false
+    - skill_id: skill_miaozhun
+      level: 5
+      hidden: false
+    - skill_id: skill_jiaotu
+      level: 9
+      hidden: false
+    - skill_id: skill_jiaodianfushi
+      level: 13
+      hidden: false
+    - skill_id: skill_yingjiazhongji
+      level: 18
+      hidden: false
+    - skill_id: skill_bujiuzhongji
+      level: 23
+      hidden: false
+    - skill_id: skill_lingduzhongji
+      level: 28
+      hidden: false
+    - skill_id: skill_chongqunqianfu
+      level: 33
+      hidden: false
+    - skill_id: skill_zhongjiachuanci
+      level: 38
+      hidden: false
+    - skill_id: skill_bujiuchuanci
+      level: 43
+      hidden: false
+    - skill_id: skill_lingduchuanci
+      level: 48
+      hidden: false
+    - skill_id: skill_chongqunexi
+      level: 53
+      hidden: false
+    - skill_id: skill_luoxuanchongjizuan
+      level: 60
+      hidden: false
+    - skill_id: skill_pojiaxuruo
+      level: 60
+      hidden: true
+    - skill_id: skill_wuxianzhuiji
+      level: 60
+      hidden: true
+    - skill_id: skill_duyefushi
+      level: 60
+      hidden: true
+    - skill_id: skill_xueyetunshi
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_dayandujiao
+  emblem:
+    - mark_emblem_dayandujiao
+  genderRatio:
+    - 2
+    - 8

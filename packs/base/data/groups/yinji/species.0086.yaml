@@ -1,0 +1,159 @@
+- id: pet_yinji
+  num: 158
+  element: Fighting
+  baseStats:
+    hp: 82
+    atk: 120
+    def: 112
+    spa: 110
+    spd: 116
+    spe: 120
+  heightRange:
+    - 20
+    - 25
+  weightRange:
+    - 13
+    - 18
+  learnable_skills:
+    - skill_id: skill_lizhua_mingzhong100
+      level: 1
+      hidden: false
+    - skill_id: skill_renqi
+      level: 5
+      hidden: false
+    - skill_id: skill_chuanxi
+      level: 9
+      hidden: false
+    - skill_id: skill_ningshenbeizhan
+      level: 13
+      hidden: false
+  ability:
+    - mark_ability_cangyuepodi
+  emblem:
+    - mark_emblem_jisha
+  genderRatio:
+    - 0
+    - 10
+- id: pet_yinjialuo
+  num: 159
+  element: Fighting
+  baseStats:
+    hp: 122
+    atk: 150
+    def: 137
+    spa: 135
+    spd: 141
+    spe: 145
+  heightRange:
+    - 32
+    - 37
+  weightRange:
+    - 56
+    - 61
+  learnable_skills:
+    - skill_id: skill_lizhua_mingzhong100
+      level: 1
+      hidden: false
+    - skill_id: skill_renqi
+      level: 5
+      hidden: false
+    - skill_id: skill_chuanxi
+      level: 9
+      hidden: false
+    - skill_id: skill_ningshenbeizhan
+      level: 13
+      hidden: false
+    - skill_id: skill_podijiaoren
+      level: 18
+      hidden: false
+    - skill_id: skill_cangyueshuangshan
+      level: 23
+      hidden: false
+    - skill_id: skill_podishengteng
+      level: 28
+      hidden: false
+    - skill_id: skill_cangyuekongzhan
+      level: 33
+      hidden: false
+  ability:
+    - mark_ability_cangyuepodi
+  emblem:
+    - mark_emblem_jisha
+  genderRatio:
+    - 0
+    - 10
+- id: pet_yinkasite
+  num: 160
+  element: Fighting
+  baseStats:
+    hp: 182
+    atk: 180
+    def: 162
+    spa: 160
+    spd: 166
+    spe: 170
+  heightRange:
+    - 74
+    - 79
+  weightRange:
+    - 95
+    - 100
+  learnable_skills:
+    - skill_id: skill_lizhua_mingzhong100
+      level: 1
+      hidden: false
+    - skill_id: skill_renqi
+      level: 5
+      hidden: false
+    - skill_id: skill_chuanxi
+      level: 9
+      hidden: false
+    - skill_id: skill_ningshenbeizhan
+      level: 13
+      hidden: false
+    - skill_id: skill_podijiaoren
+      level: 18
+      hidden: false
+    - skill_id: skill_cangyueshuangshan
+      level: 23
+      hidden: false
+    - skill_id: skill_podishengteng
+      level: 28
+      hidden: false
+    - skill_id: skill_cangyuekongzhan
+      level: 33
+      hidden: false
+    - skill_id: skill_podibeixi
+      level: 38
+      hidden: false
+    - skill_id: skill_cangyuexuanren
+      level: 43
+      hidden: false
+    - skill_id: skill_yingwu
+      level: 48
+      hidden: false
+    - skill_id: skill_yishan
+      level: 53
+      hidden: false
+    - skill_id: skill_cangyuejirenzhan
+      level: 60
+      hidden: false
+    - skill_id: skill_podijuexici
+      level: 60
+      hidden: true
+    - skill_id: skill_cangyueliankongzhan
+      level: 60
+      hidden: true
+    - skill_id: skill_liqi
+      level: 60
+      hidden: true
+    - skill_id: skill_guyuedishazhan
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_cangyuepodi
+  emblem:
+    - mark_emblem_jisha
+  genderRatio:
+    - 0
+    - 10

@@ -33,8 +33,8 @@ it.each([
   ['skill_jinzhensheji', EffectTrigger.BeforeHit, 'mark_mabi', 'power', 80, 130],
   ['skill_zhenchituji', EffectTrigger.BeforeHit, 'first', 'power', 65, 115],
   ['skill_mizhenlianshe', EffectTrigger.AfterUseSkillCheck, 'first', 'critRate', 5, 100],
-  ['skill_guaiyichongji', EffectTrigger.OnHit, 'mark_shiquxiujue', 'def', 0, -1],
-  ['skill_kusechouda', EffectTrigger.OnHit, 'mark_shiquweijue', 'spd', 0, -1],
+  ['skill_guaiyichongji', EffectTrigger.BeforeHit, 'mark_shiquxiujue', 'def', 0, -1],
+  ['skill_kusechouda', EffectTrigger.BeforeHit, 'mark_shiquweijue', 'spd', 0, -1],
 ] as const)(
   '%s applies its bonus only under the original skill condition',
   async (id, trigger, condition, field, before, after) => {

@@ -1063,6 +1063,10 @@ const operatorFactories: typeof C.ops = {
   },
   addPower: input => modifySkillValues(input, (event, amount) => event.addPower(amount)),
   amplifyPower: input => modifySkillValues(input, (event, amount) => event.amplifyPower(amount)),
+  setMinimumTypeMultiplier: amount =>
+    modifySkillValues(amount, (event, value) => {
+      event.minimumTypeMultiplier = Math.max(event.minimumTypeMultiplier ?? 0, value)
+    }),
   addCritRate: input => modifySkillValues(input, (event, amount) => event.addCritRate(amount)),
   addMultihitResult: input => modifySkillValues(input, (event, amount) => event.addMultihitResult(amount)),
   setMultihit: input =>
@@ -1228,6 +1232,13 @@ const operatorFactories: typeof C.ops = {
       assertMarkLifecycleTarget(ctx, mark)
       const source = engine(ctx)
       source.battle.removeMark(new RemoveMarkContext(source, mark))
+    }
+  },
+  refreshMarkDuration: () => (ctx, marks) => {
+    for (const mark of marks) assertMarkLifecycleTarget(ctx, mark)
+    for (const mark of marks) {
+      const duration = mark.config.duration
+      if (!mark.config.persistent && duration !== undefined) mark.attributeSystem.setDuration(duration)
     }
   },
   addStacks: amount => numeric(amount, (_ctx, mark, n) => mark.addStack(n), assertMarkLifecycleTarget),

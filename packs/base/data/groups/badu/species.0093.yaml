@@ -1,0 +1,117 @@
+- id: pet_badu
+  num: 186
+  element: Desert
+  baseStats:
+    hp: 92
+    atk: 118
+    def: 113
+    spa: 125
+    spd: 130
+    spe: 108
+  heightRange:
+    - 25
+    - 30
+  weightRange:
+    - 12
+    - 17
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_hunya
+      level: 5
+      hidden: false
+    - skill_id: skill_hungu
+      level: 10
+      hidden: false
+    - skill_id: skill_shihunlinggui
+      level: 15
+      hidden: false
+    - skill_id: skill_linghunzhifa
+      level: 20
+      hidden: false
+    - skill_id: skill_linghunsuiji
+      level: 25
+      hidden: false
+  ability:
+    - mark_ability_badu
+  emblem:
+    - mark_emblem_badu
+  genderRatio:
+    - 5
+    - 5
+- id: pet_baduo
+  num: 187
+  element: Desert
+  baseStats:
+    hp: 182
+    atk: 163
+    def: 153
+    spa: 170
+    spd: 180
+    spe: 158
+  heightRange:
+    - 65
+    - 70
+  weightRange:
+    - 55
+    - 60
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_hunya
+      level: 5
+      hidden: false
+    - skill_id: skill_hungu
+      level: 10
+      hidden: false
+    - skill_id: skill_shihunlinggui
+      level: 15
+      hidden: false
+    - skill_id: skill_linghunzhifa
+      level: 20
+      hidden: false
+    - skill_id: skill_linghunsuiji
+      level: 25
+      hidden: false
+    - skill_id: skill_linghunlianda
+      level: 30
+      hidden: false
+    - skill_id: skill_hunguituji
+      level: 35
+      hidden: false
+    - skill_id: skill_zhuhunyiji
+      level: 40
+      hidden: false
+    - skill_id: skill_youhunlinggui
+      level: 45
+      hidden: false
+    - skill_id: skill_dizhishang
+      level: 50
+      hidden: false
+    - skill_id: skill_linghunzhuanzhu
+      level: 55
+      hidden: false
+    - skill_id: skill_linghunjidang
+      level: 60
+      hidden: false
+    - skill_id: skill_lihunsuiji
+      level: 60
+      hidden: true
+    - skill_id: skill_lihunlianda
+      level: 60
+      hidden: true
+    - skill_id: skill_fankangyishi
+      level: 60
+      hidden: true
+    - skill_id: skill_lihunlinggui
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_badu
+  emblem:
+    - mark_emblem_badu
+  genderRatio:
+    - 5
+    - 5

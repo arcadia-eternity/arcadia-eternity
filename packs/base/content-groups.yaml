@@ -304,6 +304,117 @@ groups:
     species:
       - pet_shifeng
       - pet_suijingfeng
+  - id: tiaotiaoshu
+    species:
+      - pet_tiaotiaoshu
+      - pet_bengbengshu
+  - id: pangpang
+    species:
+      - pet_pangpang
+      - pet_pangpangtuo
+  - id: abu
+    species:
+      - pet_abu
+      - pet_abubu
+  - id: niya
+    species:
+      - pet_niya
+      - pet_kaniya
+  - id: boli
+    species:
+      - pet_boli
+      - pet_guaixiaoboli
+  - id: huohuali
+    species:
+      - pet_huohuali
+      - pet_huohuazai
+      - pet_huohuashou
+  - id: xiaojie
+    species:
+      - pet_xiaojie
+      - pet_daguan
+  - id: lulu
+    species:
+      - pet_lulu
+      - pet_luboli
+      - pet_lubohali
+  - id: qiaoba
+    species:
+      - pet_qiaoba
+      - pet_tuoniqiaoba
+  - id: dayandujiao
+    species:
+      - pet_dayandujiao
+      - pet_yingkedujiao
+      - pet_zhongjiadujiao
+  - id: fengyong
+    species:
+      - pet_fengyong
+      - pet_youfeng
+      - pet_qingfeng
+  - id: azi
+    species:
+      - pet_azi
+      - pet_zidian
+  - id: yinji
+    species:
+      - pet_yinji
+      - pet_yinjialuo
+      - pet_yinkasite
+  - id: mimi
+    species:
+      - pet_mimi
+      - pet_miqilin
+  - id: xiaoxiaoemo
+    species:
+      - pet_xiaoxiaoemo
+      - pet_xiaoemo
+  - id: kadunjiujiu_171
+    species:
+      - pet_kadunjiujiu_171
+  - id: atongtie
+    species:
+      - pet_atongtie
+      - pet_atonggang
+  - id: mika
+    species:
+      - pet_mika
+  - id: qiuding
+    species:
+      - pet_qiuding
+      - pet_qiuji
+  - id: badu
+    species:
+      - pet_badu
+      - pet_baduo
+  - id: feide
+    species:
+      - pet_feide
+      - pet_feidetike
+  - id: nuoji
+    species:
+      - pet_nuoji
+      - pet_nuojibo
+  - id: kaise
+    species:
+      - pet_kaise
+      - pet_kaiselin
+  - id: kelipu
+    species:
+      - pet_kelipu
+      - pet_kelipute
+  - id: aisa
+    species:
+      - pet_aisa
+      - pet_aisaka
+  - id: moumou
+    species:
+      - pet_moumou
+      - pet_moumouwang
+  - id: langpu
+    species:
+      - pet_langpu
+      - pet_weilangpu
 relations:
   - from: pet_dilan
     to: pet_didilan
@@ -604,4 +715,94 @@ relations:
     kind: evolution
   - from: pet_shifeng
     to: pet_suijingfeng
+    kind: evolution
+  - from: pet_tiaotiaoshu
+    to: pet_bengbengshu
+    kind: evolution
+  - from: pet_pangpang
+    to: pet_pangpangtuo
+    kind: evolution
+  - from: pet_abu
+    to: pet_abubu
+    kind: evolution
+  - from: pet_niya
+    to: pet_kaniya
+    kind: evolution
+  - from: pet_boli
+    to: pet_guaixiaoboli
+    kind: evolution
+  - from: pet_huohuali
+    to: pet_huohuazai
+    kind: evolution
+  - from: pet_huohuazai
+    to: pet_huohuashou
+    kind: evolution
+  - from: pet_xiaojie
+    to: pet_daguan
+    kind: evolution
+  - from: pet_lulu
+    to: pet_luboli
+    kind: evolution
+  - from: pet_luboli
+    to: pet_lubohali
+    kind: evolution
+  - from: pet_qiaoba
+    to: pet_tuoniqiaoba
+    kind: evolution
+  - from: pet_dayandujiao
+    to: pet_yingkedujiao
+    kind: evolution
+  - from: pet_yingkedujiao
+    to: pet_zhongjiadujiao
+    kind: evolution
+  - from: pet_fengyong
+    to: pet_youfeng
+    kind: evolution
+  - from: pet_youfeng
+    to: pet_qingfeng
+    kind: evolution
+  - from: pet_azi
+    to: pet_zidian
+    kind: evolution
+  - from: pet_yinji
+    to: pet_yinjialuo
+    kind: evolution
+  - from: pet_yinjialuo
+    to: pet_yinkasite
+    kind: evolution
+  - from: pet_mimi
+    to: pet_miqilin
+    kind: evolution
+  - from: pet_xiaoxiaoemo
+    to: pet_xiaoemo
+    kind: evolution
+  - from: pet_atongtie
+    to: pet_atonggang
+    kind: evolution
+  - from: pet_qiuding
+    to: pet_qiuji
+    kind: evolution
+  - from: pet_badu
+    to: pet_baduo
+    kind: evolution
+  - from: pet_feide
+    to: pet_feidetike
+    kind: evolution
+  - from: pet_nuoji
+    to: pet_nuojibo
+    kind: evolution
+  - from: pet_kaise
+    to: pet_kaiselin
+    kind: evolution
+  - from: pet_kelipu
+    to: pet_kelipute
+    kind: evolution
+  - from: pet_aisa
+    to: pet_aisaka
+    kind: evolution
+  - from: pet_moumou
+    to: pet_moumouwang
+    kind: evolution
+  - from: pet_langpu
+    to: pet_weilangpu
     kind: evolution

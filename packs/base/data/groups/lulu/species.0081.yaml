@@ -1,0 +1,159 @@
+- id: pet_lulu
+  num: 135
+  element: Desert
+  baseStats:
+    hp: 81
+    atk: 112
+    def: 110
+    spa: 121
+    spd: 113
+    spe: 106
+  heightRange:
+    - 17
+    - 22
+  weightRange:
+    - 12
+    - 17
+  learnable_skills:
+    - skill_id: skill_paida_mingzhong100
+      level: 1
+      hidden: false
+    - skill_id: skill_shaquan
+      level: 6
+      hidden: false
+    - skill_id: skill_shazhikaijia
+      level: 11
+      hidden: false
+    - skill_id: skill_shafenshen
+      level: 16
+      hidden: false
+  ability:
+    - mark_ability_lulu
+  emblem:
+    - mark_emblem_lulu
+  genderRatio:
+    - 5
+    - 5
+- id: pet_luboli
+  num: 136
+  element: Desert
+  baseStats:
+    hp: 121
+    atk: 142
+    def: 135
+    spa: 151
+    spd: 138
+    spe: 126
+  heightRange:
+    - 35
+    - 40
+  weightRange:
+    - 27
+    - 32
+  learnable_skills:
+    - skill_id: skill_paida_mingzhong100
+      level: 1
+      hidden: false
+    - skill_id: skill_shaquan
+      level: 6
+      hidden: false
+    - skill_id: skill_shazhikaijia
+      level: 11
+      hidden: false
+    - skill_id: skill_shafenshen
+      level: 16
+      hidden: false
+    - skill_id: skill_shazhimao
+      level: 21
+      hidden: false
+    - skill_id: skill_shapuqiangzang
+      level: 26
+      hidden: false
+    - skill_id: skill_shaluanpo
+      level: 31
+      hidden: false
+    - skill_id: skill_shazhishouhu
+      level: 36
+      hidden: false
+  ability:
+    - mark_ability_lulu
+  emblem:
+    - mark_emblem_lulu
+  genderRatio:
+    - 5
+    - 5
+- id: pet_lubohali
+  num: 137
+  element: Desert
+  baseStats:
+    hp: 181
+    atk: 172
+    def: 160
+    spa: 181
+    spd: 163
+    spe: 146
+  heightRange:
+    - 66
+    - 71
+  weightRange:
+    - 51
+    - 56
+  learnable_skills:
+    - skill_id: skill_paida_mingzhong100
+      level: 1
+      hidden: false
+    - skill_id: skill_shaquan
+      level: 6
+      hidden: false
+    - skill_id: skill_shazhikaijia
+      level: 11
+      hidden: false
+    - skill_id: skill_shafenshen
+      level: 16
+      hidden: false
+    - skill_id: skill_shazhimao
+      level: 21
+      hidden: false
+    - skill_id: skill_shapuqiangzang
+      level: 26
+      hidden: false
+    - skill_id: skill_shaluanpo
+      level: 31
+      hidden: false
+    - skill_id: skill_shazhishouhu
+      level: 36
+      hidden: false
+    - skill_id: skill_shachenshuangji
+      level: 41
+      hidden: false
+    - skill_id: skill_shaliuzang
+      level: 46
+      hidden: false
+    - skill_id: skill_shapusongzang
+      level: 51
+      hidden: false
+    - skill_id: skill_mieshapuzang
+      level: 56
+      hidden: false
+    - skill_id: skill_fenshenshaluanzang
+      level: 60
+      hidden: false
+    - skill_id: skill_shabaojianmao
+      level: 60
+      hidden: true
+    - skill_id: skill_jueduifangyu
+      level: 60
+      hidden: true
+    - skill_id: skill_shapudazang
+      level: 60
+      hidden: true
+    - skill_id: skill_shafulao
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_lulu
+  emblem:
+    - mark_emblem_lulu
+  genderRatio:
+    - 5
+    - 5

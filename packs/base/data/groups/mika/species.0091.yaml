@@ -1,0 +1,75 @@
+- id: pet_mika
+  num: 178
+  element: Light
+  baseStats:
+    hp: 178
+    atk: 168
+    def: 161
+    spa: 178
+    spd: 165
+    spe: 162
+  heightRange:
+    - 36
+    - 41
+  weightRange:
+    - 32
+    - 37
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_guangxiangongji_jiangtefang
+      level: 5
+      hidden: false
+    - skill_id: skill_gaosuzitai
+      level: 10
+      hidden: false
+    - skill_id: skill_guangshufanchong
+      level: 16
+      hidden: false
+    - skill_id: skill_guangjiangongji
+      level: 22
+      hidden: false
+    - skill_id: skill_guangsutuji
+      level: 28
+      hidden: false
+    - skill_id: skill_fenlituji
+      level: 32
+      hidden: false
+    - skill_id: skill_guangxianchuantou
+      level: 34
+      hidden: false
+    - skill_id: skill_guangxiansuoding
+      level: 38
+      hidden: false
+    - skill_id: skill_guangxianchongzhuang
+      level: 42
+      hidden: false
+    - skill_id: skill_guangshuchongji
+      level: 48
+      hidden: false
+    - skill_id: skill_yangguangpuzhao
+      level: 52
+      hidden: false
+    - skill_id: skill_amadisiguang
+      level: 60
+      hidden: false
+    - skill_id: skill_guangzhidun
+      level: 60
+      hidden: true
+    - skill_id: skill_xiaotaiyang
+      level: 60
+      hidden: true
+    - skill_id: skill_huixuanguangren
+      level: 60
+      hidden: true
+    - skill_id: skill_baohuzitai
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_mika
+  emblem:
+    - mark_emblem_mika
+  genderRatio:
+    - 0
+    - 10

@@ -781,3 +781,240 @@ mark_shiquweijue:
 mark_fenghuangzhen:
   name: 蜂皇针
   description: 消耗1根可保证蜂皇毒针、金针或迷针的附加效果生效。
+mark_biansu:
+  name: 变速
+  description: 先制+1
+mark_yishouzhuangong:
+  name: 以守转攻
+  description: 受到伤害减半且造成伤害增加50%
+mark_shanduo:
+  name: 闪躲
+  description: 闪避对手物攻
+mark_qitiao:
+  name: 起跳
+  description: 闪避对手特攻
+mark_weizui:
+  name: 微醉
+  description: 无效果
+mark_lanzui:
+  name: 烂醉
+  description: 结束时使自身昏迷
+mark_meijiuyouhuo:
+  name: 美酒诱惑
+  description: 受到物攻使对手获得烂醉
+mark_bengdaitishen:
+  name: 绷带替身
+  description: 受到攻击时获得2倍防守怒气
+mark_abuzhiyuan:
+  name: 阿布之怨
+  description: 使怒气抵消2倍伤害 非必杀技能不消耗怒气
+mark_anfu:
+  name: 安抚
+  description: 无法强化
+mark_xuezhiwaiyi:
+  name: 雪之外衣
+  description: 吸收伤害并转化伤害的50%为体力 最多100点
+mark_bingfengjiyi:
+  name: 冰封记忆
+  description: 记录自身强化 再次使用时恢复强化
+mark_xianzubinghun:
+  name: 先祖冰魂
+  description: 无法恢复体力
+mark_huohuayinji:
+  name: 火花印记
+  description: 受到攻击必定暴击
+mark_huohuaquti:
+  name: 火焰躯体
+  description: 受到攻击时30%使攻击者烧伤
+mark_shiqieshi:
+  name: 仕切势
+  description: 造成伤害增加40%
+mark_chenshoushi:
+  name: 尘手势
+  description: 抵挡并反弹物攻伤害的50%，无上限
+mark_dunjushi:
+  name: 蹲踞势
+  description: 抵挡并反弹特攻伤害的50%，无上限
+mark_wushuangshi:
+  name: 无双势
+  description: 获得受到伤害50%点数的无双力
+mark_wushuangli:
+  name: 无双力
+  description: 每层使造成伤害增加10%
+mark_shafenshen_lulu:
+  name: 砂分身
+  description: 鲁鲁一族凝聚的砂之分身，每层提供战斗资源
+mark_jueduifangyu_lulu:
+  name: 绝对防御
+  description: 受到伤害减半
+mark_lanbo:
+  name: 蓝波
+  description: 最多3个，达到3个时使自身获得暴走
+mark_baozou:
+  name: 暴走
+  description: 造成伤害2倍，受到伤害增加50%，结束后清空蓝波
+mark_haixiuduobi:
+  name: 害羞躲避
+  description: 闪避对手技能
+mark_jiaodianfushi:
+  name: 焦点腐蚀
+  description: 恢复造成伤害25%的体力
+mark_fengwen:
+  name: 蜂纹
+  description: 每层增加30点中毒伤害 最多3层
+mark_qingfengzhiwu:
+  name: 青蜂之舞
+  description: 闪避率增加50% 持续3回合
+mark_zhuiluo:
+  name: 坠地
+  description: 速度降低45点，不与滞空共存
+mark_zhikong:
+  name: 滞空
+  description: 无法闪避攻击，不与坠地共存
+mark_fangong:
+  name: 反攻
+  description: 对手攻击技能命中后会有70%概率受到35点伤害
+mark_tanli:
+  name: 弹力
+  description: 每损失1点体力获得1点弹力，达到200时获得崩坏
+mark_benghuai:
+  name: 崩坏
+  description: 崩坏技能威力2倍且无法获得弹力
+mark_tanhuangtizhi:
+  name: 弹力体质
+  description: 5回合内受到攻击技能伤害时，向攻击者反弹30点固定伤害。
+mark_tanhuangbaozha:
+  name: 弹簧爆炸
+  description: 被攻击时清空弹力并使对手失去对应体力
+mark_emoqiyue:
+  name: 恶魔契约
+  description: 受到非暴击攻击时恢复30点体力
+mark_guozai_atongtie:
+  name: 过载
+  description: 怒气锁定为100点且不消耗怒气，使用必杀技失效
+mark_wulixishou_atongtie:
+  name: 物理吸收
+  description: 抵挡并恢复低于自身最大体力1/6的物攻伤害
+mark_teshufanshe_atongtie:
+  name: 特殊反射
+  description: 抵挡并反弹大于自身最大体力50%的特攻伤害，不超过自身最大体力
+mark_tefongfantan_atongtie:
+  name: 特攻反弹
+  description: 反弹受到特攻伤害的50%，上限182点
+mark_wugongjianban_atongtie:
+  name: 物攻减半
+  description: 造成物攻伤害减半
+mark_shuxingshixiao_atongtie:
+  name: 属性失效
+  description: 属性技能Miss
+mark_jinu_atongtie:
+  name: 激怒
+  description: 使用属性技能恢复对手30点怒气
+mark_guangzhidun:
+  name: 光之盾
+  description: 反弹对手50%的伤害
+mark_huixuanguangren:
+  name: 回旋光刃
+  description: 使回旋光刃威力2倍
+mark_guangxiansuoding:
+  name: 光线锁定
+  description: 攻击技能必中
+mark_jiancijiaqiao:
+  name: 尖刺甲壳
+  description: 反弹受到伤害的50% 上限284点 成功时恢复自身15点怒气
+mark_daocijiaqiao:
+  name: 倒刺甲壳
+  description: 受到伤害减半并使对手获得30点流血
+mark_baonujiaqiao:
+  name: 暴怒甲壳
+  description: 抵挡自身怒气值百分比的伤害 成功时消耗50%的怒气
+mark_fanjiyizhi:
+  name: 反击意志
+  description: 每回合获得y点怒气
+mark_jiancibaofa:
+  name: 尖刺爆发
+  description: 受到暴击率增加50%
+mark_shazhili:
+  name: 沙之厉
+  description: 受到沙漠系技能伤害增加50%
+mark_badu_shihunlinggui:
+  name: 噬魂灵柜
+  description: 反弹受到伤害的50%，上限284点，成功时减少对手10点怒气
+mark_badu_youhunlinggui:
+  name: 幽魂灵柜
+  description: 防御对手下一次攻击的50%伤害
+mark_badu_lihunlinggui:
+  name: 历魂灵柜
+  description: 抵挡自身怒气值2倍的伤害，成功时消耗50%的怒气
+mark_badu_fankangyishi:
+  name: 反抗意识
+  description: 每次攻击恢复10点怒气
+mark_badu_linghunsuiji:
+  name: 灵魂碎击
+  description: 下一次造成伤害减少50%
+mark_badu_dizhishang:
+  name: 地之伤
+  description: 受到地面系技能伤害增加50%
+mark_zuogu:
+  name: 左顾
+  description: 使右盼技能威力增加35
+mark_youpan:
+  name: 右盼
+  description: 使左顾技能威力增加35
+mark_zhanqian:
+  name: 瞻前
+  description: 使仰后技能必中
+mark_yanghou:
+  name: 仰后
+  description: 使瞻前技能必中
+mark_fengkuangdaocao:
+  name: 疯狂稻草
+  description: 受到伤害增加75%
+mark_kuanghuanqu:
+  name: 狂欢曲
+  description: 结束时使自身失去对手最大体力50%的体力 单方换场失效
+mark_shanbitisheng:
+  name: 闪避提升
+  description: 闪避率增加35%
+mark_manhuinuqi:
+  name: 回满怒气
+  description: 闪避时回满怒气
+mark_nuoji_njihua:
+  name: N计划
+  description: 造成伤害增加20%，不与B计划共存
+mark_nuoji_bjihua:
+  name: B计划
+  description: 受到伤害减少20%，不与N计划共存
+mark_nuoji_nbjihua:
+  name: NB计划
+  description: 3回合内N计划与B计划同时作用于技能上
+mark_nuoji_wanshijubei:
+  name: 万事俱备
+  description: 回合结束时消耗东风，使己方下一只上场的其他诺基博恢复自身最大体力的50%。回复机会不叠加。
+mark_nuoji_dongfeng_heal:
+  name: 东风接应
+  description: 己方下一只上场的其他诺基博恢复自身最大体力的50%。
+mark_nuoji_dongfeng_countdown:
+  name: 等待东风
+  description: 倒计时结束时获得东风
+mark_nuoji_dongfeng:
+  name: 东风
+  description: 速度值增加50点
+mark_huomiao:
+  name: 火苗
+  description: 2层时造成100点伤害
+mark_chubeixiang:
+  name: 储备箱
+  description: 每个减少5点特攻技能怒气消耗 最多3个
+mark_zhaomingdan:
+  name: 照明弹
+  description: 受到暗影系伤害减少35%
+mark_qiandidan:
+  name: 潜地弹
+  description: 换上场的精灵受到150点固伤
+mark_caixiazhixin:
+  name: 彩霞之心
+  description: 暴击率增加{stack}%
+mark_xuanguangqidian:
+  name: 炫光奇点
+  description: 暴击伤害增加{stack}%

@@ -1,0 +1,117 @@
+- id: pet_moumou
+  num: 241
+  element: Water
+  baseStats:
+    hp: 92
+    atk: 130
+    def: 119
+    spa: 115
+    spd: 116
+    spe: 106
+  heightRange:
+    - 11
+    - 16
+  weightRange:
+    - 22
+    - 27
+  learnable_skills:
+    - skill_id: skill_chongfeng_mingzhong100
+      level: 1
+      hidden: false
+    - skill_id: skill_jilang
+      level: 5
+      hidden: false
+    - skill_id: skill_niliu_2
+      level: 9
+      hidden: false
+    - skill_id: skill_hailangzhenpao
+      level: 13
+      hidden: false
+    - skill_id: skill_niujiaochongzhuang
+      level: 18
+      hidden: false
+    - skill_id: skill_jilangchongzhuang
+      level: 23
+      hidden: false
+  ability:
+    - mark_ability_moumou
+  emblem:
+    - mark_emblem_moumou
+  genderRatio:
+    - 5
+    - 5
+- id: pet_moumouwang
+  num: 242
+  element: Water
+  baseStats:
+    hp: 182
+    atk: 180
+    def: 169
+    spa: 160
+    spd: 161
+    spe: 151
+  heightRange:
+    - 78
+    - 83
+  weightRange:
+    - 77
+    - 82
+  learnable_skills:
+    - skill_id: skill_chongfeng_mingzhong100
+      level: 1
+      hidden: false
+    - skill_id: skill_jilang
+      level: 5
+      hidden: false
+    - skill_id: skill_niliu_2
+      level: 9
+      hidden: false
+    - skill_id: skill_hailangzhenpao
+      level: 13
+      hidden: false
+    - skill_id: skill_niujiaochongzhuang
+      level: 18
+      hidden: false
+    - skill_id: skill_jilangchongzhuang
+      level: 23
+      hidden: false
+    - skill_id: skill_chaojihailiu
+      level: 28
+      hidden: false
+    - skill_id: skill_hainiupolang
+      level: 33
+      hidden: false
+    - skill_id: skill_buxieyiji
+      level: 38
+      hidden: false
+    - skill_id: skill_moushenhuti
+      level: 43
+      hidden: false
+    - skill_id: skill_chaohailiupo
+      level: 48
+      hidden: false
+    - skill_id: skill_nishichongzhuang
+      level: 53
+      hidden: false
+    - skill_id: skill_mouwangjunshi
+      level: 60
+      hidden: false
+    - skill_id: skill_mouwangshenji
+      level: 60
+      hidden: true
+    - skill_id: skill_mouwangzhenpao
+      level: 60
+      hidden: true
+    - skill_id: skill_moumoumoumou
+      level: 60
+      hidden: true
+    - skill_id: skill_mouwangzhinu
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_moumou
+  emblem:
+    - mark_emblem_moumou
+  genderRatio:
+    - 5
+    - 5

@@ -466,3 +466,174 @@ pet_shifeng:
 pet_suijingfeng:
   name: 碎晶蜂
   description: 石蜂的进化形态。长期食用矿石后，身体结成了晶体。
+pet_tiaotiaoshu:
+  name: 跳跳鼠
+  description: 跳跳鼠天生是运动健将 在运动会中总能看到它夺冠的英姿
+pet_bengbengshu:
+  name: 蹦蹦鼠
+  description: 蹦蹦鼠在弹跳力上登峰造极 秘诀就在于通过尾巴来掌握微妙的平衡
+pet_pangpang:
+  name: 胖胖
+  description: 胖胖自懂事起 就嗜酒如命它脸上总有两朵红晕 说话也含含糊糊
+pet_pangpangtuo:
+  name: 胖胖沱
+  description: 进化后的胖胖沱 从美酒中领悟了一种神秘的功夫能在对手不经意间攻出奇招
+pet_abu:
+  name: 阿布
+  description: 阿布原本没有名字 更不可能有朋友 对于给它起名的暗伊特如大哥般崇拜
+pet_abubu:
+  name: 阿布布
+  description: 擅长诅咒的阿布布 已经成为了星球上所有居民心中的噩梦
+pet_niya:
+  name: 尼娅
+  description: 尼娅诞生于暴风雪中 趁着暴风雪依附在别的生物身上从而吸取对方的能力
+pet_kaniya:
+  name: 卡尼娅
+  description: 卡尼娅能够幻化成各种形态来迷惑人心 储藏能力的冰晶棱柱始终是它的弱点
+pet_boli:
+  name: 波利
+  description: 波利拥有相当可爱的外表 因此成为万人迷为此 它很是得意！
+pet_guaixiaoboli:
+  name: 怪笑波利
+  description: 怪笑波利看起来总是得意扬扬 那种自命不凡的笑容使对手脊背发寒
+pet_huohuali:
+  name: 火花鲤
+  description: 火花鲤诞生于岩浆 对它而言致命的岩浆就和温泉一样舒适
+pet_huohuazai:
+  name: 火花仔
+  description: 和冒险大师一同度过的那段时光 是火花仔的宝贵回忆
+pet_huohuashou:
+  name: 火花兽
+  description: 火花兽已经完全适应岩浆和陆地的两栖生活生性不爱战斗 被逼急了会很厉害！
+pet_xiaojie:
+  name: 小结
+  description: 小结不懂得控制自己的表情 即便快乐的时候 看起来也一样愁眉苦脸
+pet_daguan:
+  name: 大关
+  description: 大关曾遇到过一个神秘的人 他看着大关的身板露出了赞赏的表情
+pet_lulu:
+  name: 鲁鲁
+  description: 鲁鲁诞生于沙漠 它就是流动沙床上的一颗小沙砾
+pet_luboli:
+  name: 鲁卜利
+  description: 鲁卜利是几个要好的鲁鲁的合成体 在沙漠中 经常看到大量鲁卜利欢快地奔跑——这就形成了流沙
+pet_lubohali:
+  name: 鲁卜哈利
+  description: 鲁卜哈利是很少见的精灵 它是大量鲁卜利的集合体流沙 甚至沙暴使得它成为了极其危险的精灵
+pet_qiaoba:
+  name: 乔巴
+  description: 圣诞节才出现的飞天小麋鹿 红色的鼻子能够召唤巨大的圣诞树！
+pet_tuoniqiaoba:
+  name: 托尼乔巴
+  description: 托尼乔巴是圣诞老人的御用雪橇手！帮忙传递祝福和礼物是它们的绝活
+pet_dayandujiao:
+  name: 大眼独角
+  description: 默默无闻的独角甲虫 大大的眼睛看起来傻兮兮的
+pet_yingkedujiao:
+  name: 硬壳独角
+  description: 拥有坚硬的铠甲 因为想要摆脱弱小而进化出来的保护层
+pet_zhongjiadujiao:
+  name: 重甲独角
+  description: 它们是萨伦帝国士兵最普遍可见的随从精灵 但是因为过于平凡而不受重用
+pet_fengyong:
+  name: 蜂蛹
+  description: 小小的蜂蛹却有着强大的内心
+pet_youfeng:
+  name: 幼蜂
+  description: 长成幼蜂后 可以使用各种厉害的蜂针
+pet_qingfeng:
+  name: 青蜂
+  description: 青蜂是巴卢特的得力强将 他们虽然非常稀有但是也非常强大
+pet_azi:
+  name: 阿紫
+  description: 阿紫是暗夜暴雨云团中的雷电 人们以为这预兆着不详的未来
+pet_zidian:
+  name: 紫电
+  description: 人们只看见紫色的闪电瞬间划过 除此之外只剩下被击败的痛苦
+pet_yinji:
+  name: 因吉
+  description: 倔强的因加从小像忍者一样苦练本领
+pet_yinjialuo:
+  name: 因加洛
+  description: 因加洛追随贾斯汀立下了无数战功！
+pet_yinkasite:
+  name: 因卡斯特
+  description: 因卡斯特的苍月斩和破地斩无人能敌
+pet_mimi:
+  name: 米米
+  description: 看似可爱迷你的米米居然是大家心中的噩梦当它张开嘴巴 灾难就发生了！
+pet_miqilin:
+  name: 米奇林
+  description: 击破米奇林大王的办法只有一个！你做梦都想不到……
+pet_xiaoxiaoemo:
+  name: 小小恶魔
+  description: 小小恶魔生长在充满噩梦的黑暗领域 它是非常邪恶的存在
+pet_xiaoemo:
+  name: 小恶魔
+  description: 小恶魔只有一个乐趣 就是带领所有生物进入噩梦
+pet_kadunjiujiu_171:
+  name: 卡顿啾啾
+  description: 你不会相信这其实就是减肥后的卡顿啾啾
+pet_atongtie:
+  name: 阿童铁
+  description: 阿童铁是从丰富的阿卡迪亚星球地壳金属中被孕育出来的
+pet_atonggang:
+  name: 阿童钢
+  description: 阿童钢是在经历了千锤百炼后的阿童铁的最终形态
+pet_mika:
+  name: 米咔
+  description: 性格温和的米咔居住在阿玛迪斯星表面的光晶岩石地洞中
+pet_qiuding:
+  name: 丘丁
+  description: 丘丁长眠在地底惊扰它沉睡的 是星球被撕裂的巨大震动
+pet_qiuji:
+  name: 丘吉
+  description: 丘吉的背脊生长出锋利的尖刺它的尖刺能够超速再生 锋芒发射的时候 经常将对手扎成仙人掌
+pet_badu:
+  name: 巴度
+  description: 在炙热的沙漠中 也依然有一些阴冷的角落 巴度就沉睡在那里
+pet_baduo:
+  name: 巴多
+  description: 巴多的灵魂之力超乎想象这使得接近它的所有生灵都感到一阵寒意
+pet_feide:
+  name: 费德
+  description: 费德出生在大草原上 一直守护着自己的主人 过着无忧无虑的生活
+pet_feidetike:
+  name: 费德提克
+  description: 主人去世后 费德提克还是守护着主人留下的秘宝 坚决抵抗乌鸦
+pet_nuoji:
+  name: 诺基
+  description: 诺基原本是飞翼氏族的小精灵 带着对美食的向往来到了地面
+pet_nuojibo:
+  name: 诺基博
+  description: 诺基博证明了吃货的悲惨下场：曾经的伙伴萨伯尔在捍卫家园 而自己却成了别人的头疼对象
+pet_kaise:
+  name: 凯瑟
+  description: 凯瑟诞生于蛮神战场！它几乎是目睹了各位角斗士的英勇战斗成长的！
+pet_kaiselin:
+  name: 凯瑟琳
+  description: 凯瑟琳是最强角斗士的象征热枕、战斗、拼搏是它的精髓所在
+pet_kelipu:
+  name: 克里普
+  description: 克里普诞生于飞翼氏族 常年在时镜之岛巡逻
+pet_kelipute:
+  name: 克里普特
+  description: 克里普特是一种非常便捷的勘探精灵 很多危险的地方都可以派遣它前往
+pet_aisa:
+  name: 艾萨
+  description: 艾萨生活在飞翼群岛的街心花园 美丽而悠闲的花园街市和它一样 如同被染上了一层朝霞一般
+pet_aisaka:
+  name: 艾萨卡
+  description: 艾萨卡头顶两颗神秘的晶石 据说能够存储朝霞的光热 在寒冷的冬夜里面散发出光芒
+pet_moumou:
+  name: 哞哞
+  description: 它性格孤僻、自傲 对于陆地上的任何生灵都抱有敌意
+pet_moumouwang:
+  name: 哞哞王
+  description: 很多探险家在深海区域都会遇见一个巨大而可怕的身影 那就是可怕的哞哞王！
+pet_langpu:
+  name: 朗普
+  description: 朗普喜欢在玩雪仗时 把自己当成一个雪球
+pet_weilangpu:
+  name: 威朗普
+  description: 威朗普喜欢别人把他当成雪山怪人 不过这样的造型只是他的恶作剧而已

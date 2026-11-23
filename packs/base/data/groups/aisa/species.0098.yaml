@@ -1,0 +1,117 @@
+- id: pet_aisa
+  num: 196
+  element: Flying
+  baseStats:
+    hp: 86
+    atk: 120
+    def: 116
+    spa: 130
+    spd: 118
+    spe: 112
+  heightRange:
+    - 17
+    - 22
+  weightRange:
+    - 8
+    - 13
+  learnable_skills:
+    - skill_id: skill_kuaigong
+      level: 1
+      hidden: false
+    - skill_id: skill_miaozhun
+      level: 5
+      hidden: false
+    - skill_id: skill_xuanguang
+      level: 9
+      hidden: false
+    - skill_id: skill_caixiazhixin
+      level: 13
+      hidden: false
+    - skill_id: skill_xuancaiguangshu
+      level: 18
+      hidden: false
+    - skill_id: skill_xuancaibaopo
+      level: 23
+      hidden: false
+  ability:
+    - mark_ability_aisa
+  emblem:
+    - mark_emblem_aisa
+  genderRatio:
+    - 9
+    - 1
+- id: pet_aisaka
+  num: 197
+  element: Flying
+  baseStats:
+    hp: 176
+    atk: 165
+    def: 161
+    spa: 180
+    spd: 163
+    spe: 162
+  heightRange:
+    - 44
+    - 49
+  weightRange:
+    - 21
+    - 26
+  learnable_skills:
+    - skill_id: skill_kuaigong
+      level: 1
+      hidden: false
+    - skill_id: skill_miaozhun
+      level: 5
+      hidden: false
+    - skill_id: skill_xuanguang
+      level: 9
+      hidden: false
+    - skill_id: skill_caixiazhixin
+      level: 13
+      hidden: false
+    - skill_id: skill_xuancaiguangshu
+      level: 18
+      hidden: false
+    - skill_id: skill_xuancaibaopo
+      level: 23
+      hidden: false
+    - skill_id: skill_xuancaishanguang
+      level: 28
+      hidden: false
+    - skill_id: skill_fuchongzhuangji
+      level: 33
+      hidden: false
+    - skill_id: skill_feiyanhuiji
+      level: 38
+      hidden: false
+    - skill_id: skill_feiyanlianji
+      level: 43
+      hidden: false
+    - skill_id: skill_caixiayuyi
+      level: 48
+      hidden: false
+    - skill_id: skill_xiangyunzhishu
+      level: 53
+      hidden: false
+    - skill_id: skill_huancaiguangyun
+      level: 60
+      hidden: false
+    - skill_id: skill_xuanguangqidian
+      level: 60
+      hidden: true
+    - skill_id: skill_xuancaishexian
+      level: 60
+      hidden: true
+    - skill_id: skill_xuanguangbaopo
+      level: 60
+      hidden: true
+    - skill_id: skill_xuanmushanguang
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_aisa
+  emblem:
+    - mark_emblem_aisa
+  genderRatio:
+    - 9
+    - 1

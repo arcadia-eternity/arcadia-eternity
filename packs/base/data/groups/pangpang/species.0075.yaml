@@ -1,0 +1,117 @@
+- id: pet_pangpang
+  num: 115
+  element: Normal
+  baseStats:
+    hp: 89
+    atk: 129
+    def: 116
+    spa: 122
+    spd: 115
+    spe: 104
+  heightRange:
+    - 29
+    - 34
+  weightRange:
+    - 14
+    - 19
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_fangun
+      level: 5
+      hidden: false
+    - skill_id: skill_yinjiu
+      level: 10
+      hidden: false
+    - skill_id: skill_yuntouzhuanxiang
+      level: 14
+      hidden: false
+    - skill_id: skill_xingjiu
+      level: 19
+      hidden: false
+    - skill_id: skill_exin
+      level: 24
+      hidden: false
+  ability:
+    - mark_ability_pangpang
+  emblem:
+    - mark_emblem_pangpang
+  genderRatio:
+    - 8
+    - 2
+- id: pet_pangpangtuo
+  num: 116
+  element: Normal
+  baseStats:
+    hp: 179
+    atk: 179
+    def: 161
+    spa: 172
+    spd: 160
+    spe: 149
+  heightRange:
+    - 67
+    - 72
+  weightRange:
+    - 70
+    - 75
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_fangun
+      level: 5
+      hidden: false
+    - skill_id: skill_yinjiu
+      level: 10
+      hidden: false
+    - skill_id: skill_yuntouzhuanxiang
+      level: 14
+      hidden: false
+    - skill_id: skill_xingjiu
+      level: 19
+      hidden: false
+    - skill_id: skill_exin
+      level: 24
+      hidden: false
+    - skill_id: skill_manmianhongguang
+      level: 29
+      hidden: false
+    - skill_id: skill_xilihutu
+      level: 34
+      hidden: false
+    - skill_id: skill_fanwei
+      level: 39
+      hidden: false
+    - skill_id: skill_jiuqixunren
+      level: 44
+      hidden: false
+    - skill_id: skill_shouwuzudao
+      level: 49
+      hidden: false
+    - skill_id: skill_fali
+      level: 54
+      hidden: false
+    - skill_id: skill_jiuguidaluanda
+      level: 60
+      hidden: false
+    - skill_id: skill_fennu
+      level: 60
+      hidden: true
+    - skill_id: skill_xingzhigaoang
+      level: 60
+      hidden: true
+    - skill_id: skill_penxue
+      level: 60
+      hidden: true
+    - skill_id: skill_quanjiu
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_pangpang
+  emblem:
+    - mark_emblem_pangpang
+  genderRatio:
+    - 8
+    - 2

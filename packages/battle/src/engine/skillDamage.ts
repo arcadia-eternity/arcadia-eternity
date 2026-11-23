@@ -21,6 +21,7 @@ export interface SkillDamageFormula {
   crit: boolean
   stabMultiplier: number
   critMultiplier: number
+  minimumTypeMultiplier?: number
 }
 
 /** A one-shot view of the current combatants, shared by immediate hits and mark expiry. */
@@ -31,7 +32,10 @@ export function calculateSkillDamage(battle: Battle, attacker: Pet, target: Pet,
     formula.category === Category.Physical || (formula.category === Category.Climax && attack.atk > attack.spa)
   const ratio = physical ? attack.atk / defense.def : attack.spa / defense.spd
   const damageType = physical ? DamageType.Physical : DamageType.Special
-  const typeMultiplier = elementMultiplier(battle.elementMultipliers ?? ELEMENT_CHART, formula.element, target.element)
+  const typeMultiplier = Math.max(
+    formula.minimumTypeMultiplier ?? 0,
+    elementMultiplier(battle.elementMultipliers ?? ELEMENT_CHART, formula.element, target.element),
+  )
   const base = Math.floor((((2 * target.level) / 5 + 2) * formula.power * ratio) / 50 + 2)
   const stab = attacker.element === formula.element ? formula.stabMultiplier : 1
   const critical = formula.crit ? formula.critMultiplier : 1
