@@ -589,6 +589,10 @@
   background-size: cover;
   background-repeat: no-repeat;
 }
+.battle-shell[data-motion='standard'] .battle-stage__backdrop {
+  /* Keep scenery beyond both clipped stage edges for heavy-hit pans. */
+  inset-inline: -7.5%;
+}
 .battle-stage__backdrop::after {
   content: '';
   position: absolute;

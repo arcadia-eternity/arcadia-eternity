@@ -27,6 +27,32 @@ test('the local page uses the native runtime and can create its actual checkpoin
   expect(await runtimeFormat(page)).toBe('arcadia.battle.native.v4')
 })
 
+test('a heavy hit visibly pans even a square battle background', async ({ page }) => {
+  test.setTimeout(60_000)
+  await prepareLocalBattle(page)
+  await page.goto('/local-battle')
+  await page.getByPlaceholder('留空使用随机种子').fill('208')
+  await page.getByRole('button', { name: '开始本地对战', exact: true }).click()
+  const attack = page.getByTestId('skill-button').filter({ hasText: '奋力突破' })
+  // This seed produces a heavy hit on the second turn.
+  for (let turn = 0; turn < 2; turn++) {
+    await attack.click()
+    await expect(attack).toBeDisabled()
+    await expect(attack).toBeEnabled()
+  }
+  const backdrop = page.locator('.battle-stage__backdrop')
+  await expect
+    .poll(() =>
+      backdrop.evaluate(el => {
+        const position = getComputedStyle(el).backgroundPositionX
+        return Number(position.match(/([\d.]+)px/)?.[1] ?? 0)
+      }),
+    )
+    .toBeGreaterThan(16)
+  await page.getByLabel('动效模式', { exact: true }).selectOption('reduced')
+  await expect(backdrop).toHaveCSS('background-position-x', '50%')
+})
+
 async function expect120Battle(page: Page) {
   await page.waitForURL(/\/battle\?dev=true/)
   const petIVs = await page.evaluate(async () => {
