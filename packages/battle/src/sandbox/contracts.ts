@@ -21,6 +21,7 @@ export const sandboxPolicy = Object.freeze({
   packagesPerBattle: 32,
   outputBytes: 4 * 1024 * 1024,
 })
+export const browserSandboxPolicy = Object.freeze({ ...sandboxPolicy, callMs: 2_000 })
 export const browserSandboxStartup = Object.freeze({ catalogMs: 25_000, initializeMs: 35_000 })
 export type SandboxPolicy = { readonly [K in keyof typeof sandboxPolicy]: number }
 export type SandboxFaultCode = 'artifact' | 'execution' | 'permission' | 'budget' | 'disposed' | 'worker'

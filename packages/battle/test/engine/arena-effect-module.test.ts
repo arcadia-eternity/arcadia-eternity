@@ -1,6 +1,7 @@
 import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import * as sdk from '../../authoring'
-import { ArenaEffectModule, sandboxPolicy, type EffectModuleArtifact } from '../../sandbox'
+import { ArenaEffectModule, sandboxPolicy, type SandboxPolicy, type EffectModuleArtifact } from '../../sandbox'
+import { browserSandboxPolicy } from '../../src/sandbox/contracts'
 import { compileBehaviorUse, EffectContext, EffectTrigger, TurnContext, setGlobalLogger } from '../../engine'
 import { makeScenario } from './scenario'
 
@@ -18,8 +19,8 @@ const artifact = (source: string): EffectModuleArtifact => ({
   packageId: 'test',
   source,
 })
-async function prepare(source: string) {
-  const module = await ArenaEffectModule.prepare(artifact(source))
+async function prepare(source: string, policy: SandboxPolicy = sandboxPolicy) {
+  const module = await ArenaEffectModule.prepare(artifact(source), policy)
   modules.push(module)
   return module
 }
@@ -62,6 +63,46 @@ it('uses the injected SDK with canonical parameters and synchronous custom compu
   f.effect.innerApply(f.ctx)
   expect(f.a.activePet.currentHp).toBe(53)
   expect(module.state).toBe('ready')
+})
+it('passes only the current selection member to sandbox predicates and projections', async () => {
+  const module = await prepare(`export function createEffects({sdk,id}) {
+    const selected = sdk.selectFrom([1, 2, 3, 4])
+      .where(function (value) { return arguments.length === 1 && value % 2 === 0; })
+      .select(function (value) { return arguments.length === 1 ? value + 1 : -1; })
+      .all();
+    return [sdk.defineCodeEffect({id:id('select'),sourceKind:'skill',build:({effectId}) =>
+      sdk.defineEffect({id:effectId,triggers:[sdk.EffectTrigger.TurnEnd],
+        when:frame => frame.read(selected).join(',') === '3,5',
+        apply() {}
+      })
+    })];
+  }`)
+  const f = compile(module)
+  expect(f.battle.executionBudget.run(f.battle.currentTurn, () => f.effect.condition!(f.ctx))).toBe(true)
+})
+it.each([
+  { host: 'browser', policy: browserSandboxPolicy, delay: 750, succeeds: true },
+  { host: 'browser', policy: browserSandboxPolicy, delay: 2_001, succeeds: false },
+  { host: 'server', policy: sandboxPolicy, delay: 750, succeeds: false },
+])('enforces the $host effect deadline after a $delay ms scheduling delay', async ({ policy, delay, succeeds }) => {
+  const module = await prepare(
+    `export function createEffects({sdk,id}) {
+    return [sdk.defineCodeEffect({id:id('read'),sourceKind:'skill',triggers:[sdk.EffectTrigger.TurnEnd],
+      when: ctx => ctx.source.owner.currentHp > 0, apply() {}
+    })];
+  }`,
+    policy,
+  )
+  const f = compile(module)
+  const clock = vi.spyOn(performance, 'now').mockReturnValueOnce(0).mockReturnValueOnce(0).mockReturnValue(delay)
+  try {
+    const condition = () => f.effect.condition!(f.ctx)
+    if (succeeds) expect(condition()).toBe(true)
+    else expect(condition).toThrow(/deadline/)
+    expect(module.state).toBe(succeeds ? 'ready' : 'faulted')
+  } finally {
+    clock.mockRestore()
+  }
 })
 it('reads current domain state independently on each callback', async () => {
   const module = await prepare(`
