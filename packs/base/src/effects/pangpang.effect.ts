@@ -213,7 +213,7 @@ export class PangpangEffects {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
-        apply: opponentActive.apply(ops.addMark(meijiuMark, { stack: 1, duration: 3 })),
+        apply: ownerPet.apply(ops.addMark(meijiuMark, { stack: 1 })),
       },
       effect_pangpang_meijiu_apply_lanzui: {
         triggers: [EffectTrigger.OnDamage],
@@ -221,11 +221,13 @@ export class PangpangEffects {
         when: conditions.all(
           conditions.ownerIsActive,
           conditions.selfBeDamaged,
+          ctx => ctx.read(targets.sourceMark.first())?.duration === 1,
           contexts.damage.condition((_, events) => events.some(e => e.damageType === DamageType.Physical)),
         ),
-        apply: (ctx => {
-          targets.damageOriginPet.apply(ops.addMark(lanzuiMark, { stack: 1, duration: 2 }))(ctx)
-        }) satisfies Action,
+        apply: actions.sequence(
+          targets.damageOriginPet.apply(ops.addMark(lanzuiMark, { stack: 1, duration: 2 })),
+          targets.sourceMark.apply(ops.removeMark()),
+        ),
       },
       effect_pangpang_lanzui_end_hunmi: {
         triggers: [EffectTrigger.OnMarkDurationEnd],

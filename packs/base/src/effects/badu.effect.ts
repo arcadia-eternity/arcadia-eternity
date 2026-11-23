@@ -17,7 +17,6 @@ const LIHUNLINGGUI = 'mark_badu_lihunlinggui'
 const FANKANG = 'mark_badu_fankangyishi'
 const SUIJI = 'mark_badu_linghunsuiji'
 const DIZHISHANG = 'mark_badu_dizhishang'
-const HAIPA = 'mark_haipa'
 
 const specialDefense = targets.ownerPet.first().attribute('spd')
 
@@ -29,7 +28,7 @@ const attackDamage = contexts.damage.condition((_, events) =>
 
 const specialDamage = contexts.damage.condition((_, events) => events.some(event => event.damageType === 'Special'))
 
-const groundDamage = contexts.damage.condition((_, events) =>
+const strikeDamage = contexts.damage.condition((_, events) =>
   events.some(event => event.damageType === 'Physical' || event.damageType === 'Special'),
 )
 
@@ -79,8 +78,7 @@ export class BaduEffects {
     const fankang = marks.get(FANKANG)
     const suiji = marks.get(SUIJI)
     const dizhishang = marks.get(DIZHISHANG)
-    const haipa = marks.get(HAIPA)
-    if (!linggui || !youlinggui || !lihunlinggui || !fankang || !suiji || !dizhishang || !haipa) {
+    if (!linggui || !youlinggui || !lihunlinggui || !fankang || !suiji || !dizhishang) {
       throw new Error('Missing Badu mark definitions')
     }
 
@@ -109,14 +107,14 @@ export class BaduEffects {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
-        apply: targets.ownerPet.apply(ops.addMark(linggui, { stack: 1, duration: 3 })),
+        apply: targets.ownerPet.apply(ops.addMark(linggui, { stack: 1 })),
       },
       effect_badu_skill_linghunzhifa: spdBonusDamage(5, 100),
       effect_badu_skill_linghunsuiji: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        apply: opponentActive.apply(ops.addMark(suiji, { stack: 1, duration: 2 })),
+        apply: opponentActive.apply(ops.addMark(suiji, { stack: 1 })),
       },
       effect_badu_skill_linghunlianda: spdMultihit(100, 6),
       effect_badu_skill_hunguituji: spdStageUp(10),
@@ -139,14 +137,14 @@ export class BaduEffects {
                 .map(max => Math.floor(max * 0.13)),
             ),
           ),
-          targets.ownerPet.apply(ops.addMark(youlinggui, { stack: 1, duration: 3 })),
+          targets.ownerPet.apply(ops.addMark(youlinggui, { stack: 1 })),
         ),
       },
       effect_badu_skill_dizhishang: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        apply: opponentActive.apply(ops.addMark(dizhishang, { stack: 1, duration: 3 })),
+        apply: opponentActive.apply(ops.addMark(dizhishang, { stack: 1 })),
       },
       effect_badu_skill_linghunzhuanzhu: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
@@ -177,74 +175,33 @@ export class BaduEffects {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
-        apply: targets.ownerPet.apply(ops.addMark(fankang, { stack: 1, duration: 4 })),
+        apply: targets.ownerPet.apply(ops.addMark(fankang, { stack: 1 })),
       },
       effect_badu_skill_lihunlinggui: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
-        apply: targets.ownerPet.apply(ops.addMark(lihunlinggui, { stack: 1, duration: 3 })),
+        apply: targets.ownerPet.apply(ops.addMark(lihunlinggui, { stack: 1 })),
       },
       effect_badu_mark_shihunlinggui_trigger: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, attackDamage),
-        apply: actions.sequence(
-          targets.damageOriginPet.apply(
-            ops.dealDamage(
-              contexts.damageResult.select(result => Math.min(284, Math.floor(result.hpLoss * 0.5))).first(),
-            ),
-          ),
-          targets.opponentPlayer.apply(ops.reduceRage(10)),
-          targets.ownerMarks.where(mark => mark.baseId === LINGGUI).apply(ops.removeMark()),
-        ),
-      },
-      effect_badu_mark_youhunlinggui_trigger: {
-        triggers: [EffectTrigger.OnDamage],
-        priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, attackDamage),
-        apply: actions.sequence(
-          contexts.damage.apply(ops.preventDamage({ fraction: 0.5 })),
-          targets.ownerMarks.where(mark => mark.baseId === YOULINGGUI).apply(ops.removeMark()),
-        ),
-      },
-      effect_badu_mark_youhunlinggui_fear: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
-        priority: 0,
-        when: conditions.all(
-          conditions.ownerIsActive,
-          conditions.skillActorDiffersFromOwner,
-          contexts.skillUse.condition((_, events) => events.some(event => event.skill.category === 'Status')),
-        ),
-        apply: targets.ownerPet.apply(ops.addMark(haipa, { stack: 1, duration: 1 })),
+        when: conditions.all(conditions.selfBeDamaged, strikeDamage),
+        apply: (ctx => {
+          const lost = ctx.read(contexts.damageResult.select(result => result.hpLoss).first()) ?? 0
+          const reflected = Math.min(284, Math.floor(lost * 0.5))
+          if (reflected > 0) {
+            targets.damageOriginPet.apply(ops.dealDamage(reflected))(ctx)
+            targets.opponentPlayer.apply(ops.reduceRage(10))(ctx)
+          }
+          targets.sourceMark.apply(ops.removeMark())(ctx)
+        }) satisfies Action<EffectTrigger.OnDamage>,
       },
       effect_badu_mark_lihunlinggui_shield: {
-        triggers: [EffectTrigger.OnBeforeCalculateDamage],
-        priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, attackDamage),
+        triggers: [EffectTrigger.OnDamageReplacement],
+        when: conditions.all(conditions.selfBeDamaged, strikeDamage),
         apply: contexts.damage.apply(
-          ops.preventDamage({
-            amount: targets.ownerPet
-              .select(pet => pet.currentRage)
-              .first()
-              .map(rage => rage * 2),
-          }),
-        ),
-      },
-      effect_badu_mark_lihunlinggui_consume: {
-        triggers: [EffectTrigger.OnDamage],
-        priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, attackDamage),
-        apply: actions.sequence(
-          targets.ownerPet.apply(
-            ops.setRage(
-              targets.ownerPet
-                .select(pet => pet.currentRage)
-                .first()
-                .map(rage => Math.floor(rage * 0.5)),
-            ),
-          ),
-          targets.ownerMarks.where(mark => mark.baseId === LIHUNLINGGUI).apply(ops.removeMark()),
+          ops.preventDamage({ amount: targets.ownerPet.first().map(pet => pet.currentRage * 2), stacks: 1 }),
         ),
       },
       effect_badu_mark_fankangyishi_rage: {
@@ -270,7 +227,7 @@ export class BaduEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
-          groundDamage,
+          strikeDamage,
           contexts.damageSkill.condition((_, skills) => skills.some(skill => skill.element === 'Ground')),
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),

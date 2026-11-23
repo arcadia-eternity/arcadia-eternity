@@ -12173,7 +12173,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_tiaotiaoshu_skill_yishouzhuangong
+    - effect_tiaotiaoshu_skill_fangshoufanji
   priority: -2
 - id: skill_qitiao
   element: Normal
@@ -12852,7 +12852,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_huohuali_skill_chirekeyin
+    - effect_huohuali_skill_huohuakeyin
 - id: skill_chirelieyan
   element: Fire
   category: Special

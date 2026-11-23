@@ -7,6 +7,7 @@ import {
   ops,
   values,
   targets,
+  type Condition,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
 
@@ -16,12 +17,19 @@ const DODGE = 'mark_shanduo'
 const LEAP = 'mark_qitiao'
 const CRIT = 'mark_huixin'
 const WEAKEN_IMMUNE = 'mark_mianyiruohua'
+const DAMAGE_REDUCTION = 'mark_shoudaoshanghaijianshao'
 
 const attackDamage = contexts.damage.condition((_, events) =>
   events.some(event => event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
 )
 
+const usesOtherMove = contexts.skillUse.condition((_, uses) =>
+  uses.some(use => use.skill.baseId !== 'skill_biansutuji'),
+)
 const firstMove = conditions.firstSkillThisTurn
+
+const markDuration = (predicate: (duration: number) => boolean): Condition =>
+  targets.sourceMark.condition((_, marks) => marks.some(mark => predicate(mark.duration)))
 
 function firstMovePowerMultiplier(multiplier: number) {
   return {
@@ -59,7 +67,8 @@ export class TiaotiaoshuEffects {
     const leap = marks.get(LEAP)
     const crit = marks.get(CRIT)
     const weakenImmune = marks.get(WEAKEN_IMMUNE)
-    if (!speedUp || !guardCounter || !dodge || !leap || !crit || !weakenImmune) {
+    const damageReduction = marks.get(DAMAGE_REDUCTION)
+    if (!speedUp || !guardCounter || !dodge || !leap || !crit || !weakenImmune || !damageReduction) {
       throw new Error('Missing tiaotiaoshu mark dependency')
     }
 
@@ -74,16 +83,26 @@ export class TiaotiaoshuEffects {
         apply: contexts.skillUse.apply(ops.addAccuracy(-10)),
       },
       effect_tiaotiaoshu_emblem_weaken_immune_duration: {
-        triggers: [EffectTrigger.OnMarkCreated] as const,
+        triggers: [EffectTrigger.OnBeforeAddMark] as const,
         priority: 0,
-        when: contexts.addMark.condition((_, events) => events.some(({ baseMark }) => baseMark.id === WEAKEN_IMMUNE)),
-        apply: contexts.addMark.apply(ops.setMarkDuration(5)),
+        when: conditions.all(
+          conditions.ownerAddsMark,
+          contexts.addMark.condition((_, events) => events.some(({ baseMark }) => baseMark.id === WEAKEN_IMMUNE)),
+        ),
+        apply: contexts.addMark.apply(
+          ops.setMarkDuration(
+            contexts.addMark
+              .select(event => event.duration)
+              .all()
+              .map(items => items.map(duration => duration + 2)),
+          ),
+        ),
       },
       effect_tiaotiaoshu_skill_biansutuji: {
         triggers: [EffectTrigger.AfterUseSkillCheck] as const,
         priority: 0,
         when: conditions.selfUsesSkill,
-        apply: targets.ownerPet.apply(ops.addMark(speedUp, { stack: 1, duration: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(speedUp, { stack: 1 })),
       },
       effect_tiaotiaoshu_skill_suishalianji: {
         triggers: [EffectTrigger.AfterUseSkillCheck] as const,
@@ -101,7 +120,13 @@ export class TiaotiaoshuEffects {
         triggers: [EffectTrigger.AfterUseSkillCheck] as const,
         priority: 0,
         when: conditions.selfUsesSkill,
-        apply: targets.ownerPet.apply(ops.addMark(guardCounter, { stack: 1, duration: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(guardCounter, { stack: 1 })),
+      },
+      effect_tiaotiaoshu_skill_fangshoufanji: {
+        triggers: [EffectTrigger.AfterUseSkillCheck] as const,
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        apply: targets.ownerPet.apply(ops.addMark(damageReduction, { stack: 50 })),
       },
       effect_tiaotiaoshu_skill_yapo: firstMoveStatDrop('spe', 1),
       effect_tiaotiaoshu_skill_shazhidaoren: firstMoveFlatDamage(35),
@@ -127,26 +152,36 @@ export class TiaotiaoshuEffects {
         triggers: [EffectTrigger.AfterUseSkillCheck] as const,
         priority: 0,
         when: conditions.selfUsesSkill,
-        apply: targets.ownerPet.apply(ops.addMark(weakenImmune, { stack: 1, duration: 2 })),
+        apply: targets.ownerPet.apply(ops.addMark(weakenImmune, { stack: 1 })),
       },
       effect_tiaotiaoshu_mark_biansu_priority: {
-        triggers: [EffectTrigger.BeforeUseSkillCheck] as const,
-        priority: 0,
-        when: conditions.ownerUsesSkill,
-        apply: targets.sourceSkill.apply(
-          ops.addSkillAttributeModifier('priority', 'delta', 1, { lifetime: 'sourceMark' }),
-        ),
+        triggers: [EffectTrigger.BeforeSort],
+        when: conditions.all(conditions.ownerUsesSkill, usesOtherMove),
+        apply: contexts.skillUse.property('priority').apply(ops.add(1)),
+      },
+      effect_tiaotiaoshu_mark_biansu_consume: {
+        triggers: [EffectTrigger.AfterUseSkillCheck],
+        when: conditions.all(conditions.ownerUsesSkill, usesOtherMove),
+        apply: targets.sourceMark.apply(ops.removeMark()),
       },
       effect_tiaotiaoshu_mark_yishouzhuangong_defense: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage] as const,
         priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, attackDamage),
+        when: conditions.all(
+          conditions.selfBeDamaged,
+          attackDamage,
+          markDuration(duration => duration > 1),
+        ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
       },
       effect_tiaotiaoshu_mark_yishouzhuangong_offense: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage] as const,
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, attackDamage),
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          attackDamage,
+          markDuration(duration => duration <= 1),
+        ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
       },
       effect_tiaotiaoshu_mark_shanduo_evade: {

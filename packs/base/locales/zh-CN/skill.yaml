@@ -4022,7 +4022,7 @@ skill_tianyuankuanghuanqu:
   description: 必中 使自身获得疯狂稻草 使对手获得狂欢曲
 skill_dengzheqiaoba:
   name: 等着瞧吧
-  description: 先制+1 使自身获得闪避提升 回满怒气
+  description: 先制+1，提升自身闪避率，闪避攻击时回满怒气。
 skill_buyaobiwo:
   name: 不要逼我
   description: 先制+1 10%使对手害怕

@@ -7,7 +7,6 @@ import {
   EffectTrigger,
   ops,
   targets,
-  values,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
 
@@ -27,6 +26,7 @@ const attackDamage = contexts.damage.condition((_, events) =>
   events.some(event => event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
 )
 
+const isNextTurn = targets.sourceMark.condition((_, marks) => marks.some(mark => mark.duration === 1))
 const opponentHasTerror = targets.opponentActive.condition((_, pets) =>
   pets.some(pet => pet.marks.some(mark => mark.baseId === TERROR && mark.isActive)),
 )
@@ -202,7 +202,7 @@ export class FeideEffects {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        apply: actions.sequence(applyEvasionUp, applyRageRefill, ownerPet.apply(ops.setRage(100))),
+        apply: actions.sequence(applyEvasionUp, applyRageRefill),
       },
       effect_feide_skill_wopawuya_reduction: {
         triggers: [EffectTrigger.OnHit],
@@ -228,7 +228,7 @@ export class FeideEffects {
         priority: 0,
         when: conditions.all(
           conditions.ownerUsesSkill,
-          conditions.sourceOwnsEvent,
+          isNextTurn,
           contexts.skillUse.condition((_, events) => events.some(event => event.skill.baseId === 'skill_youpan')),
         ),
         apply: contexts.skillUse.apply(ops.addPower(35)),
@@ -238,7 +238,7 @@ export class FeideEffects {
         priority: 0,
         when: conditions.all(
           conditions.ownerUsesSkill,
-          conditions.sourceOwnsEvent,
+          isNextTurn,
           contexts.skillUse.condition((_, events) => events.some(event => event.skill.baseId === 'skill_zuogu')),
         ),
         apply: contexts.skillUse.apply(ops.addPower(35)),
@@ -248,7 +248,7 @@ export class FeideEffects {
         priority: 0,
         when: conditions.all(
           conditions.ownerUsesSkill,
-          conditions.sourceOwnsEvent,
+          isNextTurn,
           contexts.skillUse.condition((_, events) => events.some(event => event.skill.baseId === 'skill_yanghou')),
         ),
         apply: contexts.skillUse.apply(ops.setSureHit()),
@@ -258,7 +258,7 @@ export class FeideEffects {
         priority: 0,
         when: conditions.all(
           conditions.ownerUsesSkill,
-          conditions.sourceOwnsEvent,
+          isNextTurn,
           contexts.skillUse.condition((_, events) => events.some(event => event.skill.baseId === 'skill_zhanqian')),
         ),
         apply: contexts.skillUse.apply(ops.setSureHit()),
@@ -266,29 +266,35 @@ export class FeideEffects {
       effect_feide_mark_mad_straw_vulnerable: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, attackDamage),
+        when: conditions.all(conditions.selfBeDamaged, attackDamage, isNextTurn),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 75, delta: 0 })),
+      },
+      effect_feide_mark_cancel_carnival_on_switch: {
+        triggers: [EffectTrigger.OnSwitchOut],
+        when: conditions.ownerIsActive,
+        apply: targets.sourceMark.apply(ops.removeMark()),
       },
       effect_feide_mark_carnival_end: {
         triggers: [EffectTrigger.OnMarkDurationEnd],
         priority: 0,
-        apply: actions.sequence(
-          ownerPet.apply(
-            ops.dealDamage(
-              values.combine(
-                targets.opponentActive.first().attribute('maxHp'),
-                values.choose(conditions.ownerIsActive, 0.5, 0.5),
-                (maxHp, ratio) => Math.floor(maxHp * ratio),
-              ),
-            ),
+        apply: ownerPet.apply(
+          ops.dealDamage(
+            targets.opponentActive
+              .first()
+              .attribute('maxHp')
+              .map(hp => Math.floor(hp / 2)),
           ),
-          targets.sourceMark.apply(ops.removeMark()),
         ),
+      },
+      effect_feide_mark_shanbitisheng_evasion: {
+        triggers: [EffectTrigger.OnMarkCreated],
+        priority: 0,
+        apply: ownerPet.apply(ops.addAttributeModifier('evasion', 'delta', 35)),
       },
       effect_feide_mark_rage_refill_on_evade: {
         triggers: [EffectTrigger.OnMiss],
         priority: 0,
-        when: conditions.all(conditions.ownerIsActive, conditions.selfBeDamaged),
+        when: conditions.all(conditions.ownerIsActive, conditions.ownerIsSkillTarget),
         apply: ownerPet.apply(ops.setRage(100)),
       },
     })

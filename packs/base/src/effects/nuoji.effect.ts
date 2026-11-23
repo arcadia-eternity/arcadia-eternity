@@ -46,6 +46,8 @@ export class NuojiEffects {
     const bActive: Condition = ctx => ctx.read(hasB) !== undefined
     const nbActive: Condition = ctx => ctx.read(hasNB) !== undefined
     const planActive: Condition = ctx => ctx.read(hasPlan) !== undefined
+    const nPlanActive: Condition = ctx => nActive(ctx) || nbActive(ctx)
+    const bPlanActive: Condition = ctx => bActive(ctx) || nbActive(ctx)
 
     const removeN = targets.ownerMarks.where(mark => mark.baseId === N_PLAN && mark.isActive).apply(ops.removeMark())
     const removeB = targets.ownerMarks.where(mark => mark.baseId === B_PLAN && mark.isActive).apply(ops.removeMark())
@@ -95,19 +97,19 @@ export class NuojiEffects {
       effect_nuoji_skill_qianglisaowei_power: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, nActive),
+        when: conditions.all(conditions.selfUsesSkill, nPlanActive),
         apply: contexts.skillUse.apply(ops.addPower(40)),
       },
       effect_nuoji_skill_qianglisaowei_sure: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, bActive),
+        when: conditions.all(conditions.selfUsesSkill, bPlanActive),
         apply: contexts.skillUse.apply(ops.setSureHit()),
       },
       effect_nuoji_skill_feiyuliantu_multihit: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, nActive),
+        when: conditions.all(conditions.selfUsesSkill, nActive, conditions.not(nbActive)),
         apply: contexts.skillUse.apply(ops.setMultihit(2)),
       },
       effect_nuoji_skill_feiyuliantu_nb_multihit: {
@@ -125,19 +127,19 @@ export class NuojiEffects {
       effect_nuoji_skill_feiyuliantu_priority: {
         triggers: [EffectTrigger.BeforeSort],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, bActive),
+        when: conditions.all(conditions.selfUsesSkill, bActive, conditions.not(nbActive)),
         apply: contexts.skillUse.property('priority').apply(ops.add(1)),
       },
       effect_nuoji_skill_feiyuyaji_sure: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, nActive),
+        when: conditions.all(conditions.selfUsesSkill, nPlanActive),
         apply: contexts.skillUse.apply(ops.setSureHit()),
       },
       effect_nuoji_skill_feiyuyaji_bonus: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, bActive),
+        when: conditions.all(conditions.selfUsesSkill, bPlanActive),
         apply: contexts.skillUse
           .flatMap(event => (event.actualTarget ? [event.actualTarget] : []))
           .apply(ops.dealDamage(80)),
@@ -145,13 +147,13 @@ export class NuojiEffects {
       effect_nuoji_skill_lianxusaowei_priority: {
         triggers: [EffectTrigger.BeforeSort],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, nActive),
+        when: conditions.all(conditions.selfUsesSkill, nPlanActive),
         apply: contexts.skillUse.property('priority').apply(ops.add(1)),
       },
       effect_nuoji_skill_lianxusaowei_multihit: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, bActive),
+        when: conditions.all(conditions.selfUsesSkill, bPlanActive),
         apply: contexts.skillUse.apply(ops.setMultihit(2)),
       },
       effect_nuoji_skill_jihuapochan: {
@@ -194,19 +196,19 @@ export class NuojiEffects {
       effect_nuoji_skill_guailisaowei_power: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, nActive),
+        when: conditions.all(conditions.selfUsesSkill, nPlanActive),
         apply: contexts.skillUse.apply(ops.addPower(25)),
       },
       effect_nuoji_skill_guailisaowei_rage: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, bActive),
+        when: conditions.all(conditions.selfUsesSkill, bPlanActive),
         apply: ownerPet.apply(ops.addRage(20)),
       },
       effect_nuoji_skill_feiyuxiji_bonus: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, bActive),
+        when: conditions.all(conditions.selfUsesSkill, bPlanActive),
         apply: contexts.skillUse
           .flatMap(event => (event.actualTarget ? [event.actualTarget] : []))
           .apply(ops.dealDamage(65)),

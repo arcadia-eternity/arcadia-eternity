@@ -12,7 +12,7 @@ import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle
 const ANFU = 'mark_anfu'
 const DONGSHANG = 'mark_dongshang'
 const XINLING = 'mark_xinlingzhiyue'
-const SHANGHAI = 'mark_shanghaizengjia'
+const SHANGHAI = 'mark_shoudaoshanghaizengjia'
 const XUEZHIWAIYI = 'mark_xuezhiwaiyi'
 const BINGFENG = 'mark_bingfengjiyi'
 const BAOFENGXUE = 'mark_global_baofengxue'
@@ -105,22 +105,29 @@ export class NiyaEffects {
           targets.ownerPet.apply(ops.changeStatStage('spe', 1))(ctx)
           const pet = ctx.read(targets.ownerPet.first())
           if (!pet) return
-          const memory = pet.marks.find(mark => mark.isActive && mark.baseId === BINGFENG)
           const stages = ['atk', 'def', 'spa', 'spd', 'spe'] as const
+          const memory = pet.marks.find(mark => mark.isActive && mark.baseId === BINGFENG)
+
+          if (memory) {
+            const downLevels = stages.map(
+              stat => pet.marks.find(mark => mark.isActive && mark.baseId === `stat_stage_${stat}_down`)?.stack ?? 0,
+            )
+            targets.ownerPet.apply(ops.clearStatStages({ stats: [...stages], strategy: 'positive' }))(ctx)
+            stages.forEach((stat, index) => {
+              const saved = Math.floor((memory.stack - 1) / 7 ** index) % 7
+              if (saved > 0) targets.ownerPet.apply(ops.changeStatStage(stat, saved + downLevels[index]))(ctx)
+            })
+            targets.ownerMarks.where(mark => mark.id === memory.id).apply(ops.removeMark())(ctx)
+            return
+          }
+
           let encoded = 0
           for (const [index, stat] of stages.entries()) {
-            const level = (direction: 'up' | 'down') =>
-              pet.marks.find(mark => mark.isActive && mark.baseId === `stat_stage_${stat}_${direction}`)?.stack ?? 0
-            const positive = level('up')
-            if (memory) {
-              const saved = Math.floor((memory.stack - 1) / 7 ** index) % 7
-              if (saved > 0 && saved > positive)
-                targets.ownerPet.apply(ops.changeStatStage(stat, saved - positive + level('down')))(ctx)
-            } else {
-              encoded += positive * 7 ** index
-            }
+            const positive =
+              pet.marks.find(mark => mark.isActive && mark.baseId === `stat_stage_${stat}_up`)?.stack ?? 0
+            encoded += positive * 7 ** index
           }
-          if (!memory) targets.ownerPet.apply(ops.addMark(bingfeng, { stack: encoded + 1 }))(ctx)
+          targets.ownerPet.apply(ops.addMark(bingfeng, { stack: encoded + 1 }))(ctx)
         },
       },
       effect_niya_skill_baofengxue: {

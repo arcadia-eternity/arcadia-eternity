@@ -126,7 +126,7 @@ export class MikaEffects {
       effect_mika_skill_guangzhidun: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: selfSkillHit,
+        when: conditions.all(selfSkillHit, conditions.firstSkillThisTurn),
         apply: ownerPet.apply(ops.addMark(lightShield)),
       },
       effect_mika_skill_xiaotaiyang: {
@@ -150,19 +150,6 @@ export class MikaEffects {
         ),
         apply: contexts.skillUse.apply(ops.setSureHit()),
       },
-      effect_mika_mark_guangzhidun_reflect: {
-        triggers: [EffectTrigger.OnDamage],
-        priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          contexts.damage.condition((_, damages) =>
-            damages.some(damage => damage.damageType === 'Physical' || damage.damageType === 'Special'),
-          ),
-        ),
-        apply: targets.damageOriginPet.apply(
-          ops.dealDamage(contexts.damageResult.select(result => Math.floor(result.hpLoss / 2)).first()),
-        ),
-      },
       effect_mika_mark_huixuanguangren_power: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
@@ -170,7 +157,10 @@ export class MikaEffects {
           conditions.ownerUsesSkill,
           contexts.skillUse.condition((_, uses) => uses.some(use => use.skill.baseId === 'skill_huixuanguangren')),
         ),
-        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
+        apply: actions.sequence(
+          contexts.skillUse.apply(ops.amplifyPower(2)),
+          targets.sourceMark.apply(ops.removeMark()),
+        ),
       },
     })
   }
