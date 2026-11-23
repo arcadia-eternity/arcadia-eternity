@@ -50,6 +50,7 @@ const battleMethods = [
   'ready',
   'getState',
   'getAvailableSelection',
+  'runTrainingCommand',
   'submitAction',
   'isTimerEnabled',
   'getPlayerTimerState',

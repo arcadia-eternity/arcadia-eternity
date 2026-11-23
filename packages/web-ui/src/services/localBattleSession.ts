@@ -5,7 +5,12 @@ import { isNavigationFailure, type NavigationFailure } from 'vue-router'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 import type { useBattleStore } from '@/stores/battle'
 import type { useGameDataStore } from '@/stores/gameData'
-import { createSandboxWebBattleSession, type NativeWebPlayer, type NativeWebBattleConfig } from './nativeBattleFactory'
+import {
+  createSandboxWebBattleSession,
+  type NativeWebPlayer,
+  type NativeWebBattleConfig,
+  type WebBattleHost,
+} from './nativeBattleFactory'
 import { acquireLocalContent } from './localContent'
 
 type SessionState = 'configuring' | 'starting' | 'routing' | 'active' | 'disposed'
@@ -23,7 +28,7 @@ type Content = NonNullable<Awaited<ReturnType<typeof acquireLocalContent>>>
 export type LocalBattleEnvironment = Pick<Content, 'gameplayRevision' | 'draftRevision' | 'rules'>
 interface Attempt {
   native: Prepared['system']
-  system: IBattleSystem
+  system: IBattleSystem & Pick<WebBattleHost, 'runTrainingCommand'>
   stopped?: Promise<void>
 }
 const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T
@@ -125,6 +130,7 @@ export class LocalBattleSession {
           target.data,
           {
             ...options,
+            training: true,
             ...resolveEnvironmentBattleOptions(rules),
             skillParameters: rules?.skillParameters,
             matchups: rules?.matchups,
@@ -226,6 +232,7 @@ export class LocalBattleSession {
       native,
       system: {
         ready: native.ready.bind(native),
+        runTrainingCommand: command => native.runTrainingCommand(command),
         getState: native.getState.bind(native),
         getAvailableSelection: native.getAvailableSelection.bind(native),
         submitAction: native.submitAction.bind(native),

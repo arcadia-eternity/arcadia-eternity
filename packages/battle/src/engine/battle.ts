@@ -69,6 +69,9 @@ export class Battle extends Context implements MarkOwner {
   public readonly timerManager: TimerManager
   public readonly transformationSystem: TransformationSystem = new TransformationSystem(this)
   public readonly emitter = mitt<Events>()
+  get rngSeed() {
+    return this.rng instanceof GameRng ? this.rng.getState().seed : undefined
+  }
   private readonly rng: BattleRng
   private actionLog: BattleActionRecord[] = []
 

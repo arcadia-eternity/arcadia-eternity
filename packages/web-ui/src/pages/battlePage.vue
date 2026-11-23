@@ -326,50 +326,9 @@ const climaxEffectRef = useTemplateRef('climaxEffectRef') // climax特效组件�
 const battleViewScale = computed(() => battleViewStore.scale)
 provide(battleTooltipPortalKey, { container: battleContainerRef, scale: battleViewScale })
 
-// 训练模式配置
-const trainingModeConfig = computed(() => {
-  return {
-    // 基础条件检查
-    isExplicitlyEnabled: props.enableDeveloperMode === true,
-
-    // 模式排除检查
-    isNotReplayMode: !isReplayMode.value && !props.replayMode,
-    isNotBattleReport: !props.localReportId,
-
-    // 获取当前模式描述
-    get currentMode() {
-      if (props.replayMode || isReplayMode.value) return 'replay'
-      if (props.localReportId) return 'local-battle-report'
-      if (props.enableDeveloperMode) return 'local-battle'
-      return 'normal-battle'
-    },
-
-    // 检查是否应该启用训练模式（移除开发环境限制）
-    get shouldEnable() {
-      return this.isExplicitlyEnabled && this.isNotReplayMode && this.isNotBattleReport
-    },
-  }
-})
-
-// 训练模式检测
-const isTrainingMode = computed(() => {
-  const config = trainingModeConfig.value
-
-  // 在开发环境下提供调试信息
-  if (import.meta.env.DEV && props.enableDeveloperMode) {
-    console.debug('Training mode check:', {
-      mode: config.currentMode,
-      enabled: config.shouldEnable,
-      conditions: {
-        isExplicitlyEnabled: config.isExplicitlyEnabled,
-        isNotReplayMode: config.isNotReplayMode,
-        isNotBattleReport: config.isNotBattleReport,
-      },
-    })
-  }
-
-  return config.shouldEnable
-})
+const isTrainingMode = computed(
+  () => props.enableDeveloperMode && !props.replayMode && !props.localReportId && !!store.trainingSystem,
+)
 
 // 训练面板状态
 const isTrainingPanelOpen = ref(false)
@@ -2838,7 +2797,7 @@ watch(
         </Transition>
 
         <!-- 训练面板 -->
-        <TrainingPanel :is-developer-mode="isTrainingMode" v-model:is-open="isTrainingPanelOpen" />
+        <TrainingPanel v-if="isTrainingMode && isTrainingPanelOpen" @close="isTrainingPanelOpen = false" />
       </div>
     </div>
   </div>

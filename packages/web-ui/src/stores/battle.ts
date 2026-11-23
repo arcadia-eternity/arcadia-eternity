@@ -1,3 +1,4 @@
+import type { LocalBattleSystem } from '@arcadia-eternity/battle/host'
 import { defineStore } from 'pinia'
 import { Subject } from 'rxjs'
 import {
@@ -9,7 +10,7 @@ import {
   type TeamSelectionConfig,
   type TeamInfo,
 } from '@arcadia-eternity/const'
-import type { IBattleSystem, IDeveloperBattleSystem } from '@arcadia-eternity/interface'
+import type { IBattleSystem } from '@arcadia-eternity/interface'
 import * as jsondiffpatch from 'jsondiffpatch'
 import { markRaw, toRaw } from 'vue'
 import { useCloned } from '@vueuse/core'
@@ -19,18 +20,6 @@ type BattleEventWithView = (
   callback: (message: BattleMessage) => void,
   options?: { viewerId?: playerId; showHidden?: boolean; showAll?: boolean },
 ) => () => void
-
-// 类型守卫函数：检查battleInterface是否支持开发者功能
-function isDeveloperBattleSystem(
-  battleInterface: IBattleSystem,
-): battleInterface is IBattleSystem & IDeveloperBattleSystem {
-  return (
-    'setDevPetHp' in battleInterface &&
-    'setDevPlayerRage' in battleInterface &&
-    'forceAISelection' in battleInterface &&
-    'getAvailableActionsForPlayer' in battleInterface
-  )
-}
 
 function isP2PPeerBattleSystem(battleInterface: IBattleSystem | null): battleInterface is IBattleSystem & {
   battleRuntimeType: 'p2p-peer'
@@ -884,80 +873,26 @@ export const useBattleStore = defineStore('battle', {
       return this.playSnapshotAnimations(turnIndex)
     },
 
-    // 开发者功能方法
-    setDevPetHp(petId: string, hp: number) {
-      if (!this.battleInterface || this.isReplayMode) return
-
-      try {
-        // 使用类型守卫检查开发者功能
-        if (isDeveloperBattleSystem(this.battleInterface)) {
-          this.battleInterface.setDevPetHp(petId, hp)
-        } else {
-          console.warn('开发者功能不可用：setDevPetHp')
-        }
-      } catch (error) {
-        console.error('设置宠物血量失败:', error)
-      }
-    },
-
-    setDevPlayerRage(playerId: string, rage: number) {
-      if (!this.battleInterface || this.isReplayMode) return
-
-      try {
-        if (isDeveloperBattleSystem(this.battleInterface)) {
-          this.battleInterface.setDevPlayerRage(playerId, rage)
-        } else {
-          console.warn('开发者功能不可用：setDevPlayerRage')
-        }
-      } catch (error) {
-        console.error('设置玩家怒气失败:', error)
-      }
-    },
-
-    forceAISelection(selection: PlayerSelection) {
-      if (!this.battleInterface || this.isReplayMode) return
-
-      try {
-        if (isDeveloperBattleSystem(this.battleInterface)) {
-          this.battleInterface.forceAISelection(selection)
-        } else {
-          console.warn('开发者功能不可用：forceAISelection')
-        }
-      } catch (error) {
-        console.error('强制AI选择失败:', error)
-      }
-    },
-
-    getAvailableActionsForPlayer(playerId: string) {
-      if (!this.battleInterface || this.isReplayMode) return []
-
-      try {
-        if (isDeveloperBattleSystem(this.battleInterface)) {
-          return this.battleInterface.getAvailableActionsForPlayer(playerId) || []
-        } else {
-          console.warn('开发者功能不可用：getAvailableActionsForPlayer')
-          return []
-        }
-      } catch (error) {
-        console.error('获取玩家可用操作失败:', error)
-        return []
-      }
-    },
-
     async refreshCurrentPlayerActions() {
-      if (!this.battleInterface || this.isReplayMode) return
-
-      try {
-        console.debug('刷新当前玩家可用操作...')
-        this.availableActions = await this.fetchAvailableSelection()
-        console.debug(`刷新完成，当前可用操作数量: ${this.availableActions.length}`)
-      } catch (error) {
-        console.error('刷新玩家可用操作失败:', error)
-      }
+      const system = this.battleInterface
+      const isCurrent = () => this.battleInterface === system && !this.isReplayMode && !this.isBattleEnd
+      if (!system || !isCurrent()) return
+      const actions = await this.fetchAvailableSelection(isCurrent)
+      if (isCurrent()) this.availableActions = actions
     },
   },
 
   getters: {
+    trainingSystem(state): Pick<LocalBattleSystem, 'runTrainingCommand'> | undefined {
+      const system = state.battleInterface
+      if (
+        !this.isReplayMode &&
+        system &&
+        'runTrainingCommand' in system &&
+        typeof system.runTrainingCommand === 'function'
+      )
+        return system as IBattleSystem & Pick<LocalBattleSystem, 'runTrainingCommand'>
+    },
     currentPlayer: state => {
       if (!state.battleState?.players) return undefined
       const player = state.battleState.players.find(p => p.id === state.playerId)

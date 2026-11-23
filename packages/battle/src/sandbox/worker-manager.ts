@@ -438,6 +438,7 @@ export class WorkerBattleSystem implements IBattleSystem {
   ready = () => this.call('ready', [])
   getState = (...args: Parameters<LocalBattleSystem['getState']>) => this.call('getState', args)
   getAvailableSelection: IBattleSystem['getAvailableSelection'] = (...args) => this.call('getAvailableSelection', args)
+  runTrainingCommand: LocalBattleSystem['runTrainingCommand'] = command => this.call('runTrainingCommand', [command])
   submitAction(selection: Parameters<IBattleSystem['submitAction']>[0]) {
     // Capture this fixed DTO before Comlink's structured clone (UI selections may be reactive).
     const input =
