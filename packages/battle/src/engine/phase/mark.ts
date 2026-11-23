@@ -1,4 +1,4 @@
-import { BattleMessageType } from '@arcadia-eternity/const'
+import { BattleMessageType, type markId } from '@arcadia-eternity/const'
 import { AddMarkContext, StackContext } from '../context'
 import type { Battle } from '../battle'
 import { Pet } from '../pet'
@@ -63,7 +63,7 @@ function replaceStatLevelMark(
   const currentConfig = { ...existingMark.config }
 
   // Create new mark instance
-  const newMarkInstance = newBaseMark.createInstance()
+  const newMarkInstance = newBaseMark.createInstance({ id: battle.allocateEventId('mark') as markId })
 
   // Set correct level
   newMarkInstance.level = newLevel

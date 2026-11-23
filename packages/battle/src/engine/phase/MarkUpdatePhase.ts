@@ -1,3 +1,4 @@
+import { resolveDeferredDamage } from '../deferredDamage'
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
 import type { Battle } from '../battle'
 import type { TurnContext } from '../context'
@@ -46,6 +47,9 @@ export function executeMarkUpdateOperation(context: TurnContext, mark: MarkInsta
   const expired = mark.duration <= 0
 
   if (expired) {
+    const pending = mark.deferredDamage
+    mark.deferredDamage = undefined
+    if (pending) resolveDeferredDamage(context, mark, pending)
     battle.applyEffects(context, EffectTrigger.OnMarkDurationEnd, mark)
     battle.emitMessage(BattleMessageType.MarkExpire, {
       mark: mark.id,

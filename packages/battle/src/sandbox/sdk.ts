@@ -3,7 +3,8 @@ import { Arena } from 'quickjs-emscripten-sync'
 import { registerArenaProjection } from './arena-session'
 import * as sdk from '../../authoring'
 import { Battle } from '../engine/battle'
-import { Context } from '../engine/context'
+import { assertEvaluationOperation, getDamageEvaluation } from '../engine/damageEvaluation'
+import { Context, DamageContext, EffectContext, HealContext } from '../engine/context'
 import { Pet } from '../engine/pet'
 import { Player } from '../engine/player'
 import { BaseMark, MarkInstanceImpl } from '../engine/mark'
@@ -19,7 +20,11 @@ import {
 import { SandboxFault, type SandboxPolicy } from './contracts'
 
 type Fn = (...args: unknown[]) => unknown
-type Scope = { active: boolean; readonly values: object[] }
+type Scope = {
+  active: boolean
+  readonly values: object[]
+  effect?: EffectContext<import('@arcadia-eternity/const').EffectTrigger>
+}
 const isClassConstructor = (value: Fn) => /^class(?:\s|\{)/.test(Function.prototype.toString.call(value))
 const fields = [
   'battle',
@@ -69,6 +74,10 @@ const fields = [
   'gender',
   'maxRage',
   'damageResult',
+  'result',
+  'intent',
+  'policy',
+  'killer',
   'multihitResult',
   'currentTurn',
   'stacksAfter',
@@ -141,6 +150,7 @@ function frame(value: object): boolean {
 /** SDK-specific projections and canonical registrations. Arena owns marshalling, proxies and handles. */
 export class ArenaEffectSdk {
   private readonly canonical = new WeakSet<object>()
+  private readonly proposedDamage = new WeakMap<DamageContext, Scope>()
   private readonly callbacks = new WeakMap<Fn, Fn>()
   private count = 0
   private activeScope?: Scope
@@ -189,8 +199,12 @@ export class ArenaEffectSdk {
           this.run(() => {
             if (session && !session.active)
               return this.reject(new SandboxFault('permission', 'sdk', 'Expired effect session'))
-            const scope: Scope = { active: true, values: [] }
             const previous = this.activeScope
+            const scope: Scope = {
+              active: true,
+              values: [],
+              effect: args.find(arg => arg instanceof EffectContext) ?? previous?.effect,
+            }
             this.activeScope = scope
             try {
               for (const arg of args) this.output(arg, scope)
@@ -231,11 +245,11 @@ export class ArenaEffectSdk {
     if (!value || (typeof value !== 'object' && typeof value !== 'function') || this.canonical.has(value as object))
       return value
     if (Array.isArray(value)) {
-      for (const item of value) this.output(item, scope)
+      for (const item of value) this.output(item, scope, ephemeral)
       return value
     }
     if (value instanceof Map || value instanceof Set) {
-      for (const item of value.values()) this.output(item, scope)
+      for (const item of value.values()) this.output(item, scope, ephemeral)
       return value
     }
     if (typeof value === 'function') {
@@ -256,7 +270,24 @@ export class ArenaEffectSdk {
           const input = args.map(arg => this.input(arg))
           if (isClass && !allowedConstructor)
             return this.reject(new SandboxFault('permission', 'sdk', 'Domain construction denied'))
+          if (isClass && getDamageEvaluation())
+            return this.reject(
+              new SandboxFault('permission', 'sdk', 'Cannot construct host objects during damage evaluation'),
+            )
+          if (value === DamageContext) {
+            const [parent, source, target] = input
+            if (
+              input.length > 13 ||
+              !this.activeScope?.effect ||
+              parent !== this.activeScope.effect ||
+              source !== this.activeScope.effect.source ||
+              !(target instanceof Pet) ||
+              this.activeScope.effect.battle.petMap.get(target.id) !== target
+            )
+              return this.reject(new SandboxFault('permission', 'sdk', 'Invalid damage proposal identity'))
+          }
           const result = isClass ? Reflect.construct(fn, input) : fn(...input)
+          if (value === DamageContext) this.proposedDamage.set(result as DamageContext, this.activeScope!)
           return ephemeral ? this.output(result, scope, true) : this.output(result)
         })
       if (isClass) Object.defineProperty(callable, Symbol.hasInstance, { value: (item: unknown) => item instanceof fn })
@@ -301,7 +332,49 @@ export class ArenaEffectSdk {
               if (isDomain && !domainMethods(original).includes(String(key)))
                 return this.reject(new SandboxFault('permission', 'sdk', 'Direct domain methods denied'))
               if (isClassConstructor(member as Fn)) return this.output(member)
-              if (!members.has(key)) members.set(key, (...args) => Reflect.apply(member, original, args))
+              if (!members.has(key))
+                members.set(key, (...args) => {
+                  // Check at call time, including handles captured in an earlier callback.
+                  if (getDamageEvaluation()) {
+                    if (isDomain && !['get', 'random', 'randomInt', 'shuffle'].includes(String(key))) {
+                      try {
+                        const operation =
+                          key === 'addModified'
+                            ? original instanceof HealContext
+                              ? 'modifyHeal'
+                              : 'modifyDamage'
+                            : String(key)
+                        assertEvaluationOperation(operation, [original])
+                      } catch (error) {
+                        return this.reject(
+                          new SandboxFault(
+                            'permission',
+                            'sdk',
+                            error instanceof Error ? error.message : 'Damage evaluation forbids this operation',
+                          ),
+                        )
+                      }
+                    }
+                    if (
+                      original instanceof ParameterCatalog &&
+                      ['register', 'install', 'restore'].includes(String(key))
+                    )
+                      return this.reject(
+                        new SandboxFault('permission', 'sdk', 'Cannot change parameters during damage evaluation'),
+                      )
+                  }
+                  if (original instanceof Pet && key === 'damage') {
+                    const [event] = args
+                    if (
+                      !(event instanceof DamageContext) ||
+                      event.target !== original ||
+                      !this.proposedDamage.get(event)?.active
+                    )
+                      return this.reject(new SandboxFault('permission', 'sdk', 'Damage requires a current proposal'))
+                    this.proposedDamage.delete(event)
+                  }
+                  return Reflect.apply(member, original, args)
+                })
               return this.output(members.get(key)!, temporary ? scope : undefined, temporary)
             }
             return this.output(member, temporary ? scope : undefined, temporary)

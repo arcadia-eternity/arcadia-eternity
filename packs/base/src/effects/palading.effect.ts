@@ -231,9 +231,7 @@ export class PaladingEffects {
       /**
        * 庇护 (mark 3320): block a flat 50 points of physical damage for the mark's 5 turns
        * (move 11576 tip). The 庇护 emblem (item 300123, "使庇护之火减少物理伤害变为减少所有伤害")
-       * widens it to special damage too. Effect-type/fixed damage never reaches
-       * OnBeforeCalculateDamage in this engine, so no damage hook can reduce it; only
-       * physical and special damage are reachable here.
+       * widens it to special damage too.
        */
       effect_mark_bihu_block_damage_50: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
@@ -269,7 +267,7 @@ export class PaladingEffects {
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(
-          ops.heal(contexts.damage.select(event => Math.floor(event.damageResult * 0.35)).first()),
+          ops.heal(contexts.damageResult.select(event => Math.floor(event.hpLoss * 0.35)).first()),
         ),
       },
       /**

@@ -95,8 +95,8 @@ export class VitalActionsGeneratedEffects {
         apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
-              contexts.damage
-                .select(event => event.damageResult)
+              contexts.damageResult
+                .select(event => event.hpLoss)
                 .first()
                 .map(n => Math.floor(n / 2)),
             ),
@@ -147,7 +147,7 @@ export class VitalActionsGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
-          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Physical'),
+          contexts.damageSkill.condition((_ctx, events) => events[0]?.category === 'Physical'),
         ),
         apply: actions.sequence(targets.opponentActive.apply(ops.dealDamage(50))),
       },
@@ -210,10 +210,10 @@ export class VitalActionsGeneratedEffects {
         priority: 0,
         when: conditions.selfBeDamaged,
         apply: actions.sequence(
-          targets.opponentActive.apply(
+          targets.damageOriginPet.apply(
             ops.dealDamage(
-              contexts.damage
-                .select(event => event.damageResult)
+              contexts.damageResult
+                .select(event => event.hpLoss)
                 .first()
                 .map(n => Math.floor(n * 0.33)),
             ),
@@ -244,10 +244,10 @@ export class VitalActionsGeneratedEffects {
         ),
       },
       effect_mark_reduce_opponent_rage_15_if_damage_below_75: {
-        triggers: [EffectTrigger.OnBeforeCalculateDamage],
+        triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, (ctx: EffectFrame) => {
-          const left = ctx.read(contexts.damage.select(event => event.damageResult).first())
+          const left = ctx.read(contexts.damageResult.select(event => event.hpLoss).first())
           const right = 75
           return left !== undefined && right !== undefined && left < right
         }),
@@ -260,25 +260,22 @@ export class VitalActionsGeneratedEffects {
           conditions.selfBeDamaged,
           contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Physical'),
         ),
-        apply: actions.sequence(targets.opponentActive.apply(ops.dealDamage(30))),
+        apply: actions.sequence(targets.damageOriginPet.apply(ops.dealDamage(30))),
       },
       effect_mark_reflect_special_damage_max_with_stack: {
-        triggers: [EffectTrigger.OnDamage],
+        triggers: [EffectTrigger.OnConsumeStack],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
-        ),
-        apply: actions.sequence(
-          targets.opponentActive.apply(
-            ops.dealDamage(
-              values.combine(
-                contexts.damage.select(event => event.damageResult).first(),
-                targets.ownerPet.select(pet => pet.stat.maxHp).all(),
-                (n, limits) => Math.min(n, limits[0] ?? 0),
-              ),
-            ),
-          ),
+        when: ctx => {
+          const payment = ctx.parent
+          return (
+            payment.reason === 'shield' &&
+            payment.mark === ctx.read(targets.sourceMark.first()) &&
+            payment.parent.type === 'damage' &&
+            payment.parent.damageType === 'Special'
+          )
+        },
+        apply: targets.damageOriginPet.apply(
+          ops.dealDamage(contexts.consumeStack.select(event => event.actualAmount).first()),
         ),
       },
       effect_mark_self_damage_25_percent: {
@@ -286,15 +283,15 @@ export class VitalActionsGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
-          contexts.skillUse.condition((_ctx, events) => events[0]?.category !== 'Status'),
+          contexts.damageSkill.condition((_ctx, events) => events.some(event => event.category !== 'Status')),
           (ctx: EffectFrame) =>
             ctx.read(contexts.damage.select(event => event.source).first()) !== ctx.read(targets.sourceMark.first()),
         ),
         apply: actions.sequence(
           targets.ownerPet.apply(
             ops.dealDamage(
-              contexts.damage
-                .select(event => event.damageResult)
+              contexts.damageResult
+                .select(event => event.hpLoss)
                 .first()
                 .map(n => Math.floor(n * 0.25)),
             ),
@@ -439,8 +436,8 @@ export class VitalActionsGeneratedEffects {
         apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
-              contexts.damage
-                .select(event => event.damageResult)
+              contexts.damageResult
+                .select(event => event.hpLoss)
                 .first()
                 .map(n => Math.floor(n * 0.25)),
             ),
@@ -481,8 +478,8 @@ export class VitalActionsGeneratedEffects {
           targets.ownerPet.apply(
             ops.heal(
               values.combine(
-                contexts.damage
-                  .select(event => event.damageResult)
+                contexts.damageResult
+                  .select(event => event.hpLoss)
                   .first()
                   .map(n => Math.floor(n / 4)),
                 targets.ownerMarks
@@ -499,15 +496,15 @@ export class VitalActionsGeneratedEffects {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
-          const left = ctx.read(contexts.skillUse.select(event => event.multihitResult).first())
+          const left = ctx.read(contexts.damageSkill.select(event => event.hits).first())
           const right = 3
           return left !== undefined && right !== undefined && left === right
         }),
         apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
-              contexts.damage
-                .select(event => event.damageResult)
+              contexts.damageResult
+                .select(event => event.hpLoss)
                 .first()
                 .map(n => Math.floor(n * 0.5)),
             ),
@@ -630,8 +627,8 @@ export class VitalActionsGeneratedEffects {
         apply: actions.sequence(
           targets.ownerPet.apply(
             ops.dealDamage(
-              contexts.damage
-                .select(event => event.damageResult)
+              contexts.damageResult
+                .select(event => event.hpLoss)
                 .first()
                 .map(n => Math.floor(n * 0.25)),
             ),

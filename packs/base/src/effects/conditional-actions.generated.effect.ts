@@ -34,6 +34,22 @@ export class ConditionalActionsGeneratedEffects {
         throw new Error('Missing or mismatched native mark dependency: ' + id)
       resolved.set(id, mark)
     }
+    function damageBonusOrBomb(amount: number, bombId: string) {
+      const hasTimeLaw = targets.ownerMarks.where(mark => mark.baseId === 'mark_shijianfaze').condition(checks.exists())
+      return {
+        triggers: [EffectTrigger.OnBeforeCalculateDamage, EffectTrigger.OnDamage] as const,
+        when: conditions.all(conditions.selfUsesSkill, ctx =>
+          ctx.trigger === EffectTrigger.OnBeforeCalculateDamage
+            ? hasTimeLaw(ctx)
+            : !conditions.thisEffectModifiedDamage(ctx),
+        ),
+        apply: actions.choose(
+          ctx => ctx.trigger === EffectTrigger.OnBeforeCalculateDamage,
+          contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: amount })),
+          contexts.damage.select(event => event.target).apply(ops.addMark(resolved.get(bombId)!)),
+        ),
+      }
+    }
     return defineEffects({
       effect_increase_damage_taken_once_50_percent_double_effect_if_frozen: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
@@ -48,30 +64,8 @@ export class ConditionalActionsGeneratedEffects {
           ),
         ),
       },
-      effect_skill_add_damage_100_or_add_mark_shijianzhadan: {
-        triggers: [EffectTrigger.OnBeforeCalculateDamage],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: actions.sequence(
-          actions.choose(
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_shijianfaze').condition(checks.exists()),
-            contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 100 })),
-            targets.opponentActive.apply(ops.addMark(resolved.get('mark_shijianzhadan')!)),
-          ),
-        ),
-      },
-      effect_skill_add_damage_50_or_add_mark_dingshizhadan: {
-        triggers: [EffectTrigger.OnBeforeCalculateDamage],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: actions.sequence(
-          actions.choose(
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_shijianfaze').condition(checks.exists()),
-            contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 50 })),
-            targets.opponentActive.apply(ops.addMark(resolved.get('mark_dingshizhadan')!)),
-          ),
-        ),
-      },
+      effect_skill_add_damage_100_or_add_mark_shijianzhadan: damageBonusOrBomb(100, 'mark_shijianzhadan'),
+      effect_skill_add_damage_50_or_add_mark_dingshizhadan: damageBonusOrBomb(50, 'mark_dingshizhadan'),
       effect_skill_add_mark_mabi_30_percent_or_shandianluoyin_if_fail: (() => {
         const parameters = {
           action0_value_condition_percent: numberParam({
@@ -357,86 +351,34 @@ export class ConditionalActionsGeneratedEffects {
       effect_skill_consume_mark_kongqichuliang_10_if_fail_reduce_damage_25_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill),
-        apply: actions.sequence(
-          actions.choose(
-            (ctx: EffectFrame) => {
-              const left = ctx.read(
-                targets.ownerMarks
-                  .where(mark => mark.baseId === 'mark_kongqichuliang')
-                  .select(mark => mark.stack)
-                  .all(),
-              )
-              const right = 10
-              return right !== undefined && left.some(value => value >= right)
-            },
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_kongqichuliang').apply(ops.consumeStacks(10)),
-            contexts.damage.apply(ops.modifyDamage({ percent: -25, delta: 0 })),
-          ),
-        ),
+        when: conditions.selfUsesSkill,
+        apply: targets.ownerMarks
+          .where(mark => mark.baseId === 'mark_kongqichuliang')
+          .apply(ops.payDamageStacks(10, { percent: -25, delta: 0 })),
       },
       effect_skill_consume_mark_kongqichuliang_15_if_fail_effect_skill_reduce_damage_25_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill),
-        apply: actions.sequence(
-          actions.choose(
-            (ctx: EffectFrame) => {
-              const left = ctx.read(
-                targets.ownerMarks
-                  .where(mark => mark.baseId === 'mark_kongqichuliang')
-                  .select(mark => mark.stack)
-                  .all(),
-              )
-              const right = 15
-              return right !== undefined && left.some(value => value >= right)
-            },
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_kongqichuliang').apply(ops.consumeStacks(15)),
-            contexts.damage.apply(ops.modifyDamage({ percent: -25, delta: 0 })),
-          ),
-        ),
+        when: conditions.selfUsesSkill,
+        apply: targets.ownerMarks
+          .where(mark => mark.baseId === 'mark_kongqichuliang')
+          .apply(ops.payDamageStacks(15, { percent: -25, delta: 0 })),
       },
       effect_skill_consume_mark_kongqichuliang_20_if_fail_effect_skill_reduce_damage_25_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill),
-        apply: actions.sequence(
-          actions.choose(
-            (ctx: EffectFrame) => {
-              const left = ctx.read(
-                targets.ownerMarks
-                  .where(mark => mark.baseId === 'mark_kongqichuliang')
-                  .select(mark => mark.stack)
-                  .all(),
-              )
-              const right = 20
-              return right !== undefined && left.some(value => value >= right)
-            },
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_kongqichuliang').apply(ops.consumeStacks(20)),
-            contexts.damage.apply(ops.modifyDamage({ percent: -25, delta: 0 })),
-          ),
-        ),
+        when: conditions.selfUsesSkill,
+        apply: targets.ownerMarks
+          .where(mark => mark.baseId === 'mark_kongqichuliang')
+          .apply(ops.payDamageStacks(20, { percent: -25, delta: 0 })),
       },
       effect_skill_consume_mark_kongqichuliang_25_if_fail_effect_skill_reduce_damage_25_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill),
-        apply: actions.sequence(
-          actions.choose(
-            (ctx: EffectFrame) => {
-              const left = ctx.read(
-                targets.ownerMarks
-                  .where(mark => mark.baseId === 'mark_kongqichuliang')
-                  .select(mark => mark.stack)
-                  .all(),
-              )
-              const right = 25
-              return right !== undefined && left.some(value => value >= right)
-            },
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_kongqichuliang').apply(ops.consumeStacks(25)),
-            contexts.damage.apply(ops.modifyDamage({ percent: -25, delta: 0 })),
-          ),
-        ),
+        when: conditions.selfUsesSkill,
+        apply: targets.ownerMarks
+          .where(mark => mark.baseId === 'mark_kongqichuliang')
+          .apply(ops.payDamageStacks(25, { percent: -25, delta: 0 })),
       },
       effect_skill_consume_xinzhiyinji_multihit: {
         triggers: [EffectTrigger.AfterUseSkillCheck],

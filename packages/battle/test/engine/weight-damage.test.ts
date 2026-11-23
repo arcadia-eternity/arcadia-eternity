@@ -6,16 +6,12 @@ import {
   BaseMark,
   DamageContext,
   DamageType,
-  EffectContext,
-  EffectTrigger,
   TurnContext,
   UseSkillContext,
   AttackTargetOpinion,
-  defineNativeEffect,
   setGlobalLogger,
   type Battle,
   type baseMarkId,
-  type effectId,
 } from '@arcadia-eternity/battle/engine'
 import { makeScenario } from './scenario'
 
@@ -32,6 +28,10 @@ function setup(id: keyof typeof effects, stacks = 3) {
   for (const pet of [...f.a.team, ...f.b.team]) {
     pet.marks.splice(0)
     for (const skill of pet.skills) skill.effects.splice(0)
+  }
+  for (const pet of [f.b.activePet, f.b.team[1]]) {
+    pet.attributeSystem.updateBaseValue('maxHp', 1000)
+    pet.currentHp = 1000
   }
   const defensive = id === 'effect_mark_reduce_damage_with_weight'
   const owner = defensive ? f.b.activePet : f.a.activePet
@@ -52,8 +52,9 @@ function setup(id: keyof typeof effects, stacks = 3) {
   )
   const damage = () => new DamageContext(use, use.skill, f.b.activePet, 83, DamageType.Physical)
   const apply = (event = damage()) => {
-    f.battle.applyEffects(event, EffectTrigger.OnBeforeCalculateDamage, source)
-    return event
+    event.target.damage(event)
+    if (!event.result) throw new Error('Damage did not resolve')
+    return event.result
   }
   return { ...f, owner, queried, source, mark, use, damage, apply, sign: defensive ? -1 : 1 }
 }
@@ -65,26 +66,18 @@ for (const id of ids) {
       if (weight !== undefined) f.queried.attributeSystem.updateBaseValue('weight', weight)
       // A conflicting raw field must not override the computed attribute.
       Object.defineProperty(f.queried, 'weight', { value: 999, configurable: true })
-      expect(f.apply().modified).toEqual([0, 0 + expected * f.sign])
+      expect(f.apply().modifiedDamage).toBe(Math.floor(83 + expected * f.sign))
       expect(f.mark.stack).toBe(f.sign === -1 ? 2 : 3)
     })
   it(`${id}: late changes and repeated evaluation read the current attribute`, () => {
     const f = setup(id)
-    f.queried.attributeSystem.updateBaseValue('weight', 17)
-    f.b.activePet.skills[0].effects.push(
-      defineNativeEffect({
-        id: 'fixture/weight-observer' as effectId,
-        triggers: [EffectTrigger.BeforeEffect],
-        when: ctx => ctx.parent instanceof EffectContext && ctx.parent.effect?.id === id,
-        apply: () => f.queried.attributeSystem.updateBaseValue('weight', 31),
-      }),
-    )
-    const first = f.apply()
-    expect(first.modified).toEqual([0, 31 * f.sign])
-    f.b.activePet.skills[0].effects.splice(0)
+    const proposal = f.damage()
+    f.queried.attributeSystem.updateBaseValue('weight', 31)
+    const first = f.apply(proposal)
+    expect(first.modifiedDamage).toBe(83 + 31 * f.sign)
     f.queried.attributeSystem.updateBaseValue('weight', 43)
-    expect(first.modified).toEqual([0, 31 * f.sign])
-    expect(f.apply().modified).toEqual([0, 43 * f.sign])
+    expect(first.modifiedDamage).toBe(83 + 31 * f.sign)
+    expect(f.apply().modifiedDamage).toBe(83 + 43 * f.sign)
   })
   it(`${id}: actual physical damage settles the signed delta`, () => {
     const f = setup(id)
@@ -92,7 +85,7 @@ for (const id of ids) {
     const event = f.damage()
     const before = f.b.activePet.currentHp
     f.b.activePet.damage(event)
-    expect(event.modified).toEqual([0, 12 * f.sign])
+    expect(event.result?.modifiedDamage).toBe(83 + 12 * f.sign)
     expect(event.damageResult).toBe(83 + 12 * f.sign)
     expect(f.b.activePet.currentHp).toBe(Math.max(0, before - event.damageResult))
   })
@@ -104,19 +97,20 @@ it('opponent weight re-queries the current position on the next execution', () =
   f.b.team[1].attributeSystem.updateBaseValue('weight', 29)
   const first = f.apply()
   f.b.activePet = f.b.team[1]
-  expect(f.apply().modified).toEqual([0, 29])
-  expect(first.modified).toEqual([0, 11])
+  expect(f.apply().modifiedDamage).toBe(112)
+  expect(first.modifiedDamage).toBe(94)
 })
-it('last defensive stack is consumed before querying its now-detached owner', () => {
+it('last defensive stack protects its owner before payment detaches the mark', () => {
   const f = setup('effect_mark_reduce_damage_with_weight', 1)
-  expect(f.apply().modified).toEqual([0, 0])
+  f.queried.attributeSystem.updateBaseValue('weight', 12)
+  expect(f.apply().modifiedDamage).toBe(71)
   expect(f.mark.isActive).toBe(false)
   expect(f.mark.owner).toBeNull()
 })
 it('defensive mark does not modify damage to another pet', () => {
   const f = setup('effect_mark_reduce_damage_with_weight')
   const event = new DamageContext(f.use, f.use.skill, f.a.activePet, 83, DamageType.Physical)
-  expect(f.apply(event).modified).toEqual([0, 0])
+  expect(f.apply(event).modifiedDamage).toBe(83)
   expect(f.mark.stack).toBe(3)
 })
 
@@ -129,24 +123,13 @@ for (const id of ids)
       new Modifier(DurationType.binding, 'fixture/weight-bonus', 7, 'delta', 0, f.mark),
     )
     expect(f.queried.stat.weight).toBe(27)
-    expect(f.apply().modified).toEqual([0, 27 * f.sign])
+    expect(f.apply().modifiedDamage).toBe(83 + 27 * f.sign)
   })
-it('opponent position is resolved after BeforeEffect, not when damage was created', () => {
+it('resolves the opponent position when the proposal is evaluated', () => {
   const f = setup('effect_skill_damage_by_opponent_weight')
   const event = f.damage()
   f.b.activePet.attributeSystem.updateBaseValue('weight', 11)
-  const next = f.b.team[1]
-  next.attributeSystem.updateBaseValue('weight', 29)
-  f.b.activePet.skills[0].effects.push(
-    defineNativeEffect({
-      id: 'fixture/weight-switch' as effectId,
-      triggers: [EffectTrigger.BeforeEffect],
-      when: ctx =>
-        ctx.parent instanceof EffectContext && ctx.parent.effect?.id === 'effect_skill_damage_by_opponent_weight',
-      apply: () => {
-        f.b.activePet = next
-      },
-    }),
-  )
-  expect(f.apply(event).modified).toEqual([0, 29])
+  f.b.activePet = f.b.team[1]
+  f.b.activePet.attributeSystem.updateBaseValue('weight', 29)
+  expect(f.apply(event).modifiedDamage).toBe(112)
 })

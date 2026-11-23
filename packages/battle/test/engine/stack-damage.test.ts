@@ -35,6 +35,8 @@ function fixture(id: typeof reduction | typeof amplification, stack = 3) {
     pet.marks.splice(0)
     for (const skill of pet.skills) skill.effects.splice(0)
   }
+  f.b.activePet.attributeSystem.updateBaseValue('maxHp', 1000)
+  f.b.activePet.currentHp = 1000
   const owner = id === reduction ? f.b.activePet : f.a.activePet
   const mark = new BaseMark((id === reduction ? 'mark_shazhiwang' : 'mark_niliu') as baseMarkId, [], {
     ...f.debuff.config,
@@ -57,38 +59,28 @@ function fixture(id: typeof reduction | typeof amplification, stack = 3) {
   )
   const damage = (type = DamageType.Special) => new DamageContext(use, use.skill, f.b.activePet, 40, type)
   const apply = (event = damage()) => {
-    f.battle.applyEffects(event, EffectTrigger.OnBeforeCalculateDamage, source)
-    return event
+    event.target.damage(event)
+    if (!event.result) throw new Error('Damage did not resolve')
+    return event.result
   }
-  const before = (action: () => void) =>
-    f.b.activePet.skills[0].effects.push(
-      defineNativeEffect({
-        id: 'fixture/stack-change' as effectId,
-        triggers: [EffectTrigger.BeforeEffect],
-        when: ctx => ctx.parent instanceof EffectContext && ctx.parent.effect?.id === id,
-        apply: action,
-      }),
-    )
-  return { ...f, owner, mark, source, effect, use, damage, apply, before }
+  return { ...f, owner, mark, source, effect, use, damage, apply }
 }
 for (const id of [reduction, amplification] as const) {
   for (const type of [DamageType.Physical, DamageType.Special, DamageType.Effect])
     it(`${id}: ${type} admission and signed delta`, () => {
       const f = fixture(id)
-      const expected = id === amplification ? 90 : type === DamageType.Special ? -3 : 0
-      expect(f.apply(f.damage(type)).modified).toEqual([0, expected])
+      const expected = type === DamageType.Effect ? 0 : id === amplification ? 90 : type === DamageType.Special ? -3 : 0
+      expect(f.apply(f.damage(type)).modifiedDamage).toBe(40 + expected)
     })
   it(`${id}: late stack change is read at action time`, () => {
     const f = fixture(id)
-    f.before(() => {
-      f.mark.stack = 7
-    })
-    const first = f.apply()
-    expect(first.modified).toEqual([0, id === amplification ? 210 : -7])
-    f.b.activePet.skills[0].effects.splice(0)
+    const proposal = f.damage()
+    f.mark.stack = 7
+    const first = f.apply(proposal)
+    expect(first.modifiedDamage).toBe(id === amplification ? 250 : 33)
     f.mark.stack = 2
-    expect(first.modified).toEqual([0, id === amplification ? 210 : -7])
-    expect(f.apply().modified).toEqual([0, id === amplification ? 60 : -2])
+    expect(first.modifiedDamage).toBe(id === amplification ? 250 : 33)
+    expect(f.apply().modifiedDamage).toBe(id === amplification ? 100 : 38)
   })
   it(`${id}: real special damage settlement`, () => {
     const f = fixture(id, 1)
@@ -109,29 +101,28 @@ for (const id of [reduction, amplification] as const) {
         },
       }),
     )
-    expect(f.apply().modified).toEqual([0, 0])
+    expect(f.apply().modifiedDamage).toBe(40)
   })
 }
-it('inverse current is queried again after admission, including absence', () => {
+it('inverse current removed after proposal creation cannot amplify damage', () => {
   const f = fixture(amplification)
-  f.before(() => {
-    f.owner.marks.splice(0)
-  })
-  expect(f.apply().modified).toEqual([0, 0])
+  const proposal = f.damage()
+  f.owner.marks.splice(0)
+  expect(f.apply(proposal).modifiedDamage).toBe(40)
 })
 it('inverse current supports scoped authored coefficient configuration', () => {
   const f = fixture(amplification)
   f.battle.configSystem.set(parameterAddress(amplification, 'parameters', 'damagePerStack'), 7.5)
-  expect(f.apply().modified).toEqual([0, 22])
+  expect(f.apply().modifiedDamage).toBe(62)
 })
 it('inverse current without its mark cannot add damage', () => {
   const f = fixture(amplification)
   f.owner.marks.splice(0)
-  expect(f.apply().modified).toEqual([0, 0])
+  expect(f.apply().modifiedDamage).toBe(40)
 })
 it('special reduction cannot protect the other player', () => {
   const f = fixture(reduction)
-  expect(f.apply(new DamageContext(f.use, f.use.skill, f.a.activePet, 40, DamageType.Special)).modified).toEqual([0, 0])
+  expect(f.apply(new DamageContext(f.use, f.use.skill, f.a.activePet, 40, DamageType.Special)).modifiedDamage).toBe(40)
 })
 it("inverse current does not amplify another actor's skill", () => {
   const f = fixture(amplification)
@@ -142,7 +133,7 @@ it("inverse current does not amplify another actor's skill", () => {
     AttackTargetOpinion.opponent,
     f.b.activePet.skills[0],
   )
-  expect(f.apply(new DamageContext(use, use.skill, f.a.activePet, 40, DamageType.Special)).modified).toEqual([0, 0])
+  expect(f.apply(new DamageContext(use, use.skill, f.a.activePet, 40, DamageType.Special)).modifiedDamage).toBe(40)
 })
 
 for (const id of [reduction, amplification] as const)

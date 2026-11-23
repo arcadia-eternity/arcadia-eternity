@@ -9,6 +9,7 @@
 | 修改官方数据、效果及目录归属 | [内容结构](content-structure.md) | `packs/base/pack.json`、`packs/base/src/`       |
 | 编写效果与配置参数           | [效果编写](effect-authoring.md)  | `packages/battle/src/engine/content/authoring/` |
 | 在宿主中创建对战             | [宿主接入](native-hosts.md)      | `packages/battle/src/host/`                     |
+| 伤害计算、延迟与响应         | [伤害结算](damage-resolution.md) | `packages/battle/src/engine/phase/damage.ts`    |
 | 保存、恢复及续战             | [快照](snapshots.md)             | `packages/battle/src/engine/snapshot.ts`        |
 | 战斗行为与回归               | [行为约定](compatibility.md)     | `packages/battle/test/engine/`                  |
 

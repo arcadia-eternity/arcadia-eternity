@@ -1,3 +1,4 @@
+import type { DeferredDamageOptions } from '../../deferredDamage'
 import type { Effect } from '../../effect'
 import type { ParameterCatalog } from '../parameters'
 /** Author-facing contracts. Runtime implementations are exported from api.ts. */
@@ -7,13 +8,14 @@ import type {
   StackContext,
   ConsumeStackContext,
   DamageContext,
+  EffectDamageOptions,
   HealContext,
   RageContext,
   TriggerContextMap,
   UseSkillContext,
   SwitchPetContext,
 } from '../../context'
-import type { EffectTrigger } from '@arcadia-eternity/const'
+import type { Category, EffectTrigger, Element } from '@arcadia-eternity/const'
 import type { NativeEffectTrigger } from '../../content/native-effect'
 import type { BaseMark, MarkInstance } from '../../mark'
 import type { Pet } from '../../pet'
@@ -129,8 +131,8 @@ export interface EffectDefinition<T extends Trigger, P extends Parameters> {
   readonly id: string
   readonly triggers: readonly T[]
   readonly priority?: number
-  /** Engine-owned consumption runs before the action, only for mark sources. */
-  readonly consumesStacks?: number
+  /** Damage evaluation reserves this cost. Other mark triggers pay before executing. */
+  readonly consumesStacks?: number | 'all'
   /** Contribution-only OnMarkCreated initializer: rebuild for the new owner on transfer, without replaying creation events. */
   readonly rebindOnOwnerTransfer?: boolean
   readonly tags?: readonly string[]
@@ -148,6 +150,8 @@ export declare function defineEffect<
 
 export declare const targets: {
   readonly ownerPet: Selector<Pet>
+  /** Original damage actor, including a caster currently on the bench. */
+  readonly damageOriginPet: Selector<Pet>
   readonly selfTeam: Selector<Pet>
   readonly selfSkills: Selector<SkillInstance>
   /** Direct skill actor's affordable skills; otherwise the source owner's affordable skills. */
@@ -174,6 +178,16 @@ export declare const contexts: {
   readonly consumeStack: Selector<ConsumeStackContext>
   /** Nearest damage ancestor, queried independently on each use. */
   readonly damage: Selector<DamageContext>
+  /** Skill metadata for this damage, including a mark-held deferred strike. */
+  readonly damageSkill: Selector<{
+    readonly id: string
+    readonly category: Category
+    readonly element?: Element
+    readonly tags: readonly string[]
+    readonly hits: number
+  }>
+  /** Immutable result of the nearest damage ancestor, available after commit. */
+  readonly damageResult: Selector<NonNullable<DamageContext['result']>>
   readonly heal: Selector<HealContext>
   readonly rage: Selector<RageContext>
   readonly skillUse: Selector<UseSkillContext>
@@ -191,11 +205,11 @@ export declare const conditions: {
   readonly skillActorDiffersFromOwner: Condition
   /** Direct skill event owned by this source; unlike selfUsesSkill, no skill identity restriction. */
   readonly ownerUsesSkill: Condition
-  /** Direct damage-rage event under a skill use; source pet is the rage recipient's current active pet. */
+  /** Damage-derived rage belongs to the pet that lost HP, including redirected and deferred damage. */
   readonly ownerReceivesDamageRage: Condition
   /** Legacy checkSelf: compare source ownership with the subject of the direct event. */
   readonly sourceOwnsEvent: Condition
-  /** Source pet is the actual target of the direct skill event. */
+  /** Source pet is the actual target of a skill event or the victim of a confirmed defeat. */
   readonly ownerIsSkillTarget: Condition
   /** Source pet is the incoming pet of the direct switch context. */
   readonly ownerSwitchesIn: Condition
@@ -219,6 +233,10 @@ export declare const conditions: {
     stat: 'atk' | 'def' | 'spa' | 'spd' | 'spe' | undefined,
     direction: 'up' | 'down' | 'all',
   ) => Condition
+  /** This instance contributed a numeric modifier to the committed damage ancestor. */
+  readonly thisEffectModifiedDamage: Condition
+  /** The current effect and its source instance proposed the committed damage. */
+  readonly thisEffectCausedDamage: Condition
   /** Nearest damage target belongs to a different player than the source pet. */
   readonly damageTargetBelongsToOtherPlayer: Condition
   /** Direct rage event belongs to the source pet's player, regardless of reason. */
@@ -269,6 +287,10 @@ type DefaultedNumericInput = NumericInput | Value<number | undefined, Presence>
 type StageStrategy = 'none' | 'all' | 'positive' | 'negative'
 type PowerInput = NumericInput | Value<readonly number[], Presence>
 export declare const ops: {
+  readonly deferSkillDamage: (
+    mark: BaseMark,
+    options: DeferredDamageOptions,
+  ) => Operator<UseSkillContext, EffectTrigger.BeforeHit>
   /** Bind one effect to Skill, then Turn, then current phase; no phase means no value read. */
   readonly addTemporaryEffect: (
     effect: Effect<EffectTrigger> | Value<Effect<EffectTrigger>, Presence>,
@@ -323,7 +345,7 @@ export declare const ops: {
 
   /** Cancel a pending skill, mark application, rage change, stack consumption or outer effect; no rollback of prior writes. */
   readonly disableContext: () => Operator<
-    UseSkillContext | AddMarkContext | RageContext | ConsumeStackContext | EffectContext<EffectTrigger>
+    UseSkillContext | AddMarkContext | HealContext | RageContext | ConsumeStackContext | EffectContext<EffectTrigger>
   >
   /** Read mark, stack, duration once, in that order. Missing mark skips; missing options use mark defaults. */
   readonly addMark: (
@@ -362,8 +384,21 @@ export declare const ops: {
   readonly setIgnoreStageStrategy: (
     strategy: StageStrategy | Value<StageStrategy, Presence>,
   ) => Operator<UseSkillContext>
-  /** Mark unavailable at execution time; does not undo damage already applied. */
-  readonly preventDamage: () => Operator<DamageContext>
+  /** Cancel the active proposal and release its conditional costs. */
+  readonly cancelDamage: () => Operator<DamageContext>
+  /** Prevent the specified amount or fraction. With neither, prevent all remaining damage. */
+  readonly preventDamage: (options?: {
+    amount?: NumericInput
+    fraction?: NumericInput
+    stacks?: number | 'all'
+  }) => Operator<DamageContext>
+  readonly replaceDamageWithHeal: (fraction: NumericInput, stacks?: number | 'all') => Operator<DamageContext>
+  readonly surviveDamage: (hp: NumericInput, stacks?: number | 'all') => Operator<DamageContext>
+  readonly redirectDamage: (target: Value<Pet, Presence>) => Operator<DamageContext>
+  /** Pay the caster's remaining rage before proposing this hit. Scale the flat bonus by the actual debit. */
+  readonly spendRageForHit: (coefficient: NumericInput) => Operator<UseSkillContext, EffectTrigger.PreDamage>
+  /** Reserve stacks on one selected mark. Apply the fallback modifier if no mark can pay. */
+  readonly payDamageStacks: (amount: number, fallback: { percent: number; delta: number }) => Operator<MarkInstance>
   /** Cap the final gain after modifiers; multiple caps combine by minimum. */
   readonly limitRageGain: (maximum: NumericInput) => Operator<RageContext>
   /** Read percent, then delta, once per invocation; missing input skips all selected contexts. */
@@ -374,8 +409,9 @@ export declare const ops: {
   readonly setDamageThreshold: (bounds: { min?: NumericInput; max?: NumericInput }) => Operator<DamageContext>
   /** Evaluate amount once per operator invocation, then apply to its selected targets. Missing skips. */
   readonly heal: (amount: NumericInput) => Operator<Pet>
-  readonly dealDamage: (amount: NumericInput) => Operator<Pet>
-  /** Set living targets to defeated and emit PetDefeated; skill completion owns OnDefeat and killer attribution. */
+  /** Propose a fixed magnitude. Damage category and defense rules can be selected independently of the effect source. */
+  readonly dealDamage: (amount: NumericInput, options?: EffectDamageOptions) => Operator<Pet>
+  /** Knock out living targets and dispatch the confirmed defeat with the effect source credited. */
   readonly executeKill: () => Operator<Pet>
   readonly addRage: (amount: NumericInput) => Operator<Pet | Player>
   /** Subtract through the normal rage-loss phase, including loss hooks. */

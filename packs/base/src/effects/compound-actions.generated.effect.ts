@@ -96,7 +96,7 @@ export class CompoundActionsGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
-          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Physical'),
+          contexts.damageSkill.condition((_ctx, events) => events[0]?.category === 'Physical'),
         ),
         apply: actions.sequence(
           targets.ownerPet.apply(ops.addMark(resolved.get('mark_zhongdu')!)),
@@ -323,8 +323,8 @@ export class CompoundActionsGeneratedEffects {
         apply: actions.sequence(
           targets.opponentActive.apply(
             ops.addMark(resolved.get('mark_baiya')!, {
-              stack: contexts.damage
-                .select(event => event.damageResult)
+              stack: contexts.damageResult
+                .select(event => event.hpLoss)
                 .first()
                 .map(n => Math.min(n, 800)),
             }),
@@ -358,8 +358,8 @@ export class CompoundActionsGeneratedEffects {
         apply: actions.sequence(
           targets.opponentActive.apply(
             ops.addMark(resolved.get('mark_heiya')!, {
-              stack: contexts.damage
-                .select(event => event.damageResult)
+              stack: contexts.damageResult
+                .select(event => event.hpLoss)
                 .first()
                 .map(n => Math.min(n, 800)),
             }),

@@ -1,3 +1,5 @@
+import { getDamageEvaluation } from '../damageEvaluation'
+import { EffectExecutionPhase } from './effectExecution'
 import { type BattlePhaseBase, PhaseState, type PhaseResult, InteractivePhase } from './base'
 import type { Battle } from '../battle'
 
@@ -10,6 +12,11 @@ export interface PhaseExecutionOptions {
   skipOnError?: boolean
 }
 
+function assertPermittedPhase(phase: BattlePhaseBase): void {
+  if (getDamageEvaluation() && !(phase instanceof EffectExecutionPhase))
+    throw new Error('Cannot start a state-changing phase during damage evaluation')
+}
+
 export class PhaseManager {
   private phases: Map<string, BattlePhaseBase> = new Map()
   private currentPhase?: BattlePhaseBase
@@ -20,6 +27,7 @@ export class PhaseManager {
    * Register a phase for management
    */
   public registerPhase(phase: BattlePhaseBase): void {
+    assertPermittedPhase(phase)
     if (this.phases.has(phase.id)) {
       throw new Error(`Phase with id ${phase.id} already registered`)
     }
@@ -36,6 +44,7 @@ export class PhaseManager {
     if (!phase) {
       throw new Error(`Phase ${phaseId} not found`)
     }
+    assertPermittedPhase(phase)
 
     // Check if this is an interactive phase - these must use executePhaseAsync
     if (phase instanceof InteractivePhase) {
@@ -87,6 +96,7 @@ export class PhaseManager {
     if (!phase) {
       throw new Error(`Phase ${phaseId} not found`)
     }
+    assertPermittedPhase(phase)
 
     if (options.retryCount) throw new Error('Automatic phase retry requires a rollback boundary')
     if (options.timeout) throw new Error('Phase timeout requires a cooperative cancellation boundary')

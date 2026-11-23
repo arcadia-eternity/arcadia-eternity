@@ -17,6 +17,7 @@ export const nativeEffectTriggers = Object.freeze([
   EffectTrigger.OnDefeat,
   EffectTrigger.SkillUseEnd,
   EffectTrigger.OnBeforeCalculateDamage,
+  EffectTrigger.OnDamageReplacement,
   EffectTrigger.OnDamage,
   EffectTrigger.Shield,
   EffectTrigger.PostDamage,
@@ -61,7 +62,7 @@ export interface NativeEffectDefinition<T extends NativeEffectTrigger> {
   readonly priority?: number
   readonly when?: (context: NativeEffectContext<T>) => boolean
   readonly apply: (context: NativeEffectContext<T>) => void
-  readonly consumesStacks?: number
+  readonly consumesStacks?: number | 'all'
   readonly tags?: readonly string[]
 }
 
@@ -78,6 +79,7 @@ export function defineNativeEffect<const T extends NativeEffectTrigger>(
   if (!Number.isFinite(priority)) throw new Error('Invalid native effect priority')
   if (
     definition.consumesStacks !== undefined &&
+    definition.consumesStacks !== 'all' &&
     (!Number.isSafeInteger(definition.consumesStacks) || definition.consumesStacks < 0)
   )
     throw new Error('Invalid native effect stack consumption')

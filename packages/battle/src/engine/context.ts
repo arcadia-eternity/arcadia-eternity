@@ -1,11 +1,12 @@
+import { DamageResolution, type DamageOrigin, type DamagePolicy, type DamageRule } from './damageResolution'
+import type { DeferredDamage } from './deferredDamage'
+import { calculateSkillDamage } from './skillDamage'
 import { normalizeMarkInstanceParams, type MarkInstanceParams } from './content/mark-parameters'
 import {
   AttackTargetOpinion,
   Category,
   DamageType,
   EffectTrigger,
-  ELEMENT_CHART,
-  elementMultiplier,
   IgnoreStageStrategy,
   StackStrategy,
   type Element,
@@ -32,6 +33,7 @@ export type AllContext =
   | TurnContext
   | UseSkillContext
   | DamageContext
+  | DefeatContext
   | HealContext
   | AddMarkContext
   | RemoveMarkContext
@@ -153,12 +155,16 @@ export class UseSkillContext extends Context {
   stabMultiplier = 1.5
   critMultiplier = 2
 
+  /** Flat terms bought during PreDamage for the current hit. */
+  readonly paidDamageBonuses: Array<{ sourceId: string; delta: number }> = []
   baseDamage: number = 0
   randomFactor: number = 1
 
   defeated: boolean = false
   /** Captured on accepted execution, not at selection/context construction time. */
   previousSkillElement?: Element
+  /** The successful hit has handed its damage to a mark. */
+  damageDeferred = false
 
   constructor(
     public readonly parent: TurnContext,
@@ -219,51 +225,8 @@ export class UseSkillContext extends Context {
   }
 
   updateDamageResult() {
-    if (!this.actualTarget) return
-    let atk = 0
-    let def = 0
-    switch (this.category) {
-      case Category.Physical:
-        atk = this.pet.actualStat.atk
-        def = this.actualTarget.getEffectiveStat(false, this.ignoreStageStrategy).def
-        this.damageType = DamageType.Physical
-        break
-      case Category.Special:
-        atk = this.pet.actualStat.spa
-        def = this.actualTarget.getEffectiveStat(false, this.ignoreStageStrategy).spd
-        this.damageType = DamageType.Special
-        break
-      case Category.Climax:
-        if (this.pet.actualStat.atk > this.pet.actualStat.spa) {
-          atk = this.pet.actualStat.atk
-          def = this.actualTarget.getEffectiveStat(false, this.ignoreStageStrategy).def
-          this.damageType = DamageType.Physical
-        } else {
-          atk = this.pet.actualStat.spa
-          def = this.actualTarget.getEffectiveStat(false, this.ignoreStageStrategy).spd
-          this.damageType = DamageType.Special
-        }
-    }
-
-    this.typeMultiplier = elementMultiplier(
-      this.battle.elementMultipliers ?? ELEMENT_CHART,
-      this.skill.element,
-      this.actualTarget.element,
-    )
-
-    const baseDamage = Math.floor((((2 * this.actualTarget.level) / 5 + 2) * this.power * (atk / def)) / 50 + 2)
-
-    // STAB加成
-    const stabMultiplier = this.pet.species.element === this.skill.element ? this.stabMultiplier : 1
-
-    // 暴击加成
-    const critMultiplier = this.crit ? this.critMultiplier : 1
-
-    // 得到基础伤害
-    this.baseDamage = Math.floor(baseDamage * this.typeMultiplier * stabMultiplier * critMultiplier)
-
-    // 随机波动
-    this.randomFactor = this.battle!.random() * 0.15 + 0.85
+    if (!this.actualTarget || this.category === Category.Status) return
+    Object.assign(this, calculateSkillDamage(this.battle, this.pet, this.actualTarget, this))
   }
 
   setSkill(skill: SkillInstance, updateConfig?: boolean) {
@@ -368,14 +331,33 @@ export class SwitchPetContext extends Context {
   }
 }
 
+/** A confirmed knockout and its credited origin, available to OnDefeat reactions. */
+export class DefeatContext extends Context {
+  readonly type = 'defeat'
+  public readonly battle: Battle
+
+  constructor(
+    public readonly parent: DamageContext | EffectContext<EffectTrigger>,
+    public readonly target: Pet,
+    public readonly killer?: Pet,
+    public readonly skill?: SkillInstance,
+  ) {
+    super(parent)
+    this.battle = parent.battle
+  }
+}
+
 export class RageContext extends Context {
   readonly type = 'rage-cost'
   public readonly battle: Battle
   public available: boolean = true
+  /** Actual debit, captured before reactions can change rage again. */
+  public rageSpent = 0
   public rageChangeResult = 0
   private gainLimit = Infinity
   constructor(
-    public readonly parent: UseSkillContext | EffectContext<EffectTrigger> | TurnContext | SwitchPetContext,
+    public readonly parent:
+      UseSkillContext | DamageContext | EffectContext<EffectTrigger> | TurnContext | SwitchPetContext,
     public target: Player,
     public reason: 'turn' | 'damage' | 'skill' | 'skillHit' | 'switch' | 'effect',
     public modifiedType: 'setting' | 'add' | 'reduce',
@@ -408,59 +390,164 @@ export class RageContext extends Context {
   }
 }
 
+/** A fixed magnitude proposed by an effect, with independently selectable damage and defense rules. */
+export interface EffectDamageOptions {
+  readonly damageType?: DamageType
+  readonly element?: Element
+  readonly policy?: Partial<DamagePolicy>
+}
+
 export class DamageContext extends Context {
   readonly type = 'damage'
-  public readonly battle: Battle
-  public available: boolean = true
-  public damageResult: number = 0
+  readonly battle: Battle
+  readonly resolution: DamageResolution
+  readonly origin: DamageOrigin
+  readonly policy: DamagePolicy
+  available = true
+
   constructor(
     public readonly parent: UseSkillContext | EffectContext<EffectTrigger>,
-    public readonly source: Pet | MarkInstance | SkillInstance, //来自技能伤害，还是印记和技能的效果获得的伤害
-    public readonly target: Pet,
+    public readonly source: Pet | MarkInstance | SkillInstance,
+    public target: Pet,
     public baseDamage: number,
-    public damageType: DamageType = DamageType.Effect,
-    public crit: boolean = false, //显示这个伤害是不是一个暴击伤害，尝试修改他是不会修改实际的伤害数值的
-    public effectiveness: number = 1,
-    public ignoreShield: boolean = false,
-    public randomFactor: number = 1,
-    public modified: [number, number] = [0, 0], // 百分比修正, 固定值修正
-    public minThreshold: number = 0, // 最小伤害阈值数值
-    public maxThreshold: number = Number.MAX_SAFE_INTEGER, // 最大伤害阈值数值
-    public element?: Element, // 伤害的元素属性
+    public readonly damageType: DamageType = DamageType.Effect,
+    public readonly crit = false,
+    public readonly effectiveness = 1,
+    public readonly ignoreShield = false,
+    public readonly randomFactor = 1,
+    modified: [number, number] = [0, 0],
+    minThreshold = 0,
+    maxThreshold = Number.MAX_SAFE_INTEGER,
+    public readonly element?: Element,
+    origin?: DamageOrigin,
+    policy?: Partial<DamagePolicy>,
   ) {
     super(parent)
     this.battle = parent.battle
-  }
-
-  updateDamageResult() {
-    // 应用百分比修正（叠加计算）
-    const percentModifier = 1 + this.modified[0] / 100
-    const deltaModifier = this.modified[1]
-    let intermediateDamage = this.baseDamage * this.randomFactor * percentModifier + deltaModifier
-
-    // 应用伤害阈值（先处理最小值再处理最大值）
-    // 最小值阈值处理
-    if (typeof this.minThreshold === 'number') {
-      intermediateDamage = Math.max(intermediateDamage, this.minThreshold)
+    const skill =
+      parent instanceof UseSkillContext ? parent.skill : source instanceof SkillInstance ? source : undefined
+    const actor =
+      parent instanceof UseSkillContext
+        ? parent.pet
+        : source instanceof Pet
+          ? source
+          : (parent.sourceActor ?? source.owner)
+    const cast = parent instanceof UseSkillContext ? parent : undefined
+    const identity: DamageOrigin = origin ?? {
+      trigger: cast ? 'skill' : 'effect',
+      executorId: source.id,
+      petId: actor instanceof Pet ? actor.id : undefined,
+      skillId: skill?.baseId,
+      skillInstanceId: skill?.id,
+      skillCategory: cast?.category ?? skill?.category,
+      skillElement: element ?? cast?.element ?? skill?.element,
+      skillTags: skill?.tags,
+      hitCount: skill ? (cast?.multihitResult ?? 1) : undefined,
+      effectId: parent instanceof EffectContext ? parent.effect?.id : undefined,
     }
+    this.origin = Object.freeze({
+      ...identity,
+      ...(identity.skillTags ? { skillTags: Object.freeze([...identity.skillTags]) } : {}),
+    })
+    const strike = damageType === DamageType.Physical || damageType === DamageType.Special
+    this.policy = Object.freeze({
+      skillModifiers: strike,
+      shields: strike && !ignoreShield,
+      skillReactions: strike,
+      ...policy,
+    })
+    this.resolution = new DamageResolution(this)
+    if (modified[0] || modified[1]) this.addModified(...modified)
+    if (minThreshold !== 0 || maxThreshold !== Number.MAX_SAFE_INTEGER) this.addThreshold(minThreshold, maxThreshold)
+  }
 
-    // 最大值阈值处理
-    if (typeof this.maxThreshold === 'number') {
-      intermediateDamage = Math.min(intermediateDamage, this.maxThreshold)
+  static fromEffect(parent: EffectContext<EffectTrigger>, target: Pet, amount: number, options: EffectDamageOptions) {
+    const { damageType, element, policy } = options
+    return new DamageContext(
+      parent,
+      parent.source,
+      target,
+      amount,
+      damageType,
+      false,
+      1,
+      false,
+      1,
+      [0, 0],
+      0,
+      Number.MAX_SAFE_INTEGER,
+      element,
+      undefined,
+      policy,
+    )
+  }
+
+  get result() {
+    return this.resolution.result
+  }
+
+  get damageResult(): number {
+    return this.result?.hpLoss ?? this.resolution.remaining ?? this.resolution.evaluate()
+  }
+
+  /** Numeric terms are sampled once by authoring Values in the active effect frame. */
+  addModified(percent: number, delta: number, sourceId = this.source.id as string): void {
+    this.resolution.addModifiers(sourceId, [
+      { type: 'percent', value: percent },
+      { type: 'delta', value: delta },
+    ])
+  }
+
+  /** Read-only aggregate for inspection by existing content. */
+  get modified(): [number, number] {
+    let percent = 0,
+      delta = 0
+    for (const term of this.resolution.modifiers) {
+      if (term.type === 'percent') percent += term.value
+      if (term.type === 'delta') delta += term.value
     }
-
-    // 记录最终伤害
-    this.damageResult = Math.floor(Math.max(0, intermediateDamage))
+    return [percent, delta]
   }
 
-  addModified: (percent: number, delta: number) => void = (percent, delta) => {
-    this.modified[0] += percent
-    this.modified[1] += delta
+  get minThreshold(): number {
+    return this.resolution.modifiers.reduce(
+      (min, term) => (term.type === 'clampMin' ? Math.max(min, term.value) : min),
+      0,
+    )
   }
 
-  addThreshold(min?: number, max?: number) {
-    if (typeof min === 'number') this.minThreshold = min
-    if (typeof max === 'number') this.maxThreshold = max
+  get maxThreshold(): number {
+    return this.resolution.modifiers.reduce(
+      (max, term) => (term.type === 'clampMax' ? Math.min(max, term.value) : max),
+      Number.MAX_SAFE_INTEGER,
+    )
+  }
+
+  addThreshold(min?: number, max?: number, sourceId = this.source.id as string): void {
+    this.resolution.addModifiers(sourceId, [
+      ...(min === undefined ? [] : [{ type: 'clampMin' as const, value: min }]),
+      ...(max === undefined ? [] : [{ type: 'clampMax' as const, value: max }]),
+    ])
+  }
+
+  addRule(rule: DamageRule): void {
+    this.resolution.addRule(rule)
+  }
+
+  reserveModifierCost(mark: MarkInstance, stacks: number | 'all'): boolean {
+    this.resolution.assertOpen()
+    return this.resolution.payments.reserve(mark, stacks, false, 'modifier') > 0
+  }
+
+  savepoint(): () => void {
+    const { available, baseDamage, target } = this
+    const rollback = this.resolution.savepoint()
+    return () => {
+      this.available = available
+      this.baseDamage = baseDamage
+      this.target = target
+      rollback()
+    }
   }
 }
 
@@ -508,6 +595,7 @@ export class HealContext extends Context {
 }
 
 export class AddMarkContext extends Context {
+  deferredDamage?: DeferredDamage
   public readonly instanceParams: MarkInstanceParams | undefined
   public result?: 'parameter-conflict'
   readonly type = 'add-mark'
@@ -655,6 +743,7 @@ export class ConsumeStackContext extends Context {
     public readonly mark: MarkInstance,
     public readonly requestedAmount: number,
     public actualAmount: number = 0,
+    public readonly reason: 'effect' | 'modifier' | 'rule' | 'shield' = 'effect',
   ) {
     super(parent)
     this.battle = parent.battle
@@ -679,9 +768,10 @@ type V1TriggerContextMap = {
   [EffectTrigger.OnHit]: UseSkillContext
   [EffectTrigger.OnMiss]: UseSkillContext
   [EffectTrigger.AfterAttacked]: UseSkillContext
-  [EffectTrigger.OnDefeat]: UseSkillContext
+  [EffectTrigger.OnDefeat]: DefeatContext
   [EffectTrigger.SkillUseEnd]: UseSkillContext
 
+  [EffectTrigger.OnDamageReplacement]: DamageContext
   [EffectTrigger.OnBeforeCalculateDamage]: DamageContext
   [EffectTrigger.OnDamage]: DamageContext
   [EffectTrigger.Shield]: DamageContext
@@ -732,6 +822,7 @@ export class EffectContext<T extends EffectTrigger> extends Context {
   public readonly battle: Battle
   public available: boolean = true
 
+  readonly sourceActor?: Pet
   public success?: boolean
   constructor(
     public readonly parent: TriggerContextMap[T],
@@ -741,6 +832,7 @@ export class EffectContext<T extends EffectTrigger> extends Context {
   ) {
     super(parent)
     this.battle = parent.battle
+    this.sourceActor = source.owner instanceof Pet ? source.owner : undefined
   }
 }
 

@@ -90,7 +90,7 @@ function hook(id: string, trigger: EffectTrigger, apply: (ctx: EffectContext<Eff
 }
 it('dispatches authored trigger arrays with the matching parent and leaves native contexts intact', () => {
   const f = fixture()
-  const triggers = [EffectTrigger.OnHit, EffectTrigger.OnDamage] as const
+  const triggers = [EffectTrigger.OnHit, EffectTrigger.OnBeforeCalculateDamage] as const
   const calls: unknown[] = []
   const definition = defineEffect({
     id: 'fixture/authored-context',
@@ -102,7 +102,8 @@ it('dispatches authored trigger arrays with the matching parent and leaves nativ
     apply(ctx) {
       calls.push(['apply', ctx.trigger, ctx.parent])
       expect(ctx.read(targets.ownerPet.first())).toBe(f.owner)
-      if (ctx.trigger === EffectTrigger.OnDamage) ctx.ops.modifyDamage(ctx.parent, { delta: 5, percent: 0 })
+      if (ctx.trigger === EffectTrigger.OnBeforeCalculateDamage)
+        ctx.ops.modifyDamage(ctx.parent, { delta: 5, percent: 0 })
       else expect(ctx.parent.skill).toBe(f.skill)
     },
   })
@@ -110,7 +111,7 @@ it('dispatches authored trigger arrays with the matching parent and leaves nativ
   const damage = new DamageContext(f.use, f.owner, f.b.activePet, 100)
   for (const [trigger, parent] of [
     [EffectTrigger.OnHit, f.use],
-    [EffectTrigger.OnDamage, damage],
+    [EffectTrigger.OnBeforeCalculateDamage, damage],
   ] as const) {
     const context = new EffectContext(parent, trigger, f.skill, effect)
     expect(effect.condition!(context)).toBe(true)
@@ -121,8 +122,8 @@ it('dispatches authored trigger arrays with the matching parent and leaves nativ
   expect(calls).toEqual([
     ['when', EffectTrigger.OnHit, f.use],
     ['apply', EffectTrigger.OnHit, f.use],
-    ['when', EffectTrigger.OnDamage, damage],
-    ['apply', EffectTrigger.OnDamage, damage],
+    ['when', EffectTrigger.OnBeforeCalculateDamage, damage],
+    ['apply', EffectTrigger.OnBeforeCalculateDamage, damage],
   ])
   expect(damage.modified).toEqual([0, 5])
 })
@@ -182,7 +183,7 @@ it('reads HP again in execution after admission and preserves lazy branches', ()
 })
 it('rebirth assigns current HP from execution-time max HP without heal hooks', () => {
   const f = fixture()
-  const source = f.add('rebirth', [compileEffect(timeRebirth)])
+  f.add('rebirth', [compileEffect(timeRebirth)])
   let healing = 0
   f.add('watch', [
     hook('heal-watch', EffectTrigger.OnBeforeHeal, () => {
@@ -193,9 +194,8 @@ it('rebirth assigns current HP from execution-time max HP without heal hooks', (
         f.owner.attributeSystem.updateBaseValue('maxHp', 400)
     }),
   ])
-  f.owner.currentHp = 0
-  const damage = new DamageContext(f.use, f.b.activePet, f.owner, 100)
-  f.battle.applyEffects(damage, EffectTrigger.PostDamage, source)
+  f.owner.currentHp = 50
+  f.owner.damage(new DamageContext(f.use, f.b.activePet, f.owner, 100))
   expect(f.owner.currentHp).toBe(100)
   expect(healing).toBe(0)
 })
@@ -236,7 +236,7 @@ it.each([
   ['capture instance', capturedInstancePenalty, [250, 225, 225, 200]],
   ['follow instance', followingInstancePenalty, [250, 225, 275, 275]],
   ['capture per entry', entryStackPenalty, [250, 250, 275, 275]],
-] as const)('%s separates object selection from stack timing', (name, plan, expected) => {
+] as const)('%s separates object selection from stack timing', (_name, plan, expected) => {
   const f = fixture()
   f.owner.attributeSystem.updateBaseValue('spe', 300)
   const old = f.add('mark_ruodianjihao', [], 2)
@@ -403,7 +403,7 @@ it('re-queries the nearest damage context between actions and reads percent then
   const f = fixture()
   const first = new DamageContext(f.use, f.owner, f.b.activePet, 100)
   const second = new DamageContext(f.use, f.owner, f.b.activePet, 100)
-  const nested = new EffectContext(first, EffectTrigger.OnDamage, f.skill)
+  const nested = new EffectContext(first, EffectTrigger.OnBeforeCalculateDamage, f.skill)
   const reads: string[] = []
   const amount = (name: string, n: number) =>
     targets.ownerPet.first().map(() => {
@@ -447,12 +447,12 @@ it('skips missing damage inputs and rejects foreign contexts before writing', ()
   const effect = compileEffect(
     defineEffect({
       id: 'missing-damage',
-      triggers: [EffectTrigger.OnDamage],
+      triggers: [EffectTrigger.OnBeforeCalculateDamage],
       apply: contexts.damage.apply(ops.modifyDamage({ percent: missing, delta })),
     }),
   )
   f.battle.executionBudget.run(f.battle.currentTurn, () =>
-    effect.innerApply(new EffectContext(damage, EffectTrigger.OnDamage, f.skill, effect)),
+    effect.innerApply(new EffectContext(damage, EffectTrigger.OnBeforeCalculateDamage, f.skill, effect)),
   )
   expect(damage.modified).toEqual([0, 0])
   expect(deltaReads).toBe(1)
@@ -460,13 +460,13 @@ it('skips missing damage inputs and rejects foreign contexts before writing', ()
   const cross = compileEffect(
     defineEffect({
       id: 'foreign-damage',
-      triggers: [EffectTrigger.OnDamage],
+      triggers: [EffectTrigger.OnBeforeCalculateDamage],
       apply: contexts.damage.select(() => foreign).apply(ops.modifyDamage({ percent: 10, delta: 5 })),
     }),
   )
   expect(() =>
     f.battle.executionBudget.run(f.battle.currentTurn, () =>
-      cross.innerApply(new EffectContext(damage, EffectTrigger.OnDamage, f.skill, cross)),
+      cross.innerApply(new EffectContext(damage, EffectTrigger.OnBeforeCalculateDamage, f.skill, cross)),
     ),
   ).toThrow('Cross-battle')
   expect(foreign.modified).toEqual([0, 0])

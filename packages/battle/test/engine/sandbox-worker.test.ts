@@ -231,51 +231,58 @@ it('restores a UGC initial checkpoint in a new Worker without a package-specific
   await restored.ready()
   expect((await restored.waitForPendingDecision()).selections[0].length).toBeGreaterThan(0)
 })
-it('stops a running battle after a caught SDK permission fault', async () => {
-  const host = manager(),
-    spec = small(`export function createEffects({sdk,id}){
-    return [sdk.defineCodeEffect({id:id('fault'),sourceKind:'skill',triggers:[sdk.EffectTrigger.OnHit],
-      apply(ctx){try{ctx.source.owner.currentHp=0}catch{}}
+it.each([
+  { trigger: 'OnHit', code: 'ctx.source.owner.currentHp=0', expected: /Use SDK operations/ },
+  { trigger: 'OnBeforeCalculateDamage', code: 'ctx.parent.target.heal()', expected: /heal during damage evaluation/ },
+])(
+  'stops a battle after a caught SDK permission fault at $trigger',
+  async ({ trigger, code, expected }) => {
+    const host = manager(),
+      spec = small(`export function createEffects({sdk,id}){
+    return [sdk.defineCodeEffect({id:id('fault'),sourceKind:'skill',triggers:[sdk.EffectTrigger.${trigger}],
+      apply(ctx){try{${code}}catch{}}
     })]
   }`)
-  Object.assign(spec.environment.data, {
-    behaviors: [
-      {
-        formatVersion: 1,
-        id: 'test:fault',
-        sourceKind: 'skill',
-        parameters: {},
-        implementation: { kind: 'native', exportId: 'test:fault' },
+    Object.assign(spec.environment.data, {
+      behaviors: [
+        {
+          formatVersion: 1,
+          id: 'test:fault',
+          sourceKind: 'skill',
+          parameters: {},
+          implementation: { kind: 'native', exportId: 'test:fault' },
+        },
+      ],
+      skills: spec.environment.data.skills.map(skill => ({
+        ...(skill as object),
+        behaviors: [{ useId: 'fault', definitionId: 'test:fault' }],
+      })),
+    })
+    const battle = await host.create(spec)
+    const events: string[] = []
+    battle.BattleEvent(
+      message => {
+        events.push(message.type)
       },
-    ],
-    skills: spec.environment.data.skills.map(skill => ({
-      ...(skill as object),
-      behaviors: [{ useId: 'fault', definitionId: 'test:fault' }],
-    })),
-  })
-  const battle = await host.create(spec)
-  const events: string[] = []
-  battle.BattleEvent(
-    message => {
-      events.push(message.type)
-    },
-    { showHidden: true },
-  )
-  await expect(
-    (async () => {
-      await battle.ready()
-      const pending = await battle.waitForPendingDecision()
-      for (const choices of pending.selections)
-        await battle.submitAction(choices.find(action => action.type === 'use-skill')!)
-      await battle.waitForPendingDecision()
-    })(),
-  ).rejects.toThrow(/Use SDK operations/)
-  await expect(battle.getState()).rejects.toThrow()
-  await battle.cleanup()
-  expect(events).not.toContain(BattleMessageType.BattleEnd)
-  expect(host.status().at(-1)?.state).toBe('faulted')
-}, 10_000)
-it('preserves SDK constructors and native healing after production minification', async () => {
+      { showHidden: true },
+    )
+    await expect(
+      (async () => {
+        await battle.ready()
+        const pending = await battle.waitForPendingDecision()
+        for (const choices of pending.selections)
+          await battle.submitAction(choices.find(action => action.type === 'use-skill')!)
+        await battle.waitForPendingDecision()
+      })(),
+    ).rejects.toThrow(expected)
+    await expect(battle.getState()).rejects.toThrow()
+    await battle.cleanup()
+    expect(events).not.toContain(BattleMessageType.BattleEnd)
+    expect(host.status().at(-1)?.state).toBe('faulted')
+  },
+  10_000,
+)
+it('projects damage results and preserves native healing after production minification', async () => {
   const { rolldown } = await import('rolldown'),
     directory = await mkdtemp(join(tmpdir(), 'arcadia-minified-worker-'))
   const build = await rolldown({
@@ -297,8 +304,11 @@ it('preserves SDK constructors and native healing after production minification'
     await build.write({ file, format: 'esm', minify: true })
     const spec = small(`export function createEffects({sdk,id}){
       new sdk.ParameterCatalog([]);
-      return [sdk.defineCodeEffect({id:id('heal'),sourceKind:'skill',triggers:[sdk.EffectTrigger.OnHit],apply(ctx){
+      return [sdk.defineCodeEffect({id:id('heal'),sourceKind:'skill',triggers:[sdk.EffectTrigger.OnDamage],apply(ctx){
         const pet=ctx.source.owner;if(!(pet instanceof sdk.Pet))throw Error('domain class identity');
+        const result=ctx.parent.result;
+        if (result.status!=='committed' || result.hpBefore-result.hpAfter!==result.hpLoss ||
+            result.origin.skillId!=='strike' || result.intent.targetId!==result.targetId) throw Error('invalid damage receipt');
         pet.heal(new sdk.HealContext(ctx,ctx.source,pet,ctx.battle.randomInt(1,1)));
       }})]
     }`)

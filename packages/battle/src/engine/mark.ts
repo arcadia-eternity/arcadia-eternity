@@ -1,3 +1,4 @@
+import type { DeferredDamage } from './deferredDamage'
 import { ConsumeStackPhase } from './phase/consumeStack'
 import { getCleanupBinding } from './snapshotBindings'
 import { initializeOwnerRelations } from './values/relations'
@@ -55,6 +56,7 @@ export class BaseMark implements Prototype, IBaseMark {
   ) {}
 
   createInstance(overrides?: {
+    id?: markId
     instanceParams?: MarkInstanceParams
     duration?: number
     stack?: number
@@ -76,6 +78,7 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   readonly tags: string[]
   isSuppressed: boolean
 
+  deferredDamage?: DeferredDamage
   readonly instanceParams: MarkInstanceParams | undefined
   readonly base: BaseMark
   readonly attributeSystem: MarkAttributeSystem
@@ -123,6 +126,7 @@ export class MarkInstanceImpl implements MarkInstance {
     )
   }
 
+  public deferredDamage?: DeferredDamage
   public readonly instanceParams: MarkInstanceParams | undefined
   private suppression = new Signal(false)
   get isSuppressed(): boolean {
@@ -149,6 +153,7 @@ export class MarkInstanceImpl implements MarkInstance {
   constructor(
     public readonly base: BaseMark,
     overrides?: {
+      id?: markId
       instanceParams?: MarkInstanceParams
       duration?: number
       stack?: number
@@ -159,7 +164,7 @@ export class MarkInstanceImpl implements MarkInstance {
   ) {
     this.instanceParams = normalizeMarkInstanceParams(base, overrides?.instanceParams)
     initializeOwnerRelations(this)
-    this.id = nanoid() as markId
+    this.id = overrides?.id ?? (nanoid() as markId)
     const mergedConfig = {
       ...base.config,
       ...overrides?.config,
@@ -358,8 +363,8 @@ export class BaseStatLevelMark extends BaseMark {
     )
   }
 
-  createInstance(): StatLevelMarkInstanceImpl {
-    const instance = new StatLevelMarkInstanceImpl(this)
+  createInstance(overrides?: { id?: markId }): StatLevelMarkInstanceImpl {
+    const instance = new StatLevelMarkInstanceImpl(this, overrides?.id)
     instance.level = this.initialLevel
     return instance
   }
@@ -377,8 +382,11 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
   // 使用computed创建自动计算的stage multiplier，基于attributeSystem的level
   private stageMultiplier$: ReactiveValue<number>
 
-  constructor(public readonly base: BaseStatLevelMark) {
-    super(base)
+  constructor(
+    public readonly base: BaseStatLevelMark,
+    id?: markId,
+  ) {
+    super(base, { id })
 
     // 创建专门的attributeSystem实例用于管理StatLevel属性
     // 使用父类的属性值，避免循环依赖

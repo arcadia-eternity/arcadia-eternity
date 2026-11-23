@@ -18,62 +18,31 @@ export class VitalSequencesGeneratedEffects {
   static build() {
     return defineEffects({
       effect_mark_absorb_damage_to_heal: {
-        triggers: [EffectTrigger.OnDamage],
+        triggers: [EffectTrigger.OnDamageReplacement],
         priority: 0,
-        consumesStacks: 1,
         when: conditions.selfBeDamaged,
-        apply: actions.sequence(
-          contexts.damage.apply(ops.preventDamage()),
-          targets.ownerPet.apply(
-            ops.heal(
-              values.combine(
-                contexts.damage.select(event => event.damageResult).first(),
-                values.choose(
-                  targets.opponentMarks.where(mark => mark.baseId === 'mark_kuihuazhongzi').condition(checks.exists()),
-                  2,
-                  4,
-                ),
-                (n, divisor) => Math.floor(n / divisor),
-              ),
+        apply: contexts.damage.apply(
+          ops.replaceDamageWithHeal(
+            values.choose(
+              targets.opponentMarks.where(mark => mark.baseId === 'mark_kuihuazhongzi').condition(checks.exists()),
+              0.5,
+              0.25,
             ),
+            1,
           ),
         ),
       },
       effect_mark_absorb_hp_to_opponent: {
-        triggers: [EffectTrigger.TurnEnd],
+        triggers: [EffectTrigger.TurnEnd, EffectTrigger.OnDamage],
         priority: 0,
-        when: conditions.ownerIsActive,
-        apply: actions.sequence(
-          targets.ownerPet.apply(
-            ops.dealDamage(
-              values.combine(
-                targets.ownerPet
-                  .select(pet => pet.currentHp)
-                  .first()
-                  .map(n => Math.floor(n / 8)),
-                targets.ownerPet
-                  .select(pet => pet.stat.maxHp)
-                  .all()
-                  .map(items => items.map((n, index) => Math.floor(n / (index === 0 ? 8 : 0)))),
-                (n, limits) => Math.min(n, limits[0] ?? 0),
-              ),
-            ),
-          ),
-          targets.opponentActive.apply(
-            ops.heal(
-              values.combine(
-                targets.ownerPet
-                  .select(pet => pet.currentHp)
-                  .first()
-                  .map(n => Math.floor(n / 8)),
-                targets.ownerPet
-                  .select(pet => pet.stat.maxHp)
-                  .all()
-                  .map(items => items.map((n, index) => Math.floor(n / (index === 0 ? 8 : 0)))),
-                (n, limits) => Math.min(n, limits[0] ?? 0),
-              ),
-            ),
-          ),
+        when: ctx =>
+          ctx.trigger === EffectTrigger.TurnEnd
+            ? conditions.ownerIsActive(ctx)
+            : conditions.thisEffectCausedDamage(ctx),
+        apply: actions.choose<EffectTrigger.TurnEnd | EffectTrigger.OnDamage>(
+          ctx => ctx.trigger === EffectTrigger.TurnEnd,
+          targets.ownerPet.apply(ops.dealDamage(targets.ownerPet.select(pet => Math.floor(pet.currentHp / 8)).first())),
+          targets.opponentActive.apply(ops.heal(contexts.damageResult.select(event => event.hpLoss).first())),
         ),
       },
       effect_mark_explode_on_stack_over_100: (() => {
@@ -155,7 +124,7 @@ export class VitalSequencesGeneratedEffects {
         consumesStacks: 1,
         when: conditions.selfUsesSkill,
         apply: actions.sequence(
-          targets.ownerPet.apply(ops.dealDamage(contexts.damage.select(event => event.damageResult).first())),
+          targets.ownerPet.apply(ops.dealDamage(contexts.damageResult.select(event => event.hpLoss).first())),
         ),
       },
       effect_mark_reflect_damage: {
@@ -164,10 +133,10 @@ export class VitalSequencesGeneratedEffects {
         consumesStacks: 1,
         when: conditions.selfBeDamaged,
         apply: actions.sequence(
-          targets.opponentActive.apply(
+          targets.damageOriginPet.apply(
             ops.dealDamage(
-              contexts.damage
-                .select(event => event.damageResult)
+              contexts.damageResult
+                .select(event => event.hpLoss)
                 .first()
                 .map(n => Math.floor(n * 1.5)),
             ),
@@ -179,10 +148,10 @@ export class VitalSequencesGeneratedEffects {
         priority: 0,
         when: conditions.selfBeDamaged,
         apply: actions.sequence(
-          targets.opponentActive.apply(
+          targets.damageOriginPet.apply(
             ops.dealDamage(
-              contexts.damage
-                .select(event => event.damageResult)
+              contexts.damageResult
+                .select(event => event.hpLoss)
                 .first()
                 .map(n => Math.floor(n / 4)),
             ),
@@ -197,10 +166,10 @@ export class VitalSequencesGeneratedEffects {
           contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
         ),
         apply: actions.sequence(
-          targets.opponentActive.apply(
+          targets.damageOriginPet.apply(
             ops.dealDamage(
-              contexts.damage
-                .select(event => event.damageResult)
+              contexts.damageResult
+                .select(event => event.hpLoss)
                 .first()
                 .map(n => Math.floor(n * 0.5)),
             ),
@@ -212,15 +181,15 @@ export class VitalSequencesGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
-          contexts.skillUse.condition((_ctx, events) => events[0]?.category !== 'Status'),
+          contexts.damageSkill.condition((_ctx, events) => events.some(event => event.category !== 'Status')),
           (ctx: EffectFrame) =>
             ctx.read(contexts.damage.select(event => event.source).first()) !== ctx.read(targets.sourceMark.first()),
         ),
         apply: actions.sequence(
           targets.ownerPet.apply(
             ops.dealDamage(
-              contexts.damage
-                .select(event => event.damageResult)
+              contexts.damageResult
+                .select(event => event.hpLoss)
                 .first()
                 .map(n => Math.floor(n * 0.5)),
             ),
@@ -233,15 +202,15 @@ export class VitalSequencesGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
-          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Special'),
+          contexts.damageSkill.condition((_ctx, events) => events[0]?.category === 'Special'),
           (ctx: EffectFrame) =>
             ctx.read(contexts.damage.select(event => event.source).first()) !== ctx.read(targets.sourceMark.first()),
         ),
         apply: actions.sequence(
           targets.ownerPet.apply(
             ops.dealDamage(
-              contexts.damage
-                .select(event => event.damageResult)
+              contexts.damageResult
+                .select(event => event.hpLoss)
                 .first()
                 .map(n => Math.floor(n * 0.5)),
             ),
@@ -279,30 +248,13 @@ export class VitalSequencesGeneratedEffects {
           }),
         }
         return {
-          triggers: [EffectTrigger.OnBeforeCalculateDamage] as const,
-          priority: 0,
+          triggers: [EffectTrigger.PreDamage] as const,
           parameters,
-          when: conditions.selfUsesSkill,
-          apply: actions.sequence(
-            contexts.damage.apply(
-              ops.modifyDamage({
-                percent: 0,
-                delta: values.combine(
-                  targets.selfPlayer.select(player => player.currentRage).first(),
-                  parameters.action0_value_delta_step1,
-                  (n, factor) => Math.floor(n * factor),
-                ),
-              }),
-            ),
-            targets.selfPlayer.apply(
-              ops.addRage(
-                targets.selfPlayer
-                  .select(player => player.currentRage)
-                  .first()
-                  .map(n => Math.floor(n * -1)),
-              ),
-            ),
+          when: conditions.all(
+            conditions.selfUsesSkill,
+            contexts.skillUse.condition((_ctx, uses) => uses.some(use => use.currentHitCount === 1)),
           ),
+          apply: contexts.skillUse.apply(ops.spendRageForHit(parameters.action0_value_delta_step1)),
         }
       })(),
       effect_skill_consume_dongqifuti_heal_self_quarter_max_hp: {
