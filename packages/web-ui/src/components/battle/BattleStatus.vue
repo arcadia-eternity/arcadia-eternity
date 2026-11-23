@@ -202,7 +202,7 @@ const petStatsInfo = computed(() => {
 
 <template>
   <div v-if="activePet" :class="containerClass" :data-battle-status="side">
-    <Tooltip position="bottom">
+    <Tooltip portal :position="side === 'right' ? 'left' : 'right'" class="self-start">
       <template #trigger>
         <PetIcon
           :id="gameDataStore.getSpecies(activePet!.speciesID)?.num"

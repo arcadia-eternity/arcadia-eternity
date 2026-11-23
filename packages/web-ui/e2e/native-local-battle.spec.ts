@@ -1,5 +1,5 @@
-import { expect, test } from 'playwright/test'
-import { trainingStat } from '@arcadia-eternity/const'
+import { expect, test, type Page } from 'playwright/test'
+import { individualValueSpread } from '@arcadia-eternity/const'
 import { prepareLocalBattle } from './helpers/local-battle-fixture'
 import input from '../../battle/test/fixtures/official-switch.input.json' with { type: 'json' }
 
@@ -27,9 +27,29 @@ test('the local page uses the native runtime and can create its actual checkpoin
   expect(await runtimeFormat(page)).toBe('arcadia.battle.native.v4')
 })
 
-test('switching to the 120 environment preserves the selected team and applies its rules in battle', async ({
-  page,
-}) => {
+async function expect120Battle(page: Page) {
+  await page.waitForURL(/\/battle\?dev=true/)
+  const petIVs = await page.evaluate(async () => {
+    const path = '/src/stores/battle.ts'
+    const { useBattleStore } = await import(path)
+    const snapshot = await useBattleStore().battleInterface.createRuntimeSnapshot()
+    const { nodes } = JSON.parse(snapshot.payload).battle
+    return nodes
+      .filter((node: { kind: string }) => node.kind === 'Pet')
+      .map((pet: { fields: { ivs: { ref: number } } }) => nodes[pet.fields.ivs.ref].fields)
+  })
+  expect(petIVs).toHaveLength(6)
+  for (const ivs of petIVs) expect(ivs).toEqual(individualValueSpread(120))
+  // Both default lineups lead with a level 100 Xiuluosi (179 base HP and 4 HP EVs).
+  for (const side of ['left', 'right']) {
+    await expect(page.locator(`[data-battle-status="${side}"]`).getByRole('meter', { name: '生命值' })).toHaveAttribute(
+      'aria-valuemax',
+      '589',
+    )
+  }
+}
+
+test('local rematches retain both team selections, the 120-IV environment and battle options', async ({ page }) => {
   test.setTimeout(60_000)
   await prepareLocalBattle(page)
   await page.goto('/local-battle')
@@ -44,24 +64,46 @@ test('switching to the 120 environment preserves the selected team and applies i
   await expect(version).toBeVisible()
   await expect(version).not.toHaveText(initialVersion!)
   await expect(team).toHaveCount(2)
-  await page.getByRole('button', { name: '开始本地对战', exact: true }).click()
-  await page.waitForURL(/\/battle\?dev=true/)
-
-  const { hp, baseHp, maxIv } = await page.evaluate(async () => {
-    const battlePath = '/src/stores/battle.ts'
-    const dataPath = '/src/stores/gameData.ts'
-    const [{ useBattleStore }, { useGameDataStore }] = await Promise.all([import(battlePath), import(dataPath)])
-    const state = await useBattleStore().battleInterface.getState(undefined, true)
-    const starter = state.players[0].team[0]
-    const data = useGameDataStore()
-    return {
-      hp: starter.maxHp,
-      baseHp: data.getSpecies(starter.speciesID).baseStats.hp,
-      maxIv: data.rules.mechanics.individualValues.max,
-    }
+  const seed = page.getByRole('spinbutton', { name: '随机数种子' })
+  const timer = page.getByRole('checkbox', { name: '启用计时器系统' })
+  const turnLimit = page.getByRole('spinbutton', { name: '每回合时间限制', exact: true })
+  const selection = page.getByRole('checkbox', { name: '启用团队选择', exact: true })
+  const maxSize = page.getByRole('spinbutton', { name: '最多出战数量', exact: true })
+  await seed.fill('208')
+  await page.getByText('启用计时器系统', { exact: true }).click()
+  await turnLimit.fill('90')
+  await page.getByText('启用团队选择', { exact: true }).click()
+  await maxSize.fill('5')
+  await page.getByText('启用团队选择', { exact: true }).click()
+  // Keep the default AI roster. An alternative player team makes a reset to library order observable.
+  await page.evaluate(async () => {
+    const path = '/src/stores/petStorage.ts'
+    const { usePetStorageStore } = await import(path)
+    const library = usePetStorageStore()
+    library.createNewTeam('练习队')
+    library.switchTeam(0)
   })
-  expect(maxIv).toBe(120)
-  expect(hp).toBe(trainingStat('hp', baseHp, 100, 120, 4, 1))
+  const playerTeam = page.locator('.el-select').filter({ has: page.getByRole('combobox', { name: '玩家1队伍' }) })
+  await playerTeam.click()
+  await page.getByRole('option', { name: '练习队 · 3 只' }).click()
+  await page.getByRole('button', { name: '开始本地对战', exact: true }).click()
+  await expect120Battle(page)
+  await page.getByRole('button', { name: /逃跑|投降/, exact: true }).click()
+  await page.getByRole('button', { name: '投降', exact: true }).click()
+  await page.getByRole('button', { name: '再来一局' }).click()
+  await expect(playerTeam).toContainText('练习队')
+  await expect(
+    page.locator('.el-select').filter({ has: page.getByRole('combobox', { name: '玩家2队伍（AI）' }) }),
+  ).toContainText('默认队伍')
+  await expect(seed).toHaveValue('208')
+  await expect(timer).toBeChecked()
+  await expect(turnLimit).toHaveValue('90')
+  await expect(selection).not.toBeChecked()
+  await page.getByText('启用团队选择', { exact: true }).click()
+  await expect(maxSize).toHaveValue('5')
+  await page.getByText('启用团队选择', { exact: true }).click()
+  await page.getByRole('button', { name: '开始本地对战', exact: true }).click()
+  await expect120Battle(page)
 })
 
 test('the local team-selection preset confirms teams and enters the native battle', async ({ page }) => {

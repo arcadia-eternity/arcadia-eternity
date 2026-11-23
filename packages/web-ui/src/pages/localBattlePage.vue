@@ -83,7 +83,8 @@
 import BattleOptionsEditor from '@/components/battle/BattleOptionsEditor.vue'
 import TeamLibrarySelect from '@/components/team/TeamLibrarySelect.vue'
 import type { TeamLibraryDelegate } from '@/components/team/library'
-import { battleOptions, createBattleConfiguration } from '@/services/battleConfiguration'
+import { battleOptions } from '@/services/battleConfiguration'
+import { storeToRefs } from 'pinia'
 import { ref, shallowRef, onBeforeUnmount, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBattleStore } from '@/stores/battle'
@@ -91,7 +92,8 @@ import { usePlayerStore } from '@/stores/player'
 import { usePetStorageStore } from '@/stores/petStorage'
 import { useGameDataStore } from '@/stores/gameData'
 import { useMatchmakingStore } from '@/stores/matchmaking'
-import { DEFAULT_TIMER_CONFIG, type TimerConfig } from '@arcadia-eternity/const'
+import { useLocalBattleSetupStore } from '@/stores/localBattleSetup'
+import { DEFAULT_TIMER_CONFIG } from '@arcadia-eternity/const'
 import type { ManagedEnvironment, ManagedEnvironmentInstallation } from '@arcadia-eternity/protocol'
 
 import { localEnvironmentRequest } from '@/features/content/localEnvironmentPackages'
@@ -127,7 +129,8 @@ interface EnvironmentChoice {
   appliedDraftRevision?: string
 }
 const environmentChoices = shallowRef<EnvironmentChoice[]>([])
-const selectedEnvironmentId = ref<string>()
+const setup = useLocalBattleSetupStore()
+const { selectedEnvironmentId, playerTeamId, opponentTeamId, battleConfig, timerConfig } = storeToRefs(setup)
 const configurationReady = ref(false)
 const configurationError = ref('')
 const discovering = ref(false)
@@ -151,7 +154,6 @@ onBeforeUnmount(() => {
 })
 
 const teamsInitialized = ref(false)
-const selectedTeams = [ref(''), ref('')] as const
 const availableTeams = computed(() => petStorage.teams.filter(team => team.pets.length > 0))
 const teamChoices = computed(() =>
   availableTeams.value.map(team => ({
@@ -160,17 +162,13 @@ const teamChoices = computed(() =>
     size: team.pets.length,
   })),
 )
-const teamSelectors: TeamLibraryDelegate[] = selectedTeams.map(selected => ({
+const teamSelectors: TeamLibraryDelegate[] = [playerTeamId, opponentTeamId].map(selected => ({
   entries: teamChoices,
   selected,
 }))
 
 const initializeTeamSelection = () => {
-  const currentId = petStorage.teams[petStorage.currentTeamIndex]?.id
-  const first = availableTeams.value.find(team => team.id === currentId) ?? availableTeams.value[0]
-  const second = availableTeams.value.find(team => team.id !== first?.id) ?? first
-  selectedTeams[0].value = first?.id ?? ''
-  selectedTeams[1].value = second?.id ?? ''
+  setup.reconcileTeams(availableTeams.value, petStorage.teams[petStorage.currentTeamIndex]?.id)
   teamsInitialized.value = true
 }
 
@@ -178,14 +176,6 @@ function parseQueryBoolean(value: unknown): boolean {
   if (typeof value !== 'string') return false
   return value === '1' || value.toLowerCase() === 'true'
 }
-
-// 战斗配置
-const battleConfig = ref(createBattleConfiguration())
-
-// 计时器配置
-const timerConfig = ref<TimerConfig>({
-  ...DEFAULT_TIMER_CONFIG,
-})
 
 // 预设配置
 const presets = {
@@ -399,8 +389,8 @@ const startLocalBattle = async () => {
       return team
     }
 
-    const player1Team = requireTeam(selectedTeams[0].value, '玩家1')
-    const player2Team = requireTeam(selectedTeams[1].value, '玩家2')
+    const player1Team = requireTeam(playerTeamId.value, '玩家1')
+    const player2Team = requireTeam(opponentTeamId.value, '玩家2')
 
     await session.start(
       { name: playerStore.name, team: player1Team.pets },
@@ -418,8 +408,11 @@ const startLocalBattle = async () => {
 watch(
   () => route.fullPath,
   () => {
-    if (route.name === 'LocalBattle')
-      void prepareConfiguration({ discover: true, autoStart: parseQueryBoolean(route.query.autoStart) })
+    if (route.name !== 'LocalBattle') return
+    if (hasEnvironmentLibrary && typeof route.query.environment === 'string') {
+      selectedEnvironmentId.value = route.query.environment
+    }
+    void prepareConfiguration({ discover: true, autoStart: parseQueryBoolean(route.query.autoStart) })
   },
   { immediate: true },
 )

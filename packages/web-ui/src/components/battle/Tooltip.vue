@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick, useTemplateRef, inject } from 'vue'
 import { Z_INDEX } from '@/constants/zIndex'
-import { battleTooltipsDisabledKey } from '@/symbol/battleTooltip'
+import { battleTooltipPortalKey, battleTooltipsDisabledKey } from '@/symbol/battleTooltip'
 
 interface Props {
   portal?: boolean
@@ -21,6 +21,9 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{ 'update:show': [value: boolean] }>()
+const battlePortal = inject(battleTooltipPortalKey, null)
+const portalContainer = computed(() => battlePortal?.container.value)
+const portalScale = computed(() => battlePortal?.scale.value ?? 1)
 const tooltipsDisabled = inject(battleTooltipsDisabledKey, ref(false))
 function dismiss() {
   showTooltip.value = false
@@ -48,15 +51,18 @@ const adjustTooltipPosition = async () => {
   if (props.portal && triggerRef.value) {
     const anchor = triggerRef.value.getBoundingClientRect()
     const size = tooltip.getBoundingClientRect()
+    const bounds = portalContainer.value?.getBoundingClientRect()
+    const gap = 8 * portalScale.value
     let x = anchor.left + (anchor.width - size.width) / 2
-    let y = anchor.bottom + 8
-    if (props.position === 'top') y = anchor.top - size.height - 8
+    let y = anchor.bottom + gap
+    if (props.position === 'top') y = anchor.top - size.height - gap
     if (props.position === 'left' || props.position === 'right') {
-      x = props.position === 'left' ? anchor.left - size.width - 8 : anchor.right + 8
+      x = props.position === 'left' ? anchor.left - size.width - gap : anchor.right + gap
       y = anchor.top + (anchor.height - size.height) / 2
     }
-    x = Math.max(8, Math.min(x, window.innerWidth - size.width - 8))
-    y = Math.max(8, Math.min(y, window.innerHeight - size.height - 8))
+    // Anchors and scaled details are measured in screen pixels. Position inside the fullscreen host.
+    x = Math.max(gap, Math.min(x - (bounds?.left ?? 0), (bounds?.width ?? window.innerWidth) - size.width - gap))
+    y = Math.max(gap, Math.min(y - (bounds?.top ?? 0), (bounds?.height ?? window.innerHeight) - size.height - gap))
     portalPoint.value = { x, y }
     return
   }
@@ -97,7 +103,7 @@ const tooltipClasses = computed(() => {
   // 使用常量确保始终在所有战斗组件之上
   // PetSprite(5) < PetButton(45) < SkillButton(30) < BattleStatus(40) < Mark(50) < Tooltip(200)
   const pointerEvents = props.interactive ? 'pointer-events-auto' : 'pointer-events-none'
-  if (props.portal) return `fixed w-max ${pointerEvents} z-[2000]`
+  if (props.portal) return `${portalContainer.value ? 'absolute' : 'fixed'} w-max ${pointerEvents} z-[2000]`
   const baseClasses = `absolute w-max ${pointerEvents} z-[${Z_INDEX.TOOLTIP}]`
   const positionClasses = {
     bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
@@ -110,7 +116,13 @@ const tooltipClasses = computed(() => {
 
 // 动态样式，包含偏移量
 const tooltipStyle = computed(() => {
-  if (props.portal) return { left: `${portalPoint.value.x}px`, top: `${portalPoint.value.y}px` }
+  if (props.portal)
+    return {
+      left: `${portalPoint.value.x}px`,
+      top: `${portalPoint.value.y}px`,
+      transform: `scale(${portalScale.value})`,
+      transformOrigin: 'top left',
+    }
   return {
     translate: `${dynamicOffset.value.x}px ${dynamicOffset.value.y}px`,
   }
@@ -163,6 +175,8 @@ watch(tooltipsDisabled, disabled => {
   }
 })
 
+watch(portalScale, adjustTooltipPosition, { flush: 'post' })
+
 // 监听窗口大小变化，重新调整位置
 let resizeObserver: ResizeObserver | null = null
 
@@ -172,7 +186,7 @@ onMounted(() => {
       adjustTooltipPosition()
     }
   })
-  resizeObserver.observe(document.body)
+  resizeObserver.observe(portalContainer.value ?? document.body)
   if (showTooltip.value) adjustTooltipPosition()
   window.addEventListener('scroll', adjustTooltipPosition, true)
 })
@@ -199,7 +213,7 @@ onUnmounted(() => {
     <slot name="trigger" />
 
     <!-- 直接使用CSS定位的tooltip -->
-    <Teleport to="body" :disabled="!portal">
+    <Teleport :to="portalContainer ?? 'body'" :disabled="!portal">
       <transition name="fade" @before-leave="disableLeavingTooltip">
         <div
           v-if="showTooltip && !tooltipsDisabled"
