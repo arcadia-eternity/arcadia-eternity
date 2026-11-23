@@ -62,6 +62,8 @@ export interface DamageResult {
   readonly modifiedDamage: number
   readonly preventedDamage: number
   readonly shieldAbsorbed: number
+  /** Damage after prevention and shields, including overkill. */
+  readonly dealtDamage: number
   readonly hpBefore: number
   readonly hpAfter: number
   readonly hpLoss: number

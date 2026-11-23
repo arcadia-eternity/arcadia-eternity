@@ -71,7 +71,8 @@ class EventResolver {
     const hpBefore = event.target.currentHp
     const status =
       this.failure === 'disabled' ? 'cancelled' : this.failure ? 'failed' : this.heal ? 'replaced' : 'committed'
-    const hpLoss = status === 'committed' ? Math.min(hpBefore, resolution.remaining!) : 0
+    const dealtDamage = status === 'committed' ? resolution.remaining! : 0
+    const hpLoss = Math.min(hpBefore, dealtDamage)
     const hpAfter = !this.failure && this.heal ? this.heal.hp : hpBefore - hpLoss
     const result: DamageResult = freezeDamageRecord({
       id: intent.id,
@@ -85,6 +86,7 @@ class EventResolver {
       modifiedDamage: this.modifiedDamage,
       preventedDamage: this.failure ? 0 : this.modifiedDamage - resolution.remaining!,
       shieldAbsorbed: this.failure ? 0 : this.shieldAbsorbed,
+      dealtDamage,
       hpBefore,
       hpAfter,
       hpLoss,
@@ -114,7 +116,7 @@ class EventResolver {
         maxHp: event.target.stat.maxHp,
         source: event.source.id,
         target: event.target.id,
-        damage: hpLoss,
+        damage: result.dealtDamage,
         isCrit: event.crit,
         effectiveness: event.effectiveness,
         damageType: event.damageType,

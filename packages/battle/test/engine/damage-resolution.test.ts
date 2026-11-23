@@ -79,20 +79,28 @@ it('records the proposed amount, summed percent modifiers, flat deltas and final
   expect(Object.isFrozen(event.result!.trace)).toBe(true)
 })
 
-it('caps overkill at HP actually lost and records a failed second hit on the defeated target', () => {
-  const { hit, target, battle } = fixture()
+it('reports overkill after shield absorption and records only the HP actually lost', () => {
+  const { hit, target, battle, mark } = fixture()
+  mark(target, 7, true)
   const defeats: string[] = []
+  const damage: number[] = []
   battle.registerListener(message => {
     if (message.type === BattleMessageType.PetDefeated) defeats.push(message.data.pet)
+    if (message.type === BattleMessageType.Damage) damage.push(message.data.damage)
   })
   const hp = target.currentHp
-  expect(hit(hp + 47, DamageType.Effect).result).toMatchObject({
+  const event = hit(hp + 47)
+  expect(event.result).toMatchObject({
     modifiedDamage: hp + 47,
+    dealtDamage: hp + 40,
     hpLoss: hp,
     hpAfter: 0,
-    preventedDamage: 0,
+    preventedDamage: 7,
   })
-  expect(hit(10, DamageType.Effect).result).toMatchObject({ status: 'failed', hpLoss: 0 })
+  expect(damage).toEqual([hp + 40])
+  expect(event.damageResult).toBe(hp + 40)
+  expect(target.currentHp).toBe(0)
+  expect(hit(10, DamageType.Effect).result).toMatchObject({ status: 'failed', dealtDamage: 0, hpLoss: 0 })
   expect(defeats).toEqual([target.id])
 })
 

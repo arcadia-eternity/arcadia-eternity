@@ -193,7 +193,7 @@ describe('official damage rules', () => {
     battle.registerListener(message => {
       if (message.type === BattleMessageType.Damage) {
         expect(message.data.currentHp).toBe(0)
-        expect(message.data.damage).toBe(5)
+        expect(message.data.damage).toBe(40)
         expect(message.data.source).toBe(source.id)
       }
       published.push(message.type)
@@ -334,7 +334,7 @@ describe('official damage rules', () => {
       if (message.type === BattleMessageType.Damage) hits.push(message.data.damage)
     })
     damage(100)
-    expect(hits).toEqual([12, 3])
+    expect(hits).toEqual([100, 3])
     expect(attacker.currentHp).toBe(27)
     expect(defender.currentHp).toBe(0)
   })
