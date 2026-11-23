@@ -26,6 +26,7 @@ import { AnimationController, type AnimationTask } from '@/composition/animation
 import { activeMediaCatalog, mediaEnvironment } from '@/services/mediaLoader'
 import { battleScene, createMediaPreloader, resetBattleScene } from '@/services/environmentMedia'
 import { useMediaImage } from '@/composition/useMediaImage'
+import { useMobile } from '@/composition/useMobile'
 import { useScreenOrientation, useFullscreen } from '@vueuse/core'
 import { Z_INDEX, Z_INDEX_CLASS } from '@/constants/zIndex'
 import { useBattleStore } from '@/stores/battle'
@@ -39,7 +40,7 @@ import { useResourceStore } from '@/stores/resource'
 import { resolveSpeciesSpriteAsset } from '@/utils/resourceResolver'
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { logMessagesKey } from '@/symbol/battlelog'
-import { battleTooltipsDisabledKey } from '@/symbol/battleTooltip'
+import { battleTooltipPortalKey, battleTooltipsDisabledKey } from '@/symbol/battleTooltip'
 import {
   BattleMessageType,
   BattleStatus as BattleStatusEnum,
@@ -187,7 +188,8 @@ let resizeObserver: ResizeObserver | null = null
 // 屏幕方向控制
 const { lockOrientation, unlockOrientation } = useScreenOrientation()
 
-// 全屏相关（将在下面重新定义包装函数）
+const { isMobile, isPortrait } = useMobile()
+const orientationHintDismissed = ref(false)
 
 // 自定义确认对话框（用于全屏模式）
 const showCustomConfirm = ref(false)
@@ -228,6 +230,7 @@ const handleCustomConfirm = (confirmed: boolean) => {
 // 包装VueUse的全屏函数，添加屏幕方向控制
 const {
   isFullscreen: vueUseIsFullscreen,
+  isSupported: fullscreenSupported,
   enter: vueUseEnterFullscreen,
   exit: vueUseExitFullscreen,
 } = useFullscreen(battleContainerRef)
@@ -275,6 +278,9 @@ const toggleFullscreenWithOrientation = () => {
 const isFullscreen = vueUseIsFullscreen
 const exitFullscreen = exitFullscreenWithOrientation
 const toggleFullscreen = toggleFullscreenWithOrientation
+const showOrientationHint = computed(
+  () => isMobile.value && isPortrait.value && !isFullscreen.value && !orientationHintDismissed.value,
+)
 
 // VueUse的useFullscreen会自动处理全屏状态变化，无需手动监听
 
@@ -318,6 +324,7 @@ const climaxEffectRef = useTemplateRef('climaxEffectRef') // climax特效组件�
 
 // 使用battleView store中的缩放
 const battleViewScale = computed(() => battleViewStore.scale)
+provide(battleTooltipPortalKey, { container: battleContainerRef, scale: battleViewScale })
 
 // 训练模式配置
 const trainingModeConfig = computed(() => {
@@ -471,15 +478,17 @@ watchEffect(() => {
     ...(opponentPlayer.value?.team ?? []),
     ...(store.teamSelectionOpponent?.pets ?? []),
   ]
-  const pets = visibleTeams.filter(pet => !pet.isUnknown).map(pet => {
-    const skills = pet.skills?.filter(skill => !skill.isUnknown) ?? []
-    return {
-      species: pet.speciesID,
-      elements: [pet.element, ...skills.map(skill => skill.element)],
-      skills: skills.map(skill => skill.baseId),
-      marks: pet.marks?.map(mark => mark.baseId),
-    }
-  })
+  const pets = visibleTeams
+    .filter(pet => !pet.isUnknown)
+    .map(pet => {
+      const skills = pet.skills?.filter(skill => !skill.isUnknown) ?? []
+      return {
+        species: pet.speciesID,
+        elements: [pet.element, ...skills.map(skill => skill.element)],
+        skills: skills.map(skill => skill.baseId),
+        marks: pet.marks?.map(mark => mark.baseId),
+      }
+    })
   battleMedia.update(
     activeMediaCatalog(),
     pets,
@@ -926,7 +935,11 @@ const resourceAttempt = ref(0)
 provide(
   battleTooltipsDisabledKey,
   computed(
-    () => !isFullyLoaded.value || (showTeamSelectionPanel.value && !isSpectatorMode.value) || showCustomConfirm.value,
+    () =>
+      !isFullyLoaded.value ||
+      showOrientationHint.value ||
+      (showTeamSelectionPanel.value && !isSpectatorMode.value) ||
+      showCustomConfirm.value,
   ),
 )
 
@@ -2397,7 +2410,28 @@ watch(
     <div data-testid="battle-actions-ready" :data-ready="battleActionsReady ? 'true' : 'false'" class="sr-only">
       {{ battleActionsReady ? 'ready' : 'pending' }}
     </div>
-    <div ref="battleCameraRef" class="battle-camera">
+    <div
+      v-if="showOrientationHint"
+      class="battle-theme absolute inset-0 flex items-center justify-center bg-black/60"
+      :class="Z_INDEX_CLASS.MOBILE_ORIENTATION_HINT"
+      @click.self="orientationHintDismissed = true"
+      @keydown.esc="orientationHintDismissed = true"
+    >
+      <section
+        role="dialog"
+        aria-labelledby="battle-orientation-title"
+        class="rounded-xl bg-slate-900 p-5 text-center text-white"
+      >
+        <h2 id="battle-orientation-title" class="mb-4 text-lg">建议横屏游戏</h2>
+        <div class="flex justify-center gap-3">
+          <button v-if="fullscreenSupported" class="battle-control" @click="enterFullscreenWithOrientation">
+            进入全屏
+          </button>
+          <button class="battle-control" @click="orientationHintDismissed = true">继续游戏</button>
+        </div>
+      </section>
+    </div>
+    <div ref="battleCameraRef" class="battle-camera" :inert="showOrientationHint">
       <div
         class="battle-shell"
         :data-motion="effectiveMotion"

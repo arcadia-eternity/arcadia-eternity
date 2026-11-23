@@ -8,7 +8,8 @@ import BattleMarkInfo from './BattleMarkInfo.vue'
 import { Z_INDEX } from '@/constants/zIndex'
 import ContentDescription from '@/components/ContentDescription'
 import i18next from 'i18next'
-import { computed, ref } from 'vue'
+import { computed, ref, useTemplateRef } from 'vue'
+import { onClickOutside, useMediaQuery } from '@vueuse/core'
 import { useBattleStore } from '@/stores/battle'
 import { useGameDataStore } from '@/stores/gameData'
 import { SkillMarkRelationService } from '@/services/skillMarkRelationService'
@@ -29,6 +30,11 @@ const props = defineProps<{
 }>()
 
 const showDetails = ref(false)
+const canHover = useMediaQuery('(hover: hover) and (pointer: fine)')
+const infoButton = useTemplateRef('infoButton')
+onClickOutside(infoButton, () => {
+  if (!canHover.value) showDetails.value = false
+})
 const emit = defineEmits<{
   (e: 'click', id: string): void
 }>()
@@ -151,7 +157,13 @@ const skillMarkRelations = computed(() => {
 
 <template>
   <div class="battle-skill-slot">
-    <Tooltip interactive portal position="top" v-model:show="showDetails" :trigger="showDetails ? 'click' : 'hover'">
+    <Tooltip
+      :interactive="canHover"
+      portal
+      position="top"
+      v-model:show="showDetails"
+      :trigger="showDetails || !canHover ? 'click' : 'hover'"
+    >
       <template #trigger>
         <div class="battle-skill__trigger">
           <button
@@ -197,6 +209,7 @@ const skillMarkRelations = computed(() => {
             </div>
           </button>
           <button
+            ref="infoButton"
             class="battle-skill__info"
             type="button"
             :aria-label="`${name}详情`"
