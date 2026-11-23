@@ -1,4 +1,10 @@
-import { DamageResolution, type DamageOrigin, type DamagePolicy, type DamageRule } from './damageResolution'
+import {
+  DamageResolution,
+  freezeDamageRecord,
+  type DamageOrigin,
+  type DamagePolicy,
+  type DamageRule,
+} from './damageResolution'
 import type { DeferredDamage } from './deferredDamage'
 import { calculateSkillDamage } from './skillDamage'
 import { normalizeMarkInstanceParams, type MarkInstanceParams } from './content/mark-parameters'
@@ -445,7 +451,7 @@ export class DamageContext extends Context {
       hitCount: skill ? (cast?.multihitResult ?? 1) : undefined,
       effectId: parent instanceof EffectContext ? parent.effect?.id : undefined,
     }
-    this.origin = Object.freeze({
+    this.origin = freezeDamageRecord({
       ...identity,
       ...(identity.skillTags ? { skillTags: Object.freeze([...identity.skillTags]) } : {}),
     })

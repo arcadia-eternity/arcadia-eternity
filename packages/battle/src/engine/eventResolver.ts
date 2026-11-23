@@ -1,6 +1,6 @@
 import { BattleMessageType, EffectTrigger, type DamageResult } from '@arcadia-eternity/const'
 import { DamageContext, HealContext, type AllContext } from './context'
-import { damagePoints, type DamageRule } from './damageResolution'
+import { damagePoints, freezeDamageRecord, type DamageRule } from './damageResolution'
 import { runDamageEvaluation } from './damageEvaluation'
 import { settleDamageState } from './damageState'
 import { notifyHeal, prepareHeal } from './phase/heal'
@@ -31,7 +31,7 @@ class EventResolver {
     const ancestors = damageAncestors(event)
     const id = battle.allocateEventId('damage')
     const causeId = origin.causeId ?? ancestors[0]?.resolution.intent?.id
-    resolution.intent = Object.freeze({
+    resolution.intent = freezeDamageRecord({
       id,
       targetId: event.target.id,
       baseDamage: event.baseDamage,
@@ -73,7 +73,7 @@ class EventResolver {
       this.failure === 'disabled' ? 'cancelled' : this.failure ? 'failed' : this.heal ? 'replaced' : 'committed'
     const hpLoss = status === 'committed' ? Math.min(hpBefore, resolution.remaining!) : 0
     const hpAfter = !this.failure && this.heal ? this.heal.hp : hpBefore - hpLoss
-    const result: DamageResult = Object.freeze({
+    const result: DamageResult = freezeDamageRecord({
       id: intent.id,
       causeId,
       intent,

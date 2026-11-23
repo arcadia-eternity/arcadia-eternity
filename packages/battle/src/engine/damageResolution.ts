@@ -7,6 +7,14 @@ import { evaluateEventMagnitude, type NumericModifierTerm } from './modifierMath
 
 export type { DamageOrigin, DamagePolicy, DamageIntent, DamageResult, DamageTraceEntry } from '@arcadia-eternity/const'
 
+/** Freeze a newly constructed wire record in the same shape a JSON receiver observes. */
+export function freezeDamageRecord<T extends object>(record: T): Readonly<T> {
+  for (const key in record) {
+    if (record[key] === undefined) delete record[key]
+  }
+  return Object.freeze(record)
+}
+
 export interface DamageRule {
   readonly id: string
   readonly priority?: number
