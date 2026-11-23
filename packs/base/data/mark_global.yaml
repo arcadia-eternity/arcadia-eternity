@@ -22,6 +22,8 @@
     - effect_global_power_35_percent_fire
 - id: mark_global_baofengxue
   config: *global_config
+  effect:
+    - effect_mark_baofengxue_ice_boost
 - id: mark_global_shachenbao
   config: *global_config
 - id: mark_global_dizhen

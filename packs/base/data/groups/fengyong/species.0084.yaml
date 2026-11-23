@@ -1,0 +1,159 @@
+- id: pet_fengyong
+  num: 151
+  element: Bug
+  baseStats:
+    hp: 79
+    atk: 114
+    def: 107
+    spa: 120
+    spd: 110
+    spe: 110
+  heightRange:
+    - 13
+    - 18
+  weightRange:
+    - 6
+    - 11
+  learnable_skills:
+    - skill_id: skill_chongding
+      level: 1
+      hidden: false
+    - skill_id: skill_miaozhun
+      level: 5
+      hidden: false
+    - skill_id: skill_weizhen
+      level: 10
+      hidden: false
+    - skill_id: skill_fengwenzhike
+      level: 15
+      hidden: false
+  ability:
+    - mark_ability_fengyong
+  emblem:
+    - mark_emblem_fengyong
+  genderRatio:
+    - 0
+    - 10
+- id: pet_youfeng
+  num: 152
+  element: Bug
+  baseStats:
+    hp: 119
+    atk: 144
+    def: 132
+    spa: 150
+    spd: 135
+    spe: 135
+  heightRange:
+    - 37
+    - 42
+  weightRange:
+    - 14
+    - 19
+  learnable_skills:
+    - skill_id: skill_chongding
+      level: 1
+      hidden: false
+    - skill_id: skill_miaozhun
+      level: 5
+      hidden: false
+    - skill_id: skill_weizhen
+      level: 10
+      hidden: false
+    - skill_id: skill_fengwenzhike
+      level: 15
+      hidden: false
+    - skill_id: skill_judufengzhen
+      level: 20
+      hidden: false
+    - skill_id: skill_mabifengzhen
+      level: 25
+      hidden: false
+    - skill_id: skill_qunfengjijie
+      level: 30
+      hidden: false
+    - skill_id: skill_fengwenfushi
+      level: 35
+      hidden: false
+  ability:
+    - mark_ability_fengyong
+  emblem:
+    - mark_emblem_fengyong
+  genderRatio:
+    - 0
+    - 10
+- id: pet_qingfeng
+  num: 153
+  element: Bug
+  baseStats:
+    hp: 179
+    atk: 174
+    def: 157
+    spa: 180
+    spd: 160
+    spe: 160
+  heightRange:
+    - 90
+    - 95
+  weightRange:
+    - 41
+    - 46
+  learnable_skills:
+    - skill_id: skill_chongding
+      level: 1
+      hidden: false
+    - skill_id: skill_miaozhun
+      level: 5
+      hidden: false
+    - skill_id: skill_weizhen
+      level: 10
+      hidden: false
+    - skill_id: skill_fengwenzhike
+      level: 15
+      hidden: false
+    - skill_id: skill_judufengzhen
+      level: 20
+      hidden: false
+    - skill_id: skill_mabifengzhen
+      level: 25
+      hidden: false
+    - skill_id: skill_qunfengjijie
+      level: 30
+      hidden: false
+    - skill_id: skill_fengwenfushi
+      level: 35
+      hidden: false
+    - skill_id: skill_judafengci
+      level: 40
+      hidden: false
+    - skill_id: skill_chongqunexi
+      level: 45
+      hidden: false
+    - skill_id: skill_chongqunqianfu
+      level: 50
+      hidden: false
+    - skill_id: skill_qingfengzhichu
+      level: 55
+      hidden: false
+    - skill_id: skill_qingfengduomingci
+      level: 60
+      hidden: false
+    - skill_id: skill_fengwenxuanwu
+      level: 60
+      hidden: true
+    - skill_id: skill_qingfengzhiwu
+      level: 60
+      hidden: true
+    - skill_id: skill_qingfengzhike
+      level: 60
+      hidden: true
+    - skill_id: skill_qingchaoerchu
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_fengyong
+  emblem:
+    - mark_emblem_fengyong
+  genderRatio:
+    - 0
+    - 10

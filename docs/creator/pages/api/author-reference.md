@@ -37,4 +37,4 @@ SDK 查询返回 `parent`、`fields`、`methods` 和 `example`（触发器），
 - 速度绑定：`{"topic":"effects","symbol":"ops.bindAttribute"}`
 - 固定种子试战：`{"topic":"mcp","symbol":"battle_create"}`
 
-已有的 `arcadia://authoring/effects` 等主题资源仍可读取。网站与本机 SDK 可以处在不同发布版本。如果当前主题未列出网页上的新条目，助手可以读取[网页的 Markdown 版本](https://arcadia-creator-docs.pages.dev/llms.txt)，并以本机会话返回的工具和字段核对实现。旧版工具若只列出 `topic` 参数，可先读 `effects` 和 `marks` 主题，结合本机模板完成[霜击教程](../frost-strike.md)。
+已有的 `arcadia://authoring/effects` 等主题资源仍可读取。网站与本机 SDK 可以处在不同发布版本。如果当前主题未列出网页上的新条目，助手可以读取[网页的 Markdown 版本](https://battle-docs.yuuinih.com/llms.txt)，并以本机会话返回的工具和字段核对实现。旧版工具若只列出 `topic` 参数，可先读 `effects` 和 `marks` 主题，结合本机模板完成[霜击教程](../frost-strike.md)。

@@ -240,7 +240,7 @@
 - id: mark_ability_caibao
   config: *ability_config
   tags: [ability]
-  effect: [] # TODO: 跟随时玩小游戏获得的赛尔豆增加5%
+  # TODO: 跟随时玩小游戏获得的赛尔豆增加5%
 - id: mark_ability_yingyan
   config: *ability_config
   tags: [ability]
@@ -401,3 +401,300 @@
   effect:
     - effect_shifeng_ability_init_needles
     - effect_shifeng_ability_immune_status
+- id: mark_ability_tiaotiaoshu
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_tiaotiaoshu_ability_accuracy_down
+- id: mark_ability_pangpang
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_pangpang_ability_rage_regen
+- id: mark_ability_abu
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_abu_ability_rage_drain
+- id: mark_ability_niya
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_niya_ability_normal_boost
+- id: mark_ability_boli
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_boli_ability_damage_boost
+- id: mark_ability_huohuali
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_huohuali_ability_crit_damage
+- id: mark_ability_xiaojie
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_xiaojie_ability_spe_down_atk_up
+- id: mark_ability_lulu
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_lulu_ability_sandbunshin_growth
+- id: mark_ability_qiaoba
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_qiaoba_ability_blue_wave_on_damage
+    - effect_qiaoba_ability_berserk_on_three_waves
+- id: mark_ability_dayandujiao
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_dayandujiao_ability_focus_power
+- id: mark_ability_fengyong
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_fengyong_ability_refresh_poison
+- id: mark_ability_azi
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_azi_ability_special_damage
+    - effect_azi_ability_physical_accuracy
+- id: mark_ability_mimi
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_mimi_ability_tanli_on_hp_loss
+    - effect_mimi_ability_benghuai_power
+- id: mark_ability_xiaoxiaoemo
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_xiaoxiaoemo_ability_contract_crit_heal
+- id: mark_ability_kadunjiujiu_171
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_kadunjiujiu_171_ability_priority
+- id: mark_ability_atongtie
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_atongtie_ability_overload
+- id: mark_ability_mika
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_mika_ability_qualification_damage
+- id: mark_ability_qiuding
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_qiuding_ability_def_reduction
+- id: mark_ability_badu
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_badu_ability_spd_reduction
+- id: mark_ability_feide
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_feide_ability_damage_up
+    - effect_feide_ability_rage_loss
+- id: mark_ability_nuoji
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_nuoji_ability_plan_rage
+- id: mark_ability_kaise
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_kaise_ability_hot_burn
+- id: mark_ability_kelipu
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_kelipu_ability_reserve_damage
+- id: mark_ability_aisa
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_aisa_ability_crit
+- id: mark_ability_moumou
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_moumou_ability_heal_on_hit
+- id: mark_ability_langpu
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: false
+    keepOnSwitchOut: true
+  tags:
+    - ability
+  effect:
+    - effect_langpu_ability_crit_reduction
+    - effect_langpu_ability_crit_counter
+- id: mark_ability_cangyuepodi
+  config: *ability_config
+  tags: [ability]
+  effect:
+    - effect_yinji_ability_moon_zhuiluo
+    - effect_yinji_ability_earth_zhikong

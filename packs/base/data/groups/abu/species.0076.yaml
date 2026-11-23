@@ -1,0 +1,117 @@
+- id: pet_abu
+  num: 117
+  element: Psychic
+  baseStats:
+    hp: 87
+    atk: 125
+    def: 119
+    spa: 125
+    spd: 119
+    spe: 105
+  heightRange:
+    - 34
+    - 39
+  weightRange:
+    - 4
+    - 9
+  learnable_skills:
+    - skill_id: skill_paida_mingzhong100
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_jianying
+      level: 10
+      hidden: false
+    - skill_id: skill_zuzhoubengdai
+      level: 15
+      hidden: false
+    - skill_id: skill_bengdaichanrao
+      level: 20
+      hidden: false
+    - skill_id: skill_jianrenbengdai
+      level: 25
+      hidden: false
+  ability:
+    - mark_ability_abu
+  emblem:
+    - mark_emblem_abu
+  genderRatio:
+    - 0
+    - 10
+- id: pet_abubu
+  num: 118
+  element: Psychic
+  baseStats:
+    hp: 177
+    atk: 170
+    def: 169
+    spa: 170
+    spd: 169
+    spe: 150
+  heightRange:
+    - 73
+    - 78
+  weightRange:
+    - 33
+    - 38
+  learnable_skills:
+    - skill_id: skill_paida_mingzhong100
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_jianying
+      level: 10
+      hidden: false
+    - skill_id: skill_zuzhoubengdai
+      level: 15
+      hidden: false
+    - skill_id: skill_bengdaichanrao
+      level: 20
+      hidden: false
+    - skill_id: skill_jianrenbengdai
+      level: 25
+      hidden: false
+    - skill_id: skill_bengdaitishen
+      level: 30
+      hidden: false
+    - skill_id: skill_zuzhouzhichu
+      level: 35
+      hidden: false
+    - skill_id: skill_abuzuzhou
+      level: 40
+      hidden: false
+    - skill_id: skill_beishangfanji
+      level: 45
+      hidden: false
+    - skill_id: skill_tongkuzhichu
+      level: 50
+      hidden: false
+    - skill_id: skill_bengdaisuojin
+      level: 55
+      hidden: false
+    - skill_id: skill_abuzhiyuan
+      level: 60
+      hidden: false
+    - skill_id: skill_abuhaoku
+      level: 60
+      hidden: true
+    - skill_id: skill_juewangzhichu
+      level: 60
+      hidden: true
+    - skill_id: skill_juewangbengdai
+      level: 60
+      hidden: true
+    - skill_id: skill_yuanqixiaosan
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_abu
+  emblem:
+    - mark_emblem_abu
+  genderRatio:
+    - 0
+    - 10

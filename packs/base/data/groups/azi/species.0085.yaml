@@ -1,0 +1,117 @@
+- id: pet_azi
+  num: 154
+  element: Electric
+  baseStats:
+    hp: 87
+    atk: 126
+    def: 113
+    spa: 129
+    spd: 116
+    spe: 114
+  heightRange:
+    - 23
+    - 28
+  weightRange:
+    - 7
+    - 12
+  learnable_skills:
+    - skill_id: skill_kuaigong
+      level: 1
+      hidden: false
+    - skill_id: skill_leidian
+      level: 5
+      hidden: false
+    - skill_id: skill_xudian
+      level: 10
+      hidden: false
+    - skill_id: skill_zidianguang
+      level: 16
+      hidden: false
+    - skill_id: skill_julei
+      level: 21
+      hidden: false
+    - skill_id: skill_zidianpo
+      level: 26
+      hidden: false
+  ability:
+    - mark_ability_azi
+  emblem:
+    - mark_emblem_azi
+  genderRatio:
+    - 10
+    - 0
+- id: pet_zidian
+  num: 155
+  element: Electric
+  baseStats:
+    hp: 177
+    atk: 176
+    def: 158
+    spa: 179
+    spd: 161
+    spe: 164
+  heightRange:
+    - 73
+    - 78
+  weightRange:
+    - 39
+    - 44
+  learnable_skills:
+    - skill_id: skill_kuaigong
+      level: 1
+      hidden: false
+    - skill_id: skill_leidian
+      level: 5
+      hidden: false
+    - skill_id: skill_xudian
+      level: 10
+      hidden: false
+    - skill_id: skill_zidianguang
+      level: 16
+      hidden: false
+    - skill_id: skill_julei
+      level: 21
+      hidden: false
+    - skill_id: skill_zidianpo
+      level: 26
+      hidden: false
+    - skill_id: skill_ziguangbo
+      level: 31
+      hidden: false
+    - skill_id: skill_ziguangzhan
+      level: 36
+      hidden: false
+    - skill_id: skill_zidiantongti
+      level: 41
+      hidden: false
+    - skill_id: skill_chuantoudianqiu
+      level: 46
+      hidden: false
+    - skill_id: skill_zidianchongji
+      level: 51
+      hidden: false
+    - skill_id: skill_zidianguantong
+      level: 56
+      hidden: false
+    - skill_id: skill_zidianleimingqiang
+      level: 60
+      hidden: false
+    - skill_id: skill_juedianzhiqiang
+      level: 60
+      hidden: true
+    - skill_id: skill_zidianlianzhan
+      level: 60
+      hidden: true
+    - skill_id: skill_zidianjueguang
+      level: 60
+      hidden: true
+    - skill_id: skill_tiaoxin
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_azi
+  emblem:
+    - mark_emblem_azi
+  genderRatio:
+    - 10
+    - 0

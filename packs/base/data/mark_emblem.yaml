@@ -340,7 +340,7 @@
 - id: mark_emblem_wuxing
   config: *emblem_config
   tags: [emblem]
-  effect: [] # 该纹章的效果在技能上
+  # 该纹章的效果在技能上
 - id: mark_emblem_rouxing
   config: *emblem_config
   tags: [emblem]
@@ -359,7 +359,7 @@
 - id: mark_emblem_bihu
   config: *emblem_config
   tags: [emblem]
-  effect: [] # 该纹章只在庇护印记的减伤范围中生效
+  # 该纹章只在庇护印记的减伤范围中生效
 - id: mark_emblem_hongxin
   config: *emblem_config
   tags: [emblem]
@@ -387,3 +387,293 @@
   effect:
     - effect_shifeng_emblem_male_damage
     - effect_shifeng_emblem_female_reduction
+- id: mark_emblem_tiaotiaoshu
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_tiaotiaoshu_emblem_weaken_immune_duration
+- id: mark_emblem_pangpang
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_pangpang_emblem_lanzui_duration
+- id: mark_emblem_abu
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_abu_emblem_curse_reduction
+- id: mark_emblem_niya
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_niya_emblem_anfu_power
+- id: mark_emblem_boli
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_boli_emblem_sure_hit
+- id: mark_emblem_huohuali
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_huohuali_emblem_mark_crit
+- id: mark_emblem_xiaojie
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_xiaojie_emblem_stance_next_attack
+- id: mark_emblem_lulu
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_lulu_emblem_sandbunshin_reduction
+- id: mark_emblem_qiaoba
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_qiaoba_emblem_berserk_extra_turn
+- id: mark_emblem_dayandujiao
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_dayandujiao_emblem_heal_boost
+- id: mark_emblem_fengyong
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_fengyong_emblem_heal_on_fengwen
+- id: mark_emblem_azi
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_azi_emblem_taunt_rage
+- id: mark_emblem_mimi
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_mimi_emblem_benghuai_reduction
+    - effect_mimi_emblem_benghuai_selfloss_reduction
+- id: mark_emblem_xiaoxiaoemo
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_xiaoxiaoemo_emblem_last_ally_crit_reduction
+- id: mark_emblem_kadunjiujiu_171
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_kadunjiujiu_171_emblem_sure_hit
+- id: mark_emblem_atongtie
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_atongtie_emblem_overload_defeat
+- id: mark_emblem_mika
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_mika_emblem_climax_min_effect
+- id: mark_emblem_qiuding
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_qiuding_emblem_shell_reduction
+- id: mark_emblem_badu
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_badu_emblem_linggui_reduction
+- id: mark_emblem_feide
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_feide_emblem_sure_hit_vs_terror
+- id: mark_emblem_nuoji
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_nuoji_emblem_dongfeng
+- id: mark_emblem_kaise
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_kaise_emblem_burn_damage
+- id: mark_emblem_kelipu
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_kelipu_emblem_reserve_cap
+- id: mark_emblem_aisa
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_aisa_emblem_accuracy
+- id: mark_emblem_moumou
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+- id: mark_emblem_langpu
+  config:
+    persistent: true
+    stackable: false
+    stackStrategy: extend
+    destroyable: true
+    keepOnSwitchOut: true
+  tags:
+    - emblem
+  effect:
+    - effect_langpu_emblem_crit_damage
+- id: mark_emblem_jisha
+  config: *emblem_config
+  tags: [emblem]
+  effect:
+    - effect_yinji_emblem_first_move_damage

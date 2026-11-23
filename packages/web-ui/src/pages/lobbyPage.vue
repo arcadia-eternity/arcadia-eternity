@@ -41,6 +41,12 @@
         <el-icon :size="20"><EditPen /></el-icon>
         <span class="text-sm md:text-base">内容包与创作</span>
       </router-link>
+      <CreatorDocsLink
+        class="flex flex-col items-center gap-2 p-4 md:p-4 bg-white border-2 border-gray-300 rounded-lg no-underline text-gray-700 transition-all duration-300 font-medium hover:border-blue-500 hover:bg-slate-50 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] min-h-[80px] md:min-h-[auto] touch-manipulation text-sm md:text-base"
+        @error="message => ElMessage.error(message)"
+      >
+        <el-icon :size="20" aria-hidden="true"><Reading /></el-icon>
+      </CreatorDocsLink>
       <router-link
         to="/account"
         class="flex flex-col items-center gap-2 p-4 md:p-4 bg-white border-2 border-gray-300 rounded-lg no-underline text-gray-700 transition-all duration-300 font-medium hover:border-blue-500 hover:bg-slate-50 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] router-link-active:border-blue-500 router-link-active:bg-blue-50 router-link-active:text-blue-500 min-h-[80px] md:min-h-[auto] touch-manipulation"
@@ -249,6 +255,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import CreatorDocsLink from '@/features/authoring/CreatorDocsLink.vue'
 import PersonalEnvironmentPicker from '@/features/content/PersonalEnvironmentPicker.vue'
 import type { PreparedPersonalEnvironment } from '@/services/personalEnvironment'
 import { useRouter } from 'vue-router'
@@ -257,7 +264,17 @@ import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { useLocalServerStore } from '@/stores/localServer'
 import { useMatchmakingStore } from '@/stores/matchmaking'
 import { useAuthStore } from '@/stores/auth'
-import { Collection, Download, EditPen, FolderOpened, Monitor, Search, Setting, User } from '@element-plus/icons-vue'
+import {
+  Collection,
+  Download,
+  EditPen,
+  FolderOpened,
+  Monitor,
+  Reading,
+  Search,
+  Setting,
+  User,
+} from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { isDesktop } from '@/utils/env'
 

@@ -110,7 +110,7 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
 
   try {
     // Consume rage
-    context.origin.addRage(new RageContext(context, context.origin, 'skill', 'reduce', context.skill.rage))
+    context.origin.addRage(new RageContext(context, context.origin, 'skill', 'reduce', context.rage))
 
     // Apply after skill check effects
     battle.applyEffects(context, EffectTrigger.AfterUseSkillCheck)
@@ -156,6 +156,8 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
         battle.applyEffects(context, EffectTrigger.OnHit) // Trigger hit effects
       }
     }
+
+    context.pet.lastMissedSkillId = context.hitResult ? undefined : context.skill.baseId
 
     // Hit reward rage for non-status moves
     if (context.category !== Category.Status && landedHit) {

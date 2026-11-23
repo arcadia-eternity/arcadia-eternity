@@ -287,7 +287,7 @@ const ledger = {
   Battle: {
     ctor: Battle,
     fields:
-      'type lastStateMessage id elementMultipliers enhancementActive allowFaintSwitch showHidden configSystem actionLog status currentPhase currentTurn lastKiller marks victor pendingForcedSwitches pendingFaintSwitch isInitialSwitchPhase petMap skillMap eventSequence sequenceId playerA playerB',
+      'type lastStateMessage id elementMultipliers individualValueMax enhancementActive allowFaintSwitch showHidden configSystem actionLog status currentPhase currentTurn lastKiller marks victor pendingForcedSwitches pendingFaintSwitch isInitialSwitchPhase petMap skillMap eventSequence sequenceId playerA playerB',
     runtime:
       'executionBudget battle parent logger phaseManager timerManager transformationSystem emitter rng cancelled _isStarting messageCallbacks waitingResolvers restoredSelection cleanupPromise',
   },
@@ -304,7 +304,7 @@ const ledger = {
   Pet: {
     ctor: Pet,
     fields:
-      'gender baseCritRate baseAccuracy baseRageObtainEfficiency element isAlive owner marks skills _base appeared lastSkill lastSkillUsedTimes lastUsedSkillElement attributeSystem name id originalSpecies level evs ivs nature natureMultipliers enhancementBonus baseSkills ability emblem weight height maxHp currentAbility currentEmblem',
+      'gender baseCritRate baseAccuracy baseRageObtainEfficiency element isAlive owner marks skills _base appeared lastSkill lastSkillUsedTimes lastUsedSkillElement lastMissedSkillId attributeSystem name id originalSpecies level evs ivs nature natureMultipliers enhancementBonus baseSkills ability emblem weight height maxHp currentAbility currentEmblem',
     runtime: 'emitter',
   },
   SkillInstance: {
@@ -630,6 +630,7 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
     snapshot.nodes.forEach((node, index) => {
       const object = objects[index] as object
       const fields = Object.fromEntries(Object.entries(node.fields).map(([key, value]) => [key, decode(value)]))
+      if (node.kind === 'Battle' && fields.individualValueMax === undefined) fields.individualValueMax = 31
       if (node.kind in ledger || node.kind === 'object' || node.kind === 'dictionary' || node.kind === 'array')
         set(object, fields)
       if (node.kind === 'signal') {
@@ -993,8 +994,11 @@ function validateSnapshot(input: unknown, catalog: SnapshotCatalog): BattleSnaps
           : []),
       ])
       if (Object.keys(node.fields).some(key => !allowed.has(key))) throw new Error('Unknown snapshot domain field')
-      const optional = new Set(node.kind === 'Pet' ? ['currentAbility', 'currentEmblem', 'lastUsedSkillElement'] : [])
+      const optional = new Set(
+        node.kind === 'Pet' ? ['currentAbility', 'currentEmblem', 'lastUsedSkillElement', 'lastMissedSkillId'] : [],
+      )
       if (node.kind === 'Battle') {
+        optional.add('individualValueMax')
         optional.add('eventSequence')
         const sequence = node.fields.eventSequence
         if (sequence !== undefined && (typeof sequence !== 'number' || !Number.isSafeInteger(sequence) || sequence < 0))

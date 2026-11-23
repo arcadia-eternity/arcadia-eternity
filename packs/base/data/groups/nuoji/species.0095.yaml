@@ -1,0 +1,117 @@
+- id: pet_nuoji
+  num: 190
+  element: Flying
+  baseStats:
+    hp: 86
+    atk: 126
+    def: 116
+    spa: 126
+    spd: 116
+    spe: 111
+  heightRange:
+    - 14
+    - 19
+  weightRange:
+    - 13
+    - 18
+  learnable_skills:
+    - skill_id: skill_baiwei
+      level: 1
+      hidden: false
+    - skill_id: skill_ruili
+      level: 5
+      hidden: false
+    - skill_id: skill_fuchong
+      level: 11
+      hidden: false
+    - skill_id: skill_njihua
+      level: 16
+      hidden: false
+    - skill_id: skill_qianglisaowei
+      level: 22
+      hidden: false
+    - skill_id: skill_feiyuliantu
+      level: 27
+      hidden: false
+  ability:
+    - mark_ability_nuoji
+  emblem:
+    - mark_emblem_nuoji
+  genderRatio:
+    - 5
+    - 5
+- id: pet_nuojibo
+  num: 191
+  element: Flying
+  baseStats:
+    hp: 176
+    atk: 176
+    def: 161
+    spa: 176
+    spd: 161
+    spe: 156
+  heightRange:
+    - 52
+    - 57
+  weightRange:
+    - 39
+    - 44
+  learnable_skills:
+    - skill_id: skill_baiwei
+      level: 1
+      hidden: false
+    - skill_id: skill_ruili
+      level: 5
+      hidden: false
+    - skill_id: skill_fuchong
+      level: 11
+      hidden: false
+    - skill_id: skill_njihua
+      level: 16
+      hidden: false
+    - skill_id: skill_qianglisaowei
+      level: 22
+      hidden: false
+    - skill_id: skill_feiyuliantu
+      level: 27
+      hidden: false
+    - skill_id: skill_bjihua
+      level: 32
+      hidden: false
+    - skill_id: skill_feiyuyaji
+      level: 37
+      hidden: false
+    - skill_id: skill_lianxusaowei
+      level: 42
+      hidden: false
+    - skill_id: skill_jihuapochan
+      level: 47
+      hidden: false
+    - skill_id: skill_jihuamibu
+      level: 51
+      hidden: false
+    - skill_id: skill_wanshijubei
+      level: 56
+      hidden: false
+    - skill_id: skill_feiyiliancixi
+      level: 60
+      hidden: false
+    - skill_id: skill_nbjihua
+      level: 60
+      hidden: true
+    - skill_id: skill_dongfeng
+      level: 60
+      hidden: true
+    - skill_id: skill_guailisaowei
+      level: 60
+      hidden: true
+    - skill_id: skill_feiyuxiji
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_nuoji
+  emblem:
+    - mark_emblem_nuoji
+  genderRatio:
+    - 5
+    - 5

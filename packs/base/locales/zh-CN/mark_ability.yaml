@@ -223,3 +223,84 @@ mark_ability_ganjue:
 mark_ability_fengzhen:
   name: 蜂针
   description: 开战时获得3根蜂皇针，耗尽后免疫异常状态。
+mark_ability_tiaotiaoshu:
+  name: 灵巧
+  description: 对手属性技能命中率降低10%
+mark_ability_pangpang:
+  name: 醉酒
+  description: 具有微醉/烂醉时每回合恢复自身5点怒气
+mark_ability_abu:
+  name: 息怒
+  description: 先出手攻击减少对手10点怒气
+mark_ability_niya:
+  name: 冰雪
+  description: 【实际效果】 普通系伤害增加25% 【设计效果】 暴风雪时普通系伤害增加25%
+mark_ability_boli:
+  name: 咆哮
+  description: 对手体力＜50%时自身造成伤害增加10%
+mark_ability_huohuali:
+  name: 暴击
+  description: 暴击伤害增加10%
+mark_ability_xiaojie:
+  name: 角力
+  description: 自身速度被弱化时强化物攻
+mark_ability_lulu:
+  name: 分裂
+  description: 使砂分身每回合增加1个
+mark_ability_qiaoba:
+  name: 暴走
+  description: 受到伤害使自身获得1个蓝波
+mark_ability_dayandujiao:
+  name: 腐蚀
+  description: 具有焦点腐蚀时攻击技能增加5点威力
+mark_ability_fengyong:
+  name: 青蜂
+  description: 造成伤害刷新对手中毒的回合数
+mark_ability_azi:
+  name: 紫电
+  description: 特攻伤害增加5% 物攻命中率增加5%
+mark_ability_mimi:
+  name: 弹力
+  description: 每损失1点体力使自身获得1点弹力
+mark_ability_xiaoxiaoemo:
+  name: 契约
+  description: 对手具有恶魔契约时自身暴击恢复60点体力
+mark_ability_kadunjiujiu_171:
+  name: 轻盈
+  description: 攻击技能10%先制+1
+mark_ability_atongtie:
+  name: 过载
+  description: 怒气达到100时使自身获得过载
+mark_ability_mika:
+  name: 潜能
+  description: 攻击命中时附加固定伤害。31 资质环境取六项资质的平均值，120 资质环境取六项资质总和的 5%，均向下取整。
+mark_ability_qiuding:
+  name: 尖刺
+  description: 物防值＞500点时受到物攻伤害减少10%
+mark_ability_badu:
+  name: 魂罚
+  description: 特防值＞500点时受到特攻伤害减少10%
+mark_ability_feide:
+  name: 胆怯
+  description: 造成伤害增加5% 获得怒气减少5点
+mark_ability_nuoji:
+  name: 计划
+  description: 具有计划时每回合恢复5点怒气
+mark_ability_kaise:
+  name: 炽热
+  description: 炎热时对手每回合损失最大体力的6% 最多100点
+mark_ability_kelipu:
+  name: 储备
+  description: 具有储备箱时造成伤害增加10%
+mark_ability_aisa:
+  name: 彩霞
+  description: 暴击率提高5%
+mark_ability_moumou:
+  name: 回流
+  description: 攻击技能命中时恢复自身15点体力
+mark_ability_langpu:
+  name: 反爆
+  description: 受到暴击伤害减少35%并获得致命
+mark_ability_cangyuepodi:
+  name: 苍月／破地
+  description: 苍月技能使对手坠地，破地技能使对手滞空。两种状态互斥。

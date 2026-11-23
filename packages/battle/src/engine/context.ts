@@ -158,6 +158,7 @@ export class UseSkillContext extends Context {
 
   damageType: DamageType = DamageType.Physical
   typeMultiplier = 1
+  minimumTypeMultiplier?: number
   stabMultiplier = 1.5
   critMultiplier = 2
 

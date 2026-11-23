@@ -1179,7 +1179,7 @@ export const generatedStatStageCandidates = Object.freeze({
         condition_1_percent: numberParam({ default: 5, tags: ['skill_effect_probability'], legacyAliases: [] }),
       }
       return {
-        triggers: [EffectTrigger.OnDamage] as const,
+        triggers: [EffectTrigger.BeforeHit] as const,
         priority: 0,
         parameters,
         when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),

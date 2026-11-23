@@ -44,13 +44,13 @@ export class InheritedMoveEffects {
         apply: contexts.skillUse.apply(ops.addCritRate(95)),
       },
       effect_skill_guaiyichongji: {
-        triggers: [EffectTrigger.OnHit],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: whenTargetHas('mark_shiquxiujue'),
         apply: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
       },
       effect_skill_kusechouda: {
-        triggers: [EffectTrigger.OnHit],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: whenTargetHas('mark_shiquweijue'),
         apply: targets.opponentActive.apply(ops.changeStatStage('spd', -1)),

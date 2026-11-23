@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.14.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v4.13.2...data-pack-base-v4.14.0) (2026-11-23)
+
+
+### ✨ Features
+
+* **base:** restore 27 original pet families and wire their battle effects ([14754cb](https://github.com/arcadia-eternity/arcadia-eternity/commit/14754cbb032103beb6eb60053ef5eb74a73c5568))
+
 ## [4.13.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v4.13.1...data-pack-base-v4.13.2) (2026-11-23)
 
 

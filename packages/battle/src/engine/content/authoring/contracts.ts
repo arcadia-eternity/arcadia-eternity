@@ -295,6 +295,8 @@ export declare const ops: {
   readonly addTemporaryEffect: (
     effect: Effect<EffectTrigger> | Value<Effect<EffectTrigger>, Presence>,
   ) => Operator<SkillInstance | MarkInstance>
+  /** Apply a floor to the element matchup of this use. */
+  readonly setMinimumTypeMultiplier: (amount: NumericInput) => Operator<UseSkillContext>
   /** Bypass shields for the selected skill uses; leaves the skill instance default unchanged. */
   readonly setIgnoreShield: () => Operator<UseSkillContext>
   /** Assign through a rage phase, retaining the RageChange event and clamping rules. */
@@ -347,6 +349,8 @@ export declare const ops: {
   readonly disableContext: () => Operator<
     UseSkillContext | AddMarkContext | HealContext | RageContext | ConsumeStackContext | EffectContext<EffectTrigger>
   >
+  /** Restore the configured duration on active, timed marks. */
+  readonly refreshMarkDuration: () => Operator<MarkInstance>
   /** Read mark, stack, duration once, in that order. Missing mark skips; missing options use mark defaults. */
   readonly addMark: (
     mark: BaseMark | Value<BaseMark, Presence>,

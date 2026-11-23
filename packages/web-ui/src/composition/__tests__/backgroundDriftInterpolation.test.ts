@@ -43,9 +43,12 @@ it('starts the first hit at the centered background and interpolates subsequent 
 })
 
 it('keeps responding at the scenery edge and resumes interrupted pans from the rendered position', () => {
+  const stage = document.createElement('div')
+  Object.defineProperty(stage, 'clientWidth', { value: 1600 })
   const background = document.createElement('div')
-  Object.defineProperties(background, { offsetWidth: { value: 1600 }, offsetHeight: { value: 900 } })
-  document.body.append(background)
+  Object.defineProperties(background, { offsetWidth: { value: 1840 }, offsetHeight: { value: 900 } })
+  stage.append(background)
+  document.body.append(stage)
   const effects = useBattleAnimations(
     ref(background),
     {} as ReturnType<typeof useBattleStore>,
@@ -55,13 +58,16 @@ it('keeps responding at the scenery edge and resumes interrupted pans from the r
     ref(background),
   )
   effects.updateBackgroundAspectRatio(1200, 660)
-  const edge = ((900 * 1200) / 660 - 1600) / 2
+  const edge = (background.offsetWidth - stage.clientWidth) / 2
   const finish = () => gsap.globalTimeline.getChildren(false, false, true).at(-1)!.pause().progress(1)
   for (let hit = 0; hit < 3; hit++) {
     effects.moveBackgroundFocus('left')
     finish()
   }
-  const offset = () => Number(background.style.backgroundPosition.match(/\+\s*([\d.-]+)px/)?.[1])
+  const offset = () => {
+    const match = background.style.backgroundPosition.match(/([+-])\s*([\d.]+)px/)
+    return match ? Number(match[1] + match[2]) : NaN
+  }
   expect(offset()).toBeCloseTo(edge, 3)
   for (let hit = 0; hit < 3; hit++) {
     effects.moveBackgroundFocus('left')
@@ -78,8 +84,9 @@ it('keeps responding at the scenery edge and resumes interrupted pans from the r
   const interrupted = offset()
   effects.moveBackgroundFocus('right')
   const reverse = gsap.globalTimeline.getChildren(false, false, true).at(-1)!.pause()
-  reverse.progress(0.001)
-  expect(Math.abs(offset() - interrupted)).toBeLessThan(0.1)
   reverse.progress(1)
+  expect(offset()).toBeLessThan(interrupted)
+  reverse.progress(0)
+  expect(offset()).toBeCloseTo(interrupted, 3)
   effects.cleanup()
 })

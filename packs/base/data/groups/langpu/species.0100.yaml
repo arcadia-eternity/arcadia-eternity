@@ -1,0 +1,117 @@
+- id: pet_langpu
+  num: 296
+  element: Ice
+  baseStats:
+    hp: 92
+    atk: 127
+    def: 120
+    spa: 121
+    spd: 120
+    spe: 103
+  heightRange:
+    - 12
+    - 15
+  weightRange:
+    - 11
+    - 16
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_bingjia
+      level: 9
+      hidden: false
+    - skill_id: skill_bingbao_huinu
+      level: 14
+      hidden: false
+    - skill_id: skill_suibing
+      level: 19
+      hidden: false
+    - skill_id: skill_bingdun
+      level: 24
+      hidden: false
+  ability:
+    - mark_ability_langpu
+  emblem:
+    - mark_emblem_langpu
+  genderRatio:
+    - 7
+    - 3
+- id: pet_weilangpu
+  num: 297
+  element: Ice
+  baseStats:
+    hp: 182
+    atk: 172
+    def: 170
+    spa: 166
+    spd: 170
+    spe: 148
+  heightRange:
+    - 80
+    - 85
+  weightRange:
+    - 95
+    - 100
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_zhongji
+      level: 5
+      hidden: false
+    - skill_id: skill_bingjia
+      level: 9
+      hidden: false
+    - skill_id: skill_bingbao_huinu
+      level: 14
+      hidden: false
+    - skill_id: skill_suibing
+      level: 19
+      hidden: false
+    - skill_id: skill_bingdun
+      level: 24
+      hidden: false
+    - skill_id: skill_guaili
+      level: 29
+      hidden: false
+    - skill_id: skill_hanbingzhiti
+      level: 34
+      hidden: false
+    - skill_id: skill_hanguang
+      level: 39
+      hidden: false
+    - skill_id: skill_xuebeng
+      level: 44
+      hidden: false
+    - skill_id: skill_weihegongji
+      level: 49
+      hidden: false
+    - skill_id: skill_bingxuefanteng
+      level: 54
+      hidden: false
+    - skill_id: skill_xuerenpaoxiao
+      level: 60
+      hidden: false
+    - skill_id: skill_xuezhifeiteng
+      level: 60
+      hidden: true
+    - skill_id: skill_hanbingfanshi
+      level: 60
+      hidden: true
+    - skill_id: skill_hanbingzhenji
+      level: 60
+      hidden: true
+    - skill_id: skill_daxuebeng
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_langpu
+  emblem:
+    - mark_emblem_langpu
+  genderRatio:
+    - 7
+    - 3

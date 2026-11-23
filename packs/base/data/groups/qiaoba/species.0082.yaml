@@ -1,0 +1,117 @@
+- id: pet_qiaoba
+  num: 144
+  element: Flying
+  baseStats:
+    hp: 89
+    atk: 120
+    def: 114
+    spa: 130
+    spd: 116
+    spe: 111
+  heightRange:
+    - 30
+    - 35
+  weightRange:
+    - 16
+    - 20
+  learnable_skills:
+    - skill_id: skill_chongji
+      level: 1
+      hidden: false
+    - skill_id: skill_jiaopao
+      level: 5
+      hidden: false
+    - skill_id: skill_yiji
+      level: 10
+      hidden: false
+    - skill_id: skill_qianglizhijiao
+      level: 15
+      hidden: false
+    - skill_id: skill_maopiqianghua
+      level: 20
+      hidden: false
+    - skill_id: skill_hongbo
+      level: 25
+      hidden: false
+  ability:
+    - mark_ability_qiaoba
+  emblem:
+    - mark_emblem_qiaoba
+  genderRatio:
+    - 2
+    - 8
+- id: pet_tuoniqiaoba
+  num: 145
+  element: Flying
+  baseStats:
+    hp: 179
+    atk: 170
+    def: 159
+    spa: 180
+    spd: 161
+    spe: 156
+  heightRange:
+    - 85
+    - 90
+  weightRange:
+    - 75
+    - 80
+  learnable_skills:
+    - skill_id: skill_chongji
+      level: 1
+      hidden: false
+    - skill_id: skill_jiaopao
+      level: 5
+      hidden: false
+    - skill_id: skill_yiji
+      level: 10
+      hidden: false
+    - skill_id: skill_qianglizhijiao
+      level: 15
+      hidden: false
+    - skill_id: skill_maopiqianghua
+      level: 20
+      hidden: false
+    - skill_id: skill_hongbo
+      level: 25
+      hidden: false
+    - skill_id: skill_zhonglitieti
+      level: 30
+      hidden: false
+    - skill_id: skill_jiaoliqianghua
+      level: 35
+      hidden: false
+    - skill_id: skill_tiaoyuechongzhuang
+      level: 40
+      hidden: false
+    - skill_id: skill_wanliqianghua
+      level: 45
+      hidden: false
+    - skill_id: skill_ketichongpo
+      level: 50
+      hidden: false
+    - skill_id: skill_naoliqianghua
+      level: 55
+      hidden: false
+    - skill_id: skill_luoyingbinfenti
+      level: 60
+      hidden: false
+    - skill_id: skill_chuixuezhiti
+      level: 60
+      hidden: true
+    - skill_id: skill_shizipaoti
+      level: 60
+      hidden: true
+    - skill_id: skill_haixiuduobi
+      level: 60
+      hidden: true
+    - skill_id: skill_wuxianpohuai
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_qiaoba
+  emblem:
+    - mark_emblem_qiaoba
+  genderRatio:
+    - 2
+    - 8

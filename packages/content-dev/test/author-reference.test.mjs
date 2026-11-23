@@ -89,8 +89,8 @@ test('each handbook page is linked from its installed MCP topic', async () => {
       const result = await authorReference({ topic: page.topic, symbol })
       assert.equal(result.path, '/' + page.path)
       assert.ok(result.markdown.startsWith('# ' + page.title + '\n'))
-      assert.equal(result.url, 'https://arcadia-creator-docs.pages.dev/' + page.path)
-      assert.equal(result.markdownUrl, 'https://arcadia-creator-docs.pages.dev/reference/' + page.path + '.md')
+      assert.equal(result.url, 'https://battle-docs.yuuinih.com/' + page.path)
+      assert.equal(result.markdownUrl, 'https://battle-docs.yuuinih.com/reference/' + page.path + '.md')
       assert.ok(result.markdown.includes(result.markdownUrl))
     }
   }

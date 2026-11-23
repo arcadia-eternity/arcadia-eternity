@@ -1,0 +1,117 @@
+- id: pet_kaise
+  num: 192
+  element: Fire
+  baseStats:
+    hp: 87
+    atk: 120
+    def: 120
+    spa: 125
+    spd: 117
+    spe: 110
+  heightRange:
+    - 13
+    - 18
+  weightRange:
+    - 11
+    - 16
+  learnable_skills:
+    - skill_id: skill_chongfeng_mingzhong100
+      level: 1
+      hidden: false
+    - skill_id: skill_penhuo
+      level: 5
+      hidden: false
+    - skill_id: skill_jiare
+      level: 11
+      hidden: false
+    - skill_id: skill_chirehuoyan
+      level: 16
+      hidden: false
+    - skill_id: skill_chirehuomiao
+      level: 21
+      hidden: false
+    - skill_id: skill_zhuoreyiji
+      level: 26
+      hidden: false
+  ability:
+    - mark_ability_kaise
+  emblem:
+    - mark_emblem_kaise
+  genderRatio:
+    - 10
+    - 0
+- id: pet_kaiselin
+  num: 193
+  element: Fire
+  baseStats:
+    hp: 177
+    atk: 165
+    def: 165
+    spa: 175
+    spd: 162
+    spe: 160
+  heightRange:
+    - 41
+    - 46
+  weightRange:
+    - 27
+    - 32
+  learnable_skills:
+    - skill_id: skill_chongfeng_mingzhong100
+      level: 1
+      hidden: false
+    - skill_id: skill_penhuo
+      level: 5
+      hidden: false
+    - skill_id: skill_jiare
+      level: 11
+      hidden: false
+    - skill_id: skill_chirehuoyan
+      level: 16
+      hidden: false
+    - skill_id: skill_chirehuomiao
+      level: 21
+      hidden: false
+    - skill_id: skill_zhuoreyiji
+      level: 26
+      hidden: false
+    - skill_id: skill_huoyanpenshe
+      level: 31
+      hidden: false
+    - skill_id: skill_lieyanzhiqu_chijiumianyi
+      level: 36
+      hidden: false
+    - skill_id: skill_chiretuji_yanre
+      level: 41
+      hidden: false
+    - skill_id: skill_huoqiulianxi
+      level: 46
+      hidden: false
+    - skill_id: skill_lieyanbaozha
+      level: 51
+      hidden: false
+    - skill_id: skill_jisuhuodan
+      level: 56
+      hidden: false
+    - skill_id: skill_yehuoliaoyuan
+      level: 60
+      hidden: false
+    - skill_id: skill_yangyan
+      level: 60
+      hidden: true
+    - skill_id: skill_zhuorehuoyan
+      level: 60
+      hidden: true
+    - skill_id: skill_zhuorehuomiao
+      level: 60
+      hidden: true
+    - skill_id: skill_huoyanzhiwu
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_kaise
+  emblem:
+    - mark_emblem_kaise
+  genderRatio:
+    - 10
+    - 0

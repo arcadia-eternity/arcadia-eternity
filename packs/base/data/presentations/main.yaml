@@ -9049,3 +9049,3210 @@
     kind: marks
     id: mark_emblem_zhenci
   icon: mark:default-emblem
+- id: marks.mark_ability_tiaotiaoshu
+  target:
+    kind: marks
+    id: mark_ability_tiaotiaoshu
+  icon: mark:default-ability
+- id: marks.mark_emblem_tiaotiaoshu
+  target:
+    kind: marks
+    id: mark_emblem_tiaotiaoshu
+  icon: mark:default-emblem
+- id: skills.skill_biansutuji
+  target:
+    kind: skills
+    id: skill_biansutuji
+  sfx: bingchuantun:sfx-01-1-001
+- id: skills.skill_suishalianji
+  target:
+    kind: skills
+    id: skill_suishalianji
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_shazhiqiu
+  target:
+    kind: skills
+    id: skill_shazhiqiu
+  sfx: bingchuantun:sfx-01-2-002
+- id: species.pet_tiaotiaoshu
+  target:
+    kind: species
+    id: pet_tiaotiaoshu
+  icon: icon:pet_tiaotiaoshu
+  portrait: portrait:pet_tiaotiaoshu
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_tiaotiaoshu
+    fallback: portrait:pet_tiaotiaoshu
+  cry: petSound:num:113
+- id: skills.skill_yishouzhuangong
+  target:
+    kind: skills
+    id: skill_yishouzhuangong
+  sfx: bingchuantun:sfx-01-3-003
+- id: skills.skill_yapo_jiansu
+  target:
+    kind: skills
+    id: skill_yapo_jiansu
+  sfx: bingchuantun:sfx-01-1-002
+- id: skills.skill_shazhidaoren
+  target:
+    kind: skills
+    id: skill_shazhidaoren
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_suishazhongji
+  target:
+    kind: skills
+    id: skill_suishazhongji
+  sfx: bingchuantun:sfx-01-1-001
+- id: skills.skill_huixin
+  target:
+    kind: skills
+    id: skill_huixin
+  sfx: bingchuantun:sfx-01-3-001
+- id: skills.skill_suishaboji
+  target:
+    kind: skills
+    id: skill_suishaboji
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_kuangshatupo
+  target:
+    kind: skills
+    id: skill_kuangshatupo
+  sfx: skillSound:10607
+- id: skills.skill_shanduo
+  target:
+    kind: skills
+    id: skill_shanduo
+  sfx: bingchuantun:sfx-01-3-002
+- id: skills.skill_fangshoufanji
+  target:
+    kind: skills
+    id: skill_fangshoufanji
+  sfx: bingchuantun:sfx-01-1-002
+- id: skills.skill_qitiao
+  target:
+    kind: skills
+    id: skill_qitiao
+  sfx: bingchuantun:sfx-01-3-001
+- id: skills.skill_pingheng
+  target:
+    kind: skills
+    id: skill_pingheng
+  sfx: bingchuantun:sfx-01-3-003
+- id: species.pet_bengbengshu
+  target:
+    kind: species
+    id: pet_bengbengshu
+  icon: icon:pet_bengbengshu
+  portrait: portrait:pet_bengbengshu
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_bengbengshu
+    fallback: portrait:pet_bengbengshu
+  cry: petSound:num:114
+- id: marks.mark_ability_pangpang
+  target:
+    kind: marks
+    id: mark_ability_pangpang
+  icon: mark:default-ability
+- id: marks.mark_emblem_pangpang
+  target:
+    kind: marks
+    id: mark_emblem_pangpang
+  icon: mark:default-emblem
+- id: skills.skill_fangun
+  target:
+    kind: skills
+    id: skill_fangun
+  sfx: bingchuantun:sfx-01-1-001
+- id: skills.skill_yinjiu
+  target:
+    kind: skills
+    id: skill_yinjiu
+  sfx: bingchuantun:sfx-01-3-001
+- id: skills.skill_yuntouzhuanxiang
+  target:
+    kind: skills
+    id: skill_yuntouzhuanxiang
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_xingjiu
+  target:
+    kind: skills
+    id: skill_xingjiu
+  sfx: bingchuantun:sfx-01-3-002
+- id: skills.skill_exin
+  target:
+    kind: skills
+    id: skill_exin
+  sfx: bingchuantun:sfx-01-2-003
+- id: species.pet_pangpang
+  target:
+    kind: species
+    id: pet_pangpang
+  icon: icon:pet_pangpang
+  portrait: portrait:pet_pangpang
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_pangpang
+    fallback: portrait:pet_pangpang
+  cry: petSound:num:115
+- id: skills.skill_manmianhongguang
+  target:
+    kind: skills
+    id: skill_manmianhongguang
+  sfx: bingchuantun:sfx-01-3-003
+- id: skills.skill_xilihutu
+  target:
+    kind: skills
+    id: skill_xilihutu
+  sfx: bingchuantun:sfx-01-1-002
+- id: skills.skill_fanwei
+  target:
+    kind: skills
+    id: skill_fanwei
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_jiuqixunren
+  target:
+    kind: skills
+    id: skill_jiuqixunren
+  sfx: bingchuantun:sfx-01-3-002
+- id: skills.skill_shouwuzudao
+  target:
+    kind: skills
+    id: skill_shouwuzudao
+  sfx: bingchuantun:sfx-01-1-001
+- id: skills.skill_fali
+  target:
+    kind: skills
+    id: skill_fali
+  sfx: bingchuantun:sfx-01-2-003
+- id: skills.skill_jiuguidaluanda
+  target:
+    kind: skills
+    id: skill_jiuguidaluanda
+  sfx: skillSound:10649
+- id: skills.skill_fennu
+  target:
+    kind: skills
+    id: skill_fennu
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_xingzhigaoang
+  target:
+    kind: skills
+    id: skill_xingzhigaoang
+  sfx: bingchuantun:sfx-01-3-001
+- id: skills.skill_penxue
+  target:
+    kind: skills
+    id: skill_penxue
+  sfx: bingchuantun:sfx-01-2-002
+- id: skills.skill_quanjiu
+  target:
+    kind: skills
+    id: skill_quanjiu
+  sfx: bingchuantun:sfx-01-3-001
+- id: species.pet_pangpangtuo
+  target:
+    kind: species
+    id: pet_pangpangtuo
+  icon: icon:pet_pangpangtuo
+  portrait: portrait:pet_pangpangtuo
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_pangpangtuo
+    fallback: portrait:pet_pangpangtuo
+  cry: petSound:num:116
+- id: marks.mark_ability_abu
+  target:
+    kind: marks
+    id: mark_ability_abu
+  icon: mark:default-ability
+- id: marks.mark_emblem_abu
+  target:
+    kind: marks
+    id: mark_emblem_abu
+  icon: mark:default-emblem
+- id: skills.skill_paida_mingzhong100
+  target:
+    kind: skills
+    id: skill_paida_mingzhong100
+  sfx: bingchuantun:sfx-01-1-001
+- id: skills.skill_zuzhoubengdai
+  target:
+    kind: skills
+    id: skill_zuzhoubengdai
+  sfx: bingchuantun:sfx-01-1-002
+- id: skills.skill_bengdaichanrao
+  target:
+    kind: skills
+    id: skill_bengdaichanrao
+  sfx: bingchuantun:sfx-01-1-002
+- id: skills.skill_jianrenbengdai
+  target:
+    kind: skills
+    id: skill_jianrenbengdai
+  sfx: bingchuantun:sfx-01-3-002
+- id: species.pet_abu
+  target:
+    kind: species
+    id: pet_abu
+  icon: icon:pet_abu
+  portrait: portrait:pet_abu
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_abu
+    fallback: portrait:pet_abu
+  cry: petSound:num:117
+- id: skills.skill_bengdaitishen
+  target:
+    kind: skills
+    id: skill_bengdaitishen
+  sfx: bingchuantun:sfx-01-3-001
+- id: skills.skill_zuzhouzhichu
+  target:
+    kind: skills
+    id: skill_zuzhouzhichu
+  sfx: bingchuantun:sfx-01-2-002
+- id: skills.skill_abuzuzhou
+  target:
+    kind: skills
+    id: skill_abuzuzhou
+  sfx: bingchuantun:sfx-01-3-003
+- id: skills.skill_beishangfanji
+  target:
+    kind: skills
+    id: skill_beishangfanji
+  sfx: bingchuantun:sfx-01-1-002
+- id: skills.skill_tongkuzhichu
+  target:
+    kind: skills
+    id: skill_tongkuzhichu
+  sfx: bingchuantun:sfx-01-2-003
+- id: skills.skill_bengdaisuojin
+  target:
+    kind: skills
+    id: skill_bengdaisuojin
+  sfx: bingchuantun:sfx-01-1-001
+- id: skills.skill_abuzhiyuan
+  target:
+    kind: skills
+    id: skill_abuzhiyuan
+  sfx: skillSound:10621
+- id: skills.skill_abuhaoku
+  target:
+    kind: skills
+    id: skill_abuhaoku
+  sfx: bingchuantun:sfx-01-3-002
+- id: skills.skill_juewangzhichu
+  target:
+    kind: skills
+    id: skill_juewangzhichu
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_juewangbengdai
+  target:
+    kind: skills
+    id: skill_juewangbengdai
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_yuanqixiaosan
+  target:
+    kind: skills
+    id: skill_yuanqixiaosan
+  sfx: bingchuantun:sfx-01-3-003
+- id: species.pet_abubu
+  target:
+    kind: species
+    id: pet_abubu
+  icon: icon:pet_abubu
+  portrait: portrait:pet_abubu
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_abubu
+    fallback: portrait:pet_abubu
+  cry: petSound:num:118
+- id: marks.mark_ability_niya
+  target:
+    kind: marks
+    id: mark_ability_niya
+  icon: mark:default-ability
+- id: marks.mark_emblem_niya
+  target:
+    kind: marks
+    id: mark_emblem_niya
+  icon: mark:default-emblem
+- id: skills.skill_bingqiu
+  target:
+    kind: skills
+    id: skill_bingqiu
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_anfuzhichu
+  target:
+    kind: skills
+    id: skill_anfuzhichu
+  sfx: bingchuantun:sfx-01-1-002
+- id: skills.skill_feixue
+  target:
+    kind: skills
+    id: skill_feixue
+  sfx: bingchuantun:sfx-01-2-002
+- id: skills.skill_hushen
+  target:
+    kind: skills
+    id: skill_hushen
+  sfx: bingchuantun:sfx-01-3-001
+- id: species.pet_niya
+  target:
+    kind: species
+    id: pet_niya
+  icon: icon:pet_niya
+  portrait: portrait:pet_niya
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_niya
+    fallback: portrait:pet_niya
+  cry: petSound:num:126
+- id: skills.skill_hanlengzhichu
+  target:
+    kind: skills
+    id: skill_hanlengzhichu
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_xuehuafeiwu
+  target:
+    kind: skills
+    id: skill_xuehuafeiwu
+  sfx: bingchuantun:sfx-01-2-003
+- id: skills.skill_xuezhiwaiyi
+  target:
+    kind: skills
+    id: skill_xuezhiwaiyi
+  sfx: bingchuantun:sfx-01-3-001
+- id: skills.skill_bingdongzhichu
+  target:
+    kind: skills
+    id: skill_bingdongzhichu
+  sfx: bingchuantun:sfx-01-1-002
+- id: skills.skill_xiubaixue
+  target:
+    kind: skills
+    id: skill_xiubaixue
+  sfx: bingchuantun:sfx-01-2-002
+- id: skills.skill_bingfengjiyi
+  target:
+    kind: skills
+    id: skill_bingfengjiyi
+  sfx: bingchuantun:sfx-01-3-002
+- id: skills.skill_bingxueshiji
+  target:
+    kind: skills
+    id: skill_bingxueshiji
+  sfx: skillSound:10679
+- id: skills.skill_baofengxue
+  target:
+    kind: skills
+    id: skill_baofengxue
+  sfx: bingchuantun:sfx-01-3-001
+- id: skills.skill_lieshantuji
+  target:
+    kind: skills
+    id: skill_lieshantuji
+  sfx: bingchuantun:sfx-01-1-001
+- id: skills.skill_jiqichongji
+  target:
+    kind: skills
+    id: skill_jiqichongji
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_ningjuguangbo
+  target:
+    kind: skills
+    id: skill_ningjuguangbo
+  sfx: bingchuantun:sfx-01-2-003
+- id: species.pet_kaniya
+  target:
+    kind: species
+    id: pet_kaniya
+  icon: icon:pet_kaniya
+  portrait: portrait:pet_kaniya
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_kaniya
+    fallback: portrait:pet_kaniya
+  cry: petSound:num:127
+- id: marks.mark_ability_boli
+  target:
+    kind: marks
+    id: mark_ability_boli
+  icon: mark:default-ability
+- id: marks.mark_emblem_boli
+  target:
+    kind: marks
+    id: mark_emblem_boli
+  icon: mark:default-emblem
+- id: skills.skill_zhibing
+  target:
+    kind: skills
+    id: skill_zhibing
+  sfx: skill:skill_juxingxueqiu
+- id: skills.skill_hanbingpaoxiao
+  target:
+    kind: skills
+    id: skill_hanbingpaoxiao
+  sfx: skill:skill_shuangdongchongji
+- id: skills.skill_yemanchongji
+  target:
+    kind: skills
+    id: skill_yemanchongji
+  sfx: skill:skill_binghuzhiwu
+- id: skills.skill_hanbingshigu
+  target:
+    kind: skills
+    id: skill_hanbingshigu
+  sfx: skill:skill_quzhuhanyi
+- id: species.pet_boli
+  target:
+    kind: species
+    id: pet_boli
+  icon: icon:pet_boli
+  portrait: portrait:pet_boli
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_boli
+    fallback: portrait:pet_boli
+  cry: petSound:num:128
+- id: skills.skill_guaixiao
+  target:
+    kind: skills
+    id: skill_guaixiao
+  sfx: skillSound:10_3_001
+- id: skills.skill_suiliepaiji
+  target:
+    kind: skills
+    id: skill_suiliepaiji
+  sfx: skill:skill_binghuzhiwu
+- id: skills.skill_xianzubinghun
+  target:
+    kind: skills
+    id: skill_xianzubinghun
+  sfx: skill:skill_tongganyindiao
+- id: skills.skill_hanbingtuxi
+  target:
+    kind: skills
+    id: skill_hanbingtuxi
+  sfx: skill:skill_shuangdongchongji
+- id: skills.skill_bingqinxuemai
+  target:
+    kind: skills
+    id: skill_bingqinxuemai
+  sfx: skill:skill_baonuan
+- id: skills.skill_fengkuangmengji
+  target:
+    kind: skills
+    id: skill_fengkuangmengji
+  sfx: skill:skill_jisuyiji
+- id: skills.skill_bingyuansuilieji
+  target:
+    kind: skills
+    id: skill_bingyuansuilieji
+  sfx: skillSound:10711
+- id: skills.skill_hanbingxiaohun
+  target:
+    kind: skills
+    id: skill_hanbingxiaohun
+  sfx: skill:skill_juxingxueqiu
+- id: skills.skill_manxiongzhili
+  target:
+    kind: skills
+    id: skill_manxiongzhili
+  sfx: skill:skill_quzhuhanyi
+- id: skills.skill_julijianta
+  target:
+    kind: skills
+    id: skill_julijianta
+  sfx: skill:skill_jisuyiji
+- id: skills.skill_guaixiaobenxi
+  target:
+    kind: skills
+    id: skill_guaixiaobenxi
+  sfx: skill:skill_binghuzhiwu
+- id: species.pet_guaixiaoboli
+  target:
+    kind: species
+    id: pet_guaixiaoboli
+  icon: icon:pet_guaixiaoboli
+  portrait: portrait:pet_guaixiaoboli
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_guaixiaoboli
+    fallback: portrait:pet_guaixiaoboli
+  cry: petSound:num:129
+- id: marks.mark_ability_huohuali
+  target:
+    kind: marks
+    id: mark_ability_huohuali
+  icon: mark:default-ability
+- id: marks.mark_emblem_huohuali
+  target:
+    kind: marks
+    id: mark_emblem_huohuali
+  icon: mark:default-emblem
+- id: skills.skill_juhuo
+  target:
+    kind: skills
+    id: skill_juhuo
+  sfx: skill:skill_huohuanzhili
+- id: skills.skill_huohuakeyin
+  target:
+    kind: skills
+    id: skill_huohuakeyin
+  sfx: skill:skill_feiyanzhan
+- id: species.pet_huohuali
+  target:
+    kind: species
+    id: pet_huohuali
+  icon: icon:pet_huohuali
+  portrait: portrait:pet_huohuali
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_huohuali
+    fallback: portrait:pet_huohuali
+  cry: petSound:num:130
+- id: skills.skill_huohuayinbao
+  target:
+    kind: skills
+    id: skill_huohuayinbao
+  sfx: skill:skill_kaisazhiyan
+- id: skills.skill_huoyanchongji
+  target:
+    kind: skills
+    id: skill_huoyanchongji
+  sfx: skill:skill_zhenkongsuzhao
+- id: skills.skill_xuanmuhuoguang
+  target:
+    kind: skills
+    id: skill_xuanmuhuoguang
+  sfx: skill:skill_baoyan
+- id: species.pet_huohuazai
+  target:
+    kind: species
+    id: pet_huohuazai
+  icon: icon:pet_huohuazai
+  portrait: portrait:pet_huohuazai
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_huohuazai
+    fallback: portrait:pet_huohuazai
+  cry: petSound:num:131
+- id: skills.skill_huohuanengliang
+  target:
+    kind: skills
+    id: skill_huohuanengliang
+  sfx: skill:skill_huohuanzhili
+- id: skills.skill_huohuatuxi
+  target:
+    kind: skills
+    id: skill_huohuatuxi
+  sfx: skill:skill_zhenkongsuzhao
+- id: skills.skill_huohuayinji
+  target:
+    kind: skills
+    id: skill_huohuayinji
+  sfx: skill:skill_qiankunzhiyan
+- id: skills.skill_huohuaquti
+  target:
+    kind: skills
+    id: skill_huohuaquti
+  sfx: skill:skill_yandidezizun
+- id: skills.skill_huolongjianglin
+  target:
+    kind: skills
+    id: skill_huolongjianglin
+  sfx: skillSound:10725
+- id: skills.skill_chirekeyin
+  target:
+    kind: skills
+    id: skill_chirekeyin
+  sfx: skill:skill_kaisazhiyan
+- id: skills.skill_chirelieyan
+  target:
+    kind: skills
+    id: skill_chirelieyan
+  sfx: skill:skill_baoyan
+- id: skills.skill_chireyandan
+  target:
+    kind: skills
+    id: skill_chireyandan
+  sfx: skill:skill_zhenyangyan
+- id: skills.skill_chiretuji
+  target:
+    kind: skills
+    id: skill_chiretuji
+  sfx: skill:skill_feiyanzhan
+- id: species.pet_huohuashou
+  target:
+    kind: species
+    id: pet_huohuashou
+  icon: icon:pet_huohuashou
+  portrait: portrait:pet_huohuashou
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_huohuashou
+    fallback: portrait:pet_huohuashou
+  cry: petSound:num:132
+- id: marks.mark_ability_xiaojie
+  target:
+    kind: marks
+    id: mark_ability_xiaojie
+  icon: mark:default-ability
+- id: marks.mark_emblem_xiaojie
+  target:
+    kind: marks
+    id: mark_emblem_xiaojie
+  icon: mark:default-emblem
+- id: skills.skill_zhangshou
+  target:
+    kind: skills
+    id: skill_zhangshou
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_shiqieshi
+  target:
+    kind: skills
+    id: skill_shiqieshi
+  sfx: bingchuantun:sfx-01-3-002
+- id: skills.skill_siguta
+  target:
+    kind: skills
+    id: skill_siguta
+  sfx: bingchuantun:sfx-01-1-002
+- id: skills.skill_bailietui
+  target:
+    kind: skills
+    id: skill_bailietui
+  sfx: bingchuantun:sfx-01-2-003
+- id: skills.skill_lanzu
+  target:
+    kind: skills
+    id: skill_lanzu
+  sfx: bingchuantun:sfx-01-3-001
+- id: species.pet_xiaojie
+  target:
+    kind: species
+    id: pet_xiaojie
+  icon: icon:pet_xiaojie
+  portrait: portrait:pet_xiaojie
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_xiaojie
+    fallback: portrait:pet_xiaojie
+  cry: petSound:num:133
+- id: skills.skill_baiguanluo
+  target:
+    kind: skills
+    id: skill_baiguanluo
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_chenshoushi
+  target:
+    kind: skills
+    id: skill_chenshoushi
+  sfx: bingchuantun:sfx-01-3-003
+- id: skills.skill_tuzhang
+  target:
+    kind: skills
+    id: skill_tuzhang
+  sfx: bingchuantun:sfx-01-1-001
+- id: skills.skill_kongshou
+  target:
+    kind: skills
+    id: skill_kongshou
+  sfx: bingchuantun:sfx-01-2-002
+- id: skills.skill_dunjushi
+  target:
+    kind: skills
+    id: skill_dunjushi
+  sfx: bingchuantun:sfx-01-3-002
+- id: skills.skill_lishizhan
+  target:
+    kind: skills
+    id: skill_lishizhan
+  sfx: bingchuantun:sfx-01-2-003
+- id: skills.skill_guiwushuang
+  target:
+    kind: skills
+    id: skill_guiwushuang
+  sfx: skillSound:10756
+- id: skills.skill_lishitu
+  target:
+    kind: skills
+    id: skill_lishitu
+  sfx: bingchuantun:sfx-01-1-002
+- id: skills.skill_chaojibaiguanluo
+  target:
+    kind: skills
+    id: skill_chaojibaiguanluo
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_chaojibailietui
+  target:
+    kind: skills
+    id: skill_chaojibailietui
+  sfx: bingchuantun:sfx-01-2-002
+- id: skills.skill_wushuangshi
+  target:
+    kind: skills
+    id: skill_wushuangshi
+  sfx: bingchuantun:sfx-01-3-001
+- id: species.pet_daguan
+  target:
+    kind: species
+    id: pet_daguan
+  icon: icon:pet_daguan
+  portrait: portrait:pet_daguan
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_daguan
+    fallback: portrait:pet_daguan
+  cry: petSound:num:134
+- id: marks.mark_ability_lulu
+  target:
+    kind: marks
+    id: mark_ability_lulu
+  icon: mark:default-ability
+- id: marks.mark_emblem_lulu
+  target:
+    kind: marks
+    id: mark_emblem_lulu
+  icon: mark:default-emblem
+- id: skills.skill_shaquan
+  target:
+    kind: skills
+    id: skill_shaquan
+  sfx: bingchuantun:sfx-01-1-001
+- id: skills.skill_shazhikaijia
+  target:
+    kind: skills
+    id: skill_shazhikaijia
+  sfx: bingchuantun:sfx-01-3-003
+- id: skills.skill_shafenshen
+  target:
+    kind: skills
+    id: skill_shafenshen
+  sfx: bingchuantun:sfx-01-2-001
+- id: species.pet_lulu
+  target:
+    kind: species
+    id: pet_lulu
+  icon: icon:pet_lulu
+  portrait: portrait:pet_lulu
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_lulu
+    fallback: portrait:pet_lulu
+  cry: petSound:num:135
+- id: skills.skill_shazhimao
+  target:
+    kind: skills
+    id: skill_shazhimao
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_shapuqiangzang
+  target:
+    kind: skills
+    id: skill_shapuqiangzang
+  sfx: bingchuantun:sfx-01-2-003
+- id: skills.skill_shaluanpo
+  target:
+    kind: skills
+    id: skill_shaluanpo
+  sfx: bingchuantun:sfx-01-2-002
+- id: skills.skill_shazhishouhu
+  target:
+    kind: skills
+    id: skill_shazhishouhu
+  sfx: bingchuantun:sfx-01-3-002
+- id: species.pet_luboli
+  target:
+    kind: species
+    id: pet_luboli
+  icon: icon:pet_luboli
+  portrait: portrait:pet_luboli
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_luboli
+    fallback: portrait:pet_luboli
+  cry: petSound:num:136
+- id: skills.skill_shachenshuangji
+  target:
+    kind: skills
+    id: skill_shachenshuangji
+  sfx: bingchuantun:sfx-01-1-001
+- id: skills.skill_shaliuzang
+  target:
+    kind: skills
+    id: skill_shaliuzang
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_shapusongzang
+  target:
+    kind: skills
+    id: skill_shapusongzang
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_mieshapuzang
+  target:
+    kind: skills
+    id: skill_mieshapuzang
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_fenshenshaluanzang
+  target:
+    kind: skills
+    id: skill_fenshenshaluanzang
+  sfx: skillSound:10786
+- id: skills.skill_shabaojianmao
+  target:
+    kind: skills
+    id: skill_shabaojianmao
+  sfx: bingchuantun:sfx-01-1-002
+- id: skills.skill_jueduifangyu
+  target:
+    kind: skills
+    id: skill_jueduifangyu
+  sfx: bingchuantun:sfx-01-3-003
+- id: skills.skill_shapudazang
+  target:
+    kind: skills
+    id: skill_shapudazang
+  sfx: bingchuantun:sfx-01-2-003
+- id: skills.skill_shafulao
+  target:
+    kind: skills
+    id: skill_shafulao
+  sfx: bingchuantun:sfx-01-3-001
+- id: species.pet_lubohali
+  target:
+    kind: species
+    id: pet_lubohali
+  icon: icon:pet_lubohali
+  portrait: portrait:pet_lubohali
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_lubohali
+    fallback: portrait:pet_lubohali
+  cry: petSound:num:137
+- id: marks.mark_ability_qiaoba
+  target:
+    kind: marks
+    id: mark_ability_qiaoba
+  icon: mark:default-ability
+- id: marks.mark_emblem_qiaoba
+  target:
+    kind: marks
+    id: mark_emblem_qiaoba
+  icon: mark:default-emblem
+- id: skills.skill_chongji
+  target:
+    kind: skills
+    id: skill_chongji
+  sfx: hema:sfx-07-1-003
+- id: skills.skill_jiaopao
+  target:
+    kind: skills
+    id: skill_jiaopao
+  sfx: hema:sfx-07-1-001
+- id: skills.skill_qianglizhijiao
+  target:
+    kind: skills
+    id: skill_qianglizhijiao
+  sfx: hema:sfx-07-1-002
+- id: skills.skill_maopiqianghua
+  target:
+    kind: skills
+    id: skill_maopiqianghua
+  sfx: hema:sfx-07-3-003
+- id: skills.skill_hongbo
+  target:
+    kind: skills
+    id: skill_hongbo
+  sfx: hema:sfx-07-3-002
+- id: species.pet_qiaoba
+  target:
+    kind: species
+    id: pet_qiaoba
+  icon: icon:pet_qiaoba
+  portrait: portrait:pet_qiaoba
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_qiaoba
+    fallback: portrait:pet_qiaoba
+  cry: petSound:num:144
+- id: skills.skill_zhonglitieti
+  target:
+    kind: skills
+    id: skill_zhonglitieti
+  sfx: hema:sfx-07-2-002
+- id: skills.skill_jiaoliqianghua
+  target:
+    kind: skills
+    id: skill_jiaoliqianghua
+  sfx: hema:sfx-07-3-003
+- id: skills.skill_tiaoyuechongzhuang
+  target:
+    kind: skills
+    id: skill_tiaoyuechongzhuang
+  sfx: hema:sfx-07-1-003
+- id: skills.skill_wanliqianghua
+  target:
+    kind: skills
+    id: skill_wanliqianghua
+  sfx: hema:sfx-07-1-002
+- id: skills.skill_ketichongpo
+  target:
+    kind: skills
+    id: skill_ketichongpo
+  sfx: hema:sfx-07-2-001
+- id: skills.skill_naoliqianghua
+  target:
+    kind: skills
+    id: skill_naoliqianghua
+  sfx: hema:sfx-07-2-003
+- id: skills.skill_luoyingbinfenti
+  target:
+    kind: skills
+    id: skill_luoyingbinfenti
+  sfx: skillSound:10812
+- id: skills.skill_chuixuezhiti
+  target:
+    kind: skills
+    id: skill_chuixuezhiti
+  sfx: hema:sfx-07-2-002
+- id: skills.skill_shizipaoti
+  target:
+    kind: skills
+    id: skill_shizipaoti
+  sfx: hema:sfx-07-2-003
+- id: skills.skill_haixiuduobi
+  target:
+    kind: skills
+    id: skill_haixiuduobi
+  sfx: hema:sfx-07-3-002
+- id: skills.skill_wuxianpohuai
+  target:
+    kind: skills
+    id: skill_wuxianpohuai
+  sfx: hema:sfx-07-2-001
+- id: species.pet_tuoniqiaoba
+  target:
+    kind: species
+    id: pet_tuoniqiaoba
+  icon: icon:pet_tuoniqiaoba
+  portrait: portrait:pet_tuoniqiaoba
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_tuoniqiaoba
+    fallback: portrait:pet_tuoniqiaoba
+  cry: petSound:num:145
+- id: marks.mark_ability_dayandujiao
+  target:
+    kind: marks
+    id: mark_ability_dayandujiao
+  icon: mark:default-ability
+- id: marks.mark_emblem_dayandujiao
+  target:
+    kind: marks
+    id: mark_emblem_dayandujiao
+  icon: mark:default-emblem
+- id: skills.skill_jiaotu
+  target:
+    kind: skills
+    id: skill_jiaotu
+  sfx: shifeng:sfx-06-1-003
+- id: skills.skill_jiaodianfushi
+  target:
+    kind: skills
+    id: skill_jiaodianfushi
+  sfx: shifeng:sfx-06-2-001
+- id: species.pet_dayandujiao
+  target:
+    kind: species
+    id: pet_dayandujiao
+  icon: icon:pet_dayandujiao
+  portrait: portrait:pet_dayandujiao
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_dayandujiao
+    fallback: portrait:pet_dayandujiao
+  cry: petSound:num:146
+- id: skills.skill_yingjiazhongji
+  target:
+    kind: skills
+    id: skill_yingjiazhongji
+  sfx: shifeng:sfx-06-1-003
+- id: skills.skill_bujiuzhongji
+  target:
+    kind: skills
+    id: skill_bujiuzhongji
+  sfx: shifeng:sfx-06-1-002
+- id: skills.skill_lingduzhongji
+  target:
+    kind: skills
+    id: skill_lingduzhongji
+  sfx: shifeng:sfx-06-2-002
+- id: skills.skill_chongqunqianfu
+  target:
+    kind: skills
+    id: skill_chongqunqianfu
+  sfx: skill:skill_chongzhilingyu
+- id: species.pet_yingkedujiao
+  target:
+    kind: species
+    id: pet_yingkedujiao
+  icon: icon:pet_yingkedujiao
+  portrait: portrait:pet_yingkedujiao
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_yingkedujiao
+    fallback: portrait:pet_yingkedujiao
+  cry: petSound:num:147
+- id: skills.skill_zhongjiachuanci
+  target:
+    kind: skills
+    id: skill_zhongjiachuanci
+  sfx: shifeng:sfx-06-1-001
+- id: skills.skill_bujiuchuanci
+  target:
+    kind: skills
+    id: skill_bujiuchuanci
+  sfx: shifeng:sfx-06-1-001
+- id: skills.skill_lingduchuanci
+  target:
+    kind: skills
+    id: skill_lingduchuanci
+  sfx: shifeng:sfx-06-2-003
+- id: skills.skill_chongqunexi
+  target:
+    kind: skills
+    id: skill_chongqunexi
+  sfx: skill:skill_chongqundajun
+- id: skills.skill_luoxuanchongjizuan
+  target:
+    kind: skills
+    id: skill_luoxuanchongjizuan
+  sfx: skillSound:10827
+- id: skills.skill_pojiaxuruo
+  target:
+    kind: skills
+    id: skill_pojiaxuruo
+  sfx: shifeng:sfx-06-1-002
+- id: skills.skill_wuxianzhuiji
+  target:
+    kind: skills
+    id: skill_wuxianzhuiji
+  sfx: shifeng:sfx-06-2-002
+- id: skills.skill_duyefushi
+  target:
+    kind: skills
+    id: skill_duyefushi
+  sfx: shifeng:sfx-06-2-003
+- id: skills.skill_xueyetunshi
+  target:
+    kind: skills
+    id: skill_xueyetunshi
+  sfx: shifeng:sfx-06-2-001
+- id: species.pet_zhongjiadujiao
+  target:
+    kind: species
+    id: pet_zhongjiadujiao
+  icon: icon:pet_zhongjiadujiao
+  portrait: portrait:pet_zhongjiadujiao
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_zhongjiadujiao
+    fallback: portrait:pet_zhongjiadujiao
+  cry: petSound:num:148
+- id: marks.mark_ability_fengyong
+  target:
+    kind: marks
+    id: mark_ability_fengyong
+  icon: mark:default-ability
+- id: marks.mark_emblem_fengyong
+  target:
+    kind: marks
+    id: mark_emblem_fengyong
+  icon: mark:default-emblem
+- id: skills.skill_weizhen
+  target:
+    kind: skills
+    id: skill_weizhen
+  sfx: shifeng:sfx-06-1-002
+- id: skills.skill_fengwenzhike
+  target:
+    kind: skills
+    id: skill_fengwenzhike
+  sfx: shifeng:sfx-06-2-002
+- id: species.pet_fengyong
+  target:
+    kind: species
+    id: pet_fengyong
+  icon: icon:pet_fengyong
+  portrait: portrait:pet_fengyong
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_fengyong
+    fallback: portrait:pet_fengyong
+  cry: petSound:num:151
+- id: skills.skill_judufengzhen
+  target:
+    kind: skills
+    id: skill_judufengzhen
+  sfx: shifeng:sfx-06-2-002
+- id: skills.skill_mabifengzhen
+  target:
+    kind: skills
+    id: skill_mabifengzhen
+  sfx: shifeng:sfx-06-2-003
+- id: skills.skill_qunfengjijie
+  target:
+    kind: skills
+    id: skill_qunfengjijie
+  sfx: shifeng:sfx-06-3-003
+- id: skills.skill_fengwenfushi
+  target:
+    kind: skills
+    id: skill_fengwenfushi
+  sfx: skill:skill_chongzhilingyu
+- id: species.pet_youfeng
+  target:
+    kind: species
+    id: pet_youfeng
+  icon: icon:pet_youfeng
+  portrait: portrait:pet_youfeng
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_youfeng
+    fallback: portrait:pet_youfeng
+  cry: petSound:num:152
+- id: skills.skill_judafengci
+  target:
+    kind: skills
+    id: skill_judafengci
+  sfx: shifeng:sfx-06-1-002
+- id: skills.skill_qingfengzhichu
+  target:
+    kind: skills
+    id: skill_qingfengzhichu
+  sfx: shifeng:sfx-06-1-002
+- id: skills.skill_qingfengduomingci
+  target:
+    kind: skills
+    id: skill_qingfengduomingci
+  sfx: skillSound:11423
+- id: skills.skill_fengwenxuanwu
+  target:
+    kind: skills
+    id: skill_fengwenxuanwu
+  sfx: shifeng:sfx-06-1-003
+- id: skills.skill_qingfengzhiwu
+  target:
+    kind: skills
+    id: skill_qingfengzhiwu
+  sfx: skill:skill_chongzhilingyu
+- id: skills.skill_qingfengzhike
+  target:
+    kind: skills
+    id: skill_qingfengzhike
+  sfx: shifeng:sfx-06-1-002
+- id: skills.skill_qingchaoerchu
+  target:
+    kind: skills
+    id: skill_qingchaoerchu
+  sfx: shifeng:sfx-06-2-002
+- id: species.pet_qingfeng
+  target:
+    kind: species
+    id: pet_qingfeng
+  icon: icon:pet_qingfeng
+  portrait: portrait:pet_qingfeng
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_qingfeng
+    fallback: portrait:pet_qingfeng
+  cry: petSound:num:153
+- id: marks.mark_ability_azi
+  target:
+    kind: marks
+    id: mark_ability_azi
+  icon: mark:default-ability
+- id: marks.mark_emblem_azi
+  target:
+    kind: marks
+    id: mark_emblem_azi
+  icon: mark:default-emblem
+- id: skills.skill_zidianguang
+  target:
+    kind: skills
+    id: skill_zidianguang
+  sfx: skill:skill_morileidian
+- id: skills.skill_zidianpo
+  target:
+    kind: skills
+    id: skill_zidianpo
+  sfx: skill:skill_baiguangren
+- id: species.pet_azi
+  target:
+    kind: species
+    id: pet_azi
+  icon: icon:pet_azi
+  portrait: portrait:pet_azi
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_azi
+    fallback: portrait:pet_azi
+  cry: petSound:num:154
+- id: skills.skill_ziguangbo
+  target:
+    kind: skills
+    id: skill_ziguangbo
+  sfx: skill:skill_jidianqianniao
+- id: skills.skill_ziguangzhan
+  target:
+    kind: skills
+    id: skill_ziguangzhan
+  sfx: skill:skill_jiguangren
+- id: skills.skill_zidiantongti
+  target:
+    kind: skills
+    id: skill_zidiantongti
+  sfx: skill:skill_shandiandouqi
+- id: skills.skill_chuantoudianqiu
+  target:
+    kind: skills
+    id: skill_chuantoudianqiu
+  sfx: skill:skill_jidianqianniao
+- id: skills.skill_zidianchongji
+  target:
+    kind: skills
+    id: skill_zidianchongji
+  sfx: skill:skill_baiguangren
+- id: skills.skill_zidianguantong
+  target:
+    kind: skills
+    id: skill_zidianguantong
+  sfx: skill:skill_leishenjuexing
+- id: skills.skill_zidianleimingqiang
+  target:
+    kind: skills
+    id: skill_zidianleimingqiang
+  sfx: skillSound:11395
+- id: skills.skill_juedianzhiqiang
+  target:
+    kind: skills
+    id: skill_juedianzhiqiang
+  sfx: skill:skill_shandianzhilian
+- id: skills.skill_zidianlianzhan
+  target:
+    kind: skills
+    id: skill_zidianlianzhan
+  sfx: skill:skill_jingleiqie
+- id: skills.skill_zidianjueguang
+  target:
+    kind: skills
+    id: skill_zidianjueguang
+  sfx: skill:skill_jidianqianniao
+- id: skills.skill_tiaoxin
+  target:
+    kind: skills
+    id: skill_tiaoxin
+  sfx: skill:skill_dianshanguang
+- id: species.pet_zidian
+  target:
+    kind: species
+    id: pet_zidian
+  icon: icon:pet_zidian
+  portrait: portrait:pet_zidian
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_zidian
+    fallback: portrait:pet_zidian
+  cry: petSound:num:155
+- id: skills.skill_lizhua_mingzhong100
+  target:
+    kind: skills
+    id: skill_lizhua_mingzhong100
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_renqi
+  target:
+    kind: skills
+    id: skill_renqi
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_chuanxi
+  target:
+    kind: skills
+    id: skill_chuanxi
+  sfx: bingchuantun:sfx-01-3-002
+- id: skills.skill_ningshenbeizhan
+  target:
+    kind: skills
+    id: skill_ningshenbeizhan
+  sfx: bingchuantun:sfx-01-1-002
+- id: species.pet_yinji
+  target:
+    kind: species
+    id: pet_yinji
+  icon: icon:pet_yinji
+  portrait: portrait:pet_yinji
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_yinji
+    fallback: portrait:pet_yinji
+  cry: petSound:num:158
+- id: skills.skill_podijiaoren
+  target:
+    kind: skills
+    id: skill_podijiaoren
+  sfx: bingchuantun:sfx-01-2-002
+- id: skills.skill_cangyueshuangshan
+  target:
+    kind: skills
+    id: skill_cangyueshuangshan
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_podishengteng
+  target:
+    kind: skills
+    id: skill_podishengteng
+  sfx: bingchuantun:sfx-01-1-002
+- id: skills.skill_cangyuekongzhan
+  target:
+    kind: skills
+    id: skill_cangyuekongzhan
+  sfx: bingchuantun:sfx-01-2-003
+- id: species.pet_yinjialuo
+  target:
+    kind: species
+    id: pet_yinjialuo
+  icon: icon:pet_yinjialuo
+  portrait: portrait:pet_yinjialuo
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_yinjialuo
+    fallback: portrait:pet_yinjialuo
+  cry: petSound:num:159
+- id: skills.skill_podibeixi
+  target:
+    kind: skills
+    id: skill_podibeixi
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_cangyuexuanren
+  target:
+    kind: skills
+    id: skill_cangyuexuanren
+  sfx: bingchuantun:sfx-01-1-001
+- id: skills.skill_yingwu
+  target:
+    kind: skills
+    id: skill_yingwu
+  sfx: bingchuantun:sfx-01-3-001
+- id: skills.skill_yishan
+  target:
+    kind: skills
+    id: skill_yishan
+  sfx: bingchuantun:sfx-01-1-002
+- id: skills.skill_podijuexici
+  target:
+    kind: skills
+    id: skill_podijuexici
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_cangyueliankongzhan
+  target:
+    kind: skills
+    id: skill_cangyueliankongzhan
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_liqi
+  target:
+    kind: skills
+    id: skill_liqi
+  sfx: bingchuantun:sfx-01-3-002
+- id: skills.skill_guyuedishazhan
+  target:
+    kind: skills
+    id: skill_guyuedishazhan
+  sfx: bingchuantun:sfx-01-1-001
+- id: species.pet_yinkasite
+  target:
+    kind: species
+    id: pet_yinkasite
+  icon: icon:pet_yinkasite
+  portrait: portrait:pet_yinkasite
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_yinkasite
+    fallback: portrait:pet_yinkasite
+  cry: petSound:num:160
+- id: marks.mark_ability_mimi
+  target:
+    kind: marks
+    id: mark_ability_mimi
+  icon: mark:default-ability
+- id: marks.mark_emblem_mimi
+  target:
+    kind: marks
+    id: mark_emblem_mimi
+  icon: mark:default-emblem
+- id: skills.skill_tanshe
+  target:
+    kind: skills
+    id: skill_tanshe
+  sfx: bingchuantun:sfx-01-1-002
+- id: species.pet_mimi
+  target:
+    kind: species
+    id: pet_mimi
+  icon: icon:pet_mimi
+  portrait: portrait:pet_mimi
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_mimi
+    fallback: portrait:pet_mimi
+  cry: petSound:num:164
+- id: skills.skill_xulitanshe
+  target:
+    kind: skills
+    id: skill_xulitanshe
+  sfx: bingchuantun:sfx-01-1-002
+- id: skills.skill_tanhuangtizhi
+  target:
+    kind: skills
+    id: skill_tanhuangtizhi
+  sfx: bingchuantun:sfx-01-3-001
+- id: skills.skill_zhongyatanshe
+  target:
+    kind: skills
+    id: skill_zhongyatanshe
+  sfx: bingchuantun:sfx-01-2-003
+- id: skills.skill_dantiaolianji
+  target:
+    kind: skills
+    id: skill_dantiaolianji
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_tanhuangtujin
+  target:
+    kind: skills
+    id: skill_tanhuangtujin
+  sfx: bingchuantun:sfx-01-1-001
+- id: skills.skill_tanhuangbaozha
+  target:
+    kind: skills
+    id: skill_tanhuangbaozha
+  sfx: bingchuantun:sfx-01-3-002
+- id: skills.skill_tanhuangdiyu
+  target:
+    kind: skills
+    id: skill_tanhuangdiyu
+  sfx: skillSound:10870
+- id: skills.skill_benghuaizhongquan
+  target:
+    kind: skills
+    id: skill_benghuaizhongquan
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_benghuaizhinu
+  target:
+    kind: skills
+    id: skill_benghuaizhinu
+  sfx: bingchuantun:sfx-01-2-003
+- id: skills.skill_benghuaituji
+  target:
+    kind: skills
+    id: skill_benghuaituji
+  sfx: bingchuantun:sfx-01-2-002
+- id: skills.skill_benghuaiyanmie
+  target:
+    kind: skills
+    id: skill_benghuaiyanmie
+  sfx: bingchuantun:sfx-01-2-001
+- id: species.pet_miqilin
+  target:
+    kind: species
+    id: pet_miqilin
+  icon: icon:pet_miqilin
+  portrait: portrait:pet_miqilin
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_miqilin
+    fallback: portrait:pet_miqilin
+  cry: petSound:num:165
+- id: marks.mark_ability_xiaoxiaoemo
+  target:
+    kind: marks
+    id: mark_ability_xiaoxiaoemo
+  icon: mark:default-ability
+- id: marks.mark_emblem_xiaoxiaoemo
+  target:
+    kind: marks
+    id: mark_emblem_xiaoxiaoemo
+  icon: mark:default-emblem
+- id: skills.skill_emozhiwen
+  target:
+    kind: skills
+    id: skill_emozhiwen
+  sfx: bingchuantun:sfx-01-3-003
+- id: skills.skill_emoqiyue
+  target:
+    kind: skills
+    id: skill_emoqiyue
+  sfx: bingchuantun:sfx-01-2-002
+- id: skills.skill_diyuchongji
+  target:
+    kind: skills
+    id: skill_diyuchongji
+  sfx: bingchuantun:sfx-01-1-001
+- id: skills.skill_xuweizhihun
+  target:
+    kind: skills
+    id: skill_xuweizhihun
+  sfx: bingchuantun:sfx-01-2-001
+- id: species.pet_xiaoxiaoemo
+  target:
+    kind: species
+    id: pet_xiaoxiaoemo
+  icon: icon:pet_xiaoxiaoemo
+  portrait: portrait:pet_xiaoxiaoemo
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_xiaoxiaoemo
+    fallback: portrait:pet_xiaoxiaoemo
+  cry: petSound:num:169
+- id: skills.skill_diyuzhiyu
+  target:
+    kind: skills
+    id: skill_diyuzhiyu
+  sfx: bingchuantun:sfx-01-1-002
+- id: skills.skill_emozhiai
+  target:
+    kind: skills
+    id: skill_emozhiai
+  sfx: bingchuantun:sfx-01-3-001
+- id: skills.skill_shouhuzhihun
+  target:
+    kind: skills
+    id: skill_shouhuzhihun
+  sfx: bingchuantun:sfx-01-2-003
+- id: skills.skill_diyuaihao
+  target:
+    kind: skills
+    id: skill_diyuaihao
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_guduzhihun
+  target:
+    kind: skills
+    id: skill_guduzhihun
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_diyushenyuan
+  target:
+    kind: skills
+    id: skill_diyushenyuan
+  sfx: bingchuantun:sfx-01-1-002
+- id: skills.skill_anyesuohunqu
+  target:
+    kind: skills
+    id: skill_anyesuohunqu
+  sfx: skillSound:11597
+- id: skills.skill_chongshengzhihun
+  target:
+    kind: skills
+    id: skill_chongshengzhihun
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_juewangzhihun
+  target:
+    kind: skills
+    id: skill_juewangzhihun
+  sfx: bingchuantun:sfx-01-2-003
+- id: skills.skill_taobizhihun
+  target:
+    kind: skills
+    id: skill_taobizhihun
+  sfx: bingchuantun:sfx-01-2-002
+- id: skills.skill_diyupaoxiao
+  target:
+    kind: skills
+    id: skill_diyupaoxiao
+  sfx: bingchuantun:sfx-01-1-001
+- id: species.pet_xiaoemo
+  target:
+    kind: species
+    id: pet_xiaoemo
+  icon: icon:pet_xiaoemo
+  portrait: portrait:pet_xiaoemo
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_xiaoemo
+    fallback: portrait:pet_xiaoemo
+  cry: petSound:num:170
+- id: marks.mark_ability_kadunjiujiu_171
+  target:
+    kind: marks
+    id: mark_ability_kadunjiujiu_171
+  icon: mark:default-ability
+- id: marks.mark_emblem_kadunjiujiu_171
+  target:
+    kind: marks
+    id: mark_emblem_kadunjiujiu_171
+  icon: mark:default-emblem
+- id: skills.skill_xinlianxin_haoyin
+  target:
+    kind: skills
+    id: skill_xinlianxin_haoyin
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_quanliyiji_kadundudu
+  target:
+    kind: skills
+    id: skill_quanliyiji_kadundudu
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_xinsushanyao
+  target:
+    kind: skills
+    id: skill_xinsushanyao
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_xuyuan
+  target:
+    kind: skills
+    id: skill_xuyuan
+  sfx: bingchuantun:sfx-01-3-001
+- id: skills.skill_qingyingshenzi
+  target:
+    kind: skills
+    id: skill_qingyingshenzi
+  sfx: bingchuantun:sfx-01-3-002
+- id: skills.skill_quanlichongfeng_2
+  target:
+    kind: skills
+    id: skill_quanlichongfeng_2
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_fanxincuican
+  target:
+    kind: skills
+    id: skill_fanxincuican
+  sfx: skillSound:10892
+- id: skills.skill_xinlingsuo
+  target:
+    kind: skills
+    id: skill_xinlingsuo
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_xuehongyinji_sanhuihe
+  target:
+    kind: skills
+    id: skill_xuehongyinji_sanhuihe
+  sfx: bingchuantun:sfx-01-3-001
+- id: skills.skill_xinyuan_2
+  target:
+    kind: skills
+    id: skill_xinyuan_2
+  sfx: bingchuantun:sfx-01-3-003
+- id: species.pet_kadunjiujiu_171
+  target:
+    kind: species
+    id: pet_kadunjiujiu_171
+  icon: icon:pet_kadunjiujiu_171
+  portrait: portrait:pet_kadunjiujiu_171
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_kadunjiujiu_171
+    fallback: portrait:pet_kadunjiujiu_171
+  cry: petSound:num:171
+- id: marks.mark_ability_atongtie
+  target:
+    kind: marks
+    id: mark_ability_atongtie
+  icon: mark:default-ability
+- id: marks.mark_emblem_atongtie
+  target:
+    kind: marks
+    id: mark_emblem_atongtie
+  icon: mark:default-emblem
+- id: skills.skill_wajietuji
+  target:
+    kind: skills
+    id: skill_wajietuji
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_wulixishou
+  target:
+    kind: skills
+    id: skill_wulixishou
+  sfx: bingchuantun:sfx-01-3-002
+- id: skills.skill_ganghuatuji
+  target:
+    kind: skills
+    id: skill_ganghuatuji
+  sfx: bingchuantun:sfx-01-1-001
+- id: skills.skill_teshufanshe
+  target:
+    kind: skills
+    id: skill_teshufanshe
+  sfx: bingchuantun:sfx-01-3-003
+- id: species.pet_atongtie
+  target:
+    kind: species
+    id: pet_atongtie
+  icon: icon:pet_atongtie
+  portrait: portrait:pet_atongtie
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_atongtie
+    fallback: portrait:pet_atongtie
+  cry: petSound:num:172
+- id: skills.skill_zhandouchengxu
+  target:
+    kind: skills
+    id: skill_zhandouchengxu
+  sfx: bingchuantun:sfx-01-3-002
+- id: skills.skill_chenmentuji
+  target:
+    kind: skills
+    id: skill_chenmentuji
+  sfx: bingchuantun:sfx-01-1-001
+- id: skills.skill_shengnu
+  target:
+    kind: skills
+    id: skill_shengnu
+  sfx: bingchuantun:sfx-01-3-003
+- id: skills.skill_chaopinyunzhuan
+  target:
+    kind: skills
+    id: skill_chaopinyunzhuan
+  sfx: bingchuantun:sfx-01-3-001
+- id: skills.skill_qianghuatouchui
+  target:
+    kind: skills
+    id: skill_qianghuatouchui
+  sfx: bingchuantun:sfx-01-1-002
+- id: skills.skill_atonggangtiepao
+  target:
+    kind: skills
+    id: skill_atonggangtiepao
+  sfx: skillSound:11308
+- id: skills.skill_zhuizongbaodan
+  target:
+    kind: skills
+    id: skill_zhuizongbaodan
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_feidanlianshe
+  target:
+    kind: skills
+    id: skill_feidanlianshe
+  sfx: bingchuantun:sfx-01-2-003
+- id: skills.skill_monengzhadan
+  target:
+    kind: skills
+    id: skill_monengzhadan
+  sfx: bingchuantun:sfx-01-2-002
+- id: skills.skill_yuanshizhadan
+  target:
+    kind: skills
+    id: skill_yuanshizhadan
+  sfx: bingchuantun:sfx-01-2-001
+- id: species.pet_atonggang
+  target:
+    kind: species
+    id: pet_atonggang
+  icon: icon:pet_atonggang
+  portrait: portrait:pet_atonggang
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_atonggang
+    fallback: portrait:pet_atonggang
+  cry: petSound:num:173
+- id: marks.mark_ability_mika
+  target:
+    kind: marks
+    id: mark_ability_mika
+  icon: mark:default-ability
+- id: marks.mark_emblem_mika
+  target:
+    kind: marks
+    id: mark_emblem_mika
+  icon: mark:default-emblem
+- id: skills.skill_guangxiangongji_jiangtefang
+  target:
+    kind: skills
+    id: skill_guangxiangongji_jiangtefang
+  sfx: skill:skill_shenpanguangchong
+- id: skills.skill_gaosuzitai
+  target:
+    kind: skills
+    id: skill_gaosuzitai
+  sfx: skill:skill_jiushuzhihuo
+- id: skills.skill_guangshufanchong
+  target:
+    kind: skills
+    id: skill_guangshufanchong
+  sfx: skill:skill_fuchouguangchong
+- id: skills.skill_guangjiangongji
+  target:
+    kind: skills
+    id: skill_guangjiangongji
+  sfx: skill:skill_guangsufeidan
+- id: skills.skill_guangsutuji
+  target:
+    kind: skills
+    id: skill_guangsutuji
+  sfx: skill:skill_shengguangxili
+- id: skills.skill_fenlituji
+  target:
+    kind: skills
+    id: skill_fenlituji
+  sfx: skill:skill_chengjiezhiguang
+- id: skills.skill_guangxianchuantou
+  target:
+    kind: skills
+    id: skill_guangxianchuantou
+  sfx: skill:skill_guangsufeidan
+- id: skills.skill_guangxiansuoding
+  target:
+    kind: skills
+    id: skill_guangxiansuoding
+  sfx: skill:skill_zhengfazhihuo
+- id: skills.skill_guangxianchongzhuang
+  target:
+    kind: skills
+    id: skill_guangxianchongzhuang
+  sfx: skill:skill_shengguangxili
+- id: skills.skill_guangshuchongji
+  target:
+    kind: skills
+    id: skill_guangshuchongji
+  sfx: skill:skill_shenpanguangchong
+- id: skills.skill_yangguangpuzhao
+  target:
+    kind: skills
+    id: skill_yangguangpuzhao
+  sfx: skill:skill_guangsufeidan
+- id: skills.skill_amadisiguang
+  target:
+    kind: skills
+    id: skill_amadisiguang
+  sfx: skillSound:10950
+- id: skills.skill_guangzhidun
+  target:
+    kind: skills
+    id: skill_guangzhidun
+  sfx: skill:skill_zhengjiuzhihuo
+- id: skills.skill_xiaotaiyang
+  target:
+    kind: skills
+    id: skill_xiaotaiyang
+  sfx: skill:skill_shenpanguangchong
+- id: skills.skill_huixuanguangren
+  target:
+    kind: skills
+    id: skill_huixuanguangren
+  sfx: skill:skill_guangsufeidan
+- id: skills.skill_baohuzitai
+  target:
+    kind: skills
+    id: skill_baohuzitai
+  sfx: skill:skill_zhengfazhihuo
+- id: species.pet_mika
+  target:
+    kind: species
+    id: pet_mika
+  icon: icon:pet_mika
+  portrait: portrait:pet_mika
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_mika
+    fallback: portrait:pet_mika
+  cry: petSound:num:178
+- id: marks.mark_ability_qiuding
+  target:
+    kind: marks
+    id: mark_ability_qiuding
+  icon: mark:default-ability
+- id: marks.mark_emblem_qiuding
+  target:
+    kind: marks
+    id: mark_emblem_qiuding
+  icon: mark:default-emblem
+- id: skills.skill_jianci
+  target:
+    kind: skills
+    id: skill_jianci
+  sfx: skill:skill_suishigongji
+- id: skills.skill_jiagu
+  target:
+    kind: skills
+    id: skill_jiagu
+  sfx: skill:skill_dunzu
+- id: skills.skill_jiancijiaqiao
+  target:
+    kind: skills
+    id: skill_jiancijiaqiao
+  sfx: skill:skill_xifaershi
+- id: skills.skill_jiancichongzhuang
+  target:
+    kind: skills
+    id: skill_jiancichongzhuang
+  sfx: skill:skill_fuchoudadi
+- id: skills.skill_jiancibaofa
+  target:
+    kind: skills
+    id: skill_jiancibaofa
+  sfx: skillSound:09_2_003
+- id: species.pet_qiuding
+  target:
+    kind: species
+    id: pet_qiuding
+  icon: icon:pet_qiuding
+  portrait: portrait:pet_qiuding
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_qiuding
+    fallback: portrait:pet_qiuding
+  cry: petSound:num:184
+- id: skills.skill_jiancifangun
+  target:
+    kind: skills
+    id: skill_jiancifangun
+  sfx: skill:skill_lieshituji
+- id: skills.skill_jiancituji
+  target:
+    kind: skills
+    id: skill_jiancituji
+  sfx: skill:skill_fuchoudadi
+- id: skills.skill_jiancisushe
+  target:
+    kind: skills
+    id: skill_jiancisushe
+  sfx: skillSound:09_2_003
+- id: skills.skill_daocijiaqiao
+  target:
+    kind: skills
+    id: skill_daocijiaqiao
+  sfx: skill:skill_xifaershi
+- id: skills.skill_shazhili
+  target:
+    kind: skills
+    id: skill_shazhili
+  sfx: skill:skill_suishigongji
+- id: skills.skill_pojiatuji
+  target:
+    kind: skills
+    id: skill_pojiatuji
+  sfx: skill:skill_gangzhaozhiji
+- id: skills.skill_didongshanyao
+  target:
+    kind: skills
+    id: skill_didongshanyao
+  sfx: skillSound:11028
+- id: skills.skill_licitujin
+  target:
+    kind: skills
+    id: skill_licitujin
+  sfx: skill:skill_lieshituji
+- id: skills.skill_licifangun
+  target:
+    kind: skills
+    id: skill_licifangun
+  sfx: skill:skill_fuchoudadi
+- id: skills.skill_fanjiyizhi
+  target:
+    kind: skills
+    id: skill_fanjiyizhi
+  sfx: skill:skill_xiezuojieli
+- id: skills.skill_baonujiaqiao
+  target:
+    kind: skills
+    id: skill_baonujiaqiao
+  sfx: skill:skill_dunzu
+- id: species.pet_qiuji
+  target:
+    kind: species
+    id: pet_qiuji
+  icon: icon:pet_qiuji
+  portrait: portrait:pet_qiuji
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_qiuji
+    fallback: portrait:pet_qiuji
+  cry: petSound:num:185
+- id: marks.mark_ability_badu
+  target:
+    kind: marks
+    id: mark_ability_badu
+  icon: mark:default-ability
+- id: marks.mark_emblem_badu
+  target:
+    kind: marks
+    id: mark_emblem_badu
+  icon: mark:default-emblem
+- id: skills.skill_hunya
+  target:
+    kind: skills
+    id: skill_hunya
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_hungu
+  target:
+    kind: skills
+    id: skill_hungu
+  sfx: bingchuantun:sfx-01-3-002
+- id: skills.skill_shihunlinggui
+  target:
+    kind: skills
+    id: skill_shihunlinggui
+  sfx: bingchuantun:sfx-01-3-003
+- id: skills.skill_linghunzhifa
+  target:
+    kind: skills
+    id: skill_linghunzhifa
+  sfx: bingchuantun:sfx-01-2-002
+- id: skills.skill_linghunsuiji
+  target:
+    kind: skills
+    id: skill_linghunsuiji
+  sfx: bingchuantun:sfx-01-1-002
+- id: species.pet_badu
+  target:
+    kind: species
+    id: pet_badu
+  icon: icon:pet_badu
+  portrait: portrait:pet_badu
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_badu
+    fallback: portrait:pet_badu
+  cry: petSound:num:186
+- id: skills.skill_linghunlianda
+  target:
+    kind: skills
+    id: skill_linghunlianda
+  sfx: bingchuantun:sfx-01-2-002
+- id: skills.skill_hunguituji
+  target:
+    kind: skills
+    id: skill_hunguituji
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_zhuhunyiji
+  target:
+    kind: skills
+    id: skill_zhuhunyiji
+  sfx: bingchuantun:sfx-01-2-003
+- id: skills.skill_youhunlinggui
+  target:
+    kind: skills
+    id: skill_youhunlinggui
+  sfx: bingchuantun:sfx-01-3-003
+- id: skills.skill_dizhishang
+  target:
+    kind: skills
+    id: skill_dizhishang
+  sfx: bingchuantun:sfx-01-1-001
+- id: skills.skill_linghunzhuanzhu
+  target:
+    kind: skills
+    id: skill_linghunzhuanzhu
+  sfx: bingchuantun:sfx-01-1-003
+- id: skills.skill_linghunjidang
+  target:
+    kind: skills
+    id: skill_linghunjidang
+  sfx: skillSound:11044
+- id: skills.skill_lihunsuiji
+  target:
+    kind: skills
+    id: skill_lihunsuiji
+  sfx: bingchuantun:sfx-01-2-003
+- id: skills.skill_lihunlianda
+  target:
+    kind: skills
+    id: skill_lihunlianda
+  sfx: bingchuantun:sfx-01-2-001
+- id: skills.skill_fankangyishi
+  target:
+    kind: skills
+    id: skill_fankangyishi
+  sfx: bingchuantun:sfx-01-3-001
+- id: skills.skill_lihunlinggui
+  target:
+    kind: skills
+    id: skill_lihunlinggui
+  sfx: bingchuantun:sfx-01-3-002
+- id: species.pet_baduo
+  target:
+    kind: species
+    id: pet_baduo
+  icon: icon:pet_baduo
+  portrait: portrait:pet_baduo
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_baduo
+    fallback: portrait:pet_baduo
+  cry: petSound:num:187
+- id: marks.mark_ability_feide
+  target:
+    kind: marks
+    id: mark_ability_feide
+  icon: mark:default-ability
+- id: marks.mark_emblem_feide
+  target:
+    kind: marks
+    id: mark_emblem_feide
+  icon: mark:default-emblem
+- id: skills.skill_zaoyin_tegong
+  target:
+    kind: skills
+    id: skill_zaoyin_tegong
+  sfx: skill:skill_jinzhenlianfa
+- id: skills.skill_zuogu
+  target:
+    kind: skills
+    id: skill_zuogu
+  sfx: skill:skill_bachujinzhen
+- id: skills.skill_youpan
+  target:
+    kind: skills
+    id: skill_youpan
+  sfx: skill:skill_maidijinzhen
+- id: skills.skill_zhanqian
+  target:
+    kind: skills
+    id: skill_zhanqian
+  sfx: skill:skill_shouhuijinzhen
+- id: skills.skill_yanghou
+  target:
+    kind: skills
+    id: skill_yanghou
+  sfx: skill:skill_qianyinjinzhen
+- id: species.pet_feide
+  target:
+    kind: species
+    id: pet_feide
+  icon: icon:pet_feide
+  portrait: portrait:pet_feide
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_feide
+    fallback: portrait:pet_feide
+  cry: petSound:num:188
+- id: skills.skill_kongjuguangbo
+  target:
+    kind: skills
+    id: skill_kongjuguangbo
+  sfx: skill:skill_qianyinjinzhen
+- id: skills.skill_kongjushengbo
+  target:
+    kind: skills
+    id: skill_kongjushengbo
+  sfx: skill:skill_duliao
+- id: skills.skill_linghunxiqu
+  target:
+    kind: skills
+    id: skill_linghunxiqu
+  sfx: skill:skill_maidijinzhen
+- id: skills.skill_linghunchenji
+  target:
+    kind: skills
+    id: skill_linghunchenji
+  sfx: skill:skill_jinzhenlianfa
+- id: skills.skill_nixianlaiba
+  target:
+    kind: skills
+    id: skill_nixianlaiba
+  sfx: skill:skill_shutichongzhuang
+- id: skills.skill_woxianlaiba
+  target:
+    kind: skills
+    id: skill_woxianlaiba
+  sfx: skill:skill_maidijinzhen
+- id: skills.skill_tianyuankuanghuanqu
+  target:
+    kind: skills
+    id: skill_tianyuankuanghuanqu
+  sfx: skillSound:11101
+- id: skills.skill_dengzheqiaoba
+  target:
+    kind: skills
+    id: skill_dengzheqiaoba
+  sfx: skill:skill_judushenti
+- id: skills.skill_buyaobiwo
+  target:
+    kind: skills
+    id: skill_buyaobiwo
+  sfx: skill:skill_jinzhenlianfa
+- id: skills.skill_wopawuya
+  target:
+    kind: skills
+    id: skill_wopawuya
+  sfx: skill:skill_duliao
+- id: skills.skill_wochaoshenle
+  target:
+    kind: skills
+    id: skill_wochaoshenle
+  sfx: skill:skill_qianyinjinzhen
+- id: species.pet_feidetike
+  target:
+    kind: species
+    id: pet_feidetike
+  icon: icon:pet_feidetike
+  portrait: portrait:pet_feidetike
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_feidetike
+    fallback: portrait:pet_feidetike
+  cry: petSound:num:189
+- id: marks.mark_ability_nuoji
+  target:
+    kind: marks
+    id: mark_ability_nuoji
+  icon: mark:default-ability
+- id: marks.mark_emblem_nuoji
+  target:
+    kind: marks
+    id: mark_emblem_nuoji
+  icon: mark:default-emblem
+- id: skills.skill_baiwei
+  target:
+    kind: skills
+    id: skill_baiwei
+  sfx: hema:sfx-07-1-003
+- id: skills.skill_njihua
+  target:
+    kind: skills
+    id: skill_njihua
+  sfx: hema:sfx-07-2-003
+- id: skills.skill_qianglisaowei
+  target:
+    kind: skills
+    id: skill_qianglisaowei
+  sfx: hema:sfx-07-1-003
+- id: skills.skill_feiyuliantu
+  target:
+    kind: skills
+    id: skill_feiyuliantu
+  sfx: hema:sfx-07-2-002
+- id: species.pet_nuoji
+  target:
+    kind: species
+    id: pet_nuoji
+  icon: icon:pet_nuoji
+  portrait: portrait:pet_nuoji
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_nuoji
+    fallback: portrait:pet_nuoji
+  cry: petSound:num:190
+- id: skills.skill_bjihua
+  target:
+    kind: skills
+    id: skill_bjihua
+  sfx: hema:sfx-07-1-002
+- id: skills.skill_feiyuyaji
+  target:
+    kind: skills
+    id: skill_feiyuyaji
+  sfx: hema:sfx-07-2-001
+- id: skills.skill_lianxusaowei
+  target:
+    kind: skills
+    id: skill_lianxusaowei
+  sfx: hema:sfx-07-1-003
+- id: skills.skill_jihuapochan
+  target:
+    kind: skills
+    id: skill_jihuapochan
+  sfx: skill:skill_zuizhongshenpan
+- id: skills.skill_jihuamibu
+  target:
+    kind: skills
+    id: skill_jihuamibu
+  sfx: skill:skill_zuizhongshenpan
+- id: skills.skill_wanshijubei
+  target:
+    kind: skills
+    id: skill_wanshijubei
+  sfx: hema:sfx-07-1-003
+- id: skills.skill_feiyiliancixi
+  target:
+    kind: skills
+    id: skill_feiyiliancixi
+  sfx: skillSound:11353
+- id: skills.skill_nbjihua
+  target:
+    kind: skills
+    id: skill_nbjihua
+  sfx: hema:sfx-07-3-003
+- id: skills.skill_dongfeng
+  target:
+    kind: skills
+    id: skill_dongfeng
+  sfx: skill:skill_zuizhongshenpan
+- id: skills.skill_guailisaowei
+  target:
+    kind: skills
+    id: skill_guailisaowei
+  sfx: hema:sfx-07-1-001
+- id: skills.skill_feiyuxiji
+  target:
+    kind: skills
+    id: skill_feiyuxiji
+  sfx: hema:sfx-07-2-002
+- id: species.pet_nuojibo
+  target:
+    kind: species
+    id: pet_nuojibo
+  icon: icon:pet_nuojibo
+  portrait: portrait:pet_nuojibo
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_nuojibo
+    fallback: portrait:pet_nuojibo
+  cry: petSound:num:191
+- id: marks.mark_ability_kaise
+  target:
+    kind: marks
+    id: mark_ability_kaise
+  icon: mark:default-ability
+- id: marks.mark_emblem_kaise
+  target:
+    kind: marks
+    id: mark_emblem_kaise
+  icon: mark:default-emblem
+- id: skills.skill_chongfeng_mingzhong100
+  target:
+    kind: skills
+    id: skill_chongfeng_mingzhong100
+  sfx: skill:skill_zhenkongsuzhao
+- id: skills.skill_chirehuoyan
+  target:
+    kind: skills
+    id: skill_chirehuoyan
+  sfx: skill:skill_baoyan
+- id: skills.skill_chirehuomiao
+  target:
+    kind: skills
+    id: skill_chirehuomiao
+  sfx: skill:skill_kaisazhiyan
+- id: skills.skill_zhuoreyiji
+  target:
+    kind: skills
+    id: skill_zhuoreyiji
+  sfx: skill:skill_lieyanzhizhua
+- id: species.pet_kaise
+  target:
+    kind: species
+    id: pet_kaise
+  icon: icon:pet_kaise
+  portrait: portrait:pet_kaise
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_kaise
+    fallback: portrait:pet_kaise
+  cry: petSound:num:192
+- id: skills.skill_huoyanpenshe
+  target:
+    kind: skills
+    id: skill_huoyanpenshe
+  sfx: skill:skill_kaisazhiyan
+- id: skills.skill_lieyanzhiqu_chijiumianyi
+  target:
+    kind: skills
+    id: skill_lieyanzhiqu_chijiumianyi
+  sfx: skill:skill_qiankunzhiyan
+- id: skills.skill_chiretuji_yanre
+  target:
+    kind: skills
+    id: skill_chiretuji_yanre
+  sfx: skill:skill_zhenkongsuzhao
+- id: skills.skill_huoqiulianxi
+  target:
+    kind: skills
+    id: skill_huoqiulianxi
+  sfx: skill:skill_baoyan
+- id: skills.skill_lieyanbaozha
+  target:
+    kind: skills
+    id: skill_lieyanbaozha
+  sfx: skill:skill_zhenyangyan
+- id: skills.skill_yehuoliaoyuan
+  target:
+    kind: skills
+    id: skill_yehuoliaoyuan
+  sfx: skillSound:11056
+- id: skills.skill_zhuorehuoyan
+  target:
+    kind: skills
+    id: skill_zhuorehuoyan
+  sfx: skill:skill_zhenyangyan
+- id: skills.skill_zhuorehuomiao
+  target:
+    kind: skills
+    id: skill_zhuorehuomiao
+  sfx: skill:skill_yandidezizun
+- id: skills.skill_huoyanzhiwu
+  target:
+    kind: skills
+    id: skill_huoyanzhiwu
+  sfx: skill:skill_huohuanzhili
+- id: species.pet_kaiselin
+  target:
+    kind: species
+    id: pet_kaiselin
+  icon: icon:pet_kaiselin
+  portrait: portrait:pet_kaiselin
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_kaiselin
+    fallback: portrait:pet_kaiselin
+  cry: petSound:num:193
+- id: marks.mark_ability_kelipu
+  target:
+    kind: marks
+    id: mark_ability_kelipu
+  icon: mark:default-ability
+- id: marks.mark_emblem_kelipu
+  target:
+    kind: marks
+    id: mark_emblem_kelipu
+  icon: mark:default-emblem
+- id: skills.skill_feidan
+  target:
+    kind: skills
+    id: skill_feidan
+  sfx: hema:sfx-07-2-001
+- id: skills.skill_xitongqianghua
+  target:
+    kind: skills
+    id: skill_xitongqianghua
+  sfx: hema:sfx-07-3-002
+- id: skills.skill_chubeidan
+  target:
+    kind: skills
+    id: skill_chubeidan
+  sfx: hema:sfx-07-2-003
+- id: skills.skill_kongkongdan
+  target:
+    kind: skills
+    id: skill_kongkongdan
+  sfx: hema:sfx-07-2-002
+- id: skills.skill_rejiasu
+  target:
+    kind: skills
+    id: skill_rejiasu
+  sfx: skill:skill_zuizhongshenpan
+- id: species.pet_kelipu
+  target:
+    kind: species
+    id: pet_kelipu
+  icon: icon:pet_kelipu
+  portrait: portrait:pet_kelipu
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_kelipu
+    fallback: portrait:pet_kelipu
+  cry: petSound:num:194
+- id: skills.skill_kongdidan
+  target:
+    kind: skills
+    id: skill_kongdidan
+  sfx: hema:sfx-07-2-003
+- id: skills.skill_ranshaodan
+  target:
+    kind: skills
+    id: skill_ranshaodan
+  sfx: hema:sfx-07-2-001
+- id: skills.skill_fenxibaogao
+  target:
+    kind: skills
+    id: skill_fenxibaogao
+  sfx: hema:sfx-07-3-003
+- id: skills.skill_konghangdan
+  target:
+    kind: skills
+    id: skill_konghangdan
+  sfx: hema:sfx-07-2-003
+- id: skills.skill_lengningdan
+  target:
+    kind: skills
+    id: skill_lengningdan
+  sfx: hema:sfx-07-2-001
+- id: skills.skill_sanshedan
+  target:
+    kind: skills
+    id: skill_sanshedan
+  sfx: hema:sfx-07-2-002
+- id: skills.skill_xingguangfangongdan
+  target:
+    kind: skills
+    id: skill_xingguangfangongdan
+  sfx: skillSound:11071
+- id: skills.skill_zhaomingdan
+  target:
+    kind: skills
+    id: skill_zhaomingdan
+  sfx: hema:sfx-07-2-003
+- id: skills.skill_jiangyudan
+  target:
+    kind: skills
+    id: skill_jiangyudan
+  sfx: skill:skill_zuizhongshenpan
+- id: skills.skill_daijizhuangtai
+  target:
+    kind: skills
+    id: skill_daijizhuangtai
+  sfx: hema:sfx-07-3-002
+- id: skills.skill_qiandidan
+  target:
+    kind: skills
+    id: skill_qiandidan
+  sfx: hema:sfx-07-3-003
+- id: species.pet_kelipute
+  target:
+    kind: species
+    id: pet_kelipute
+  icon: icon:pet_kelipute
+  portrait: portrait:pet_kelipute
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_kelipute
+    fallback: portrait:pet_kelipute
+  cry: petSound:num:195
+- id: marks.mark_ability_aisa
+  target:
+    kind: marks
+    id: mark_ability_aisa
+  icon: mark:default-ability
+- id: marks.mark_emblem_aisa
+  target:
+    kind: marks
+    id: mark_emblem_aisa
+  icon: mark:default-emblem
+- id: skills.skill_xuanguang
+  target:
+    kind: skills
+    id: skill_xuanguang
+  sfx: hema:sfx-07-3-002
+- id: skills.skill_caixiazhixin
+  target:
+    kind: skills
+    id: skill_caixiazhixin
+  sfx: hema:sfx-07-2-003
+- id: skills.skill_xuancaiguangshu
+  target:
+    kind: skills
+    id: skill_xuancaiguangshu
+  sfx: hema:sfx-07-2-002
+- id: skills.skill_xuancaibaopo
+  target:
+    kind: skills
+    id: skill_xuancaibaopo
+  sfx: hema:sfx-07-2-001
+- id: species.pet_aisa
+  target:
+    kind: species
+    id: pet_aisa
+  icon: icon:pet_aisa
+  portrait: portrait:pet_aisa
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_aisa
+    fallback: portrait:pet_aisa
+  cry: petSound:num:196
+- id: skills.skill_xuancaishanguang
+  target:
+    kind: skills
+    id: skill_xuancaishanguang
+  sfx: hema:sfx-07-2-003
+- id: skills.skill_fuchongzhuangji
+  target:
+    kind: skills
+    id: skill_fuchongzhuangji
+  sfx: hema:sfx-07-1-001
+- id: skills.skill_feiyanhuiji
+  target:
+    kind: skills
+    id: skill_feiyanhuiji
+  sfx: hema:sfx-07-1-002
+- id: skills.skill_feiyanlianji
+  target:
+    kind: skills
+    id: skill_feiyanlianji
+  sfx: hema:sfx-07-1-003
+- id: skills.skill_caixiayuyi
+  target:
+    kind: skills
+    id: skill_caixiayuyi
+  sfx: skill:skill_zuizhongshenpan
+- id: skills.skill_xiangyunzhishu
+  target:
+    kind: skills
+    id: skill_xiangyunzhishu
+  sfx: hema:sfx-07-3-002
+- id: skills.skill_huancaiguangyun
+  target:
+    kind: skills
+    id: skill_huancaiguangyun
+  sfx: skillSound:11116
+- id: skills.skill_xuanguangqidian
+  target:
+    kind: skills
+    id: skill_xuanguangqidian
+  sfx: hema:sfx-07-3-003
+- id: skills.skill_xuancaishexian
+  target:
+    kind: skills
+    id: skill_xuancaishexian
+  sfx: hema:sfx-07-2-001
+- id: skills.skill_xuanguangbaopo
+  target:
+    kind: skills
+    id: skill_xuanguangbaopo
+  sfx: hema:sfx-07-2-002
+- id: skills.skill_xuanmushanguang
+  target:
+    kind: skills
+    id: skill_xuanmushanguang
+  sfx: hema:sfx-07-2-003
+- id: species.pet_aisaka
+  target:
+    kind: species
+    id: pet_aisaka
+  icon: icon:pet_aisaka
+  portrait: portrait:pet_aisaka
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_aisaka
+    fallback: portrait:pet_aisaka
+  cry: petSound:num:197
+- id: marks.mark_ability_moumou
+  target:
+    kind: marks
+    id: mark_ability_moumou
+  icon: mark:default-ability
+- id: marks.mark_emblem_moumou
+  target:
+    kind: marks
+    id: mark_emblem_moumou
+  icon: mark:default-emblem
+- id: skills.skill_jilang
+  target:
+    kind: skills
+    id: skill_jilang
+  sfx: skill:skill_tuanliubuxi
+- id: skills.skill_niliu_2
+  target:
+    kind: skills
+    id: skill_niliu_2
+  sfx: skill:skill_yueguang
+- id: skills.skill_hailangzhenpao
+  target:
+    kind: skills
+    id: skill_hailangzhenpao
+  sfx: skill:skill_niliuershang
+- id: skills.skill_niujiaochongzhuang
+  target:
+    kind: skills
+    id: skill_niujiaochongzhuang
+  sfx: skill:skill_feiliuzhixia
+- id: skills.skill_jilangchongzhuang
+  target:
+    kind: skills
+    id: skill_jilangchongzhuang
+  sfx: skill:skill_zhulangzhuiji
+- id: species.pet_moumou
+  target:
+    kind: species
+    id: pet_moumou
+  icon: icon:pet_moumou
+  portrait: portrait:pet_moumou
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_moumou
+    fallback: portrait:pet_moumou
+  cry: petSound:num:241
+- id: skills.skill_chaojihailiu
+  target:
+    kind: skills
+    id: skill_chaojihailiu
+  sfx: skill:skill_penyong
+- id: skills.skill_hainiupolang
+  target:
+    kind: skills
+    id: skill_hainiupolang
+  sfx: skill:skill_feiliuzhixia
+- id: skills.skill_buxieyiji
+  target:
+    kind: skills
+    id: skill_buxieyiji
+  sfx: skill:skill_anyong
+- id: skills.skill_moushenhuti
+  target:
+    kind: skills
+    id: skill_moushenhuti
+  sfx: skill:skill_qusan
+- id: skills.skill_chaohailiupo
+  target:
+    kind: skills
+    id: skill_chaohailiupo
+  sfx: skill:skill_tuanliubuxi
+- id: skills.skill_nishichongzhuang
+  target:
+    kind: skills
+    id: skill_nishichongzhuang
+  sfx: skill:skill_zhulangzhuiji
+- id: skills.skill_mouwangjunshi
+  target:
+    kind: skills
+    id: skill_mouwangjunshi
+  sfx: skillSound:11507
+- id: skills.skill_mouwangshenji
+  target:
+    kind: skills
+    id: skill_mouwangshenji
+  sfx: skill:skill_feiliuzhixia
+- id: skills.skill_mouwangzhenpao
+  target:
+    kind: skills
+    id: skill_mouwangzhenpao
+  sfx: skill:skill_tuanliubuxi
+- id: skills.skill_moumoumoumou
+  target:
+    kind: skills
+    id: skill_moumoumoumou
+  sfx: skill:skill_yueguang
+- id: skills.skill_mouwangzhinu
+  target:
+    kind: skills
+    id: skill_mouwangzhinu
+  sfx: skill:skill_liudong
+- id: species.pet_moumouwang
+  target:
+    kind: species
+    id: pet_moumouwang
+  icon: icon:pet_moumouwang
+  portrait: portrait:pet_moumouwang
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_moumouwang
+    fallback: portrait:pet_moumouwang
+  cry: petSound:num:242
+- id: marks.mark_ability_langpu
+  target:
+    kind: marks
+    id: mark_ability_langpu
+  icon: mark:default-ability
+- id: marks.mark_emblem_langpu
+  target:
+    kind: marks
+    id: mark_emblem_langpu
+  icon: mark:default-emblem
+- id: skills.skill_bingjia
+  target:
+    kind: skills
+    id: skill_bingjia
+  sfx: skillSound:10_3_001
+- id: skills.skill_bingbao_huinu
+  target:
+    kind: skills
+    id: skill_bingbao_huinu
+  sfx: skill:skill_tongganyindiao
+- id: skills.skill_suibing
+  target:
+    kind: skills
+    id: skill_suibing
+  sfx: skill:skill_quzhuhanyi
+- id: skills.skill_bingdun
+  target:
+    kind: skills
+    id: skill_bingdun
+  sfx: skill:skill_baonuan
+- id: species.pet_langpu
+  target:
+    kind: species
+    id: pet_langpu
+  icon: icon:pet_langpu
+  portrait: portrait:pet_langpu
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_langpu
+    fallback: portrait:pet_langpu
+  cry: petSound:num:296
+- id: skills.skill_guaili
+  target:
+    kind: skills
+    id: skill_guaili
+  sfx: skillSound:10_3_001
+- id: skills.skill_hanbingzhiti
+  target:
+    kind: skills
+    id: skill_hanbingzhiti
+  sfx: skill:skill_quzhuhanyi
+- id: skills.skill_hanguang
+  target:
+    kind: skills
+    id: skill_hanguang
+  sfx: skill:skill_baonuan
+- id: skills.skill_xuebeng
+  target:
+    kind: skills
+    id: skill_xuebeng
+  sfx: skill:skill_jisuyiji
+- id: skills.skill_weihegongji
+  target:
+    kind: skills
+    id: skill_weihegongji
+  sfx: skill:skill_quzhuhanyi
+- id: skills.skill_bingxuefanteng
+  target:
+    kind: skills
+    id: skill_bingxuefanteng
+  sfx: skill:skill_binghuzhiwu
+- id: skills.skill_xuerenpaoxiao
+  target:
+    kind: skills
+    id: skill_xuerenpaoxiao
+  sfx: skillSound:12067
+- id: skills.skill_xuezhifeiteng
+  target:
+    kind: skills
+    id: skill_xuezhifeiteng
+  sfx: skillSound:10_3_001
+- id: skills.skill_hanbingfanshi
+  target:
+    kind: skills
+    id: skill_hanbingfanshi
+  sfx: skill:skill_tongganyindiao
+- id: skills.skill_hanbingzhenji
+  target:
+    kind: skills
+    id: skill_hanbingzhenji
+  sfx: skill:skill_quzhuhanyi
+- id: skills.skill_daxuebeng
+  target:
+    kind: skills
+    id: skill_daxuebeng
+  sfx: skill:skill_binghuzhiwu
+- id: species.pet_weilangpu
+  target:
+    kind: species
+    id: pet_weilangpu
+  icon: icon:pet_weilangpu
+  portrait: portrait:pet_weilangpu
+  battle:
+    renderer: seer2-swf
+    source: swf:pet_weilangpu
+    fallback: portrait:pet_weilangpu
+  cry: petSound:num:297
+- id: marks.mark_biansu
+  target:
+    kind: marks
+    id: mark_biansu
+  icon: mark:mark_biansu
+- id: marks.mark_yishouzhuangong
+  target:
+    kind: marks
+    id: mark_yishouzhuangong
+  icon: mark:mark_yishouzhuangong
+- id: marks.mark_shanduo
+  target:
+    kind: marks
+    id: mark_shanduo
+  icon: mark:mark_shanduo
+- id: marks.mark_qitiao
+  target:
+    kind: marks
+    id: mark_qitiao
+  icon: mark:mark_qitiao
+- id: marks.mark_meijiuyouhuo
+  target:
+    kind: marks
+    id: mark_meijiuyouhuo
+  icon: mark:mark_meijiuyouhuo
+- id: marks.mark_bengdaitishen
+  target:
+    kind: marks
+    id: mark_bengdaitishen
+  icon: mark:mark_bengdaitishen
+- id: marks.mark_abuzhiyuan
+  target:
+    kind: marks
+    id: mark_abuzhiyuan
+  icon: mark:mark_abuzhiyuan
+- id: marks.mark_xuezhiwaiyi
+  target:
+    kind: marks
+    id: mark_xuezhiwaiyi
+  icon: mark:mark_xuezhiwaiyi
+- id: marks.mark_bingfengjiyi
+  target:
+    kind: marks
+    id: mark_bingfengjiyi
+  icon: mark:mark_bingfengjiyi
+- id: marks.mark_xianzubinghun
+  target:
+    kind: marks
+    id: mark_xianzubinghun
+  icon: mark:mark_xianzubinghun
+- id: marks.mark_huohuayinji
+  target:
+    kind: marks
+    id: mark_huohuayinji
+  icon: mark:mark_huohuayinji
+- id: marks.mark_huohuaquti
+  target:
+    kind: marks
+    id: mark_huohuaquti
+  icon: mark:mark_huohuaquti
+- id: marks.mark_chenshoushi
+  target:
+    kind: marks
+    id: mark_chenshoushi
+  icon: mark:mark_chenshoushi
+- id: marks.mark_dunjushi
+  target:
+    kind: marks
+    id: mark_dunjushi
+  icon: mark:mark_dunjushi
+- id: marks.mark_wushuangshi
+  target:
+    kind: marks
+    id: mark_wushuangshi
+  icon: mark:mark_wushuangshi
+- id: marks.mark_wushuangli
+  target:
+    kind: marks
+    id: mark_wushuangli
+  icon: mark:mark_wushuangli
+- id: marks.mark_shafenshen_lulu
+  target:
+    kind: marks
+    id: mark_shafenshen_lulu
+  icon: mark:mark_shafenshen_lulu
+- id: marks.mark_jueduifangyu_lulu
+  target:
+    kind: marks
+    id: mark_jueduifangyu_lulu
+  icon: mark:mark_jueduifangyu_lulu
+- id: marks.mark_lanbo
+  target:
+    kind: marks
+    id: mark_lanbo
+  icon: mark:mark_lanbo
+- id: marks.mark_baozou
+  target:
+    kind: marks
+    id: mark_baozou
+  icon: mark:mark_baozou
+- id: marks.mark_haixiuduobi
+  target:
+    kind: marks
+    id: mark_haixiuduobi
+  icon: mark:mark_haixiuduobi
+- id: marks.mark_jiaodianfushi
+  target:
+    kind: marks
+    id: mark_jiaodianfushi
+  icon: mark:mark_jiaodianfushi
+- id: marks.mark_fengwen
+  target:
+    kind: marks
+    id: mark_fengwen
+  icon: mark:mark_fengwen
+- id: marks.mark_qingfengzhiwu
+  target:
+    kind: marks
+    id: mark_qingfengzhiwu
+  icon: mark:mark_qingfengzhiwu
+- id: marks.mark_zhuiluo
+  target:
+    kind: marks
+    id: mark_zhuiluo
+  icon: mark:mark_zhuiluo
+- id: marks.mark_zhikong
+  target:
+    kind: marks
+    id: mark_zhikong
+  icon: mark:mark_zhikong
+- id: marks.mark_fangong
+  target:
+    kind: marks
+    id: mark_fangong
+  icon: mark:mark_fangong
+- id: marks.mark_tanli
+  target:
+    kind: marks
+    id: mark_tanli
+  icon: mark:mark_tanli
+- id: marks.mark_benghuai
+  target:
+    kind: marks
+    id: mark_benghuai
+  icon: mark:mark_benghuai
+- id: marks.mark_tanhuangtizhi
+  target:
+    kind: marks
+    id: mark_tanhuangtizhi
+  icon: mark:mark_tanhuangtizhi
+- id: marks.mark_tanhuangbaozha
+  target:
+    kind: marks
+    id: mark_tanhuangbaozha
+  icon: mark:mark_tanhuangbaozha
+- id: marks.mark_emoqiyue
+  target:
+    kind: marks
+    id: mark_emoqiyue
+  icon: mark:mark_emoqiyue
+- id: marks.mark_guozai_atongtie
+  target:
+    kind: marks
+    id: mark_guozai_atongtie
+  icon: mark:mark_guozai_atongtie
+- id: marks.mark_wulixishou_atongtie
+  target:
+    kind: marks
+    id: mark_wulixishou_atongtie
+  icon: mark:mark_wulixishou_atongtie
+- id: marks.mark_teshufanshe_atongtie
+  target:
+    kind: marks
+    id: mark_teshufanshe_atongtie
+  icon: mark:mark_teshufanshe_atongtie
+- id: marks.mark_tefongfantan_atongtie
+  target:
+    kind: marks
+    id: mark_tefongfantan_atongtie
+  icon: mark:mark_tefongfantan_atongtie
+- id: marks.mark_jinu_atongtie
+  target:
+    kind: marks
+    id: mark_jinu_atongtie
+  icon: mark:mark_jinu_atongtie
+- id: marks.mark_guangzhidun
+  target:
+    kind: marks
+    id: mark_guangzhidun
+  icon: mark:mark_guangzhidun
+- id: marks.mark_huixuanguangren
+  target:
+    kind: marks
+    id: mark_huixuanguangren
+  icon: mark:mark_huixuanguangren
+- id: marks.mark_jiancijiaqiao
+  target:
+    kind: marks
+    id: mark_jiancijiaqiao
+  icon: mark:mark_jiancijiaqiao
+- id: marks.mark_daocijiaqiao
+  target:
+    kind: marks
+    id: mark_daocijiaqiao
+  icon: mark:mark_daocijiaqiao
+- id: marks.mark_baonujiaqiao
+  target:
+    kind: marks
+    id: mark_baonujiaqiao
+  icon: mark:mark_baonujiaqiao
+- id: marks.mark_fanjiyizhi
+  target:
+    kind: marks
+    id: mark_fanjiyizhi
+  icon: mark:mark_fanjiyizhi
+- id: marks.mark_jiancibaofa
+  target:
+    kind: marks
+    id: mark_jiancibaofa
+  icon: mark:mark_jiancibaofa
+- id: marks.mark_badu_shihunlinggui
+  target:
+    kind: marks
+    id: mark_badu_shihunlinggui
+  icon: mark:mark_badu_shihunlinggui
+- id: marks.mark_badu_lihunlinggui
+  target:
+    kind: marks
+    id: mark_badu_lihunlinggui
+  icon: mark:mark_badu_lihunlinggui
+- id: marks.mark_badu_fankangyishi
+  target:
+    kind: marks
+    id: mark_badu_fankangyishi
+  icon: mark:mark_badu_fankangyishi
+- id: marks.mark_zuogu
+  target:
+    kind: marks
+    id: mark_zuogu
+  icon: mark:mark_zuogu
+- id: marks.mark_youpan
+  target:
+    kind: marks
+    id: mark_youpan
+  icon: mark:mark_youpan
+- id: marks.mark_zhanqian
+  target:
+    kind: marks
+    id: mark_zhanqian
+  icon: mark:mark_zhanqian
+- id: marks.mark_yanghou
+  target:
+    kind: marks
+    id: mark_yanghou
+  icon: mark:mark_yanghou
+- id: marks.mark_nuoji_njihua
+  target:
+    kind: marks
+    id: mark_nuoji_njihua
+  icon: mark:mark_nuoji_njihua
+- id: marks.mark_nuoji_bjihua
+  target:
+    kind: marks
+    id: mark_nuoji_bjihua
+  icon: mark:mark_nuoji_bjihua
+- id: marks.mark_nuoji_nbjihua
+  target:
+    kind: marks
+    id: mark_nuoji_nbjihua
+  icon: mark:mark_nuoji_nbjihua
+- id: marks.mark_nuoji_wanshijubei
+  target:
+    kind: marks
+    id: mark_nuoji_wanshijubei
+  icon: mark:mark_nuoji_wanshijubei
+- id: marks.mark_nuoji_dongfeng_heal
+  target:
+    kind: marks
+    id: mark_nuoji_dongfeng_heal
+  icon: mark:mark_nuoji_wanshijubei
+- id: marks.mark_nuoji_dongfeng
+  target:
+    kind: marks
+    id: mark_nuoji_dongfeng
+  icon: mark:mark_nuoji_dongfeng
+- id: marks.mark_huomiao
+  target:
+    kind: marks
+    id: mark_huomiao
+  icon: mark:mark_huomiao
+- id: marks.mark_chubeixiang
+  target:
+    kind: marks
+    id: mark_chubeixiang
+  icon: mark:mark_chubeixiang
+- id: marks.mark_zhaomingdan
+  target:
+    kind: marks
+    id: mark_zhaomingdan
+  icon: mark:mark_zhaomingdan
+- id: marks.mark_qiandidan
+  target:
+    kind: marks
+    id: mark_qiandidan
+  icon: mark:mark_qiandidan
+- id: marks.mark_caixiazhixin
+  target:
+    kind: marks
+    id: mark_caixiazhixin
+  icon: mark:mark_caixiazhixin
+- id: marks.mark_xuanguangqidian
+  target:
+    kind: marks
+    id: mark_xuanguangqidian
+  icon: mark:mark_xuanguangqidian
+- id: marks.mark_ability_cangyuepodi
+  target:
+    kind: marks
+    id: mark_ability_cangyuepodi
+  icon: mark:default-ability
+- id: marks.mark_emblem_jisha
+  target:
+    kind: marks
+    id: mark_emblem_jisha
+  icon: mark:default-emblem

@@ -194,9 +194,11 @@ export function useBattleAnimations(
     // offset sizes are logical canvas pixels, independent of viewport scale.
     const width = background.offsetWidth
     const height = background.offsetHeight
-    const maxDistance = Math.max(0, (height * backgroundAspectRatio - width) / 2)
+    const stageWidth = background.parentElement?.clientWidth || width
+    const imageWidth = Math.max(width, height * backgroundAspectRatio) // background-size: cover
+    const maxDistance = Math.max(0, (imageWidth - stageWidth) / 2)
     if (maxDistance <= 0) return
-    const delta = Math.min(width * 0.3, maxDistance * 0.4) * intensity
+    const delta = Math.min(stageWidth * 0.3, maxDistance * 0.4) * intensity
     backgroundTween?.kill()
     if (backgroundTween) tweens.delete(backgroundTween)
     const start = backgroundPosition.offset
@@ -250,11 +252,7 @@ export function useBattleAnimations(
   }
   function showBattleNotice(side: Side, kind: 'miss' | 'absorb', label: string) {
     const src = feedbackArtwork.images.get(kind)?.src
-    float(
-      side,
-      kind,
-      src ? h('img', { src, alt: label, style: { height: '80px', width: 'auto' } }) : h('span', label),
-    )
+    float(side, kind, src ? h('img', { src, alt: label, style: { height: '80px', width: 'auto' } }) : h('span', label))
   }
   function showMissMessage(side: Side) {
     showBattleNotice(side, 'miss', '未命中')

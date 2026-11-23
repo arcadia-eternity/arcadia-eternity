@@ -285,6 +285,7 @@ export class LocalBattleSystem implements IBattleSystem {
       turn: battle.currentTurn,
       allowFaintSwitch: battle.allowFaintSwitch,
       showHidden: battle.showHidden,
+      individualValueMax: battle.individualValueMax,
       rng: saved.battle.nodes[rng.ref],
       timer: battle.getTimerConfig(),
       teamSelection: saved.teamSelection,

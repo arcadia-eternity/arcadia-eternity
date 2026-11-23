@@ -99,6 +99,7 @@ it('restores an enabled initial timer quietly and starts a full clock only when 
     players = input.teams.map(team => directory.parsePlayer(team))
   const original = directory.createBattle(players[0], players[1], {
     rngSeed: 201,
+    individualValueMax: 120,
     timerConfig: { enabled: true, turnTimeLimit: 2, totalTimeLimit: 10 },
   })
   battles.push(original)
@@ -125,6 +126,7 @@ it('restores an enabled initial timer quietly and starts a full clock only when 
     if (message.type === BattleMessageType.BattleStart) starts()
   })
   await target.restoreRuntimeSnapshot(saved)
+  expect(restored.individualValueMax).toBe(120)
   expect(vi.getTimerCount()).toBe(0)
   expect(starts).not.toHaveBeenCalled()
   const ready = prompt(restored)
@@ -154,8 +156,8 @@ it('replays the original instance-ID actions after initial restoration through a
   await source.ready()
   await ready
   const actions = await Promise.all(
-    players.map(
-      async player => (await source.getAvailableSelection(player.id)).find(action => action.type === 'use-skill')!,
+    players.map(async player =>
+      (await source.getAvailableSelection(player.id)).find(action => action.type === 'use-skill')!,
     ),
   )
   ready = prompt(original)

@@ -1,0 +1,113 @@
+- id: pet_feide
+  genderRatio: null
+  num: 188
+  element: Grass
+  baseStats:
+    hp: 86
+    atk: 120
+    def: 121
+    spa: 130
+    spd: 121
+    spe: 108
+  heightRange:
+    - 13
+    - 18
+  weightRange:
+    - 11
+    - 16
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_zaoyin_tegong
+      level: 5
+      hidden: false
+    - skill_id: skill_zuogu
+      level: 10
+      hidden: false
+    - skill_id: skill_youpan
+      level: 15
+      hidden: false
+    - skill_id: skill_zhanqian
+      level: 20
+      hidden: false
+    - skill_id: skill_yanghou
+      level: 25
+      hidden: false
+  ability:
+    - mark_ability_feide
+  emblem:
+    - mark_emblem_feide
+- id: pet_feidetike
+  genderRatio: null
+  num: 189
+  element: Grass
+  baseStats:
+    hp: 176
+    atk: 170
+    def: 166
+    spa: 180
+    spd: 166
+    spe: 153
+  heightRange:
+    - 61
+    - 66
+  weightRange:
+    - 27
+    - 32
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_zaoyin_tegong
+      level: 5
+      hidden: false
+    - skill_id: skill_zuogu
+      level: 10
+      hidden: false
+    - skill_id: skill_youpan
+      level: 15
+      hidden: false
+    - skill_id: skill_zhanqian
+      level: 20
+      hidden: false
+    - skill_id: skill_yanghou
+      level: 25
+      hidden: false
+    - skill_id: skill_kongjuguangbo
+      level: 30
+      hidden: false
+    - skill_id: skill_kongjushengbo
+      level: 35
+      hidden: false
+    - skill_id: skill_linghunxiqu
+      level: 40
+      hidden: false
+    - skill_id: skill_linghunchenji
+      level: 45
+      hidden: false
+    - skill_id: skill_nixianlaiba
+      level: 50
+      hidden: false
+    - skill_id: skill_woxianlaiba
+      level: 55
+      hidden: false
+    - skill_id: skill_tianyuankuanghuanqu
+      level: 60
+      hidden: false
+    - skill_id: skill_dengzheqiaoba
+      level: 60
+      hidden: true
+    - skill_id: skill_buyaobiwo
+      level: 60
+      hidden: true
+    - skill_id: skill_wopawuya
+      level: 60
+      hidden: true
+    - skill_id: skill_wochaoshenle
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_feide
+  emblem:
+    - mark_emblem_feide

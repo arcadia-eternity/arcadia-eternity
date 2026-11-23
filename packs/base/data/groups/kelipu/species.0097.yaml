@@ -1,0 +1,113 @@
+- id: pet_kelipu
+  genderRatio: null
+  num: 194
+  element: Flying
+  baseStats:
+    hp: 88
+    atk: 114
+    def: 114
+    spa: 129
+    spd: 119
+    spe: 109
+  heightRange:
+    - 12
+    - 17
+  weightRange:
+    - 15
+    - 20
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_feidan
+      level: 5
+      hidden: false
+    - skill_id: skill_xitongqianghua
+      level: 11
+      hidden: false
+    - skill_id: skill_chubeidan
+      level: 16
+      hidden: false
+    - skill_id: skill_kongkongdan
+      level: 22
+      hidden: false
+    - skill_id: skill_rejiasu
+      level: 27
+      hidden: false
+  ability:
+    - mark_ability_kelipu
+  emblem:
+    - mark_emblem_kelipu
+- id: pet_kelipute
+  genderRatio: null
+  num: 195
+  element: Flying
+  baseStats:
+    hp: 178
+    atk: 159
+    def: 159
+    spa: 179
+    spd: 164
+    spe: 159
+  heightRange:
+    - 39
+    - 44
+  weightRange:
+    - 43
+    - 48
+  learnable_skills:
+    - skill_id: skill_chongzhuang
+      level: 1
+      hidden: false
+    - skill_id: skill_feidan
+      level: 5
+      hidden: false
+    - skill_id: skill_xitongqianghua
+      level: 11
+      hidden: false
+    - skill_id: skill_chubeidan
+      level: 16
+      hidden: false
+    - skill_id: skill_kongkongdan
+      level: 22
+      hidden: false
+    - skill_id: skill_rejiasu
+      level: 27
+      hidden: false
+    - skill_id: skill_kongdidan
+      level: 32
+      hidden: false
+    - skill_id: skill_ranshaodan
+      level: 37
+      hidden: false
+    - skill_id: skill_fenxibaogao
+      level: 42
+      hidden: false
+    - skill_id: skill_konghangdan
+      level: 47
+      hidden: false
+    - skill_id: skill_lengningdan
+      level: 52
+      hidden: false
+    - skill_id: skill_sanshedan
+      level: 56
+      hidden: false
+    - skill_id: skill_xingguangfangongdan
+      level: 60
+      hidden: false
+    - skill_id: skill_zhaomingdan
+      level: 60
+      hidden: true
+    - skill_id: skill_jiangyudan
+      level: 60
+      hidden: true
+    - skill_id: skill_daijizhuangtai
+      level: 60
+      hidden: true
+    - skill_id: skill_qiandidan
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_kelipu
+  emblem:
+    - mark_emblem_kelipu

@@ -57,6 +57,7 @@ export class Battle extends Context implements MarkOwner {
   private readonly logger = createChildLogger('Battle')
 
   public readonly elementMultipliers?: Record<string, Record<string, number>>
+  public readonly individualValueMax: number
   public readonly enhancementActive: boolean
   public allowFaintSwitch: boolean
   public showHidden: boolean
@@ -144,6 +145,7 @@ export class Battle extends Context implements MarkOwner {
     ConfigSystem.bindBattle(this)
 
     this.elementMultipliers = options?.elementMultipliers
+    this.individualValueMax = options?.individualValueMax ?? 31
     this.enhancementActive = options?.enhancementActive === true
     this.allowFaintSwitch = options?.allowFaintSwitch ?? true
     this.showHidden = options?.showHidden ?? false

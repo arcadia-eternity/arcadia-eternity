@@ -73,6 +73,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   public lastSkill?: SkillInstance
   public lastSkillUsedTimes: number = 0
   /** Scalar history of the last completed accepted use, independent of mutable skill instances. */
+  public lastMissedSkillId?: string
   public lastUsedSkillElement?: Element
 
   // Attribute system for managing stats and currentHp

@@ -32,15 +32,7 @@ export class SkillOutcomeSequencesGeneratedEffects {
           contexts.skillUse.condition((_ctx, events) => events[0]?.category !== 'Status'),
         ),
         apply: actions.sequence(
-          contexts.skillUse.apply(
-            ops.amplifyPower(
-              targets.sourceMark
-                .select(mark => mark.stack)
-                .all()
-                .map(items => items.map((n, index) => Math.floor(n * (index === 0 ? 0.01 : 0))))
-                .map(items => items.map((n, index) => n + (index === 0 ? 1 : 0))),
-            ),
-          ),
+          contexts.skillUse.apply(ops.amplifyPower(targets.sourceMark.select(mark => 1 + mark.stack / 100).first())),
           targets.sourceMark.apply(ops.removeMark()),
         ),
       },

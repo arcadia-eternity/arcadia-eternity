@@ -220,3 +220,84 @@ mark_emblem_tingjue:
 mark_emblem_zhenci:
   name: 针刺
   description: 雄性造成的伤害增加5%，雌性受到的伤害减少5%。
+mark_emblem_tiaotiaoshu:
+  name: 平衡纹章
+  description: 使弱化免疫的回合数+2
+mark_emblem_pangpang:
+  name: 烂醉纹章
+  description: 使烂醉的回合数+1
+mark_emblem_abu:
+  name: 诅咒纹章
+  description: 使诅咒的回合数-1
+mark_emblem_niya:
+  name: 安抚纹章
+  description: 对手具有安抚时增加自身攻击技能10点威力
+mark_emblem_boli:
+  name: 怪笑纹章
+  description: 使怪笑类技能必中
+mark_emblem_huohuali:
+  name: 刻印纹章
+  description: 使刻印类技能暴击率增加5%
+mark_emblem_xiaojie:
+  name: 力士纹章
+  description: 使用架势后下个攻击技能伤害提升10%
+mark_emblem_lulu:
+  name: 分砂纹章
+  description: 每个砂分身使自身受到伤害减少5%
+mark_emblem_qiaoba:
+  name: 暴走纹章
+  description: 使暴走的回合数+1
+mark_emblem_dayandujiao:
+  name: 吸取纹章
+  description: 恢复量增加5%
+mark_emblem_fengyong:
+  name: 蜂纹纹章
+  description: 对手具有蜂纹时恢复自身造成伤害10%的体力
+mark_emblem_azi:
+  name: 挑衅纹章
+  description: 使用挑衅恢复自身20点怒气
+mark_emblem_mimi:
+  name: 崩坏纹章
+  description: 崩坏时减少25点自损伤害和受到伤害
+mark_emblem_xiaoxiaoemo:
+  name: 还魂纹章
+  description: 【实际效果】 队友全部战败时受到暴击伤害减少20% 【设计效果A】 队友全部战败时受到暴击伤害减少20% 【设计效果B】 换下场时恢复45点体力
+mark_emblem_kadunjiujiu_171:
+  name: 心锁纹章
+  description: 使心灵锁必中
+mark_emblem_atongtie:
+  name: 超载纹章
+  description: 具有过载时被击败使对手受到100点固伤
+mark_emblem_mika:
+  name: 必杀纹章
+  description: 必杀技的克制系数不低于1
+mark_emblem_qiuding:
+  name: 甲壳纹章
+  description: 具有甲壳时受到伤害减少5%
+mark_emblem_badu:
+  name: 灵柜纹章
+  description: 具有灵柜时受到伤害减少5%
+mark_emblem_feide:
+  name: 灵魂纹章
+  description: 对手恐惧时自身技能必中
+mark_emblem_nuoji:
+  name: 东风纹章
+  description: 上场3回合获得东风
+mark_emblem_kaise:
+  name: 高热纹章
+  description: 对手烧伤时自身造成伤害增加10%
+mark_emblem_kelipu:
+  name: 储存纹章
+  description: 使储备箱上限+1
+mark_emblem_aisa:
+  name: 炫光纹章
+  description: 具有彩霞之心时命中率提高5%
+mark_emblem_moumou:
+  name: 震炮纹章
+  description: 【实际效果】 纹章无效 请勿购买 【设计效果】 增加震炮类技能10点威力
+mark_emblem_langpu:
+  name: 冰魄纹章
+  description: 暴击伤害增加15%
+mark_emblem_jisha:
+  name: 疾杀纹章
+  description: 先出手时造成的伤害提高25%

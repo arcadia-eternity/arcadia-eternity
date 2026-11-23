@@ -1,0 +1,159 @@
+- id: pet_huohuali
+  num: 130
+  element: Fire
+  baseStats:
+    hp: 75
+    atk: 116
+    def: 107
+    spa: 116
+    spd: 107
+    spe: 121
+  heightRange:
+    - 21
+    - 26
+  weightRange:
+    - 13
+    - 18
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_penhuo
+      level: 6
+      hidden: false
+    - skill_id: skill_juhuo
+      level: 11
+      hidden: false
+    - skill_id: skill_huohuakeyin
+      level: 16
+      hidden: false
+  ability:
+    - mark_ability_huohuali
+  emblem:
+    - mark_emblem_huohuali
+  genderRatio:
+    - 7
+    - 3
+- id: pet_huohuazai
+  num: 131
+  element: Fire
+  baseStats:
+    hp: 115
+    atk: 146
+    def: 132
+    spa: 146
+    spd: 132
+    spe: 141
+  heightRange:
+    - 55
+    - 60
+  weightRange:
+    - 24
+    - 29
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_penhuo
+      level: 6
+      hidden: false
+    - skill_id: skill_juhuo
+      level: 11
+      hidden: false
+    - skill_id: skill_huohuakeyin
+      level: 16
+      hidden: false
+    - skill_id: skill_huohuayinbao
+      level: 21
+      hidden: false
+    - skill_id: skill_huoqiulianshe
+      level: 26
+      hidden: false
+    - skill_id: skill_huoyanchongji
+      level: 31
+      hidden: false
+    - skill_id: skill_xuanmuhuoguang
+      level: 36
+      hidden: false
+  ability:
+    - mark_ability_huohuali
+  emblem:
+    - mark_emblem_huohuali
+  genderRatio:
+    - 7
+    - 3
+- id: pet_huohuashou
+  num: 132
+  element: Fire
+  baseStats:
+    hp: 175
+    atk: 176
+    def: 157
+    spa: 176
+    spd: 157
+    spe: 161
+  heightRange:
+    - 96
+    - 101
+  weightRange:
+    - 48
+    - 53
+  learnable_skills:
+    - skill_id: skill_zhuangji
+      level: 1
+      hidden: false
+    - skill_id: skill_penhuo
+      level: 6
+      hidden: false
+    - skill_id: skill_juhuo
+      level: 11
+      hidden: false
+    - skill_id: skill_huohuakeyin
+      level: 16
+      hidden: false
+    - skill_id: skill_huohuayinbao
+      level: 21
+      hidden: false
+    - skill_id: skill_huoqiulianshe
+      level: 26
+      hidden: false
+    - skill_id: skill_huoyanchongji
+      level: 31
+      hidden: false
+    - skill_id: skill_xuanmuhuoguang
+      level: 36
+      hidden: false
+    - skill_id: skill_huohuanengliang
+      level: 41
+      hidden: false
+    - skill_id: skill_huohuatuxi
+      level: 46
+      hidden: false
+    - skill_id: skill_huohuayinji
+      level: 51
+      hidden: false
+    - skill_id: skill_huohuaquti
+      level: 56
+      hidden: false
+    - skill_id: skill_huolongjianglin
+      level: 60
+      hidden: false
+    - skill_id: skill_chirekeyin
+      level: 60
+      hidden: true
+    - skill_id: skill_chirelieyan
+      level: 60
+      hidden: true
+    - skill_id: skill_chireyandan
+      level: 60
+      hidden: true
+    - skill_id: skill_chiretuji
+      level: 60
+      hidden: true
+  ability:
+    - mark_ability_huohuali
+  emblem:
+    - mark_emblem_huohuali
+  genderRatio:
+    - 7
+    - 3
