@@ -1,5 +1,23 @@
 # Changelog
 
+## [4.17.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.16.3...arcadia-eternity-v4.17.0) (2026-11-23)
+
+
+### ✨ Features
+
+* **base:** restore 27 original pet families and wire their battle effects ([14754cb](https://github.com/arcadia-eternity/arcadia-eternity/commit/14754cbb032103beb6eb60053ef5eb74a73c5568))
+
+
+### 🐛 Bug Fixes
+
+* **creator:** open creator documentation from the game lobby on its custom domain ([f4a321b](https://github.com/arcadia-eternity/arcadia-eternity/commit/f4a321b88d54e99a7f530eee3de4b2407865a56f))
+* **web-ui:** keep heavy-hit background pans visible on square scenery ([93048cd](https://github.com/arcadia-eternity/arcadia-eternity/commit/93048cd1f4a85d5e2990a4ba0a85858564b50fdd))
+
+
+### 📚 Documentation
+
+* **creator:** keep legacy Pages links available alongside the custom domain ([2245803](https://github.com/arcadia-eternity/arcadia-eternity/commit/2245803ced9ff77e730730ca115897daacf90ee3))
+
 ## [4.16.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.16.2...arcadia-eternity-v4.16.3) (2026-11-23)
 
 
