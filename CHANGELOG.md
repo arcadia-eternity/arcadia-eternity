@@ -1,5 +1,26 @@
 # Changelog
 
+## [4.16.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.15.7...arcadia-eternity-v4.16.0) (2026-11-23)
+
+
+### ✨ Features
+
+* **creator:** connect frost strike docs, MCP references, and workbench ([f463b0d](https://github.com/arcadia-eternity/arcadia-eternity/commit/f463b0dba6b829d61c1dfe69eafacf54aa302ed5))
+* **creator:** index the public effect SDK for docs and MCP ([f9ff4ea](https://github.com/arcadia-eternity/arcadia-eternity/commit/f9ff4ea06f1dd9864f142a25c50a65d5ff7ca572))
+
+
+### 🐛 Bug Fixes
+
+* **docs:** group SDK operations by whole words ([f516c2b](https://github.com/arcadia-eternity/arcadia-eternity/commit/f516c2bf25ffc2d0df5655a33bb6a9db72c256eb))
+* **docs:** tokenize Chinese creator handbook searches ([585d171](https://github.com/arcadia-eternity/arcadia-eternity/commit/585d1711497bb6207ad33037720103d8d74fb29d))
+
+
+### 📚 Documentation
+
+* **creator:** organize author handbook from first battle through release ([e5199ec](https://github.com/arcadia-eternity/arcadia-eternity/commit/e5199ec6ff91a28477868bb7759bfb30d7fa6cfc))
+* **creator:** record the standalone Pages install and build ([7ee8597](https://github.com/arcadia-eternity/arcadia-eternity/commit/7ee8597e7e09774bd4a3e5ec597132d1b2e841aa))
+* **creator:** separate tutorial courses and SDK reference navigation ([5695177](https://github.com/arcadia-eternity/arcadia-eternity/commit/5695177ed198b18a6860b16463fd2d42db6e6136))
+
 ## [4.15.7](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.15.6...arcadia-eternity-v4.15.7) (2026-11-23)
 
 
