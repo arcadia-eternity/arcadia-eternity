@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.16.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.16.0...arcadia-eternity-v4.16.1) (2026-11-23)
+
+
+### 🐛 Bug Fixes
+
+* **creator:** link MCP handbook queries to the documentation site ([fb8f8d0](https://github.com/arcadia-eternity/arcadia-eternity/commit/fb8f8d0c449c831b4214cf8060cb933a972f3fcd))
+* **docker:** include creator handbook in SDK build context ([a8539f6](https://github.com/arcadia-eternity/arcadia-eternity/commit/a8539f61e9319d600c5c161e36f5b8406754bcb6))
+* **sdk:** read template examples with Windows line endings ([cd7e175](https://github.com/arcadia-eternity/arcadia-eternity/commit/cd7e175dd5b327ada88364ff4d53d30eb597ed77))
+
 ## [4.16.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.15.7...arcadia-eternity-v4.16.0) (2026-11-23)
 
 
