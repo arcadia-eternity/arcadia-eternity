@@ -3,7 +3,7 @@ import type { ContentPrototypeData } from '../engine/content/definition-catalog'
 import type { BattleOptions } from '../engine/api'
 import type { Battle } from '../engine/battle'
 import { LocalBattleSystem, type NativeBattleHostOptions, type NativeMessageView } from '../host/local-battle'
-import { prepareSandboxContent, type SandboxContent } from './content'
+import { prepareSandboxContent, type SandboxContent, type SandboxContentOptions } from './content'
 import { SandboxFault, sandboxPolicy, type EffectModuleArtifact } from './contracts'
 import type { BattleMessage, Events } from '@arcadia-eternity/const'
 
@@ -90,7 +90,7 @@ export class SandboxBattleRuntime {
   private delivery?: Promise<void>
   private emit?: (event: SandboxEvent) => Promise<void>
   private readonly battleSubscriptions = new Map<number, () => void>()
-  constructor(private readonly catalogMs?: number) {}
+  constructor(private readonly vmOptions: Pick<SandboxContentOptions, 'catalogMs' | 'policy'> = {}) {}
   async initialize(
     input: SandboxBattleInput,
     emit: (event: SandboxEvent) => Promise<void>,
@@ -130,7 +130,7 @@ export class SandboxBattleRuntime {
         this.effects = await prepareSandboxContent(input.environment, {
           skillParameters: input.options?.skillParameters,
           grouping: options.grouping,
-          catalogMs: this.catalogMs,
+          ...this.vmOptions,
         })
         this.environment = environment
         this.grouping = options.grouping

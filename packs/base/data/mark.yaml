@@ -726,7 +726,7 @@
     - xinzhiyinji_tag
 - id: mark_xuehongyinji
   config:
-    duration: 5
+    duration: 3
     persistent: false
     maxStacks: 1
     stackable: true
@@ -1861,17 +1861,16 @@
     - effect_mark_shandianluoyin_paralyze
 - id: mark_xudian
   config:
-    persistent: true
+    persistent: false
     stackable: true
-    stackStrategy: max
+    stackStrategy: refresh
     destroyable: true
-    duration: -1
-    maxStacks: 2
+    duration: 2
+    maxStacks: 1
     keepOnSwitchOut: true
   tags: []
   effect:
     - effect_mark_amplify_electric_skill_70
-    - effect_mark_consume_stack_on_skill_use
 - id: mark_jingshencuoluan
   config:
     duration: 5
@@ -2827,14 +2826,17 @@
     keepOnSwitchOut: true
 - id: mark_biansu
   config:
-    duration: 1
+    duration: -1
     keepOnSwitchOut: false
-    persistent: false
+    persistent: true
   effect:
     - effect_tiaotiaoshu_mark_biansu_priority
+    - effect_tiaotiaoshu_mark_biansu_consume
 - id: mark_yishouzhuangong
   config:
-    duration: 1
+    duration: 2
+    stackable: true
+    stackStrategy: refresh
     keepOnSwitchOut: false
     persistent: false
   effect:
@@ -2870,7 +2872,9 @@
     - effect_pangpang_lanzui_end_hunmi
 - id: mark_meijiuyouhuo
   config:
-    duration: 3
+    duration: 2
+    stackable: true
+    stackStrategy: refresh
     keepOnSwitchOut: true
     maxStacks: 1
     persistent: false
@@ -2878,20 +2882,23 @@
     - effect_pangpang_meijiu_apply_lanzui
 - id: mark_bengdaitishen
   config:
-    duration: 3
+    duration: -1
     keepOnSwitchOut: false
     maxStacks: 1
-    persistent: false
+    persistent: true
   effect:
     - effect_abu_bandage_substitute_double_rage
 - id: mark_abuzhiyuan
   config:
+    stackable: true
+    stackStrategy: refresh
     duration: 3
     keepOnSwitchOut: false
     maxStacks: 1
     persistent: false
   effect:
     - effect_abu_resentment_rage_shield
+    - effect_abu_resentment_spend_rage
     - effect_abu_resentment_no_rage_cost
 - id: mark_anfu
   config:
@@ -2905,21 +2912,21 @@
 - id: mark_xuezhiwaiyi
   config:
     stackable: true
-    duration: 3
+    duration: -1
     keepOnSwitchOut: false
     isShield: true
     maxStacks: 100
-    persistent: false
+    persistent: true
     stackStrategy: stack
   effect:
     - effect_mark_xuezhiwaiyi_absorb
 - id: mark_bingfengjiyi
   config:
     stackable: true
-    duration: 5
+    duration: -1
     keepOnSwitchOut: true
     maxStacks: 16807
-    persistent: false
+    persistent: true
     stackStrategy: stack
 - id: mark_xianzubinghun
   config:
@@ -2931,12 +2938,13 @@
     - effect_boli_ancestor_block_heal
 - id: mark_huohuayinji
   config:
-    duration: 3
+    duration: -1
     keepOnSwitchOut: true
     maxStacks: 1
-    persistent: false
+    persistent: true
   effect:
     - effect_huohuali_mark_spark_crit
+    - effect_mark_consume_on_incoming_attack_hit
 - id: mark_huohuaquti
   config:
     duration: 3
@@ -2947,30 +2955,34 @@
     - effect_huohuali_mark_flame_body_burn
 - id: mark_shiqieshi
   config:
-    duration: 3
+    duration: 2
+    stackable: true
+    stackStrategy: refresh
     keepOnSwitchOut: false
     persistent: false
   effect:
     - effect_xiaojie_mark_shiqieshi_damage
 - id: mark_chenshoushi
   config:
-    duration: 3
+    duration: -1
     keepOnSwitchOut: false
-    persistent: false
+    persistent: true
   effect:
     - effect_xiaojie_mark_chenshoushi_block
+    - effect_mark_reflect_prevented_attack_damage
 - id: mark_dunjushi
   config:
-    duration: 3
+    duration: -1
     keepOnSwitchOut: false
-    persistent: false
+    persistent: true
   effect:
     - effect_xiaojie_mark_dunjushi_block
+    - effect_mark_reflect_prevented_attack_damage
 - id: mark_wushuangshi
   config:
-    duration: 3
+    duration: -1
     keepOnSwitchOut: false
-    persistent: false
+    persistent: true
   effect:
     - effect_xiaojie_mark_wushuangshi_absorb
 - id: mark_wushuangli
@@ -2978,8 +2990,12 @@
     duration: -1
     keepOnSwitchOut: false
     persistent: true
+    maxStacks: 9999
+    stackable: true
+    stackStrategy: stack
   effect:
-    - effect_xiaojie_mark_wushuangli_damage
+    - effect_mark_add_power_stack
+    - effect_xiaojie_mark_wushuangli_consume
 - id: mark_shafenshen_lulu
   config:
     duration: -1
@@ -3099,11 +3115,11 @@
     - effect_mimi_mark_tizhi_reflect
 - id: mark_tanhuangbaozha
   config:
-    duration: 3
+    duration: -1
     keepOnSwitchOut: false
     transferOnSwitch: false
     maxStacks: 1
-    persistent: false
+    persistent: true
   effect:
     - effect_mimi_mark_baozha_trigger
 - id: mark_emoqiyue
@@ -3123,35 +3139,8 @@
     persistent: true
   effect:
     - effect_atongtie_mark_guozai_lock_rage
-    - effect_atongtie_mark_guozai_block_climax
+    - effect_atongtie_mark_guozai_end_on_climax
 - id: mark_wulixishou_atongtie
-  config:
-    stackable: false
-    duration: -1
-    keepOnSwitchOut: true
-    maxStacks: 1
-    persistent: true
-  effect:
-    - effect_atongtie_mark_wulixishou_absorb
-- id: mark_teshufanshe_atongtie
-  config:
-    stackable: false
-    duration: -1
-    keepOnSwitchOut: true
-    maxStacks: 1
-    persistent: true
-  effect:
-    - effect_atongtie_mark_teshufanshe_reflect
-- id: mark_tefongfantan_atongtie
-  config:
-    stackable: false
-    duration: -1
-    keepOnSwitchOut: true
-    maxStacks: 1
-    persistent: true
-  effect:
-    - effect_atongtie_mark_tefongfantan_rebound
-- id: mark_wugongjianban_atongtie
   config:
     stackable: false
     duration: 1
@@ -3159,11 +3148,42 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_atongtie_mark_wugongjianban_halve
-- id: mark_shuxingshixiao_atongtie
+    - effect_atongtie_mark_wulixishou_absorb
+- id: mark_teshufanshe_atongtie
   config:
     stackable: false
     duration: 1
+    keepOnSwitchOut: false
+    maxStacks: 1
+    persistent: false
+  effect:
+    - effect_atongtie_mark_teshufanshe_reflect
+    - effect_atongtie_mark_teshufanshe_return
+- id: mark_tefongfantan_atongtie
+  config:
+    stackable: true
+    stackStrategy: refresh
+    duration: 2
+    keepOnSwitchOut: false
+    maxStacks: 1
+    persistent: false
+  effect:
+    - effect_atongtie_mark_tefongfantan_rebound
+- id: mark_wugongjianban_atongtie
+  config:
+    stackable: true
+    stackStrategy: refresh
+    duration: 2
+    keepOnSwitchOut: false
+    maxStacks: 1
+    persistent: false
+  effect:
+    - effect_atongtie_mark_wugongjianban_halve
+- id: mark_shuxingshixiao_atongtie
+  config:
+    stackable: true
+    stackStrategy: refresh
+    duration: 2
     keepOnSwitchOut: false
     maxStacks: 1
     persistent: false
@@ -3180,12 +3200,13 @@
     - effect_atongtie_mark_jinu_rage
 - id: mark_guangzhidun
   config:
-    duration: 3
+    duration: 1
     keepOnSwitchOut: false
     maxStacks: 1
     persistent: false
   effect:
-    - effect_mika_mark_guangzhidun_reflect
+    - effect_mark_reduce_next_skill_damage_50_percent
+    - effect_mark_reflect_prevented_attack_damage
 - id: mark_huixuanguangren
   config:
     duration: -1
@@ -3204,27 +3225,30 @@
     - effect_mika_mark_guangxiansuoding_surehit
 - id: mark_jiancijiaqiao
   config:
-    duration: 1
+    duration: -1
     keepOnSwitchOut: false
-    persistent: false
+    persistent: true
   effect:
     - effect_qiuding_mark_spike_shell_rage
 - id: mark_daocijiaqiao
   config:
-    duration: 1
+    duration: -1
     keepOnSwitchOut: false
-    persistent: false
+    persistent: true
   effect:
+    - effect_mark_reduce_next_skill_damage_50_percent
     - effect_qiuding_mark_barb_shell_bleed
 - id: mark_baonujiaqiao
   config:
-    duration: 1
+    duration: -1
     keepOnSwitchOut: false
-    persistent: false
+    persistent: true
   effect:
     - effect_qiuding_mark_rage_shell_consume
+    - effect_mark_spend_half_rage_on_damage_prevention
 - id: mark_fanjiyizhi
   config:
+    # 原客户端印记 3172 的回合数由战斗包下发，此处暂用项目值。
     duration: 3
     keepOnSwitchOut: false
     persistent: false
@@ -3232,46 +3256,47 @@
     - effect_mark_add_rage_10_per_turn
 - id: mark_jiancibaofa
   config:
-    duration: 2
+    duration: -1
     keepOnSwitchOut: false
-    persistent: false
+    persistent: true
   effect:
     - effect_qiuding_mark_spike_burst_crit
+    - effect_mark_consume_on_incoming_attack_hit
 - id: mark_shazhili
   config:
-    duration: 3
+    duration: -1
     keepOnSwitchOut: false
-    persistent: false
+    persistent: true
   effect:
     - effect_qiuding_mark_sand_severity_amplify
 - id: mark_badu_shihunlinggui
   config:
-    duration: 3
+    duration: -1
     keepOnSwitchOut: true
     maxStacks: 1
-    persistent: false
+    persistent: true
   effect:
     - effect_badu_mark_shihunlinggui_trigger
 - id: mark_badu_youhunlinggui
   config:
-    duration: 3
+    duration: -1
     keepOnSwitchOut: true
     maxStacks: 1
-    persistent: false
+    persistent: true
   effect:
-    - effect_badu_mark_youhunlinggui_trigger
-    - effect_badu_mark_youhunlinggui_fear
+    - effect_mark_reduce_next_skill_damage_50_percent
 - id: mark_badu_lihunlinggui
   config:
-    duration: 3
+    duration: -1
     keepOnSwitchOut: true
     maxStacks: 1
-    persistent: false
+    persistent: true
   effect:
     - effect_badu_mark_lihunlinggui_shield
-    - effect_badu_mark_lihunlinggui_consume
+    - effect_mark_spend_half_rage_on_damage_prevention
 - id: mark_badu_fankangyishi
   config:
+    # 原客户端印记 3177 的回合数由战斗包下发，此处暂用项目值。
     duration: 4
     keepOnSwitchOut: true
     maxStacks: 1
@@ -3280,24 +3305,26 @@
     - effect_badu_mark_fankangyishi_rage
 - id: mark_badu_linghunsuiji
   config:
-    duration: 2
+    duration: -1
     keepOnSwitchOut: false
     maxStacks: 1
-    persistent: false
+    persistent: true
   effect:
     - effect_badu_mark_linghunsuiji_weaken
     - effect_badu_mark_linghunsuiji_consume
 - id: mark_badu_dizhishang
   config:
-    duration: 3
+    duration: -1
     keepOnSwitchOut: false
     maxStacks: 1
-    persistent: false
+    persistent: true
   effect:
     - effect_badu_mark_dizhishang_amplify
 - id: mark_zuogu
   config:
-    duration: 3
+    duration: 2
+    stackable: true
+    stackStrategy: refresh
     keepOnSwitchOut: false
     maxStacks: 1
     persistent: false
@@ -3305,7 +3332,9 @@
     - effect_feide_mark_zuogu_power
 - id: mark_youpan
   config:
-    duration: 3
+    duration: 2
+    stackable: true
+    stackStrategy: refresh
     keepOnSwitchOut: false
     maxStacks: 1
     persistent: false
@@ -3313,7 +3342,9 @@
     - effect_feide_mark_youpan_power
 - id: mark_zhanqian
   config:
-    duration: 3
+    duration: 2
+    stackable: true
+    stackStrategy: refresh
     keepOnSwitchOut: false
     maxStacks: 1
     persistent: false
@@ -3321,7 +3352,9 @@
     - effect_feide_mark_zhanqian_sure_hit
 - id: mark_yanghou
   config:
-    duration: 3
+    duration: 2
+    stackable: true
+    stackStrategy: refresh
     keepOnSwitchOut: false
     maxStacks: 1
     persistent: false
@@ -3329,6 +3362,8 @@
     - effect_feide_mark_yanghou_sure_hit
 - id: mark_fengkuangdaocao
   config:
+    stackable: true
+    stackStrategy: refresh
     duration: 2
     keepOnSwitchOut: false
     maxStacks: 1
@@ -3337,11 +3372,14 @@
     - effect_feide_mark_mad_straw_vulnerable
 - id: mark_kuanghuanqu
   config:
-    duration: 1
+    stackable: true
+    stackStrategy: refresh
+    duration: 2
     keepOnSwitchOut: false
     maxStacks: 1
     persistent: false
   effect:
+    - effect_feide_mark_cancel_carnival_on_switch
     - effect_feide_mark_carnival_end
 - id: mark_shanbitisheng
   config:
@@ -3349,6 +3387,8 @@
     keepOnSwitchOut: false
     maxStacks: 1
     persistent: false
+  effect:
+    - effect_feide_mark_shanbitisheng_evasion
 - id: mark_manhuinuqi
   config:
     duration: 1
@@ -3452,28 +3492,30 @@
   config:
     duration: -1
     keepOnSwitchOut: true
+    transferOnSwitch: true
     maxStacks: 1
     persistent: true
   effect:
     - effect_kelipu_mark_qiandidan_switch
 - id: mark_caixiazhixin
   config:
-    duration: 0
+    duration: -1
     keepOnSwitchOut: true
     transferOnSwitch: false
-    maxStacks: 6
-    persistent: false
+    maxStacks: 3
+    persistent: true
     stackable: true
     stackStrategy: stack
   effect:
     - effect_mark_caixiazhixin_crit
+    - effect_mark_caixiazhixin_consume
 - id: mark_xuanguangqidian
   config:
-    duration: 0
+    duration: -1
     keepOnSwitchOut: true
     transferOnSwitch: false
-    maxStacks: 10
-    persistent: false
+    maxStacks: 1
+    persistent: true
     stackable: true
     stackStrategy: stack
   effect:

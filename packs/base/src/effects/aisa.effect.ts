@@ -74,7 +74,7 @@ export class AisaEffects {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
-        apply: targets.ownerPet.apply(ops.addMark(caixiazhixinMark, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(caixiazhixinMark, { stack: 3 })),
       },
       effect_aisa_skill_xuancaiguangshu: critHeal(0.16),
       effect_aisa_skill_xuancaibaopo: critRage(15),
@@ -99,7 +99,13 @@ export class AisaEffects {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
-        apply: contexts.skillUse.apply(ops.addCritRate(targets.sourceMark.select(mark => mark.stack).first())),
+        apply: contexts.skillUse.apply(ops.addCritRate(targets.sourceMark.select(mark => mark.stack * 15).first())),
+      },
+      effect_mark_caixiazhixin_consume: {
+        triggers: [EffectTrigger.OnDamage],
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, critDamage),
+        apply: targets.sourceMark.apply(ops.removeMark()),
       },
       effect_mark_xuanguangqidian_critdmg: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
@@ -108,9 +114,7 @@ export class AisaEffects {
           conditions.selfUsesSkill,
           contexts.damage.condition((_, hits) => hits.some(hit => hit.crit)),
         ),
-        apply: contexts.damage.apply(
-          ops.modifyDamage({ percent: targets.sourceMark.select(mark => mark.stack * 50).first(), delta: 0 }),
-        ),
+        apply: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
       },
     })
   }

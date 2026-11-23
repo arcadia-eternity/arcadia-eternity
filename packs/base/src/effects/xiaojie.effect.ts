@@ -60,11 +60,6 @@ export class XiaojieEffects {
       throw new Error('Missing xiaojie mark definitions')
     }
 
-    const wushuangliStacks = targets.ownerMarks
-      .where(mark => mark.baseId === WUSHUANGLI && mark.isActive)
-      .first()
-      .attribute('stack')
-
     return defineEffects({
       effect_xiaojie_ability_spe_down_atk_up: {
         triggers: [EffectTrigger.OnBeforeAddMark],
@@ -131,7 +126,7 @@ export class XiaojieEffects {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
-        apply: targets.ownerPet.apply(ops.addMark(shanghaizengjia, { stack: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(shanghaizengjia, { stack: 40 })),
       },
       effect_xiaojie_skill_lishitu: {
         triggers: [EffectTrigger.OnHit],
@@ -154,53 +149,44 @@ export class XiaojieEffects {
       effect_xiaojie_mark_shiqieshi_damage: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, attackDamage),
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          attackDamage,
+          ctx => ctx.read(targets.sourceMark.first())?.duration === 1,
+        ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 40, delta: 0 })),
       },
       effect_xiaojie_mark_chenshoushi_block: {
-        triggers: [EffectTrigger.OnBeforeCalculateDamage],
+        triggers: [EffectTrigger.OnDamageReplacement],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, physicalDamage),
-        apply: actions.sequence(
-          contexts.damage.apply(ops.preventDamage({ fraction: 50 })),
-          targets.opponentActive.apply(ops.dealDamage(contexts.damageResult.select(result => result.hpLoss).first())),
-          targets.ownerMarks.where(mark => mark.baseId === CHENSHOUSHI && mark.isActive).apply(ops.removeMark()),
-        ),
+        apply: contexts.damage.apply(ops.preventDamage({ fraction: 0.5, stacks: 1 })),
       },
       effect_xiaojie_mark_dunjushi_block: {
-        triggers: [EffectTrigger.OnBeforeCalculateDamage],
+        triggers: [EffectTrigger.OnDamageReplacement],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, specialDamage),
-        apply: actions.sequence(
-          contexts.damage.apply(ops.preventDamage({ fraction: 50 })),
-          targets.opponentActive.apply(ops.dealDamage(contexts.damageResult.select(result => result.hpLoss).first())),
-          targets.ownerMarks.where(mark => mark.baseId === DUNJUSHI && mark.isActive).apply(ops.removeMark()),
-        ),
+        apply: contexts.damage.apply(ops.preventDamage({ fraction: 0.5, stacks: 1 })),
       },
       effect_xiaojie_mark_wushuangshi_absorb: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
-        when: conditions.selfBeDamaged,
-        apply: targets.ownerPet.apply(
-          ops.addMark(wushuangli, {
-            stack: contexts.damageResult.select(result => Math.floor(result.hpLoss / 2)).first(),
-          }),
-        ),
+        when: conditions.all(conditions.selfBeDamaged, attackDamage),
+        apply: (ctx => {
+          const lost = ctx.read(contexts.damageResult.select(result => result.hpLoss).first()) ?? 0
+          const stacks = Math.floor(lost / 2)
+          if (stacks > 0) targets.ownerPet.apply(ops.addMark(wushuangli, { stack: stacks }))(ctx)
+          targets.ownerMarks.where(mark => mark.baseId === WUSHUANGSHI && mark.isActive).apply(ops.removeMark())(ctx)
+        }) satisfies Action<EffectTrigger.OnDamage>,
       },
-      effect_xiaojie_mark_wushuangli_damage: {
-        triggers: [EffectTrigger.OnBeforeCalculateDamage],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, attackDamage),
-        apply: contexts.damage.apply(
-          ops.modifyDamage({
-            percent: values.combine(
-              wushuangliStacks,
-              values.choose(conditions.chance(100), 0, 0),
-              stacks => stacks * 10,
-            ),
-            delta: 0,
-          }),
+      effect_xiaojie_mark_wushuangli_consume: {
+        triggers: [EffectTrigger.AfterUseSkillCheck],
+        priority: -1,
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.skillUse.condition((_, events) => events[0]?.category !== 'Status'),
         ),
+        apply: targets.sourceMark.apply(ops.removeMark()),
       },
     })
   }

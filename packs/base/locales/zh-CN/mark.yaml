@@ -783,10 +783,10 @@ mark_fenghuangzhen:
   description: 消耗1根可保证蜂皇毒针、金针或迷针的附加效果生效。
 mark_biansu:
   name: 变速
-  description: 先制+1
+  description: 下一次使用其他技能时先制+1。
 mark_yishouzhuangong:
   name: 以守转攻
-  description: 受到伤害减半且造成伤害增加50%
+  description: 本回合受到的攻击伤害减半，下回合造成的攻击伤害增加50%。
 mark_shanduo:
   name: 闪躲
   description: 闪避对手物攻
@@ -801,13 +801,13 @@ mark_lanzui:
   description: 结束时使自身昏迷
 mark_meijiuyouhuo:
   name: 美酒诱惑
-  description: 受到物攻使对手获得烂醉
+  description: 下回合受到物攻时，使攻击者进入烂醉。
 mark_bengdaitishen:
   name: 绷带替身
   description: 受到攻击时获得2倍防守怒气
 mark_abuzhiyuan:
   name: 阿布之怨
-  description: 使怒气抵消2倍伤害 非必杀技能不消耗怒气
+  description: 持续3回合，每点怒气可抵挡2点伤害，使用非必杀技不消耗怒气。
 mark_anfu:
   name: 安抚
   description: 无法强化
@@ -828,7 +828,7 @@ mark_huohuaquti:
   description: 受到攻击时30%使攻击者烧伤
 mark_shiqieshi:
   name: 仕切势
-  description: 造成伤害增加40%
+  description: 下回合造成的攻击伤害增加40%。
 mark_chenshoushi:
   name: 尘手势
   description: 抵挡并反弹物攻伤害的50%，无上限
@@ -840,7 +840,7 @@ mark_wushuangshi:
   description: 获得受到伤害50%点数的无双力
 mark_wushuangli:
   name: 无双力
-  description: 每层使造成伤害增加10%
+  description: 攻击技能威力增加{stack}点
 mark_shafenshen_lulu:
   name: 砂分身
   description: 鲁鲁一族凝聚的砂之分身，每层提供战斗资源
@@ -900,19 +900,19 @@ mark_teshufanshe_atongtie:
   description: 抵挡并反弹大于自身最大体力50%的特攻伤害，不超过自身最大体力
 mark_tefongfantan_atongtie:
   name: 特攻反弹
-  description: 反弹受到特攻伤害的50%，上限182点
+  description: 下回合反弹受到的特攻伤害的50%，每次最多182点。
 mark_wugongjianban_atongtie:
   name: 物攻减半
-  description: 造成物攻伤害减半
+  description: 下回合造成的物攻伤害减半。
 mark_shuxingshixiao_atongtie:
   name: 属性失效
-  description: 属性技能Miss
+  description: 下回合属性技能无法命中。
 mark_jinu_atongtie:
   name: 激怒
   description: 使用属性技能恢复对手30点怒气
 mark_guangzhidun:
   name: 光之盾
-  description: 反弹对手50%的伤害
+  description: 先出手时，抵挡并反弹本回合下一次攻击伤害的50%。
 mark_huixuanguangren:
   name: 回旋光刃
   description: 使回旋光刃威力2倍
@@ -921,19 +921,19 @@ mark_guangxiansuoding:
   description: 攻击技能必中
 mark_jiancijiaqiao:
   name: 尖刺甲壳
-  description: 反弹受到伤害的50% 上限284点 成功时恢复自身15点怒气
+  description: 下次受到攻击时，反弹实际损失体力的50%，最多284点，并恢复15点怒气。
 mark_daocijiaqiao:
   name: 倒刺甲壳
-  description: 受到伤害减半并使对手获得30点流血
+  description: 抵挡下次攻击一半的伤害，并使攻击者流血3回合，每回合损失30点体力。
 mark_baonujiaqiao:
   name: 暴怒甲壳
-  description: 抵挡自身怒气值百分比的伤害 成功时消耗50%的怒气
+  description: 下次受到攻击时，每点怒气抵挡1%伤害。成功抵挡后消耗当前怒气的一半。
 mark_fanjiyizhi:
   name: 反击意志
-  description: 每回合获得y点怒气
+  description: 每回合恢复10点怒气。
 mark_jiancibaofa:
   name: 尖刺爆发
-  description: 受到暴击率增加50%
+  description: 下次受到攻击时，被暴击的概率增加50个百分点。
 mark_shazhili:
   name: 沙之厉
   description: 受到沙漠系技能伤害增加50%
@@ -942,7 +942,7 @@ mark_badu_shihunlinggui:
   description: 反弹受到伤害的50%，上限284点，成功时减少对手10点怒气
 mark_badu_youhunlinggui:
   name: 幽魂灵柜
-  description: 防御对手下一次攻击的50%伤害
+  description: 抵挡下次攻击一半的伤害。
 mark_badu_lihunlinggui:
   name: 历魂灵柜
   description: 抵挡自身怒气值2倍的伤害，成功时消耗50%的怒气
@@ -1014,7 +1014,7 @@ mark_qiandidan:
   description: 换上场的精灵受到150点固伤
 mark_caixiazhixin:
   name: 彩霞之心
-  description: 暴击率增加{stack}%
+  description: 每层使暴击率增加15个百分点，最多3层，暴击后消耗。
 mark_xuanguangqidian:
   name: 炫光奇点
-  description: 暴击伤害增加{stack}%
+  description: 暴击造成的伤害增加50%。

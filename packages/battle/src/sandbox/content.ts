@@ -2,13 +2,14 @@ import { prepareSkillParameters, type SkillParameterPolicy } from '@arcadia-eter
 import * as sdk from '../../authoring'
 import { createContentCatalog } from '../engine/content/definition-catalog'
 import { ArenaEffectModule } from './effect-module'
-import { SandboxFault, sandboxPolicy } from './contracts'
+import { SandboxFault, sandboxPolicy, type SandboxPolicy } from './contracts'
 import type { SandboxEnvironment } from './runtime'
 
 export interface SandboxContentOptions {
   readonly grouping?: 'package' | 'environment'
   readonly skillParameters?: SkillParameterPolicy
   readonly catalogMs?: number
+  readonly policy?: SandboxPolicy
 }
 /** Prepared immutable logic, leased to one native battle at a time. */
 export async function prepareSandboxContent(environment: SandboxEnvironment, options: SandboxContentOptions = {}) {
@@ -49,8 +50,15 @@ export async function prepareSandboxContent(environment: SandboxEnvironment, opt
     }
     const grouped = options.grouping === 'environment'
     if (grouped && environment.modules.length)
-      modules.push(await ArenaEffectModule.prepareGroup(environment.modules.map(entry => entry.artifact)))
-    else for (const entry of environment.modules) modules.push(await ArenaEffectModule.prepare(entry.artifact))
+      modules.push(
+        await ArenaEffectModule.prepareGroup(
+          environment.modules.map(entry => entry.artifact),
+          options.policy,
+        ),
+      )
+    else
+      for (const entry of environment.modules)
+        modules.push(await ArenaEffectModule.prepare(entry.artifact, options.policy))
     const moduleFor = (index: number) => modules[grouped ? 0 : index]
     const usedExports = new Set(
       (environment.data.behaviors ?? []).map(

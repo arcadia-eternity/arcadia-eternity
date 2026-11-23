@@ -210,6 +210,10 @@ if (command === 'pack' || command === 'pack-base') {
           semver.validRange(packed.engines.arcadia),
         'base pack: declare a valid engines.arcadia range',
       )
+      assert.ok(
+        semver.satisfies(sdkVersion, packed.engines.arcadia),
+        `base pack requires Arcadia ${packed.engines.arcadia}, release client is ${sdkVersion}`,
+      )
       assert.equal(packed.arcadiaEternityPack, 'dist/pack.json')
       assert.ok(files.includes('package/dist/pack.json'), 'base pack: missing compiled manifest')
       assert.deepEqual(

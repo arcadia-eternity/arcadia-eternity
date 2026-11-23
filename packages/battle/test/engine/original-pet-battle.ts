@@ -1,5 +1,8 @@
 import {
   BattleStartPhase,
+  DamageContext,
+  executeTurnOperation,
+  type Pet,
   SkillPhase,
   TurnContext,
   UseSkillContext,
@@ -7,7 +10,7 @@ import {
   type Player,
 } from '@arcadia-eternity/battle/engine'
 import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
-import type { StatOutBattle } from '@arcadia-eternity/const'
+import { DamageType, type StatOutBattle } from '@arcadia-eternity/const'
 import { afterEach, expect } from 'vitest'
 import { loadBasePrototypeData } from './base-metadata'
 
@@ -17,12 +20,26 @@ afterEach(async () => {
   for (const battle of battles.splice(0)) await battle.cleanup()
 })
 
+export function waitTurn(battle: Battle) {
+  for (const player of [battle.playerA, battle.playerB]) player.selection = { player: player.id, type: 'do-nothing' }
+  executeTurnOperation(new TurnContext(battle), battle)
+}
+
+export function strike(battle: Battle, attacker: Pet, target: Pet, amount: number, type = DamageType.Physical) {
+  const skill = attacker.skills[0]!
+  const cast = new UseSkillContext(new TurnContext(battle), attacker.owner!, attacker, skill.target, skill)
+  const damage = new DamageContext(cast, skill, target, amount, type)
+  target.damage(damage)
+  return damage.result!
+}
+
 export function petBattle(
   species: string,
   skills: string[],
   emblem?: string,
   training?: { ivs: StatOutBattle; ivMax?: StatOutBattle; individualValueMax: number },
   reserves: { species: string; skills: string[] }[] = [],
+  opponentTeam = [{ species: 'pet_dilan', skills: ['skill_paida'] }],
 ) {
   const stats = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }
   const defaults = { level: 100, nature: 'Hardy', evs: stats, ivs: stats }
@@ -35,7 +52,7 @@ export function petBattle(
           ...reserves.map(pet => ({ ...defaults, ...pet, name: pet.species })),
         ],
       },
-      { name: 'B', team: [{ ...defaults, name: '迪兰', species: 'pet_dilan', skills: ['skill_paida'] }] },
+      { name: 'B', team: opponentTeam.map(pet => ({ ...defaults, ...pet, name: pet.species })) },
     ],
     { individualValueMax: training?.individualValueMax },
   )

@@ -6,6 +6,7 @@ import {
   defineEffects,
   EffectTrigger,
   ops,
+  type Condition,
   targets,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
@@ -22,6 +23,23 @@ const physicalDamage = contexts.damage.condition((_, events) =>
   events.some(event => event.damageType === DamageType.Physical),
 )
 const desertDamage = contexts.damage.condition((_, events) => events.some(event => event.element === 'Desert'))
+
+const incomingAttack = conditions.all(
+  conditions.selfBeDamaged,
+  contexts.damage.condition((_, events) =>
+    events.some(
+      event =>
+        event.origin.trigger !== 'effect' &&
+        (event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
+    ),
+  ),
+)
+const shellPaid: Condition<EffectTrigger.OnConsumeStack> = ctx =>
+  ctx.parent.reason === 'rule' && ctx.parent.mark === ctx.read(targets.sourceMark.first())
+const targetsMarkedPet = conditions.all(
+  conditions.ownerIsSkillTarget,
+  contexts.skillUse.condition((_, events) => events.some(event => event.category !== 'Status')),
+)
 
 @effectGroup({ id: 'qiuding' })
 export class QiudingEffects {
@@ -47,12 +65,12 @@ export class QiudingEffects {
     const defBonusPower = defValue.map(def => Math.min(100, Math.floor(def / 10)))
     const defHits = defValue.map(def => Math.max(1, Math.min(6, Math.floor(def / 100))))
 
-    const addSpikeShell = targets.ownerPet.apply(ops.addMark(spikeShell, { stack: 1, duration: 1 }))
-    const addBarbShell = targets.ownerPet.apply(ops.addMark(barbShell, { stack: 1, duration: 1 }))
-    const addRageShell = targets.ownerPet.apply(ops.addMark(rageShell, { stack: 1, duration: 1 }))
-    const addCounterWill = targets.ownerPet.apply(ops.addMark(counterWill, { stack: 1, duration: 3 }))
-    const addSpikeBurst = targets.opponentActive.apply(ops.addMark(spikeBurst, { stack: 1, duration: 2 }))
-    const addSandSeverity = targets.opponentActive.apply(ops.addMark(sandSeverity, { stack: 1, duration: 3 }))
+    const addSpikeShell = targets.ownerPet.apply(ops.addMark(spikeShell, { stack: 1 }))
+    const addBarbShell = targets.ownerPet.apply(ops.addMark(barbShell, { stack: 1 }))
+    const addRageShell = targets.ownerPet.apply(ops.addMark(rageShell, { stack: 1 }))
+    const addCounterWill = targets.ownerPet.apply(ops.addMark(counterWill, { stack: 1 }))
+    const addSpikeBurst = targets.opponentActive.apply(ops.addMark(spikeBurst, { stack: 1 }))
+    const addSandSeverity = targets.opponentActive.apply(ops.addMark(sandSeverity, { stack: 1 }))
 
     const defUp = targets.ownerPet.apply(ops.changeStatStage('def', 1))
 
@@ -150,62 +168,33 @@ export class QiudingEffects {
       effect_qiuding_mark_spike_shell_rage: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          ctx => ctx.read(spikeShellActive.first().attribute('stack')) !== undefined,
-        ),
+        when: incomingAttack,
         apply: actions.sequence(
           targets.damageOriginPet.apply(
             ops.dealDamage(contexts.damageResult.select(r => Math.min(284, Math.floor(r.hpLoss / 2))).first()),
           ),
           targets.ownerPet.apply(ops.addRage(15)),
-          targets.ownerMarks.where(mark => mark.baseId === SPIKE_SHELL).apply(ops.removeMark()),
+          targets.sourceMark.apply(ops.removeMark()),
         ),
       },
       effect_qiuding_mark_barb_shell_bleed: {
-        triggers: [EffectTrigger.OnBeforeCalculateDamage],
-        priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          ctx => ctx.read(barbShellActive.first().attribute('stack')) !== undefined,
-        ),
-        apply: actions.sequence(
-          contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
-          targets.opponentActive.apply(ops.addMark(bleed, { stack: 30 })),
-          targets.ownerMarks.where(mark => mark.baseId === BARB_SHELL).apply(ops.removeMark()),
-        ),
+        triggers: [EffectTrigger.OnConsumeStack],
+        when: shellPaid,
+        apply: targets.damageOriginPet.apply(ops.addMark(bleed, { stack: 30 })),
       },
       effect_qiuding_mark_rage_shell_consume: {
         triggers: [EffectTrigger.OnDamageReplacement],
-        priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          ctx => ctx.read(rageShellActive.first().attribute('stack')) !== undefined,
-        ),
-        apply: actions.sequence(
-          contexts.damage.apply(
-            ops.preventDamage({
-              fraction: targets.ownerPet
-                .first()
-                .map(pet => pet.currentRage)
-                .map(rage => rage / 100),
-            }),
-          ),
-          targets.ownerPet.apply(
-            ops.reduceRage(
-              targets.ownerPet
-                .first()
-                .map(pet => pet.currentRage)
-                .map(rage => Math.floor(rage / 2)),
-            ),
-          ),
-          targets.ownerMarks.where(mark => mark.baseId === RAGE_SHELL).apply(ops.removeMark()),
+        when: incomingAttack,
+        apply: contexts.damage.apply(
+          ops.preventDamage({
+            fraction: targets.ownerPet.first().map(pet => Math.min(1, pet.currentRage / 100)),
+            stacks: 1,
+          }),
         ),
       },
       effect_qiuding_mark_spike_burst_crit: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
-        priority: 0,
-        when: conditions.ownerIsSkillTarget,
+        when: targetsMarkedPet,
         apply: contexts.skillUse.apply(ops.addCritRate(50)),
       },
       effect_qiuding_mark_sand_severity_amplify: {

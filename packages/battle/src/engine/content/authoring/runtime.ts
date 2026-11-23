@@ -250,8 +250,9 @@ export const selectFrom: typeof C.selectFrom = members => {
 }
 function selector<T>(query: (ctx: Frame) => readonly T[]): C.Selector<T> {
   return {
-    where: predicate => selector(ctx => query(ctx).filter(predicate)),
-    select: project => selector(ctx => query(ctx).map(project)),
+    // Array callbacks also receive the index and source array. Only the member crosses the effect bridge.
+    where: predicate => selector(ctx => query(ctx).filter(item => predicate(item))),
+    select: project => selector(ctx => query(ctx).map(item => project(item))),
     flatMap: project => selector(ctx => query(ctx).flatMap(item => [...project(item)])),
     shuffled: () => selector(ctx => engine(ctx).battle.shuffle([...query(ctx)])),
     first: () => value(ctx => query(ctx)[0]),

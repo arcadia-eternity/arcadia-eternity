@@ -8,7 +8,6 @@ import {
   ops,
   values,
   targets,
-  type Action,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
 
@@ -43,8 +42,6 @@ export class HuohualiEffects {
     const burnOpponent = targets.opponentActive.apply(ops.addMark(burn))
     const confuseOpponent = targets.opponentActive.apply(ops.addMark(confusion))
 
-    const critBurn: Action = actions.sequence(targets.opponentActive.apply(ops.addMark(burn)))
-
     return defineEffects({
       effect_huohuali_ability_crit_damage: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
@@ -65,15 +62,8 @@ export class HuohualiEffects {
       },
       effect_huohuali_skill_huohuakeyin: {
         triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, critDamage),
-        apply: critBurn,
-      },
-      effect_huohuali_skill_chirekeyin: {
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, critDamage),
-        apply: critBurn,
+        when: ctx => conditions.selfUsesSkill(ctx) && ctx.parent.crit,
+        apply: burnOpponent,
       },
       effect_huohuali_skill_huohuayinbao: {
         triggers: [EffectTrigger.OnHit],
@@ -138,7 +128,10 @@ export class HuohualiEffects {
       effect_huohuali_mark_spark_crit: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(conditions.ownerIsSkillTarget),
+        when: conditions.all(
+          conditions.ownerIsSkillTarget,
+          contexts.skillUse.condition((_, events) => events.some(event => event.skill.category !== 'Status')),
+        ),
         apply: contexts.skillUse.apply(ops.setSureCrit()),
       },
       effect_huohuali_mark_flame_body_burn: {

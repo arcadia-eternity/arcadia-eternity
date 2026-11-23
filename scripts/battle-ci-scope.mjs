@@ -54,10 +54,10 @@ const jobFiles = {
     /^bin\//,
     /^rolldown\.config\.js$/,
     /^examples\/ugc\//,
-    /^scripts\/(?:stage-author-sdk(?:\.test)?|release-author-sdk)\.mjs$/,
+    /^scripts\/(?:(?:stage-author-sdk|resolve-release-tags)(?:\.test)?|stage-released-base|release-author-sdk)\.mjs$/,
     /^\.github\/workflows\/(?:publish-packages\.yaml|release-please\.yml)$/,
-    /^(?:\.github|packs)\/release-please-config\.json$/,
-    /^(?:packs\/)?\.release-please-manifest\.json$/,
+    /^\.github\/release-please-config\.json$/,
+    /^\.release-please-manifest\.json$/,
   ],
 }
 

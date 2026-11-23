@@ -9,6 +9,7 @@ import { ArenaEffectSdk } from './sdk'
 import { checkpointArena, releaseArenaSession, type ArenaCheckpoint } from './arena-session'
 import {
   SandboxFault,
+  browserSandboxPolicy,
   browserSandboxStartup,
   sandboxPolicy,
   type SandboxPolicy,
@@ -71,7 +72,7 @@ export class ArenaEffectModule implements PreparedEffectModule {
     }
     const artifact = artifacts[0]
     for (const key of Object.keys(sandboxPolicy) as (keyof SandboxPolicy)[])
-      if (!Number.isSafeInteger(policy[key]) || policy[key] <= 0 || policy[key] > sandboxPolicy[key])
+      if (!Number.isSafeInteger(policy[key]) || policy[key] <= 0 || policy[key] > browserSandboxPolicy[key])
         throw new SandboxFault('budget', artifact.packageId, `Invalid policy: ${key}`)
     if (policy.wasmBytes < 16 * 1024 * 1024 || policy.wasmBytes % 65536)
       throw new SandboxFault('budget', artifact.packageId, 'Invalid WASM memory ceiling')

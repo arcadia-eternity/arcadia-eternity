@@ -669,7 +669,11 @@ export class DamageModifiersGeneratedEffects {
         when: conditions.all(
           conditions.selfBeDamaged,
           contexts.damage.condition((_ctx, events) =>
-            events.some(event => event.damageType === 'Physical' || event.damageType === 'Special'),
+            events.some(
+              event =>
+                event.origin.trigger !== 'effect' &&
+                (event.damageType === 'Physical' || event.damageType === 'Special'),
+            ),
           ),
         ),
         apply: contexts.damage.apply(ops.preventDamage({ fraction: 0.5, stacks: 1 })),

@@ -13,11 +13,11 @@
 | [开发通知](../.github/workflows/deploy-development.yml)     | 镜像就绪通知与手动部署提示                                            |
 | [Fly.io 部署](../.github/workflows/deploy-flyio.yaml)       | Fly.io 镜像部署配置；运行方式见[单进程部署](guides/server-runtime.md) |
 
-## 单独发布客户端或基础包
+## 客户端和官方内容发版
 
-Release Please 按改动路径维护两个发行 PR。客户端更新[根版本清单](../.release-please-manifest.json)，基础包和两个环境包更新[内容版本清单](../packs/.release-please-manifest.json)。两个 PR 可以按任意顺序合并。常规发版不用手改版本号或推送标签。
+Release Please 根据改动路径维护一个发行 PR，客户端和官方内容分别计算版本。只有一方有待发改动时，合并 PR 只发布这一方。两边都有待发改动时，合并一次就会在同一提交上创建两个标签，工作流先发布 SDK，再发布三个内容包，随后构建桌面客户端和生产镜像。[发行版本清单](../.release-please-manifest.json)
 
-| 要发布的内容 | 触发发行 PR 的例子                                                        | 合并对应发行 PR 后                                                                                              |
+| 要发布的内容 | 触发发行 PR 的例子                                                        | 合并发行 PR 后                                                                                                  |
 | ------------ | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | 客户端       | 在桌面端提交 `fix(desktop): 修复退出时更新`                               | 创建 `arcadia-eternity-vX.Y.Z`，发布桌面安装包、差分清单、同版 SDK 和生产镜像                                   |
 | 官方基础包   | 在 `packs/base/` 提交 `fix(base): 修正技能威力` 或 `feat(base): 添加精灵` | 更新基础包版本和 changelog，创建 `data-pack-base-vX.Y.Z` 并发布 `@arcadia-eternity/data-pack-base@X.Y.Z` 到 npm |
@@ -26,12 +26,12 @@ Release Please 按改动路径维护两个发行 PR。客户端更新[根版本�
 
 创作 SDK、基础包和两个环境包在 npm 上都信任 `arcadia-eternity/arcadia-eternity` 的 `release-please.yml`。自动发布和手动重试均从这个工作流进入。客户端单独发版时使用清单里已发布的内容标签。[npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/)
 
-只改 `packs/base/`、`packs/environment-default/` 或 `packs/environment-training-120/` 会进入基础包的发行 PR。GitHub 为该包保留发行草稿，玩家通过 npm 收到稳定版，GitHub 的公开桌面更新入口继续指向客户端。如果部分包已发布，优先在原 Actions run 中重跑失败任务。手动重试时，在 “Release Please” 的 `npm_tag` 填相同标签和首轮归档所在的 `verified_run_id`。工作流校验来源仓库、发行工作流、标签提交和归档哈希，再补发缺失的包。
+GitHub 为基础包保留发行草稿，玩家通过 npm 收到稳定版，GitHub 的公开桌面更新入口继续指向客户端。如果部分包已发布，优先在原 Actions run 中重跑失败任务。手动重试时，在 “Release Please” 的 `npm_tag` 填相同标签和首轮归档所在的 `verified_run_id`。工作流校验来源仓库、发行工作流、标签提交和归档哈希，再补发缺失的包。
 
 桌面和生产服务端构建从该次提交的版本清单选择基础包标签，将该标签下的基础包和两个环境包作为离线初始内容。切换到独立环境包布局时，先发布包含三个目录的数据标签，再构建正式客户端或服务端。日常开发仍使用工作区源码。
 
-如果新内容需要宿主提供新能力，更新基础包的 `engines.arcadia`。正式版桌面客户端会在后台下载兼容的官方基础包并更新两个官方预设，玩家也可以在内容包详情手动检查。独立服也会自动检查并热更新官方预设，固定版本和回滚见[服务端运行指南](guides/server-runtime.md#独立更新官方基础包)。
+只有内容开始使用新的宿主机制时，才需要提高 `packs/base/package.json` 的 `engines.arcadia`。例如，首次使用客户端 4.17.0 提供的战斗接口时，将范围改为 `^4.17.0`。如果所需客户端也在本次发行中，按发行 PR 中算出的客户端版本修改这一行，合并前核对最终 diff。打包检查会验证客户端版本落在声明范围内。
 
-[客户端发行配置](../.github/release-please-config.json)和[官方内容发行配置](../packs/release-please-config.json)分别指定各自更新的包和 changelog。
+正式版桌面客户端会在后台下载兼容的官方基础包并更新两个官方预设，玩家也可以在内容包详情手动检查。独立服也会自动检查并热更新官方预设，固定版本和回滚见[服务端运行指南](guides/server-runtime.md#独立更新官方基础包)。
 
 桌面当前使用 Electron。开发预览可使用网页包的 `build:desktop:preview`；正式发布入口要求完整 notices，详见[桌面宿主](guides/desktop-ugc-host.md)。本地开发物料和未签名预览分别记录验收结果。

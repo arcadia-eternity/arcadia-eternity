@@ -1,6 +1,6 @@
 # 安装 UGC SDK
 
-创作 SDK 随 Arcadia 客户端正式版本发布。官方基础包在 `packs/base/` 中独立维护内容和 `engines.arcadia`。合并基础包的 Release Please 发行 PR 后，CI 自动更新包版本、创建 `data-pack-base-vX.Y.Z` 标签并发布到 npm。详见[版本与发行工作流](../VERSION_MANAGEMENT.md)。
+创作 SDK 随 Arcadia 客户端正式版本发布。官方基础包在 `packs/base/` 中独立维护内容和 `engines.arcadia`。合并包含官方内容改动的发行 PR 后，CI 创建 `data-pack-base-vX.Y.Z` 标签并发布到 npm。详见[版本与发行工作流](../VERSION_MANAGEMENT.md)。
 
 ## 安装
 

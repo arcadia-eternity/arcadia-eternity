@@ -13,6 +13,8 @@ import {
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
 
+import { preventedBySourceMark } from './damage-benefits.effect'
+
 const OVERLOAD = 'mark_guozai_atongtie'
 const PHYSICAL_ABSORB = 'mark_wulixishou_atongtie'
 const SPECIAL_REFLECT = 'mark_teshufanshe_atongtie'
@@ -21,15 +23,13 @@ const ATK_HALF = 'mark_wugongjianban_atongtie'
 const PROPERTY_FAIL = 'mark_shuxingshixiao_atongtie'
 const ENRAGE = 'mark_jinu_atongtie'
 
-const physicalDamage: Condition<EffectTrigger.OnBeforeCalculateDamage> = contexts.damage.condition((_, events) =>
+const physicalDamage = contexts.damage.condition((_, events) =>
   events.some(event => event.damageType === DamageType.Physical),
 )
-const specialDamage: Condition<EffectTrigger.OnBeforeCalculateDamage> = contexts.damage.condition((_, events) =>
+const specialDamage = contexts.damage.condition((_, events) =>
   events.some(event => event.damageType === DamageType.Special),
 )
-const specialDamageOnDamage: Condition<EffectTrigger.OnDamage> = contexts.damage.condition((_, events) =>
-  events.some(event => event.damageType === DamageType.Special),
-)
+const nextTurn = targets.sourceMark.condition((_, marks) => marks.some(mark => mark.duration === 1))
 
 @effectGroup({ id: 'atongtie' })
 export class AtongtieEffects {
@@ -163,73 +163,77 @@ export class AtongtieEffects {
       effect_atongtie_mark_guozai_lock_rage: {
         triggers: [EffectTrigger.BeforeRageGain, EffectTrigger.BeforeRageLoss] as const,
         priority: 0,
-        when: conditions.ownerIsActive,
+        when: conditions.all(conditions.ownerIsActive, conditions.ownerReceivesRage),
         apply: (ctx => {
           if (ctx.trigger === EffectTrigger.BeforeRageGain) {
             contexts.rage.apply(ops.limitRageGain(0))(ctx)
-          } else {
+          } else if (!(
+            ctx.parent.reason === 'skill' && ctx.read(contexts.skillUse.first())?.category === Category.Climax
+          )) {
             contexts.rage.apply(ops.disableContext())(ctx)
           }
         }) satisfies Action<EffectTrigger.BeforeRageGain | EffectTrigger.BeforeRageLoss>,
       },
-      effect_atongtie_mark_guozai_block_climax: {
-        triggers: [EffectTrigger.BeforeUseSkillCheck] as const,
+      effect_atongtie_mark_guozai_end_on_climax: {
+        triggers: [EffectTrigger.AfterUseSkillCheck] as const,
         priority: 0,
         when: conditions.all(
           conditions.ownerUsesSkill,
           contexts.skillUse.condition((_, events) => events.some(event => event.skill.category === Category.Climax)),
         ),
-        apply: contexts.skillUse.apply(ops.disableContext()),
+        apply: targets.sourceMark.apply(ops.removeMark()),
       },
       effect_atongtie_mark_wulixishou_absorb: {
-        triggers: [EffectTrigger.OnBeforeCalculateDamage] as const,
-        priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, physicalDamage),
-        apply: (ctx => {
-          const maxHp = ctx.read(ownerMaxHp) ?? 0
-          const incoming = ctx.read(contexts.damageResult.select(result => result.hpLoss).first()) ?? 0
-          if (incoming >= maxHp / 6) return
-          contexts.damage.apply(ops.cancelDamage())(ctx)
-          targets.ownerPet.apply(ops.heal(incoming))(ctx)
-          targets.ownerMarks.where(mark => mark.baseId === PHYSICAL_ABSORB && mark.isActive).apply(ops.removeMark())(
-            ctx,
-          )
-        }) satisfies Action<EffectTrigger.OnBeforeCalculateDamage>,
+        triggers: [EffectTrigger.OnDamageReplacement],
+        when: conditions.all(
+          conditions.selfBeDamaged,
+          physicalDamage,
+          contexts.damage.condition((_, hits) =>
+            hits.some(hit => hit.origin.trigger !== 'effect' && hit.damageResult < hit.target.stat.maxHp / 6),
+          ),
+        ),
+        apply: contexts.damage.apply(ops.replaceDamageWithHeal(1, 1)),
       },
       effect_atongtie_mark_teshufanshe_reflect: {
-        triggers: [EffectTrigger.OnBeforeCalculateDamage] as const,
-        priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, specialDamage),
-        apply: (ctx => {
-          const maxHp = ctx.read(ownerMaxHp) ?? 0
-          const incoming = ctx.read(contexts.damageResult.select(result => result.hpLoss).first()) ?? 0
-          if (incoming <= maxHp / 2) return
-          contexts.damage.apply(ops.cancelDamage())(ctx)
-          const reflected = Math.min(incoming, maxHp)
-          targets.damageOriginPet.apply(ops.dealDamage(reflected, { damageType: DamageType.Special }))(ctx)
-          targets.ownerMarks.where(mark => mark.baseId === SPECIAL_REFLECT && mark.isActive).apply(ops.removeMark())(
-            ctx,
-          )
-        }) satisfies Action<EffectTrigger.OnBeforeCalculateDamage>,
+        triggers: [EffectTrigger.OnDamageReplacement],
+        when: conditions.all(
+          conditions.selfBeDamaged,
+          specialDamage,
+          contexts.damage.condition((_, hits) =>
+            hits.some(hit => hit.origin.trigger !== 'effect' && hit.damageResult > hit.target.stat.maxHp / 2),
+          ),
+        ),
+        apply: contexts.damage.apply(ops.preventDamage({ stacks: 1 })),
+      },
+      effect_atongtie_mark_teshufanshe_return: {
+        triggers: [EffectTrigger.OnConsumeStack],
+        when: ctx => ctx.parent.mark === ctx.read(targets.sourceMark.first()) && ctx.parent.reason === 'rule',
+        apply: ctx => {
+          const prevented = preventedBySourceMark(ctx)
+          const cap = ctx.read(ownerMaxHp) ?? 0
+          targets.damageOriginPet.apply(ops.dealDamage(Math.min(prevented, cap)))(ctx)
+        },
       },
       effect_atongtie_mark_tefongfantan_rebound: {
         triggers: [EffectTrigger.OnDamage] as const,
         priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, specialDamageOnDamage),
+        when: conditions.all(
+          conditions.selfBeDamaged,
+          nextTurn,
+          specialDamage,
+          contexts.damage.condition((_, hits) => hits.some(hit => hit.origin.trigger !== 'effect')),
+        ),
         apply: (ctx => {
           const loss = ctx.read(contexts.damageResult.select(result => result.hpLoss).first()) ?? 0
           const reflected = Math.min(Math.floor(loss / 2), 182)
           if (reflected > 0)
             targets.damageOriginPet.apply(ops.dealDamage(reflected, { damageType: DamageType.Special }))(ctx)
-          targets.ownerMarks.where(mark => mark.baseId === SPECIAL_REBOUND && mark.isActive).apply(ops.removeMark())(
-            ctx,
-          )
         }) satisfies Action<EffectTrigger.OnDamage>,
       },
       effect_atongtie_mark_wugongjianban_halve: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage] as const,
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, physicalDamage),
+        when: conditions.all(conditions.selfUsesSkill, nextTurn, physicalDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
       },
       effect_atongtie_mark_shuxingshixiao_miss: {
@@ -237,6 +241,7 @@ export class AtongtieEffects {
         priority: 0,
         when: conditions.all(
           conditions.ownerUsesSkill,
+          nextTurn,
           contexts.skillUse.condition((_, events) => events.some(event => event.skill.category === Category.Status)),
         ),
         apply: contexts.skillUse.apply(ops.setSureMiss()),
