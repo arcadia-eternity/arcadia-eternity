@@ -9,8 +9,6 @@ import {
 const output = new URL('./generated/', import.meta.url)
 await rm(output, { recursive: true, force: true })
 await mkdir(new URL('public/', output), { recursive: true })
-// Published SDKs and desktop releases still link to the original Pages hostname.
-await writeFile(new URL('public/_redirects', output), `https://arcadia-creator-docs.pages.dev/* ${origin}/:splat 302\n`)
 const template = new URL('../../packages/content-dev/template/', import.meta.url)
 await copyFile(new URL('assets/pets/frostling-portrait.png', template), new URL('public/frostling.png', output))
 
