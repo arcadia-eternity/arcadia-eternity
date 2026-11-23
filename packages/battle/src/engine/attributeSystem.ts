@@ -341,7 +341,6 @@ export class AttributeSystem<T extends AttributeData> {
 
   // Cross-object dependency tracking
   private static globalCalculationStack = new Map<string, Set<string>>()
-  private static globalDependencyGraph = new Map<string, Set<string>>()
   private objectId: string
 
   // Memory management
@@ -1001,53 +1000,6 @@ export class AttributeSystem<T extends AttributeData> {
   }
 
   /**
-   * Track cross-object dependency for debugging
-   */
-  trackCrossObjectDependency(fromObjectId: string, fromKey: string, toObjectId: string, toKey: string): void {
-    const fromGlobalKey = `${fromObjectId}.${fromKey}`
-    const toGlobalKey = `${toObjectId}.${toKey}`
-
-    if (!AttributeSystem.globalDependencyGraph.has(fromGlobalKey)) {
-      AttributeSystem.globalDependencyGraph.set(fromGlobalKey, new Set())
-    }
-    AttributeSystem.globalDependencyGraph.get(fromGlobalKey)!.add(toGlobalKey)
-  }
-
-  /**
-   * Check if there are cross-object circular dependencies
-   */
-  static hasGlobalCircularDependencies(): boolean {
-    const visited = new Set<string>()
-    const recursionStack = new Set<string>()
-
-    const dfs = (node: string): boolean => {
-      if (recursionStack.has(node)) return true
-      if (visited.has(node)) return false
-
-      visited.add(node)
-      recursionStack.add(node)
-
-      const dependencies = AttributeSystem.globalDependencyGraph.get(node)
-      if (dependencies) {
-        for (const dep of dependencies) {
-          if (dfs(dep)) return true
-        }
-      }
-
-      recursionStack.delete(node)
-      return false
-    }
-
-    for (const node of AttributeSystem.globalDependencyGraph.keys()) {
-      if (!visited.has(node)) {
-        if (dfs(node)) return true
-      }
-    }
-
-    return false
-  }
-
-  /**
    * Get global calculation stack for debugging
    */
   static getGlobalCalculationStack(): Map<string, Set<string>> {
@@ -1055,18 +1007,10 @@ export class AttributeSystem<T extends AttributeData> {
   }
 
   /**
-   * Get global dependency graph for debugging
-   */
-  static getGlobalDependencyGraph(): Map<string, Set<string>> {
-    return new Map(AttributeSystem.globalDependencyGraph)
-  }
-
-  /**
    * Clear all global tracking data
    */
   static clearGlobalTracking(): void {
     AttributeSystem.globalCalculationStack.clear()
-    AttributeSystem.globalDependencyGraph.clear()
   }
 
   /**
@@ -1175,15 +1119,6 @@ export class AttributeSystem<T extends AttributeData> {
       }
     }
 
-    // Clean up global dependency graph entries for this object
-    const keysToDelete: string[] = []
-    for (const [key, _] of AttributeSystem.globalDependencyGraph) {
-      if (key.startsWith(`${this.objectId}.`)) {
-        keysToDelete.push(key)
-      }
-    }
-    keysToDelete.forEach(key => AttributeSystem.globalDependencyGraph.delete(key))
-
     this.logger.debug(`AttributeSystem ${this.objectId} destroyed successfully`)
   }
 
@@ -1219,7 +1154,6 @@ export class AttributeSystem<T extends AttributeData> {
     activeInstances: number
     destroyedInstances: number
     globalCalculationStackSize: number
-    globalDependencyGraphSize: number
     memoryUsageByInstance: ReturnType<AttributeSystem<any>['getMemoryStats']>[]
   } {
     let activeCount = 0
@@ -1242,7 +1176,6 @@ export class AttributeSystem<T extends AttributeData> {
       activeInstances: activeCount,
       destroyedInstances: destroyedCount,
       globalCalculationStackSize: AttributeSystem.globalCalculationStack.size,
-      globalDependencyGraphSize: AttributeSystem.globalDependencyGraph.size,
       memoryUsageByInstance: instanceStats,
     }
   }

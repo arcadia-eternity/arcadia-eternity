@@ -242,9 +242,9 @@ pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/ma
 CLI 与上述操作对应，通用连接参数仍使用 `--server`、`--token-file`、`--workspace`：
 
 ```sh
-pnpm cli content environment add friends @author/forest --revision "$revision" --version '^2.0.0'
-pnpm cli content environment add friends @author/local --revision "$revision" --source
-pnpm cli content environment remove friends @author/nature --revision "$revision" --cascade
+pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token --workspace WORKSPACE add friends @author/forest --revision "$revision" --version '^2.0.0'
+pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token --workspace WORKSPACE add friends @author/local --revision "$revision" --source
+pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token --workspace WORKSPACE remove friends @author/nature --revision "$revision" --cascade
 ```
 
 桌面环境桥对应 `add-package` 与 `remove-package`，额外携带 `environmentId`，共享相同的成员变更规则。旧的 `package-state`／`enabled` 请求和 CLI `enable`／`disable` 命令已移除，不保留别名。桌面安装仅暴露直接安装与安装任务操作；分步安装确认和全局选择写入接口已移除，旧本地选择只用于一次性迁移到具名环境。
@@ -256,7 +256,7 @@ CLI 使用同一服务器接口与资源授权，服务凭证从文件读取，�
 ```sh
 pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token --workspace WORKSPACE list
 pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token --workspace WORKSPACE apply environment.json --revision REVISION --wait
-pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token --workspace WORKSPACE disable friends @author/nature --revision REVISION --cascade
+pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token --workspace WORKSPACE remove friends @author/nature --revision REVISION --cascade
 pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token tasks
 pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token cancel OPERATION
 pnpm cli content environment --server http://127.0.0.1:8102 --token-file /path/service-token retry OPERATION

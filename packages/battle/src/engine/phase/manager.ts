@@ -1,4 +1,4 @@
-import { BattlePhaseBase, PhaseState, type PhaseResult, InteractivePhase } from './base'
+import { type BattlePhaseBase, PhaseState, type PhaseResult, InteractivePhase } from './base'
 import type { Battle } from '../battle'
 
 /**
@@ -10,88 +10,21 @@ export interface PhaseExecutionOptions {
   skipOnError?: boolean
 }
 
-/**
- * Phase dependency definition
- */
-export interface PhaseDependency {
-  phaseId: string
-  required: boolean
-}
-
-/**
- * PhaseManager handles the complete lifecycle of battle phases
- * Manages phase creation, execution, dependencies, and cleanup
- */
 export class PhaseManager {
   private phases: Map<string, BattlePhaseBase> = new Map()
-  private executionQueue: string[] = []
-  private dependencies: Map<string, PhaseDependency[]> = new Map()
-  private executionHistory: string[] = []
   private currentPhase?: BattlePhaseBase
-  private isExecuting: boolean = false
 
   constructor(private readonly battle: Battle) {}
-
-  public assertSnapshotSafe(): void {
-    if (this.executionQueue.length || this.dependencies.size)
-      throw new Error('Snapshot does not support queued/dependent phases')
-  }
 
   /**
    * Register a phase for management
    */
-  public registerPhase(phase: BattlePhaseBase | InteractivePhase, dependencies: PhaseDependency[] = []): void {
+  public registerPhase(phase: BattlePhaseBase): void {
     if (this.phases.has(phase.id)) {
       throw new Error(`Phase with id ${phase.id} already registered`)
     }
 
-    this.phases.set(phase.id, phase as BattlePhaseBase)
-    if (dependencies.length > 0) {
-      this.dependencies.set(phase.id, dependencies)
-    }
-  }
-
-  /**
-   * Queue a phase for execution
-   */
-  public queuePhase(phaseId: string): void {
-    if (!this.phases.has(phaseId)) {
-      throw new Error(`Phase ${phaseId} not registered`)
-    }
-
-    if (!this.executionQueue.includes(phaseId)) {
-      this.executionQueue.push(phaseId)
-    }
-  }
-
-  /**
-   * Execute all queued phases in order
-   */
-  public async executeQueuedPhases(options: PhaseExecutionOptions = {}): Promise<PhaseResult[]> {
-    if (this.isExecuting) {
-      throw new Error('PhaseManager is already executing phases')
-    }
-
-    this.isExecuting = true
-    const results: PhaseResult[] = []
-
-    try {
-      while (this.executionQueue.length > 0) {
-        const phaseId = this.executionQueue.shift()!
-        const result = await this.executePhaseAsync(phaseId, options)
-        results.push(result)
-
-        // Stop execution if phase failed and skipOnError is false
-        if (!result.success && !options.skipOnError) {
-          break
-        }
-      }
-    } finally {
-      this.isExecuting = false
-      this.currentPhase = undefined
-    }
-
-    return results
+    this.phases.set(phase.id, phase)
   }
 
   /**
@@ -111,8 +44,6 @@ export class PhaseManager {
 
     if (options.retryCount) throw new Error('Automatic phase retry requires a rollback boundary')
     if (options.timeout) throw new Error('Phase timeout requires a cooperative cancellation boundary')
-    // Check dependencies
-    this.checkDependencies(phaseId)
 
     const previousPhase = this.currentPhase
     this.currentPhase = phase
@@ -127,11 +58,7 @@ export class PhaseManager {
         phase.initialize()
       }
 
-      // Execute phase synchronously
-      const result = phase.execute()
-
-      this.executionHistory.push(phaseId)
-      return result
+      return phase.execute()
     } catch (error) {
       this.battle.executionBudget.assertActive()
       const errorResult: PhaseResult = {
@@ -144,7 +71,7 @@ export class PhaseManager {
       return errorResult
     } finally {
       // Always pop phase from stack when execution completes (success or failure)
-      configSystem.popPhase(phase as BattlePhaseBase)
+      configSystem.popPhase(phase)
       this.battle.cleanupPhaseEffects(phase.id)
       if (phase.isFinished()) phase.cleanupConfigModifiers()
       this.currentPhase = previousPhase
@@ -163,8 +90,6 @@ export class PhaseManager {
 
     if (options.retryCount) throw new Error('Automatic phase retry requires a rollback boundary')
     if (options.timeout) throw new Error('Phase timeout requires a cooperative cancellation boundary')
-    // Check dependencies
-    this.checkDependencies(phaseId)
 
     const previousPhase = this.currentPhase
     this.currentPhase = phase
@@ -183,18 +108,8 @@ export class PhaseManager {
         }
       }
 
-      // Execute phase - handle both sync and async phases
-      let result: PhaseResult
-      if (phase instanceof InteractivePhase) {
-        // Interactive phases return Promise<PhaseResult>
-        result = await phase.executeAsync()
-      } else {
-        // Regular phases return PhaseResult
-        result = phase.execute()
-      }
-
-      this.executionHistory.push(phaseId)
-      return result
+      if (phase instanceof InteractivePhase) return await phase.executeAsync()
+      return phase.execute()
     } catch (error) {
       this.battle.executionBudget.assertActive()
       const errorResult: PhaseResult = {
@@ -207,7 +122,7 @@ export class PhaseManager {
       return errorResult
     } finally {
       // Always pop phase from stack when execution completes (success or failure)
-      configSystem.popPhase(phase as BattlePhaseBase)
+      configSystem.popPhase(phase)
       this.battle.cleanupPhaseEffects(phase.id)
       if (phase.isFinished()) phase.cleanupConfigModifiers()
       this.currentPhase = previousPhase
@@ -215,38 +130,9 @@ export class PhaseManager {
   }
 
   /**
-   * Check if all dependencies for a phase are satisfied
-   */
-  private checkDependencies(phaseId: string): void {
-    const deps = this.dependencies.get(phaseId)
-    if (!deps) return
-
-    for (const dep of deps) {
-      const depPhase = this.phases.get(dep.phaseId)
-
-      if (!depPhase) {
-        if (dep.required) {
-          throw new Error(`Required dependency ${dep.phaseId} not found for phase ${phaseId}`)
-        }
-        continue
-      }
-
-      if (dep.required && !this.executionHistory.includes(dep.phaseId)) {
-        throw new Error(`Required dependency ${dep.phaseId} not executed for phase ${phaseId}`)
-      }
-
-      if (depPhase.state === PhaseState.Failed && dep.required) {
-        throw new Error(`Required dependency ${dep.phaseId} failed for phase ${phaseId}`)
-      }
-    }
-  }
-
-  /**
    * Cancel all phases
    */
   public async cancelAll(): Promise<void> {
-    this.executionQueue.length = 0
-
     if (this.currentPhase) {
       if (this.currentPhase instanceof InteractivePhase) {
         await this.currentPhase.cancelAsync()
@@ -265,7 +151,6 @@ export class PhaseManager {
       }
     }
 
-    this.isExecuting = false
     this.currentPhase = undefined
   }
 
@@ -284,8 +169,6 @@ export class PhaseManager {
     }
 
     this.phases.clear()
-    this.dependencies.clear()
-    this.executionHistory.length = 0
   }
 
   /**
@@ -307,20 +190,6 @@ export class PhaseManager {
    */
   public hasPhase(phaseId: string): boolean {
     return this.phases.has(phaseId)
-  }
-
-  /**
-   * Get execution history
-   */
-  public getExecutionHistory(): string[] {
-    return [...this.executionHistory]
-  }
-
-  /**
-   * Check if manager is currently executing phases
-   */
-  public isCurrentlyExecuting(): boolean {
-    return this.isExecuting
   }
 
   /**

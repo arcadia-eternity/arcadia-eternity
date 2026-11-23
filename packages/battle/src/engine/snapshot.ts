@@ -392,7 +392,6 @@ function assertBoundary(battle: Battle, boundary: BattleSnapshot['boundary']) {
     battle.phaseManager.getPhasesByState(PhaseState.Failed).length
   )
     throw new Error('Snapshot cannot discard pending or failed phases')
-  battle.phaseManager.assertSnapshotSafe()
   for (const container of [
     ...battle.marks,
     ...[...battle.petMap.values()].flatMap(pet => [...pet.skills, ...pet.marks]),
