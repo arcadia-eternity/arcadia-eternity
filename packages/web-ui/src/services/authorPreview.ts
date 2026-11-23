@@ -108,7 +108,11 @@ export async function connectAuthorPreview(value: string, onFailure: (error: Err
   const timerListeners = new Map<keyof Events, Set<(data: never) => void>>()
   const listeners = new Set<(message: BattleMessage) => void>()
   const request = <T>(route: string, args?: unknown[]) => previewRequest<T>(endpoint, route, args, controller.signal)
-  const { content, rules } = await request<{ content: ServerEnvironmentContent; rules?: EnvironmentRules }>('content')
+  const { content, rules, candidate } = await request<{
+    content: ServerEnvironmentContent
+    rules?: EnvironmentRules
+    candidate?: { environmentId: string }
+  }>('content')
   validateEnvironmentContent(content)
   const initial = await request<{ cursor: number; outcome?: { winner: string | null } }>('open', [])
   cursor = initial.cursor
@@ -178,5 +182,11 @@ export async function connectAuthorPreview(value: string, onFailure: (error: Err
       await previewRequest(endpoint, 'cleanup', []).catch(() => {})
     },
   }
-  return { system, content, rules: validateEnvironmentRules(rules), outcome: initial.outcome }
+  return {
+    system,
+    content,
+    environmentId: candidate?.environmentId,
+    rules: validateEnvironmentRules(rules),
+    outcome: initial.outcome,
+  }
 }

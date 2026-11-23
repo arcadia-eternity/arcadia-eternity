@@ -123,11 +123,10 @@ it('shows the local and pinned room baselines and restores the original skill de
   })
   try {
     expect(wrapper.text()).toBe('超过500的部分')
-    const leave = store.useLocalBattleContent(
-      content,
-      { schemaVersion: 2, skillParameters: { profile: 'base:120' } },
-      true,
-    )
+    const leave = store.useLocalBattleContent(content, {
+      rules: { schemaVersion: 2, skillParameters: { profile: 'base:120' } },
+      remote: true,
+    })
     await flushPromises()
     expect(wrapper.text()).toBe('超过576的部分')
     leave()

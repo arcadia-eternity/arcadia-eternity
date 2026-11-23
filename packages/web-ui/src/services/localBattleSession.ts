@@ -61,7 +61,11 @@ export class LocalBattleSession {
       if (!content) return
       const { rules, effectMarkRelations, draftRevision, gameplayRevision } = content
       try {
-        this.#restoreDisplay = data.useLocalBattleContent(content.content, rules, false, effectMarkRelations)
+        this.#restoreDisplay = data.useLocalBattleContent(content.content, {
+          environmentId: content.environmentId,
+          rules,
+          effectMarkRelations,
+        })
       } catch (error) {
         await content.release()
         throw error
@@ -153,7 +157,7 @@ export class LocalBattleSession {
       if (!current()) return false
       const player = initial.players[0]?.id
       if (!player) throw new Error('战斗初始化失败：无法解析玩家 ID')
-      await target.battle.initBattle(attempt.system, player, current)
+      await target.battle.initBattle(attempt.system, player, 'local', current)
       if (!current()) return false
       this.#state = 'routing'
       const navigation = await target.navigate()

@@ -105,7 +105,7 @@ it('does not acknowledge ready until exact peer materials are acquired', async (
   resolve(prepared())
   await pending
   expect(mocks.client.toggleRoomReady).toHaveBeenCalledWith([{ id: 'pet' }], prepared().acceptance)
-  expect(mocks.apply).toHaveBeenCalledWith(mocks.content, { rules: undefined })
+  expect(mocks.apply).toHaveBeenCalledWith(mocks.content, { environmentId: descriptor.id, rules: undefined })
 })
 
 it('does not acknowledge mismatched or unavailable peer materials', async () => {
@@ -168,7 +168,7 @@ it('edits with the locked public catalog while peer execution materials are miss
   await store.openRoomTeamEditor('ABC123', () => true)
   expect(mocks.catalog).toHaveBeenCalledOnce()
   expect(mocks.prepare).not.toHaveBeenCalled()
-  expect(mocks.apply).toHaveBeenCalledWith(mocks.content, { rules: undefined })
+  expect(mocks.apply).toHaveBeenCalledWith(mocks.content, { environmentId: descriptor.id, rules: undefined })
   await expect(store.toggleReady()).rejects.toThrow('执行材料缺失')
   expect(store.roomTeamDraft?.pets).toHaveLength(1)
   expect(mocks.client.toggleRoomReady).not.toHaveBeenCalled()

@@ -186,8 +186,13 @@ watch(
       if (choice?.server) {
         const prepared = await prepareServerEnvironment(client.serverUrl, choice.server, fetch, controller.signal)
         controller.signal.throwIfAborted()
-        disposeDisplay?.()
-        disposeDisplay = data.useLocalBattleContent(prepared.content, choice.server.rules, true)
+        const previousDisplay = disposeDisplay
+        disposeDisplay = data.useLocalBattleContent(prepared.content, {
+          environmentId: choice.preference.environmentId,
+          rules: choice.server.rules,
+          remote: true,
+        })
+        previousDisplay?.()
         version.value = choice.server.gameplayRevision ?? choice.server.id
       } else {
         if (!choice) {
@@ -199,8 +204,12 @@ watch(
           if (!captured) throw new Error('本地环境不可用')
           try {
             controller.signal.throwIfAborted()
+            const restore = data.useLocalBattleContent(captured.content, {
+              environmentId: captured.environmentId,
+              rules: captured.rules,
+              effectMarkRelations: captured.effectMarkRelations,
+            })
             disposeDisplay?.()
-            const restore = data.useLocalBattleContent(captured.content, captured.rules)
             disposeDisplay = () => {
               restore()
               void captured.release().catch(console.error)
@@ -214,7 +223,11 @@ watch(
         } else if (data.serverFallback && hasPreparedWebEnvironment()) {
           const catalog = await readPreparedWebCatalog(forceRefresh)
           controller.signal.throwIfAborted()
-          disposeDisplay = data.useLocalBattleContent(catalog.content, catalog.rules)
+          disposeDisplay = data.useLocalBattleContent(catalog.content, {
+            environmentId: catalog.defaultEnvironment,
+            rules: catalog.rules,
+            effectMarkRelations: catalog.effectMarkRelations,
+          })
           name =
             catalog.builtins?.find(doc => doc.id === catalog.defaultEnvironment)?.name ?? catalog.defaultEnvironment
           version.value = catalog.gameplayRevision
@@ -232,7 +245,12 @@ watch(
       if (!controller.signal.aborted) {
         const message = cause instanceof Error ? cause.message : String(cause)
         if (choice) failures.value.set(targetKey, message)
-        else problem.value = message
+        else {
+          disposeDisplay?.()
+          disposeDisplay = undefined
+          creationOrigin.value = undefined
+          problem.value = message
+        }
       }
     } finally {
       if (!controller.signal.aborted) busy.value = false

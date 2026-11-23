@@ -312,6 +312,9 @@ async function refresh() {
           job.status === 'succeeded' &&
           !snapshot.value.operations.some(previous => previous.id === job.id && previous.status === 'succeeded'),
       )
+      gameData.reconcileLocalInstallations(
+        next.installations.filter(item => item.status === 'ready').map(item => item.environmentId),
+      )
       snapshot.value = next
       if (savedPackage) await refreshMaterials()
       if (changed && !isRemoteContentActive()) await gameData.reload()

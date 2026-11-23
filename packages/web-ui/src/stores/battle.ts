@@ -45,6 +45,7 @@ export type TimestampedBattleMessage = BattleMessage & {
 
 export const useBattleStore = defineStore('battle', {
   state: () => ({
+    battleSource: null as 'local' | 'online' | 'replay' | null,
     battleInterface: null as IBattleSystem | null,
     battleState: null as BattleState | null,
     log: [] as TimestampedBattleMessage[],
@@ -62,7 +63,6 @@ export const useBattleStore = defineStore('battle', {
     _battleEventUnsubscribe: null as (() => void) | null,
     _initializationGeneration: 0,
     // 回放模式相关状态
-    isReplayMode: false,
     replayMessages: [] as BattleMessage[],
     replaySnapshots: [] as Array<{
       type: 'turnStart' | 'battleEnd'
@@ -82,7 +82,12 @@ export const useBattleStore = defineStore('battle', {
   }),
 
   actions: {
-    async initBattle(battleInterface: IBattleSystem, playerId: string, isActive: () => boolean = () => true) {
+    async initBattle(
+      battleInterface: IBattleSystem,
+      playerId: string,
+      source: 'local' | 'online',
+      isActive: () => boolean = () => true,
+    ) {
       const generation = ++this._initializationGeneration
       const isCurrent = () => generation === this._initializationGeneration && isActive()
       if (!isCurrent()) return
@@ -94,6 +99,7 @@ export const useBattleStore = defineStore('battle', {
         this._battleEventUnsubscribe = null
       }
 
+      this.battleSource = source
       this.battleInterface = markRaw(battleInterface)
       this.playerId = playerId
       const state = await battleInterface.getState(playerId as playerId, false)
@@ -141,6 +147,7 @@ export const useBattleStore = defineStore('battle', {
         this._battleEventUnsubscribe = null
       }
 
+      this.battleSource = 'online'
       this.battleInterface = markRaw(battleInterface)
       this.playerId = playerId
       this.battleState = battleState // 直接使用服务器提供的状态
@@ -425,6 +432,7 @@ export const useBattleStore = defineStore('battle', {
       if (generation !== this._initializationGeneration) return
 
       // 清理普通战斗状态
+      this.battleSource = null
       this.battleInterface = null
       this.playerId = ''
       this.isBattleEnd = false
@@ -443,7 +451,6 @@ export const useBattleStore = defineStore('battle', {
       this.teamSelectionTimeRemaining = 0
 
       // 清理回放模式相关状态
-      this.isReplayMode = false
       this.replayMessages = []
       this.replaySnapshots = []
       this.currentSnapshotIndex = 0
@@ -511,7 +518,7 @@ export const useBattleStore = defineStore('battle', {
 
     // 回放模式相关方法
     initReplayMode(messages: BattleMessage[], _finalState: BattleState, viewerId?: string) {
-      this.isReplayMode = true
+      this.battleSource = 'replay'
       this.replayMessages = [...messages]
       this.isBattleEnd = false
       this.victor = null
@@ -883,6 +890,8 @@ export const useBattleStore = defineStore('battle', {
   },
 
   getters: {
+    isReplayMode: state => state.battleSource === 'replay',
+    isOfflineBattle: state => state.battleSource === 'local' || state.battleSource === 'replay',
     trainingSystem(state): Pick<LocalBattleSystem, 'runTrainingCommand'> | undefined {
       const system = state.battleInterface
       if (

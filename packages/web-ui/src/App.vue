@@ -613,7 +613,8 @@ const setupBattleReconnectHandler = () => {
   }
 
   battleReconnectHandler = async (event: CustomEvent<BattleReconnectData>) => {
-    if (!needsOnlineConnection.value) return
+    const canRestore = () => needsOnlineConnection.value && !battleStore.isOfflineBattle
+    if (!canRestore()) return
     const data = event.detail
     // 使用防抖避免重复处理
     if (redirectState.isRedirecting) return
@@ -624,9 +625,9 @@ const setupBattleReconnectHandler = () => {
         const restored = await privateRoomStore.restoreServerBattle(
           data.roomId,
           data.fullBattleState as unknown as BattleState,
-          () => needsOnlineConnection.value,
+          canRestore,
         )
-        if (restored || !needsOnlineConnection.value) return
+        if (restored || !canRestore()) return
         if (router.currentRoute.value.query.privateRoom === 'true')
           throw new Error('无法恢复房间对战内容，请返回房间重试')
         if (router.currentRoute.value.path === '/battle') {
@@ -697,6 +698,7 @@ const handleServerSessionInvalidated = (event: Event) => {
     privateRoomStore.currentRoom !== null || router.currentRoute.value.query.privateRoom === 'true'
   privateRoomStore.cleanup()
   battleClientStore.resetState()
+  if (battleStore.isOfflineBattle) return
   if (wasOnlineBattle) void battleStore.resetBattleWithoutSurrender()
   ElMessage.warning(reason)
   if (router.currentRoute.value.path.startsWith('/room/') || wasOnlineBattle) void router.replace('/')

@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
     initBattle: vi.fn(),
     initBattleWithState: vi.fn(),
     resetBattleWithoutSurrender: vi.fn(),
+    isOfflineBattle: false,
     battleInterface: null as unknown,
     _initializationGeneration: 0,
     playerId: 'host',
@@ -81,6 +82,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   setActivePinia(createPinia())
   Object.assign(mocks.route, { path: '/', query: {}, name: 'Lobby' })
+  mocks.battle.isOfflineBattle = false
   mocks.battle.battleInterface = null
   mocks.battle._initializationGeneration = 0
   mocks.battle.fetchAvailableSelection.mockReset().mockResolvedValue([])
@@ -423,7 +425,7 @@ for (const fails of [false, true]) {
     const handler = mocks.client.on.mock.calls.find(([name]) => name === 'privateRoomEvent')![1]
     const old = handler({ type: 'battleStarted', data: { battleMode: 'server', battleRoomId: 'battle-a' } })
     await vi.waitFor(() => expect(mocks.battle.initBattle).toHaveBeenCalledOnce())
-    const isCurrent = mocks.battle.initBattle.mock.calls[0][2]
+    const isCurrent = mocks.battle.initBattle.mock.calls[0][3]
     expect(isCurrent()).toBe(true)
     await store.switchServer('https://server-b.test')
     expect(isCurrent()).toBe(false)
@@ -474,7 +476,7 @@ it('keeps a running battle active if leaving the old server fails', async () => 
   mocks.battle.initBattle.mockResolvedValueOnce(undefined)
   const handler = mocks.client.on.mock.calls.find(([name]) => name === 'privateRoomEvent')![1]
   await handler({ type: 'battleStarted', data: { battleMode: 'server', battleRoomId: 'battle-a' } })
-  const isCurrent = mocks.battle.initBattle.mock.calls[0][2]
+  const isCurrent = mocks.battle.initBattle.mock.calls[0][3]
   mocks.client.leavePrivateRoom.mockImplementationOnce(async () => {
     expect(isCurrent()).toBe(true)
     throw new Error('leave failed')
@@ -545,6 +547,28 @@ it('does not initialize or route a recovered server battle before the shared roo
   expect(mocks.gameData.applyServerEnvironment.mock.invocationCallOrder[0]).toBeLessThan(
     mocks.battle.initBattle.mock.invocationCallOrder[0],
   )
+})
+
+it('keeps the local battle active when a background room resumes and then closes', async () => {
+  const rooms = usePrivateRoomStore()
+  mocks.battle.isOfflineBattle = true
+  mocks.battle.battleInterface = {}
+  Object.assign(mocks.route, { name: 'Battle', path: '/battle', query: { dev: 'true' } })
+  rooms.currentRoom = roomFixture({
+    config: { roomCode: 'ABC123', battleMode: 'server', hostPlayerId: 'host' },
+    status: 'started',
+    players: [{ playerId: 'host', sessionId: 'host-session' }],
+    battleRoomId: 'background-battle',
+  })
+  const handler = mocks.client.on.mock.calls.find(([name]) => name === 'privateRoomEvent')![1]
+  await handler({ type: 'battleStarted', data: { battleMode: 'server', battleRoomId: 'background-battle' } })
+  await rooms.resumeActiveBattle()
+  await handler({ type: 'roomClosed', data: { reason: 'ADMIN_TERMINATED' } })
+  expect(rooms.currentRoom).toBeNull()
+  expect(mocks.prepare).not.toHaveBeenCalled()
+  expect(mocks.battle.initBattle).not.toHaveBeenCalled()
+  expect(mocks.battle.resetBattleWithoutSurrender).not.toHaveBeenCalled()
+  expect(mocks.push).not.toHaveBeenCalled()
 })
 
 it('restores a reconnect snapshot only after the shared server environment is ready', async () => {

@@ -30,6 +30,7 @@ function createMetadataLoader() {
 }
 
 interface GameDataState {
+  environmentId?: string
   defaultEnvironmentName?: string
   defaultGameplayRevision?: string
   rules?: EnvironmentRules
@@ -54,35 +55,105 @@ interface GameDataState {
   loaded: boolean
   gameDataLoaded: boolean
   error: string | null
-  serverFallback:
-    | (Pick<
-        GameDataState,
-        | 'rules'
-        | 'skillParameterCatalog'
-        | 'elementCatalog'
-        | 'enhancements'
-        | 'natures'
-        | 'species'
-        | 'skills'
-        | 'marks'
-        | 'nativeEffectIds'
-        | 'effectMarkRelations'
-        | 'loaded'
-        | 'gameDataLoaded'
-        | 'error'
-      > & { contentText: ServerEnvironmentContent | null; remoteText: boolean })
-    | null
+  serverFallback: DisplayCatalog | null
 }
 
-interface LocalDisplayScope {
-  previous: GameDataState
-  previousText: ServerEnvironmentContent | null
-  previousRemote: boolean
-  displayed: GameDataState['species']
-  parent?: LocalDisplayScope
-  released: boolean
+type DisplayCatalog = Omit<GameDataState, 'serverFallback' | 'defaultEnvironmentName' | 'defaultGameplayRevision'> & {
+  contentText: ServerEnvironmentContent | null
+  remoteText: boolean
 }
-const localDisplays = new WeakMap<object, LocalDisplayScope>()
+interface DisplayOptions {
+  environmentId?: string
+  rules?: EnvironmentRules
+  remote?: boolean
+  effectMarkRelations?: EffectMarkRelations
+}
+type ServerDisplay = 'room' | 'matchmaking'
+interface DisplaySource {
+  owner: ServerDisplay | 'view' | 'installed'
+  catalog: DisplayCatalog
+  release?: () => Promise<void>
+  handover?: Promise<void>
+}
+interface DisplaySources {
+  base: DisplayCatalog
+  entries: DisplaySource[]
+  active: DisplaySource | undefined
+}
+const displays = new WeakMap<GameDataState, DisplaySources>()
+
+function showCatalog(state: GameDataState, catalog: DisplayCatalog) {
+  const { contentText, remoteText, ...metadata } = catalog
+  Object.assign(state, metadata)
+  setServerContentText(contentText, remoteText)
+}
+
+function attachDisplay(state: GameDataState, source: DisplaySource) {
+  let sources = displays.get(state)
+  if (!sources) {
+    const base: DisplayCatalog = {
+      environmentId: state.environmentId,
+      rules: state.rules,
+      skillParameterCatalog: state.skillParameterCatalog,
+      elementCatalog: state.elementCatalog,
+      enhancements: state.enhancements,
+      natures: state.natures,
+      species: state.species,
+      skills: state.skills,
+      marks: state.marks,
+      nativeEffectIds: state.nativeEffectIds,
+      effectMarkRelations: state.effectMarkRelations,
+      loaded: state.loaded,
+      gameDataLoaded: state.gameDataLoaded,
+      error: state.error,
+      contentText: getServerContentText(),
+      remoteText: isRemoteContentActive(),
+    }
+    sources = { base, entries: [], active: undefined }
+    displays.set(state, sources)
+    state.serverFallback = base
+  }
+  const active = sources.active
+  if (source.owner !== 'view') {
+    const previous = sources.entries.find(entry => entry.owner === source.owner)
+    if (previous) {
+      sources.entries.splice(sources.entries.indexOf(previous), 1)
+      void previous.release?.().catch(console.error)
+    }
+  }
+  sources.entries.push(source)
+  // A server refresh can add a source to a live local battle without changing its pinned revision.
+  if (
+    active?.owner === 'view' &&
+    !active.catalog.remoteText &&
+    source.owner !== 'view' &&
+    active.catalog.environmentId &&
+    active.catalog.environmentId === source.catalog.environmentId
+  )
+    return
+  sources.active = source
+  showCatalog(state, source.catalog)
+}
+
+function detachDisplay(state: GameDataState, source: DisplaySource) {
+  const sources = displays.get(state)
+  if (!sources) return
+  const index = sources.entries.indexOf(source)
+  if (index === -1) return
+  sources.entries.splice(index, 1)
+  if (sources.active === source) {
+    const id = source.catalog.environmentId
+    const sameId = id && [...sources.entries].reverse().find(entry => entry.catalog.environmentId === id)
+    sources.active = sameId || (id && sources.base.environmentId === id ? undefined : sources.entries.at(-1))
+    showCatalog(state, sources.active?.catalog ?? sources.base)
+  }
+  if (!sources.entries.length) {
+    displays.delete(state)
+    state.serverFallback = null
+  }
+  void source.release?.().catch(console.error)
+}
+
 const localMetadataReleases = new WeakMap<object, () => Promise<void>>()
 
 // Bootstrap and the mounted battle page share initialization. Display-scope changes
@@ -108,6 +179,7 @@ function invalidateMetadata(store: object) {
 
 export const useGameDataStore = defineStore('gameData', {
   state: (): GameDataState => ({
+    environmentId: undefined,
     defaultEnvironmentName: undefined,
     defaultGameplayRevision: undefined,
     rules: undefined,
@@ -159,63 +231,18 @@ export const useGameDataStore = defineStore('gameData', {
   },
 
   actions: {
-    /** Local trial display lasts exactly as long as its battle, including failed launches. */
-    useLocalBattleContent(
-      content: ServerEnvironmentContent,
-      rules?: EnvironmentRules,
-      remote = false,
-      effectMarkRelations?: EffectMarkRelations,
-    ): () => void {
-      const previous = {
-        rules: this.rules,
-        skillParameterCatalog: this.skillParameterCatalog,
-        elementCatalog: this.elementCatalog,
-        enhancements: this.enhancements,
-        natures: this.natures,
-        species: this.species,
-        skills: this.skills,
-        marks: this.marks,
-        nativeEffectIds: this.nativeEffectIds,
-        effectMarkRelations: this.effectMarkRelations,
-        loaded: this.loaded,
-        gameDataLoaded: this.gameDataLoaded,
-        error: this.error,
-        serverFallback: this.serverFallback,
-      }
-      const current = localDisplays.get(this)
-      const parent = current?.displayed === this.species ? current : undefined
-      const previousText = getServerContentText()
-      const previousRemote = isRemoteContentActive()
-      this.applyServerEnvironment(content, { remote, rules })
-      if (effectMarkRelations) this.effectMarkRelations = effectMarkRelations
-      const scope: LocalDisplayScope = {
-        previous,
-        previousText,
-        previousRemote,
-        displayed: this.species,
-        parent,
-        released: false,
-      }
-      localDisplays.set(this, scope)
-      return () => {
-        if (scope.released) return
-        scope.released = true
-        if (localDisplays.get(this) !== scope) return
-        if (this.species !== scope.displayed) {
-          localDisplays.delete(this)
-          return
-        }
-        // Skip already released parents, so overlapping cleanup cannot resurrect an old trial.
-        let restore = scope
-        while (restore.parent?.released) restore = restore.parent
-        this.$patch(state => Object.assign(state, restore.previous))
-        setServerContentText(restore.previousText, restore.previousRemote)
-        if (restore.parent) localDisplays.set(this, restore.parent)
-        else localDisplays.delete(this)
-      }
+    useLocalBattleContent(content: ServerEnvironmentContent, options: DisplayOptions = {}): () => void {
+      const source: DisplaySource = { owner: 'view', catalog: this.buildDisplayCatalog(content, options) }
+      invalidateMetadata(this)
+      attachDisplay(this, source)
+      return () => detachDisplay(this, source)
     },
 
     reset() {
+      const sources = displays.get(this)
+      displays.delete(this)
+      for (const entry of sources?.entries ?? []) void entry.release?.().catch(console.error)
+      this.environmentId = undefined
       this.defaultEnvironmentName = undefined
       this.defaultGameplayRevision = undefined
       void localMetadataReleases
@@ -240,68 +267,88 @@ export const useGameDataStore = defineStore('gameData', {
       this.serverFallback = null
     },
 
-    /** Server room data is display-only; no native effect factory is loaded in the browser. */
-    applyServerEnvironment(
-      content: ServerEnvironmentContent,
-      options: { remote?: boolean; rules?: EnvironmentRules } = {},
-    ) {
-      const species = this.normalizeData(content.species.map(raw => parseWithErrors(SpeciesSchema, raw)))
-      const skills = this.normalizeData(content.skills.map(raw => parseWithErrors(SkillSchema, raw)))
-      const marks = this.normalizeData(content.marks.map(raw => parseWithErrors(MarkSchema, raw)))
-      invalidateMetadata(this)
-      const previous = this.serverFallback ?? {
-        rules: this.rules,
-        skillParameterCatalog: this.skillParameterCatalog,
-        elementCatalog: this.elementCatalog,
-        enhancements: this.enhancements,
-        natures: this.natures,
-        species: this.species,
-        skills: this.skills,
-        marks: this.marks,
-        nativeEffectIds: this.nativeEffectIds,
-        effectMarkRelations: this.effectMarkRelations,
-        loaded: this.loaded,
-        gameDataLoaded: this.gameDataLoaded,
-        error: this.error,
-        contentText: getServerContentText(),
-        remoteText: isRemoteContentActive(),
+    buildDisplayCatalog(content: ServerEnvironmentContent, options: DisplayOptions): DisplayCatalog {
+      return {
+        environmentId: options.environmentId,
+        rules: options.rules,
+        species: this.normalizeData(content.species.map(raw => parseWithErrors(SpeciesSchema, raw))),
+        skills: this.normalizeData(content.skills.map(raw => parseWithErrors(SkillSchema, raw))),
+        marks: this.normalizeData(content.marks.map(raw => parseWithErrors(MarkSchema, raw))),
+        skillParameterCatalog: content.skillParameters,
+        elementCatalog: readElementCatalog(content),
+        enhancements: readEnhancementStages(content.enhancements),
+        natures: readNatureCatalog(content.natures),
+        nativeEffectIds: [],
+        effectMarkRelations: options.effectMarkRelations ?? {},
+        loaded: true,
+        gameDataLoaded: true,
+        error: null,
+        contentText: content,
+        remoteText: options.remote ?? false,
       }
-      this.skillParameterCatalog = content.skillParameters
-      this.elementCatalog = readElementCatalog(content)
-      this.enhancements = readEnhancementStages(content.enhancements)
-      this.natures = readNatureCatalog(content.natures)
-      this.rules = options.rules
-      this.species = species
-      this.skills = skills
-      this.marks = marks
-      this.nativeEffectIds = []
-      this.effectMarkRelations = {}
-      this.loaded = true
-      this.gameDataLoaded = true
-      this.error = null
-      this.serverFallback = previous
-      setServerContentText(content, options.remote !== false)
     },
 
-    clearServerEnvironment() {
-      const previous = this.serverFallback
-      if (!previous) return
+    applyServerEnvironment(
+      content: ServerEnvironmentContent,
+      options: DisplayOptions & { owner?: ServerDisplay } = {},
+    ) {
+      const catalog = this.buildDisplayCatalog(content, { ...options, remote: options.remote ?? true })
       invalidateMetadata(this)
-      setServerContentText(previous.contentText, previous.remoteText)
-      this.skillParameterCatalog = previous.skillParameterCatalog
-      this.elementCatalog = previous.elementCatalog
-      this.enhancements = previous.enhancements
-      this.natures = previous.natures
-      this.rules = previous.rules
-      this.species = previous.species
-      this.skills = previous.skills
-      this.marks = previous.marks
-      this.nativeEffectIds = previous.nativeEffectIds
-      this.effectMarkRelations = previous.effectMarkRelations
-      this.loaded = previous.loaded
-      this.gameDataLoaded = previous.gameDataLoaded
-      this.error = previous.error
-      this.serverFallback = null
+      attachDisplay(this, { owner: options.owner ?? 'room', catalog })
+    },
+
+    reconcileLocalInstallations(readyIds: string[]) {
+      const installed = displays.get(this)?.entries.find(entry => entry.owner === 'installed')
+      if (installed?.catalog.environmentId && !readyIds.includes(installed.catalog.environmentId))
+        detachDisplay(this, installed)
+    },
+
+    clearServerEnvironment(owner: ServerDisplay = 'room') {
+      const sources = displays.get(this)
+      const source = sources?.entries.find(entry => entry.owner === owner)
+      if (!sources || !source) return
+      if (source.handover) return source.handover
+      const id = source.catalog.environmentId
+      if (
+        sources.active !== source ||
+        !id ||
+        sources.base.environmentId === id ||
+        sources.entries.some(entry => entry !== source && entry.catalog.environmentId === id) ||
+        (!getDesktopApi() && !hasPreparedWebEnvironment())
+      ) {
+        detachDisplay(this, source)
+        return
+      }
+
+      // Keep the selected ID visible while resolving a non-default installation.
+      // A new selection, socket publication or reset supersedes this read.
+      source.handover = (async () => {
+        let local: Awaited<ReturnType<typeof acquireLocalContent>>
+        try {
+          local = await acquireLocalContent(id)
+          if (
+            !local ||
+            local.environmentId !== id ||
+            displays.get(this) !== sources ||
+            sources.active !== source ||
+            !sources.entries.includes(source)
+          )
+            return
+          const catalog = this.buildDisplayCatalog(local.content, {
+            environmentId: id,
+            rules: local.rules,
+            effectMarkRelations: local.effectMarkRelations,
+          })
+          attachDisplay(this, { owner: 'installed', catalog, release: local.release })
+          local = undefined
+        } catch {
+          // The server may have been the only readable source for this ID.
+        } finally {
+          detachDisplay(this, source)
+          await local?.release().catch(console.error)
+        }
+      })()
+      return source.handover
     },
 
     /** Store-owned readiness. Pages only consume this shared task; they never cancel it on unmount. */
@@ -335,6 +382,7 @@ export const useGameDataStore = defineStore('gameData', {
             this.serverFallback = null
             this.loaded = this.gameDataLoaded = true
             this.error = null
+            this.environmentId = captured.environmentId
             this.defaultEnvironmentName = captured.environmentName ?? captured.environmentId
             this.defaultGameplayRevision = captured.gameplayRevision
             const previous = localMetadataReleases.get(this)
@@ -355,6 +403,7 @@ export const useGameDataStore = defineStore('gameData', {
             this.enhancements = readEnhancementStages(content.enhancements)
             this.natures = readNatureCatalog(content.natures)
             this.rules = rules
+            this.environmentId = defaultEnvironment
             this.defaultEnvironmentName =
               builtins?.find(doc => doc.id === defaultEnvironment)?.name ?? defaultEnvironment
             this.defaultGameplayRevision = gameplayRevision

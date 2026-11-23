@@ -139,13 +139,8 @@ const emitter = mitt<AnimationEvents>()
 const route = useRoute()
 const router = useRouter()
 const previewReturnLabel = window.arcadiaAuthorPreview ? '返回编辑器' : '返回内容包'
-const isLocalBattle = computed(
-  () =>
-    !props.replayMode &&
-    (props.enableDeveloperMode || typeof route.query.authorPreview === 'string') &&
-    route.query.privateRoom !== 'true',
-)
 const store = useBattleStore()
+const isLocalBattle = computed(() => store.battleSource === 'local')
 const battleReportStore = useBattleReportStore()
 const gameDataStore = useGameDataStore()
 const resourceStore = useResourceStore()
@@ -743,7 +738,7 @@ let opponentReconnectedHandler: ((data: { reconnectedPlayerId: string }) => void
 
 // 设置掉线重连事件处理
 const setupDisconnectHandlers = () => {
-  if (props.replayMode) return // 回放模式不需要处理掉线
+  if (store.battleSource !== 'online') return
 
   // 防止重复注册
   if (opponentDisconnectedHandler || opponentReconnectedHandler) {
@@ -2155,6 +2150,7 @@ const setupMessageSubscription = async () => {
 
 onUnmounted(async () => {
   const departingBattle = store.battleInterface
+  const wasOnlineBattle = store.battleSource === 'online'
   battleDisposed = true
   releaseBattleStateWait?.()
   cancelSpriteWaits()
@@ -2199,7 +2195,7 @@ onUnmounted(async () => {
   cleanupDisconnectHandlers()
 
   // 如果是观战模式，主动通知后端离开观战
-  if (isSpectatorMode.value && !props.replayMode) {
+  if (wasOnlineBattle && isSpectatorMode.value) {
     try {
       await battleClientStore.leaveSpectateBattle()
     } catch (err) {
@@ -2214,7 +2210,7 @@ onUnmounted(async () => {
     } else {
       await store.resetBattle()
     }
-    battleClientStore.resetState()
+    if (wasOnlineBattle && !store.battleInterface) battleClientStore.resetState()
   }
 })
 
@@ -2246,7 +2242,7 @@ watch(
 watch(
   () => battleClientStore.currentState.status,
   async (newStatus, oldStatus) => {
-    if (props.replayMode || isSpectatorMode.value) return // 回放模式和观战模式不需要处理掉线
+    if (store.battleSource !== 'online' || isSpectatorMode.value) return
 
     if (newStatus === 'disconnected' && oldStatus === 'connected') {
       // 从连接状态变为断线状态
@@ -2289,7 +2285,7 @@ watch(
 watch(
   () => battleClientStore.currentState.battle,
   async newBattleState => {
-    if (props.replayMode || isSpectatorMode.value) return
+    if (store.battleSource !== 'online' || isSpectatorMode.value) return
 
     if (newBattleState === 'ended') {
       await exitBattleBecauseServerClosed('state-ended')

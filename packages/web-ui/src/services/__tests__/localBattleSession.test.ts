@@ -90,6 +90,7 @@ it('pins desktop content from configuration through retries and battle cleanup',
   const releaseLocalContent = vi.fn(async () => {})
   const prepareLocalContent = vi.fn(async (_id?: string) => ({
     token: 'configuration',
+    environmentId: 'training-120',
     environment,
     content,
     rules,
@@ -102,7 +103,7 @@ it('pins desktop content from configuration through retries and battle cleanup',
     value = session(factory)
   const target = destination(),
     original = target.data.species
-  target.data.applyServerEnvironment({ species: [], skills: [], marks: [] })
+  target.data.applyServerEnvironment({ species: [], skills: [], marks: [] }, { environmentId: 'training-120' })
   await expect(value.prepareContent(target.data, 'training-120')).resolves.toMatchObject({
     rules,
     draftRevision: 'applied-draft',
@@ -113,6 +114,7 @@ it('pins desktop content from configuration through retries and battle cleanup',
   // The library may change after configuration; this session keeps the captured recipe.
   prepareLocalContent.mockResolvedValue({
     token: 'later',
+    environmentId: 'training-120',
     environment: { ...environment, revision: 'later' },
     content,
     rules,
@@ -130,6 +132,13 @@ it('pins desktop content from configuration through retries and battle cleanup',
     teamSelection: { enabled: false },
   })
   expect(prepareLocalContent).toHaveBeenCalledOnce()
+  expect(releaseLocalContent).not.toHaveBeenCalled()
+  const pinned = target.data.species
+  const running = target.battle.battleInterface
+  await target.data.clearServerEnvironment()
+  expect(target.data.species).toBe(pinned)
+  expect(target.data.environmentId).toBe('training-120')
+  expect(target.battle.battleInterface).toBe(running)
   expect(releaseLocalContent).not.toHaveBeenCalled()
   await target.battle.resetBattleWithoutSurrender()
   expect(releaseLocalContent).toHaveBeenCalledExactlyOnceWith('configuration')

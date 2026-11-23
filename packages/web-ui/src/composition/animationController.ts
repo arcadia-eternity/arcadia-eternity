@@ -163,18 +163,15 @@ export class AnimationController {
     const abort = new AbortController()
     this.reconnectAbort = abort
     const generation = ++this.connectionGeneration
-    const current = () => !this.disposed && generation === this.connectionGeneration
+    const system = store.battleInterface
+    const current = () => !this.disposed && generation === this.connectionGeneration && store.battleInterface === system
     const snapshotSeq = store.lastProcessedSequenceId
     this.stateMachine.onReconnect()
     // Keep the channel captured by the page alive. Snapshot sequence fences
     // buffered tasks instead of replacing the Subject beneath its consumers.
     try {
-      if (store.battleInterface) {
-        const latestState = await waitForAnimationOperation(
-          store.battleInterface.getState(store.playerId, false),
-          abort.signal,
-          10000,
-        )
+      if (system) {
+        const latestState = await waitForAnimationOperation(system.getState(store.playerId, false), abort.signal, 10000)
         if (!current()) return false
         const actions =
           latestState.status === 'Ended'

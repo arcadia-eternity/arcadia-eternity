@@ -167,7 +167,10 @@ it('cancels a queued host immediately when leaving, before the server acknowledg
   const starting = start()
   await vi.waitFor(() => expect(mocks.createHost).toHaveBeenCalledOnce())
   expect(mocks.createHost.mock.calls[0][0].battleConfig.environment).toBe(prepared.environment)
-  expect(mocks.gameData.applyServerEnvironment).toHaveBeenCalledWith(prepared.content, { rules: undefined })
+  expect(mocks.gameData.applyServerEnvironment).toHaveBeenCalledWith(prepared.content, {
+    environmentId: descriptor.id,
+    rules: undefined,
+  })
   const signal = mocks.createHost.mock.calls[0][0].signal as AbortSignal
   let acknowledge!: () => void
   mocks.client.leavePrivateRoom.mockImplementationOnce(
@@ -266,7 +269,7 @@ it('keeps an initialized host active when leaving fails', async () => {
   await expect(store.leaveRoom()).rejects.toThrow('leave failed')
   expect(signal.aborted).toBe(false)
   expect(host.cleanup).not.toHaveBeenCalled()
-  const isCurrent = mocks.battle.initBattle.mock.calls[0][2] as () => boolean
+  const isCurrent = mocks.battle.initBattle.mock.calls[0][3] as () => boolean
   expect(isCurrent()).toBe(true)
 })
 
