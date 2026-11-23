@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { toJsonSchemaCompat } from '@modelcontextprotocol/sdk/server/zod-json-schema-compat.js'
 import { NativeSpeciesSchema, NativeSkillSchema, NativeMarkSchema } from '@arcadia-eternity/battle/engine'
+import { creatorPages } from '../src/creator-docs.ts'
 import { authorReference, referenceTopics } from '../src/author-reference.ts'
 import { teamDocument, TeamDocumentSchema } from '../src/project-teams.ts'
 import { environmentDocument, EnvironmentDocumentSchema } from '../src/debug-environments.ts'
@@ -68,4 +69,27 @@ test('description tags match the renderer and effects come from the shipped temp
     await readFile(new URL('../../../docs/guides/ugc-authoring-agent/SKILL.md', import.meta.url), 'utf8'),
   )
   for (const topic of referenceTopics) assert.ok(JSON.stringify(await authorReference({ topic })).length < 32 * 1024)
+})
+
+test('each handbook page is discoverable and readable through its installed MCP topic', async () => {
+  const paths = new Set()
+  const queries = new Set()
+  for (const page of creatorPages) {
+    assert.ok(!paths.has(page.path), page.path)
+    paths.add(page.path)
+    const topic = await authorReference({ topic: page.topic })
+    assert.ok(
+      topic.entries.some(entry => entry.path === page.path),
+      page.path,
+    )
+    for (const symbol of page.symbols) {
+      const key = page.topic + '/' + symbol
+      assert.ok(!queries.has(key), key)
+      queries.add(key)
+      const result = await authorReference({ topic: page.topic, symbol })
+      assert.equal(result.path, '/' + page.path)
+      assert.ok(result.markdown.startsWith('# ' + page.title + '\n'))
+      assert.doesNotMatch(result.markdown, /^<<< /m)
+    }
+  }
 })

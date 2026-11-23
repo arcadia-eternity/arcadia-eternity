@@ -69,12 +69,13 @@ export async function authorReference({ topic, symbol }: { topic?: string; symbo
       if (errorCode(error) !== 'ENOENT') throw error
       return readFile(new URL('../../../docs/guides/ugc-authoring-agent/SKILL.md', import.meta.url), 'utf8')
     })
-    return { topic, title: 'Create and debug a pack or environment', source, instructions }
+    return { topic, title: 'Create and debug a pack or environment', source, instructions, entries }
   }
   if (topic === 'git' || topic === 'release') {
     const source = `skills/arcadia-content-${topic}/SKILL.md`
     return {
       topic,
+      entries,
       title: topic === 'git' ? '提交与同步内容包' : '发布内容包',
       source,
       instructions: await template(source),
@@ -107,6 +108,7 @@ export async function authorReference({ topic, symbol }: { topic?: string; symbo
       title: 'Portable project team',
       source: '@arcadia-eternity/content-sdk/project-teams',
       stage: 'source',
+      entries,
       schema,
       examples: [{ language: 'yaml', text: 'schemaVersion: 1\nid: blue\nname: 蓝队\nteam: []\n' }],
       notes: [
@@ -121,6 +123,7 @@ export async function authorReference({ topic, symbol }: { topic?: string; symbo
       title: 'Standalone and named battle environments',
       source: '@arcadia-eternity/content-sdk/debug-environments',
       stage: 'source',
+      entries,
       schema: toJsonSchemaCompat(EnvironmentDocumentSchema),
       examples: [
         {
@@ -161,6 +164,7 @@ export async function authorReference({ topic, symbol }: { topic?: string; symbo
   return {
     topic,
     title: 'ICU descriptions and semantic tags',
+    entries,
     source: 'docs/guides/content-presentation.md; packages/web-ui/src/i18n/richDescription.ts',
     tags: [
       'markName',

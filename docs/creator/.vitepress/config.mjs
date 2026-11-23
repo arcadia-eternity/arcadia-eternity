@@ -12,7 +12,9 @@ export default defineConfig({
   themeConfig: {
     logo: '/frostling.png',
     nav: [
-      { text: '创作教程', link: '/frost-strike' },
+      { text: '开始创作', link: '/start/first-battle' },
+      { text: '制作赛制', link: '/make/singles-cup' },
+      { text: '测试与发布', link: '/test/scenarios' },
       { text: 'API 参考', link: '/api/' },
       { text: 'SDK ' + navigation.version, link: 'https://github.com/arcadia-eternity/arcadia-eternity' },
     ],
