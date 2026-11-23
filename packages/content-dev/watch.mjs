@@ -28,7 +28,6 @@ export async function watchContentDev(
       '../battle/effect-loading.ts',
       '../const/src',
       '../interface/src',
-      '../../docs/creator/pages',
       'release-payload.mjs',
       'release-test-npm.mjs',
       'package.json',

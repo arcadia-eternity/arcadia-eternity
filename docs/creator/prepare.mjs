@@ -1,12 +1,37 @@
 import { prepareSdk } from './prepare-sdk.mjs'
-import { copyFile, mkdir, writeFile, rm } from 'node:fs/promises'
-import { creatorSections, creatorSdkVersion, readCreatorPage } from '../../packages/content-dev/src/creator-docs.ts'
+import { copyFile, mkdir, readFile, writeFile, rm } from 'node:fs/promises'
+import {
+  creatorDocsOrigin as origin,
+  creatorSections,
+  creatorSdkVersion,
+} from '../../packages/content-dev/src/creator-docs.ts'
 
 const output = new URL('./generated/', import.meta.url)
 await rm(output, { recursive: true, force: true })
 await mkdir(new URL('public/', output), { recursive: true })
 const template = new URL('../../packages/content-dev/template/', import.meta.url)
 await copyFile(new URL('assets/pets/frostling-portrait.png', template), new URL('public/frostling.png', output))
+
+const pagesRoot = new URL('./pages/', import.meta.url)
+
+/** Resolve trusted page includes against the shipped frost-strike template. */
+async function readCreatorPage(page) {
+  let markdown = await readFile(new URL(page.path + '.md', pagesRoot), 'utf8')
+  for (const match of markdown.matchAll(/^<<< ([\w./-]+)(?:#([\w-]+))?$/gm)) {
+    const [, file, region] = match
+    let code = await readFile(new URL(file, template), 'utf8')
+    if (region) {
+      const marker = '// #region ' + region + '\n'
+      const start = code.indexOf(marker)
+      const end = code.indexOf('// #endregion', start + marker.length)
+      if (start < 0 || end < 0) throw new Error('Missing template region: ' + file + '#' + region)
+      code = code.slice(start + marker.length, end)
+    }
+    const language = file.endsWith('.ts') ? 'typescript' : 'yaml'
+    markdown = markdown.replace(match[0], () => ['```' + language, code.trimEnd(), '```'].join('\n'))
+  }
+  return '# ' + page.title + '\n\n' + markdown.trim() + '\n'
+}
 
 const lessons = creatorSections.filter(section => !section.reference)
 const references = creatorSections.filter(section => section.reference)
@@ -63,7 +88,6 @@ await writeFile(
     ]),
   ].join('\n'),
 )
-const origin = 'https://arcadia-creator-docs.pages.dev'
 const index = creatorSections.flatMap(section => [
   '## ' + section.title,
   '',

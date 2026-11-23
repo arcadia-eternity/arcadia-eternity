@@ -38,6 +38,8 @@ test('watch rebuilds sources, templates and bundled skills, removes stale files 
   await writeFile(join(directory, 'template/package.json'), JSON.stringify({ engines: { node: '>=24' } }))
   await cp(new URL('../release-test-npm.mjs', import.meta.url), join(directory, 'release-test-npm.mjs'))
   await cp(new URL('../release-payload.mjs', import.meta.url), join(directory, 'release-payload.mjs'))
+  // The fixture has a minimal SDK entry point. The real symbol catalog is covered by author-reference tests.
+  await writeFile(join(directory, 'generate-sdk-reference.mjs'), 'export function generateSdkReference() { return [] }')
   await cp(new URL('../build.mjs', import.meta.url), join(directory, 'build.mjs'))
   await symlink(
     fileURLToPath(new URL('../node_modules', import.meta.url)),
@@ -69,6 +71,7 @@ test('watch rebuilds sources, templates and bundled skills, removes stale files 
   await writeFile(join(directory, 'template/example.txt'), 'original template')
   const errors = []
   watcher = await watchContentDev(directory, { onBuild() {}, onError: error => errors.push(error) })
+  assert.deepEqual(errors, [])
   assert.deepEqual(JSON.parse(await readFile(join(directory, 'dist/template/package.json'))).engines, {
     node: '>=24',
     arcadia: '^5.2.1',

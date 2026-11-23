@@ -15,7 +15,9 @@ SDK 查询返回 `parent`、`fields`、`methods` 和 `example`（触发器），
 
 只记得名字的一部分时传 `{"query":"addMark"}`。结果按符号名排序，最多返回 50 个；用 `nextOffset` 的值作为下一次请求的 `offset`，直到返回 `null`。用 `{"topic":"sdk"}` 从第一个符号开始浏览。
 
-手册主题的精确查询与 SDK 查询的 `structuredContent.result` 都含有 `topic`、`symbol`、`title`、`path`、`sdkVersion` 和 `markdown`。`path` 是文档站内路径，正文和示例取自本机 SDK。查询未知条目会返回 `REFERENCE_UNKNOWN`。先用同一主题列举条目，再用其中的名字重试。
+从 SDK 4.16.1 起，精确查询的 `structuredContent.result.url` 可直接打开文档，`path` 提供站内路径，`sdkVersion` 标明本机版本。查询 `{"symbol":"ops.bindAttribute"}` 可离线取得本机 SDK 的签名和 Markdown 参考，以及[该操作的在线参考页](/sdk/values/ops/bindAttribute)。查询 `{"topic":"tutorials","symbol":"frost-strike.trace"}` 时，助手可读取 `markdownUrl` 获取包含霜击模板代码的完整课程。
+
+查询未知条目会返回 `REFERENCE_UNKNOWN`。先用同一主题列举条目，再用其中的名字重试。
 
 ## 根据任务选主题
 

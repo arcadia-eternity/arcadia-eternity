@@ -75,11 +75,11 @@ test('MCP exposes typed discovery, shared team/environment saves and native imag
   const reference = await call('author_reference', { topic: 'team' })
   assert.equal(reference.schema.properties.schemaVersion.const, 1)
   const guide = await call('author_reference', { topic: 'tutorials', symbol: 'frost-strike' })
-  assert.match(guide.markdown, /config.duration|duration: 3/)
+  assert.equal(guide.markdownUrl, 'https://arcadia-creator-docs.pages.dev/reference/frost-strike.md')
   const effects = await call('author_reference', { topic: 'effects' })
   assert.ok(effects.entries.some(entry => entry.symbols.includes('EffectTrigger.OnHit')))
   const hit = await call('author_reference', { topic: 'effects', symbol: 'EffectTrigger.OnHit' })
-  assert.match(hit.markdown, /target.addMark\(new AddMarkContext/)
+  assert.equal(hit.url, 'https://arcadia-creator-docs.pages.dev/api/on-hit')
   assert.equal(hit.path, '/api/on-hit')
   assert.match(hit.sdkVersion, /^\d+\./)
   const unknown = await client.callTool({

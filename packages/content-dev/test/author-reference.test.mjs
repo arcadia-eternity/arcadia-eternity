@@ -71,7 +71,7 @@ test('description tags match the renderer and effects come from the shipped temp
   for (const topic of referenceTopics) assert.ok(JSON.stringify(await authorReference({ topic })).length < 32 * 1024)
 })
 
-test('each handbook page is discoverable and readable through its installed MCP topic', async () => {
+test('each handbook page is linked from its installed MCP topic', async () => {
   const paths = new Set()
   const queries = new Set()
   for (const page of creatorPages) {
@@ -89,7 +89,9 @@ test('each handbook page is discoverable and readable through its installed MCP 
       const result = await authorReference({ topic: page.topic, symbol })
       assert.equal(result.path, '/' + page.path)
       assert.ok(result.markdown.startsWith('# ' + page.title + '\n'))
-      assert.doesNotMatch(result.markdown, /^<<< /m)
+      assert.equal(result.url, 'https://arcadia-creator-docs.pages.dev/' + page.path)
+      assert.equal(result.markdownUrl, 'https://arcadia-creator-docs.pages.dev/reference/' + page.path + '.md')
+      assert.ok(result.markdown.includes(result.markdownUrl))
     }
   }
 })

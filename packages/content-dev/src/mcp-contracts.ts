@@ -162,6 +162,8 @@ export const outputSchemas = {
       symbol: z.string().optional(),
       sdkVersion: z.string().optional(),
       path: z.string().optional(),
+      url: z.string().url().optional(),
+      markdownUrl: z.string().url().optional(),
       markdown: z.string().optional(),
       entries: z
         .array(

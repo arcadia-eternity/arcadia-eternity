@@ -32,6 +32,7 @@ async function packagedSdk(root) {
   const installed = join(root, 'host/node_modules/@arcadia-eternity/content-sdk')
   await mkdir(installed, { recursive: true })
   await extract({ file: join(archives, archive), cwd: installed, strip: 1, strict: true })
+  assert.ok(!(await readdir(join(installed, 'dist'))).includes('creator-pages'))
   const manifest = JSON.parse(await readFile(join(installed, 'package.json'), 'utf8'))
   for (const name of Object.keys(manifest.dependencies)) {
     const target = join(installed, 'node_modules', name)
@@ -96,17 +97,21 @@ test(
         search.matches.find(item => item.symbol === 'ops.bindAttribute')?.path,
         '/sdk/values/ops/bindAttribute',
       )
+      const binding = await call('author_reference', { symbol: 'ops.bindAttribute' })
+      assert.equal(binding.url, 'https://arcadia-creator-docs.pages.dev/sdk/values/ops/bindAttribute')
       const field = await call('author_reference', { symbol: 'BattleMessageData.DAMAGE.currentHp' })
       assert.equal(field.path, '/sdk/types/BattleMessageData/DAMAGE#member-currentHp')
       const lesson = await call('author_reference', { topic: 'tutorials', symbol: 'frost-strike.trace' })
       assert.equal(lesson.path, '/tutorials/frost-strike/trace')
-      assert.match(lesson.markdown, /target.addMark\(new AddMarkContext/)
+      assert.equal(
+        lesson.markdownUrl,
+        'https://arcadia-creator-docs.pages.dev/reference/tutorials/frost-strike/trace.md',
+      )
       assert.match((await call('author_reference', { symbol: 'Pet.addMark' })).signature, /AddMarkContext/)
       const guide = await call('author_reference', { topic: 'tutorials', symbol: 'frost-strike' })
       const hit = await call('author_reference', { topic: 'effects', symbol: 'Pet.addMark' })
-      assert.match(guide.markdown, /三回合/)
-      assert.match(hit.markdown, /target.addMark\(new AddMarkContext/)
-      assert.doesNotMatch(hit.markdown, /<<< /)
+      assert.equal(guide.url, 'https://arcadia-creator-docs.pages.dev/frost-strike')
+      assert.equal(hit.markdownUrl, 'https://arcadia-creator-docs.pages.dev/reference/api/on-hit.md')
     })
 
     const addonFile = join(addon, 'package.json')

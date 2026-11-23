@@ -6,7 +6,7 @@ import { EnvironmentDocumentSchema } from './debug-environments.ts'
 import { WorkspaceError } from './workspace.ts'
 import { errorCode } from './types.ts'
 
-import { creatorPages, creatorSdkVersion, readCreatorPage } from './creator-docs.ts'
+import { creatorDocsOrigin, creatorPages, creatorSdkVersion } from './creator-docs.ts'
 
 import { installedSdkCatalog, sdkGroups, sdkPath } from './sdk-reference.ts'
 
@@ -59,12 +59,14 @@ export async function authorReference({
     if (symbol) {
       const item = catalog.byName.get(symbol)
       if (!item) throw new WorkspaceError('REFERENCE_UNKNOWN', `未知 SDK 符号：${symbol}。使用 query 搜索名称。`)
+      const path = sdkPath(item)
       return {
         ...item,
         topic: 'sdk',
         title: symbol,
         sdkVersion: creatorSdkVersion,
-        path: sdkPath(item),
+        path,
+        url: new URL(path, creatorDocsOrigin).href,
         members: catalog.children.get(symbol)?.map(child => child.symbol),
         markdown: catalog.markdown(item),
       }
@@ -91,13 +93,18 @@ export async function authorReference({
     const page = entries.find(entry => entry.symbols.includes(symbol))
     if (!page)
       throw new WorkspaceError('REFERENCE_UNKNOWN', `未知的 ${topic} 条目：${symbol}。可查询：${symbols.join('、')}`)
+    const path = '/' + page.path
+    const url = new URL(path, creatorDocsOrigin).href
+    const markdownUrl = new URL('/reference' + path + '.md', creatorDocsOrigin).href
     return {
       topic,
       symbol,
       title: page.title,
-      path: '/' + page.path,
+      path,
+      url,
+      markdownUrl,
       sdkVersion: creatorSdkVersion,
-      markdown: await readCreatorPage(page),
+      markdown: `# ${page.title}\n\n[在线阅读](${url}) · [Markdown 原文](${markdownUrl})\n`,
     }
   }
   if (topic === 'tutorials' || topic === 'mcp')
