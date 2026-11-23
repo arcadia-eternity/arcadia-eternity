@@ -6,8 +6,15 @@ import { EnvironmentDocumentSchema } from './debug-environments.ts'
 import { WorkspaceError } from './workspace.ts'
 import { errorCode } from './types.ts'
 
+import { creatorPages, creatorSdkVersion, readCreatorPage } from './creator-docs.ts'
+
+import { installedSdkCatalog, sdkGroups, sdkPath } from './sdk-reference.ts'
+
 export const referenceTopics = [
+  'sdk',
   'authoring',
+  'tutorials',
+  'mcp',
   'species',
   'skills',
   'marks',
@@ -39,21 +46,75 @@ async function template(file: string): Promise<string> {
 }
 
 /** Discover installed SDK contracts, without importing a content project's executable effects. */
-export async function authorReference({ topic }: { topic?: string } = {}) {
+export async function authorReference({
+  topic,
+  symbol,
+  query,
+  offset = 0,
+}: { topic?: string; symbol?: string; query?: string; offset?: number } = {}) {
+  if (topic === 'sdk' || topic === undefined) {
+    if ((query !== undefined && typeof query !== 'string') || !Number.isSafeInteger(offset) || offset < 0)
+      throw new WorkspaceError('INPUT_INVALID', 'query 需要字符串，offset 需要非负整数')
+    const catalog = await installedSdkCatalog()
+    if (symbol) {
+      const item = catalog.byName.get(symbol)
+      if (!item) throw new WorkspaceError('REFERENCE_UNKNOWN', `未知 SDK 符号：${symbol}。使用 query 搜索名称。`)
+      return {
+        ...item,
+        topic: 'sdk',
+        title: symbol,
+        sdkVersion: creatorSdkVersion,
+        path: sdkPath(item),
+        members: catalog.children.get(symbol)?.map(child => child.symbol),
+        markdown: catalog.markdown(item),
+      }
+    }
+    const matches = query
+      ? catalog.records.filter(item => item.symbol.toLowerCase().includes(query.toLowerCase()))
+      : catalog.records
+    const end = offset + 50
+    return {
+      topic: 'sdk',
+      title: '战斗 SDK 符号索引',
+      sdkVersion: creatorSdkVersion,
+      groups: sdkGroups,
+      total: matches.length,
+      matches: matches.slice(offset, end).map(item => ({ symbol: item.symbol, kind: item.kind, path: sdkPath(item) })),
+      nextOffset: end < matches.length ? end : null,
+    }
+  }
   if (!topic || !(referenceTopics as readonly string[]).includes(topic))
     throw new WorkspaceError('REFERENCE_UNKNOWN', '请选择有效的作者参考主题')
+  const entries = creatorPages.filter(page => page.topic === topic)
+  const symbols = entries.flatMap(page => page.symbols)
+  if (symbol !== undefined) {
+    const page = entries.find(entry => entry.symbols.includes(symbol))
+    if (!page)
+      throw new WorkspaceError('REFERENCE_UNKNOWN', `未知的 ${topic} 条目：${symbol}。可查询：${symbols.join('、')}`)
+    return {
+      topic,
+      symbol,
+      title: page.title,
+      path: '/' + page.path,
+      sdkVersion: creatorSdkVersion,
+      markdown: await readCreatorPage(page),
+    }
+  }
+  if (topic === 'tutorials' || topic === 'mcp')
+    return { topic, title: topic === 'tutorials' ? '创作教程' : 'MCP 工具', sdkVersion: creatorSdkVersion, entries }
   if (topic === 'authoring') {
     const source = 'skills/arcadia-content-authoring/SKILL.md'
     const instructions = await template(source).catch(error => {
       if (errorCode(error) !== 'ENOENT') throw error
       return readFile(new URL('../../../docs/guides/ugc-authoring-agent/SKILL.md', import.meta.url), 'utf8')
     })
-    return { topic, title: 'Create and debug a pack or environment', source, instructions }
+    return { topic, title: 'Create and debug a pack or environment', source, instructions, entries }
   }
   if (topic === 'git' || topic === 'release') {
     const source = `skills/arcadia-content-${topic}/SKILL.md`
     return {
       topic,
+      entries,
       title: topic === 'git' ? '提交与同步内容包' : '发布内容包',
       source,
       instructions: await template(source),
@@ -65,6 +126,7 @@ export async function authorReference({ topic }: { topic?: string } = {}) {
       title: `${topic}: parser fields and source example`,
       source: '@arcadia-eternity/battle/engine',
       stage: 'linked-runtime',
+      entries,
       schema: toJsonSchemaCompat(parserSchemas[topic]),
       examples: [{ language: 'yaml', text: await template(examples[topic] ?? '') }],
       notes: [
@@ -85,6 +147,7 @@ export async function authorReference({ topic }: { topic?: string } = {}) {
       title: 'Portable project team',
       source: '@arcadia-eternity/content-sdk/project-teams',
       stage: 'source',
+      entries,
       schema,
       examples: [{ language: 'yaml', text: 'schemaVersion: 1\nid: blue\nname: 蓝队\nteam: []\n' }],
       notes: [
@@ -99,6 +162,7 @@ export async function authorReference({ topic }: { topic?: string } = {}) {
       title: 'Standalone and named battle environments',
       source: '@arcadia-eternity/content-sdk/debug-environments',
       stage: 'source',
+      entries,
       schema: toJsonSchemaCompat(EnvironmentDocumentSchema),
       examples: [
         {
@@ -126,6 +190,7 @@ export async function authorReference({ topic }: { topic?: string } = {}) {
     return {
       topic,
       title: 'Native TypeScript effects',
+      entries,
       source: '@arcadia-eternity/content-sdk/dist/template/src/effects/slow.effect.ts',
       examples: [{ language: 'typescript', text: await template('src/effects/slow.effect.ts') }],
       notes: [
@@ -138,6 +203,7 @@ export async function authorReference({ topic }: { topic?: string } = {}) {
   return {
     topic,
     title: 'ICU descriptions and semantic tags',
+    entries,
     source: 'docs/guides/content-presentation.md; packages/web-ui/src/i18n/richDescription.ts',
     tags: [
       'markName',

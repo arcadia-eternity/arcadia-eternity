@@ -88,6 +88,27 @@ test(
     await sdk.run(root, 'init', 'environment', cup)
     await sdk.run(root, 'init', 'pack', consumer)
 
+    await sdk.session(addon, ['--read-only'], async call => {
+      const event = await call('author_reference', { symbol: 'EffectTrigger.OnHit' })
+      assert.equal(event.parent, 'UseSkillContext')
+      const search = await call('author_reference', { query: 'bindAttribute' })
+      assert.equal(
+        search.matches.find(item => item.symbol === 'ops.bindAttribute')?.path,
+        '/sdk/values/ops/bindAttribute',
+      )
+      const field = await call('author_reference', { symbol: 'BattleMessageData.DAMAGE.currentHp' })
+      assert.equal(field.path, '/sdk/types/BattleMessageData/DAMAGE#member-currentHp')
+      const lesson = await call('author_reference', { topic: 'tutorials', symbol: 'frost-strike.trace' })
+      assert.equal(lesson.path, '/tutorials/frost-strike/trace')
+      assert.match(lesson.markdown, /target.addMark\(new AddMarkContext/)
+      assert.match((await call('author_reference', { symbol: 'Pet.addMark' })).signature, /AddMarkContext/)
+      const guide = await call('author_reference', { topic: 'tutorials', symbol: 'frost-strike' })
+      const hit = await call('author_reference', { topic: 'effects', symbol: 'Pet.addMark' })
+      assert.match(guide.markdown, /三回合/)
+      assert.match(hit.markdown, /target.addMark\(new AddMarkContext/)
+      assert.doesNotMatch(hit.markdown, /<<< /)
+    })
+
     const addonFile = join(addon, 'package.json')
     const addonManifest = JSON.parse(await readFile(addonFile, 'utf8'))
     addonManifest.scripts.postinstall = 'node -e "process.exit(73)"'

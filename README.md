@@ -51,7 +51,7 @@ pnpm web:dev
 
 ## 开发文档
 
-从[文档导航](docs/README.md)或[指南](docs/guides/battle-engine.md)开始。内容包作者见[创建并测试 TypeScript 内容包](docs/guides/ugc-authoring-start.md)。
+从[文档导航](docs/README.md)或[指南](docs/guides/battle-engine.md)开始。内容包与赛制作者可从[创作者手册](https://arcadia-creator-docs.pages.dev/)进入实作教程、战斗 SDK 和 MCP 参考。
 
 ## 许可证
 

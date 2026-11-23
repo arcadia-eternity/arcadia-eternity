@@ -1,3 +1,5 @@
+import ts from 'typescript'
+import { generateSdkReference } from './generate-sdk-reference.mjs'
 import { execFileSync } from 'node:child_process'
 import { cp, mkdir, readFile, readdir, rename, rm, chmod, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
@@ -28,6 +30,9 @@ execFileSync(process.execPath, [require.resolve('typescript/bin/tsc'), '-p', 'ts
   stdio: 'inherit',
 })
 await rewriteDeclarationImports(output)
+await writeFile(new URL('sdk-reference.json', output), JSON.stringify(generateSdkReference(ts, import.meta.filename)))
+
+await cp(new URL('../../docs/creator/pages/', import.meta.url), new URL('creator-pages/', output), { recursive: true })
 await cp(new URL('./template/', import.meta.url), new URL('./dist/template/', import.meta.url), { recursive: true })
 for (const script of ['release-payload.mjs', 'release-test-npm.mjs'])
   await cp(new URL(script, import.meta.url), new URL('template/.github/scripts/' + script, output))

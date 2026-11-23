@@ -1,3 +1,4 @@
+import { domainFields, evaluationReads, parameterMethods, projectedMethods } from './projection'
 import { effectSdkFunctions } from '../engine/content/sdk-capabilities'
 import { Arena } from 'quickjs-emscripten-sync'
 import { registerArenaProjection } from './arena-session'
@@ -26,124 +27,25 @@ type Scope = {
   effect?: EffectContext<import('@arcadia-eternity/const').EffectTrigger>
 }
 const isClassConstructor = (value: Fn) => /^class(?:\s|\{)/.test(Function.prototype.toString.call(value))
-const fields = [
-  'battle',
-  'configSystem',
-  'id',
-  'baseId',
-  'tags',
-  'owner',
-  'currentHp',
-  'stat',
-  'lastSkillUsedTimes',
-  'isAlive',
-  'stack',
-  'isActive',
-  'isSuppressed',
-  'base',
-  'config',
-  'name',
-  'element',
-  'category',
-  'power',
-  'rage',
-  'priority',
-  'skills',
-  'marks',
-  'team',
-  'activePet',
-  'currentRage',
-  'trigger',
-  'parent',
-  'source',
-  'pet',
-  'skill',
-  'actualTarget',
-  'origin',
-  'baseDamage',
-  'modified',
-  'baseHeal',
-  'healResult',
-  'target',
-  'available',
-  'type',
-  'weight',
-  'height',
-  'previousSkillElement',
-  'level',
-  'gender',
-  'maxRage',
-  'damageResult',
-  'result',
-  'intent',
-  'policy',
-  'killer',
-  'multihitResult',
-  'currentTurn',
-  'stacksAfter',
-  'stacksBefore',
-  'statType',
-  'initialLevel',
-  'baseMark',
-  'mark',
-  'amount',
-  'requestedAmount',
-  'actualAmount',
-  'reason',
-  'modifiedType',
-  'value',
-  'crit',
-  'duration',
-  'durationAfter',
-  'durationBefore',
-  'switchOutPet',
-  'switchInPet',
-  'effect',
-  'effects',
-  'damageType',
-  'currentHitCount',
-  'hitResult',
-  'multihit',
-  'accuracy',
-  'evasion',
-  'critRate',
-  'minThreshold',
-  'maxThreshold',
-  'effectiveness',
-  'ignoreShield',
-  'rageChangeResult',
-  'stackChange',
-  'durationChange',
-  'selectTarget',
-  'defeated',
-] as const
-function domainMethods(value: object): readonly string[] {
-  if (value instanceof Pet) return ['addMark', 'removeMark', 'damage', 'heal', 'addRage', 'transferMarks']
-  if (value instanceof Player) return ['addRage']
-  if (value instanceof Battle) return ['random', 'randomInt', 'shuffle', 'removeMark']
-  if (value instanceof MarkInstanceImpl) return ['consumeStack']
-  if (value instanceof ConfigSystem) return ['get']
-  if (value instanceof Context) return ['addModified']
-  return []
+const projectedClasses = {
+  Pet,
+  Player,
+  Battle,
+  MarkInstanceImpl,
+  ConfigSystem,
+  Context,
+  BaseMark,
+  BaseSkill,
+  SkillInstance,
+  Effect,
 }
-const parameterMethods = ['read', 'get', 'install', 'register', 'snapshot', 'restore', 'addressOf'] as const
+const projectionRules = (Object.keys(projectedMethods) as (keyof typeof projectedMethods)[]).map(name => ({
+  Class: projectedClasses[name],
+  methods: projectedMethods[name] as readonly string[],
+}))
 const denied = new Set(['constructor', 'prototype', '__proto__', 'caller', 'callee', 'arguments'])
 const coreSdk = { ...sdk, defineNativeBehavior, normalizeBehaviorDefinitions, BehaviorCompilationError }
 const authorFunctions = new Set<string>(effectSdkFunctions)
-function domain(value: object): boolean {
-  return (
-    value instanceof Pet ||
-    value instanceof Player ||
-    value instanceof BaseMark ||
-    value instanceof BaseSkill ||
-    value instanceof SkillInstance ||
-    value instanceof MarkInstanceImpl ||
-    value instanceof Context ||
-    value instanceof Effect ||
-    value instanceof Battle ||
-    value instanceof ConfigSystem
-  )
-}
 function frame(value: object): boolean {
   return typeof Reflect.get(value, 'read') === 'function' && !!Reflect.get(value, 'ops')
 }
@@ -297,13 +199,14 @@ export class ArenaEffectSdk {
     }
     const original = value as object
     const session = this.session
-    const isDomain = domain(original),
+    const domainRule = projectionRules.find(rule => original instanceof rule.Class)
+    const isDomain = !!domainRule,
       isFrame = frame(original)
     const temporary = isFrame || original instanceof Context || (ephemeral && !isDomain)
     const keys: readonly PropertyKey[] = isFrame
       ? ['trigger', 'parent', 'read', 'ops']
       : isDomain
-        ? [...fields, ...domainMethods(original)]
+        ? [...domainFields, ...domainRule.methods]
         : [...Reflect.ownKeys(original), ...(original instanceof ParameterCatalog ? parameterMethods : [])]
     const view: Record<PropertyKey, unknown> = Object.create(null) as Record<PropertyKey, unknown>
     const members = new Map<PropertyKey, Fn>()
@@ -329,14 +232,14 @@ export class ArenaEffectSdk {
             )
               return this.reject(new SandboxFault('permission', 'sdk', `Not an effect capability: ${String(key)}`))
             if (typeof member === 'function') {
-              if (isDomain && !domainMethods(original).includes(String(key)))
+              if (isDomain && !domainRule.methods.includes(String(key)))
                 return this.reject(new SandboxFault('permission', 'sdk', 'Direct domain methods denied'))
               if (isClassConstructor(member as Fn)) return this.output(member)
               if (!members.has(key))
                 members.set(key, (...args) => {
                   // Check at call time, including handles captured in an earlier callback.
                   if (getDamageEvaluation()) {
-                    if (isDomain && !['get', 'random', 'randomInt', 'shuffle'].includes(String(key))) {
+                    if (isDomain && !evaluationReads.includes(String(key))) {
                       try {
                         const operation =
                           key === 'addModified'

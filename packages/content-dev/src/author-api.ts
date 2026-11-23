@@ -76,7 +76,7 @@ export async function openAuthorSession(directory: string, options: AuthorSessio
         case 'query':
           return this.query(input)
         case 'reference':
-          return authorReference(input as { topic?: string })
+          return authorReference(input)
         case 'asset-inspect':
           return inspectAsset(workspace, input as Parameters<typeof inspectAsset>[1])
         case 'git-status':

@@ -1,0 +1,23 @@
+:root {
+  --vp-c-brand-1: #14636b;
+  --vp-c-brand-2: #197780;
+  --vp-c-brand-3: #136b73;
+  --vp-c-brand-soft: #4fb2be24;
+  --vp-home-hero-name-color: var(--vp-c-brand-1);
+  --vp-font-family-base: Inter, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+.dark {
+  --vp-c-brand-1: #89d7de;
+  --vp-c-brand-2: #55b4be;
+}
+.VPHero .image-bg {
+  background: radial-gradient(ellipse, #67c6c55c, transparent 67%);
+  width: min(100%, 400px);
+  height: min(100%, 340px);
+}
+.VPHero .image-src {
+  image-rendering: pixelated;
+}
+.vp-doc span[id^='member-'] {
+  scroll-margin-top: calc(var(--vp-nav-height) + 3rem);
+}

@@ -11,6 +11,7 @@ import {
   type NativeEffectContext,
 } from '@arcadia-eternity/content-sdk'
 
+// #region apply-slow
 @effect({ id: 'apply-slow', sourceKind: 'skill' })
 export class ApplySlow {
   @on(EffectTrigger.OnHit)
@@ -23,6 +24,9 @@ export class ApplySlow {
   }
 }
 
+// #endregion
+
+// #region speed-penalty
 @effect({ id: 'speed-penalty', sourceKind: 'petMark' })
 export class SpeedPenalty {
   static create({ id }: EffectModuleContext) {
@@ -52,3 +56,4 @@ export class SpeedPenalty {
     })
   }
 }
+// #endregion

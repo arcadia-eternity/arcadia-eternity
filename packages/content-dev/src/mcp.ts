@@ -344,9 +344,12 @@ if (!session.workspace.readOnly) {
 }
 tool(
   'author_reference',
-  'Read the actual SDK schemas or focused authoring guidance. Schema notes distinguish normalized runtime definitions from source references. Description guidance covers current supported semantics, not future generic reference protocols.',
+  'Look up an exact creator SDK symbol (e.g. EffectTrigger.OnHit or Pet.addMark), or search SDK names with query and offset. A trigger includes its typed parent, accessible fields, method receivers and example. Supply a handbook topic for guides or schemas.',
   {
-    topic: z.enum(referenceTopics),
+    topic: z.enum(referenceTopics).optional(),
+    query: z.string().min(1).max(128).optional(),
+    offset: z.number().int().min(0).optional(),
+    symbol: z.string().min(1).max(128).optional(),
   },
   'reference',
   undefined,
