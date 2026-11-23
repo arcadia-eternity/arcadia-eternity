@@ -26,6 +26,16 @@ export default defineConfig({
     search: {
       provider: 'local',
       options: {
+        miniSearch: {
+          options: {
+            tokenize(text) {
+              const words = new Intl.Segmenter('zh-CN', { granularity: 'word' }).segment(text)
+              return Array.from(words).flatMap(word =>
+                word.isWordLike ? (word.segment.match(/[\p{L}\p{N}_]+/gu) ?? []) : [],
+              )
+            },
+          },
+        },
         locales: {
           root: {
             translations: {
