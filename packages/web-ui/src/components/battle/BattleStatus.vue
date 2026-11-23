@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { getNumericAttributeModifier } from '@/utils/modifierStyles'
-import { computed, ref } from 'vue'
-import { useElementSize } from '@vueuse/core'
+import { computed, ref, useTemplateRef } from 'vue'
+import { onClickOutside, useElementSize, useMediaQuery } from '@vueuse/core'
 import HealthRageBar from './HealthRageBar.vue'
 import PetIcon from '../PetIcon.vue'
 import Mark from './Mark.vue'
@@ -38,6 +38,13 @@ const markContainerClass = computed(() => [
 
 const activePet = computed(() => {
   return battleStore.getPetById(props.player.activePet)
+})
+
+const statsOpen = ref(false)
+const canHover = useMediaQuery('(hover: hover) and (pointer: fine)')
+const portraitButton = useTemplateRef('portraitButton')
+onClickOutside(portraitButton, () => {
+  statsOpen.value = false
 })
 
 const statusBody = ref<HTMLElement | null>(null)
@@ -202,14 +209,29 @@ const petStatsInfo = computed(() => {
 
 <template>
   <div v-if="activePet" :class="containerClass" :data-battle-status="side">
-    <Tooltip portal :position="side === 'right' ? 'left' : 'right'" class="self-start">
+    <Tooltip
+      v-model:show="statsOpen"
+      portal
+      :position="side === 'right' ? 'left' : 'right'"
+      :trigger="statsOpen || !canHover ? 'click' : 'hover'"
+      class="self-start"
+    >
       <template #trigger>
-        <PetIcon
-          :id="gameDataStore.getSpecies(activePet!.speciesID)?.num"
-          :species="gameDataStore.getSpecies(activePet!.speciesID)"
-          :class="petIconClasses"
-          :reverse="side == 'right'"
-        />
+        <button
+          ref="portraitButton"
+          type="button"
+          class="block"
+          :aria-label="`${activePet.name} ${i18next.t('stats.title', { ns: 'webui' })}`"
+          :aria-expanded="canHover ? undefined : statsOpen"
+          @click="statsOpen = !statsOpen"
+        >
+          <PetIcon
+            :id="gameDataStore.getSpecies(activePet.speciesID)?.num"
+            :species="gameDataStore.getSpecies(activePet.speciesID)"
+            :class="petIconClasses"
+            :reverse="side === 'right'"
+          />
+        </button>
       </template>
       <div class="text-sm">
         <div class="font-semibold mb-2">{{ activePet!.name }} {{ i18next.t('stats.title', { ns: 'webui' }) }}</div>
