@@ -53,3 +53,30 @@ test('skill details follow battle scale and let touches reach the controls under
   await expect(switchTab).toHaveAttribute('aria-pressed', 'true')
   await expect(tooltip).toHaveCount(0)
 })
+
+test('active pet stats open toward the battlefield and stay clear of the side rosters', async ({ page }) => {
+  await page.getByRole('button', { name: '继续游戏' }).tap()
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+  ]) {
+    await page.setViewportSize(viewport)
+    for (const side of ['right', 'left'] as const) {
+      const portrait = page.locator(`[data-battle-status="${side}"] .battle-status__portrait`)
+      await portrait.tap()
+      const detail = page.locator('[role="tooltip"]:not([inert])').filter({ hasText: '休罗斯 属性' })
+      await expect(detail).toBeVisible()
+      const anchor = (await portrait.boundingBox())!
+      const roster = (await page.locator(`.battle-roster--${side}`).boundingBox())!
+      const panel = (await detail.boundingBox())!
+      const host = (await page.locator('.battle-viewport').boundingBox())!
+      if (side === 'right') {
+        expect(panel.x + panel.width).toBeLessThanOrEqual(Math.min(anchor.x, roster.x))
+      } else {
+        expect(panel.x).toBeGreaterThanOrEqual(Math.max(anchor.x + anchor.width, roster.x + roster.width))
+      }
+      expect(panel.y).toBeGreaterThanOrEqual(host.y)
+      expect(panel.y + panel.height).toBeLessThanOrEqual(host.y + host.height)
+    }
+  }
+})
