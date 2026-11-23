@@ -14,12 +14,14 @@ const mcp = symbol => ['::: details MCP 查询', '```json', JSON.stringify({ sym
 function memberGroup(item) {
   if (item.group === 'triggers') return '触发器'
   if (item.owner === 'ops') {
-    const name = shortName(item)
-    if (/damage|shield|heal|kill/i.test(name)) return '伤害与治疗'
-    if (/stack|mark/i.test(name)) return '印记与层数'
-    if (/rage/i.test(name)) return '怒气'
-    if (/attribute|parameter|statstage/i.test(name)) return '属性与参数'
-    if (/skill|accuracy|hit|crit|miss|power|target/i.test(name)) return '出招与命中'
+    const words = shortName(item)
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .toLowerCase()
+    if (/\b(damage|shield|heal|kill)\b/.test(words)) return '伤害与治疗'
+    if (/\b(stacks?|marks?)\b/.test(words)) return '印记与层数'
+    if (/\brage\b/.test(words)) return '怒气'
+    if (/\b(attribute|parameter|stages?)\b/.test(words)) return '属性与参数'
+    if (/\b(skill|accuracy|hit|multihit|crit|miss|power|target)\b/.test(words)) return '出招与命中'
     return '通用操作'
   }
   return { 方法: '方法', 枚举值: '枚举值', 字段: '属性' }[item.kind] ?? item.kind
