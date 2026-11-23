@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import CreatorDocsLink from './CreatorDocsLink.vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import {
   ChatBubbleLeftRightIcon,
@@ -135,16 +136,6 @@ const prompt = computed(() => {
         ]),
   ].join('\n\n')
 })
-const creatorDocsUrl = 'https://arcadia-creator-docs.pages.dev'
-async function openCreatorDocs(event: MouseEvent) {
-  if (!window.arcadiaDesktop?.openServerWebsite) return
-  event.preventDefault()
-  try {
-    await window.arcadiaDesktop.openServerWebsite({ url: creatorDocsUrl })
-  } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : String(cause)
-  }
-}
 async function copy(value: string, success: string) {
   notice.value = ''
   manualCopy.value = ''
@@ -165,9 +156,7 @@ async function copy(value: string, success: string) {
       <header class="connection-header">
         <div class="assistant-icon"><ChatBubbleLeftRightIcon aria-hidden="true" /></div>
         <h1 id="ai-connection-title">连接 AI 助手</h1>
-        <a class="creator-docs" :href="creatorDocsUrl" target="_blank" rel="noopener" @click="openCreatorDocs"
-          >创作者文档</a
-        >
+        <CreatorDocsLink class="creator-docs" @error="message => (error = message)" />
       </header>
       <div class="setup-column">
         <section class="prompt-card" aria-labelledby="connection-prompt-title">

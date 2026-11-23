@@ -162,5 +162,5 @@ export const creatorSections = [
 
 export const creatorPages = creatorSections.flatMap(section => section.pages)
 
-export const creatorDocsOrigin = 'https://arcadia-creator-docs.pages.dev'
+export const creatorDocsOrigin = 'https://battle-docs.yuuinih.com'
 export const creatorSdkVersion: string = createRequire(import.meta.url)('../package.json').version

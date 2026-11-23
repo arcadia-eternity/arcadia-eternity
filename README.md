@@ -10,6 +10,8 @@
 
 支持本地 AI 对战、好友房间与普通匹配。
 
+[创作者文档](https://battle-docs.yuuinih.com/) · [霜击教程](https://battle-docs.yuuinih.com/frost-strike) · [战斗 SDK 参考](https://battle-docs.yuuinih.com/sdk/)
+
 您可以在上方的DeepWiki里面了解该项目的架构和一部分设计理念。
 
 QQ群：805146068
@@ -51,7 +53,7 @@ pnpm web:dev
 
 ## 开发文档
 
-从[文档导航](docs/README.md)或[指南](docs/guides/battle-engine.md)开始。内容包与赛制作者可从[创作者手册](https://arcadia-creator-docs.pages.dev/)进入实作教程、战斗 SDK 和 MCP 参考。
+从[文档导航](docs/README.md)或[指南](docs/guides/battle-engine.md)开始。
 
 ## 许可证
 

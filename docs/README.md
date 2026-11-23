@@ -1,6 +1,6 @@
 # 文档导航
 
-[创作者文档站](https://arcadia-creator-docs.pages.dev) · [第一次创作](https://arcadia-creator-docs.pages.dev/start/first-battle) · [单精灵杯](https://arcadia-creator-docs.pages.dev/make/singles-cup) · [API 参考](https://arcadia-creator-docs.pages.dev/api/)
+[创作者文档站](https://battle-docs.yuuinih.com) · [第一次创作](https://battle-docs.yuuinih.com/start/first-battle) · [单精灵杯](https://battle-docs.yuuinih.com/make/singles-cup) · [API 参考](https://battle-docs.yuuinih.com/api/)
 
 从 [战斗指南](guides/battle-engine.md) 开始。重构进度与未完成验收统一记录在 [4.0 总览 #200](https://github.com/arcadia-eternity/arcadia-eternity/issues/200)。
 

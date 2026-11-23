@@ -98,20 +98,17 @@ test(
         '/sdk/values/ops/bindAttribute',
       )
       const binding = await call('author_reference', { symbol: 'ops.bindAttribute' })
-      assert.equal(binding.url, 'https://arcadia-creator-docs.pages.dev/sdk/values/ops/bindAttribute')
+      assert.equal(binding.url, 'https://battle-docs.yuuinih.com/sdk/values/ops/bindAttribute')
       const field = await call('author_reference', { symbol: 'BattleMessageData.DAMAGE.currentHp' })
       assert.equal(field.path, '/sdk/types/BattleMessageData/DAMAGE#member-currentHp')
       const lesson = await call('author_reference', { topic: 'tutorials', symbol: 'frost-strike.trace' })
       assert.equal(lesson.path, '/tutorials/frost-strike/trace')
-      assert.equal(
-        lesson.markdownUrl,
-        'https://arcadia-creator-docs.pages.dev/reference/tutorials/frost-strike/trace.md',
-      )
+      assert.equal(lesson.markdownUrl, 'https://battle-docs.yuuinih.com/reference/tutorials/frost-strike/trace.md')
       assert.match((await call('author_reference', { symbol: 'Pet.addMark' })).signature, /AddMarkContext/)
       const guide = await call('author_reference', { topic: 'tutorials', symbol: 'frost-strike' })
       const hit = await call('author_reference', { topic: 'effects', symbol: 'Pet.addMark' })
-      assert.equal(guide.url, 'https://arcadia-creator-docs.pages.dev/frost-strike')
-      assert.equal(hit.markdownUrl, 'https://arcadia-creator-docs.pages.dev/reference/api/on-hit.md')
+      assert.equal(guide.url, 'https://battle-docs.yuuinih.com/frost-strike')
+      assert.equal(hit.markdownUrl, 'https://battle-docs.yuuinih.com/reference/api/on-hit.md')
     })
 
     const addonFile = join(addon, 'package.json')

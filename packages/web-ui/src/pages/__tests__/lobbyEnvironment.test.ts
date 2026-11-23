@@ -368,6 +368,9 @@ it.each(['pending', 'selected'] as const)(
 
 it('browser keeps connection identity in the top bar without a local-host entry', () => {
   const page = mount(LobbyPage, { global: { stubs } })
+  const docs = page.get('.lobby-links a[href="https://battle-docs.yuuinih.com/"]')
+  expect(docs.text()).toBe('创作者文档')
+  expect(docs.attributes('target')).toBe('_blank')
   expect(page.find('[data-testid="current-server-address"]').exists()).toBe(false)
   expect(page.find('[data-testid="server-address-input"]').exists()).toBe(false)
   expect(page.find('[data-testid="start-local-server-button"]').exists()).toBe(false)
@@ -375,9 +378,12 @@ it('browser keeps connection identity in the top bar without a local-host entry'
 
 it('desktop retains server navigation without duplicating connection identity', async () => {
   deployment.desktop = true
-  vi.stubGlobal('arcadiaDesktop', { openRemotePlay: remotePlay })
+  const openServerWebsite = vi.fn().mockResolvedValue(undefined)
+  vi.stubGlobal('arcadiaDesktop', { openRemotePlay: remotePlay, openServerWebsite })
   const page = mount(LobbyPage, { global: { stubs } })
   await flushPromises()
+  await page.get('.lobby-links a[href="https://battle-docs.yuuinih.com/"]').trigger('click')
+  expect(openServerWebsite).toHaveBeenCalledWith({ url: 'https://battle-docs.yuuinih.com/' })
   expect(page.find('[data-testid="current-server-address"]').exists()).toBe(false)
   expect(page.find('[data-testid="server-address-input"]').exists()).toBe(false)
   expect(page.find('[data-testid="connect-server-button"]').exists()).toBe(false)

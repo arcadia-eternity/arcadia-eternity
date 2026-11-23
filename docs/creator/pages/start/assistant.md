@@ -23,4 +23,4 @@
 
 ## 找到与本机版本一致的做法
 
-让助手读 `author_reference` 的主题，再用条目返回的 `symbol` 精查。例如 `{"topic":"effects","symbol":"EffectTrigger.OnHit"}`。旧 SDK 如果只接受 `topic`，仍可以使用主题示例。未连接工作台的助手也可从[网站 Markdown 索引](https://arcadia-creator-docs.pages.dev/llms.txt)选页。参见[查询和保存项目内容](../api/workspace.md)。
+让助手读 `author_reference` 的主题，再用条目返回的 `symbol` 精查。例如 `{"topic":"effects","symbol":"EffectTrigger.OnHit"}`。旧 SDK 如果只接受 `topic`，仍可以使用主题示例。未连接工作台的助手也可从[网站 Markdown 索引](https://battle-docs.yuuinih.com/llms.txt)选页。参见[查询和保存项目内容](../api/workspace.md)。

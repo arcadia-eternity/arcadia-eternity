@@ -1,6 +1,6 @@
 # 创作者文档站
 
-线上入口为 [Arcadia 创作者文档](https://arcadia-creator-docs.pages.dev)。在仓库根目录用 Node.js 24 构建：
+线上入口为 [Arcadia 创作者文档](https://battle-docs.yuuinih.com)。在仓库根目录用 Node.js 24 构建：
 
 ```sh
 npm ci --prefix docs/creator
