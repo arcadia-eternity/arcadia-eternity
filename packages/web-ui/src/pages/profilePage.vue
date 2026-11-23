@@ -2,6 +2,7 @@
 import { computed, ref, nextTick } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { MAX_BACKUP_BYTES, parseBackup, rawProfileBytes } from '@arcadia-eternity/local-profile'
+import { useLocalBattleSetupStore } from '@/stores/localBattleSetup'
 import { usePlayerStore } from '@/stores/player'
 import { usePetStorageStore } from '@/stores/petStorage'
 import { useGameSettingStore } from '@/stores/gameSetting'
@@ -112,6 +113,7 @@ function hydrate() {
   try {
     player.loadFromLocal()
     pets.loadFromLocal()
+    useLocalBattleSetupStore().$reset()
     settings.reloadFromLocal()
   } finally {
     profileSwitching.value = switching
