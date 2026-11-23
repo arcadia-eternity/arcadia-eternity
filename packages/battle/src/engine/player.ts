@@ -14,6 +14,7 @@ import {
   type playerId,
 } from '@arcadia-eternity/const'
 import { Battle } from './battle'
+import { publicBattleMessage } from './messageVisibility'
 import { RageContext, SwitchPetContext, UseSkillContext } from './context'
 import { Pet } from './pet'
 import { PlayerAttributeSystem } from './attributeSystem'
@@ -106,7 +107,7 @@ export class Player {
 
     const newMessage = {
       type: message.type,
-      data: message.data, // 保持原始消息数据不变
+      data: publicBattleMessage(message).data,
       sequenceId: message.sequenceId,
       stateDelta: jsondiffpatch.diff(this.lastStateMessage, currentState),
     }
@@ -142,7 +143,7 @@ export class Player {
     }
 
     // 击破奖励更换逻辑（非SwitchPhase时）
-    if (this.battle?.allowFaintSwitch && this.battle.lastKiller === this)
+    if (this.battle?.faintSwitchPlayer === this)
       return [
         {
           player: this.id,
@@ -216,10 +217,7 @@ export class Player {
     }
 
     // 正常情况下的do-nothing检查
-    return (
-      (this.battle?.allowFaintSwitch === true && this.battle.lastKiller === this) ||
-      this.getAvailableSkills().length === 0
-    )
+    return this.battle?.faintSwitchPlayer === this || this.getAvailableSkills().length === 0
   }
 
   private checkSwitchAvailable(selection: SwitchPetSelection) {

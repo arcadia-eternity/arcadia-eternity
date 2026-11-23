@@ -1,3 +1,4 @@
+import type { DamageResult } from './damage'
 import { BattlePhase } from './battlePhase'
 import { BattleStatus } from './battleStatus'
 import { Category } from './category'
@@ -291,11 +292,13 @@ export interface BattleMessageData {
     isCrit: boolean
     effectiveness: number
     damageType: DamageType
+    result?: DamageResult
   }
   [BattleMessageType.DamageFail]: {
     source: petId | markId | skillId
     target: petId
-    reason: 'disabled'
+    reason: NonNullable<DamageResult['reason']> | 'replaced'
+    result?: DamageResult
   }
   [BattleMessageType.Heal]: {
     target: petId

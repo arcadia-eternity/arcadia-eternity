@@ -14,6 +14,7 @@ import {
   type skillId,
   type TimerConfig,
 } from '@arcadia-eternity/const'
+import { publicBattleMessage } from './messageVisibility'
 import { ExecutionBudget } from './execution/budget'
 import { GameRng } from './rng'
 import { ConfigSystem, PhaseType } from './config'
@@ -29,6 +30,7 @@ import * as jsondiffpatch from 'jsondiffpatch'
 import { nanoid } from 'nanoid'
 import mitt from 'mitt'
 import { PhaseManager, BattleStartPhase, BattleLoopPhase, SelectionPhase, BattleSwitchPhase } from './phase'
+import { sampleBattleInteger, sampleBattleRandom } from './replacementSampling'
 import { EffectExecutionPhase } from './phase/effectExecution'
 import { RemoveMarkPhase } from './phase/RemoveMarkPhase'
 import { AddMarkPhase } from './phase/AddMarkPhase'
@@ -92,7 +94,13 @@ export class Battle extends Context implements MarkOwner {
     }
     lastState?: BattleState // 每个监听器维护自己的状态
   }> = []
+  /** Switch reward credit for the most recent active-pet defeat. */
   public lastKiller?: Player
+  public get faintSwitchPlayer(): Player | undefined {
+    const killer = this.lastKiller
+    if (!this.allowFaintSwitch || !killer?.activePet.isAlive) return undefined
+    return this.getOpponent(killer).activePet.isAlive ? undefined : killer
+  }
   public marks: MarkInstance[] = [] //用于存放天气一类的效果
   public victor?: Player
 
@@ -103,7 +111,14 @@ export class Battle extends Context implements MarkOwner {
 
   public readonly petMap: Map<string, Pet> = new Map() // ID -> Pet 实例
   public readonly skillMap: Map<string, SkillInstance> = new Map() // ID -> Skill 实例
+  private eventSequence = 0
   private sequenceId = 0
+
+  /** Domain identities are independent of observer messages, phase IDs and battle RNG. */
+  allocateEventId(kind: string): string {
+    this.eventSequence = (this.eventSequence ?? 0) + 1
+    return `${kind}:${this.eventSequence}`
+  }
 
   constructor(
     public readonly playerA: Player,
@@ -206,7 +221,7 @@ export class Battle extends Context implements MarkOwner {
       // 更新监听器的状态
       callbackObj.lastState = newState
 
-      callback(customMessage)
+      callback(options.showAll || (options.showHidden ?? false) ? customMessage : publicBattleMessage(customMessage))
     }
 
     // 设置包装后的回调
@@ -224,11 +239,11 @@ export class Battle extends Context implements MarkOwner {
   }
 
   public random() {
-    return this.rng.next()
+    return sampleBattleRandom(this, this.rng)
   }
 
   public randomInt(min: number, max: number) {
-    return this.rng.nextInt(min, max)
+    return sampleBattleInteger(this, this.rng, min, max)
   }
 
   public shuffle<T>(array: T[]): T[] {
@@ -494,7 +509,7 @@ export class Battle extends Context implements MarkOwner {
   public assertSwitchSnapshotState(allowCompletedInput = false): void {
     const players = [this.playerA, this.playerB]
     const forced = players.filter(player => !player.activePet.isAlive)
-    const reward = this.allowFaintSwitch && this.lastKiller && forced.length < 2 ? this.lastKiller : undefined
+    const reward = this.faintSwitchPlayer
     if (
       this.status !== BattleStatus.OnBattle ||
       this.currentPhase !== BattlePhase.SwitchPhase ||
@@ -503,7 +518,7 @@ export class Battle extends Context implements MarkOwner {
       forced.length !== this.pendingForcedSwitches.length ||
       forced.some((player, index) => player !== this.pendingForcedSwitches[index]) ||
       this.pendingFaintSwitch !== reward ||
-      (reward && !players.includes(reward)) ||
+      (this.lastKiller && !players.includes(this.lastKiller)) ||
       players.some(player => !player.team.includes(player.activePet) || !player.team.some(pet => pet.isAlive))
     )
       throw new Error('Invalid switch snapshot pending players')

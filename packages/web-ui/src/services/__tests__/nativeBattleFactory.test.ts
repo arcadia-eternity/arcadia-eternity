@@ -9,7 +9,7 @@ import { nativeBuildIdentity } from '@arcadia-eternity/data-pack-base/build'
 import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
 import { NativePackLoader } from '@arcadia-eternity/pack-loader/native'
 import { patch } from 'jsondiffpatch'
-import type { BattleState } from '@arcadia-eternity/const'
+import type { BattleMessage, BattleState } from '@arcadia-eternity/const'
 import { parse } from 'yaml'
 import {
   type ContentPrototypeData,
@@ -233,7 +233,7 @@ it('constructs native local/P2P teams with independent instance IDs and preserve
   expect(f.players[0].team[0].id).toBe(f.players[1].team[0].id)
 })
 
-it('runs the real native P2P host through sync, remote input and a complete turn', async () => {
+it('relays a mark-held skill hit through the sandbox P2P host after both players switch', async () => {
   const f = fixture(),
     transports = [new InMemoryPeerTransport(), new InMemoryPeerTransport()]
   for (const player of f.players)
@@ -241,6 +241,52 @@ it('runs the real native P2P host through sync, remote input and a complete turn
       pet.maxHp = 10_000
       pet.skills = ['skill_paida']
     }
+  // This package is evaluated by the same QuickJS worker as ordinary environment effects.
+  const delayedSkill = 'skill_p2p_future_sight'
+  const delayedMark = 'mark_p2p_future_sight'
+  f.players[0].team[0].skills = [delayedSkill]
+  const deferredEnvironment: typeof environment = {
+    ...environment,
+    revision: environment.revision + '/deferred-p2p',
+    data: {
+      ...environment.data,
+      marks: [...environment.data.marks, { id: delayedMark, config: { duration: 3 } }],
+      skills: [
+        ...environment.data.skills,
+        {
+          id: delayedSkill,
+          element: 'Normal',
+          category: 'Special',
+          power: 60,
+          rage: 0,
+          accuracy: 100,
+          sureHit: true,
+          effect: ['p2p_defer'],
+        },
+      ],
+    },
+    modules: [
+      ...environment.modules,
+      {
+        role: 'catalog',
+        namespace: '',
+        artifact: {
+          format: 'arcadia.effect-module',
+          version: 1,
+          sdkApi: 2,
+          packageId: 'p2p-test',
+          source: `export function createCatalog(marks) {
+            const effect = sdk.compileEffect({
+              id: 'p2p_defer', triggers: [sdk.EffectTrigger.BeforeHit], priority: 0,
+              when: sdk.conditions.selfUsesSkill,
+              apply: sdk.contexts.skillUse.apply(sdk.ops.deferSkillDamage(marks.get('${delayedMark}'), {afterTurns: 2})),
+            });
+            return {effects: new Map([[effect.id, effect]]), parameters: new Map()};
+          }`,
+        },
+      },
+    ],
+  }
   transports[0].pairWith(transports[1])
   transports[1].pairWith(transports[0])
   await transports[0].connect({ role: 'host', remotePeerId: f.players[1].id })
@@ -264,7 +310,7 @@ it('runs the real native P2P host through sync, remote input and a complete turn
       dataStore: f.data,
       bridge: bridge(transports[0]),
       transport: transports[0],
-      battleConfig: { rngSeed: 201, timerConfig: { enabled: false }, environment },
+      battleConfig: { rngSeed: 201, timerConfig: { enabled: false }, environment: deferredEnvironment },
     }),
     peer = new P2PPeerBattleSystem(b, bridge(transports[1]), transports[1])
   peers.push(peer, host)
@@ -295,17 +341,41 @@ it('runs the real native P2P host through sync, remote input and a complete turn
   await host.ready()
   await peer.ready()
   await initialized
-  const nextTurn = new Promise<void>(resolve => {
-    const off = peer.onSnapshot(({ battleState, availableSelections }) => {
-      if (battleState.currentTurn === 1 && availableSelections.some(action => action.type === 'use-skill')) {
-        off()
-        resolve()
-      }
-    })
+  const localHits: BattleMessage[] = []
+  const remoteHits: BattleMessage[] = []
+  host.BattleEvent(message => {
+    if (message.type === BattleMessageType.Damage) localHits.push(message)
   })
-  await host.submitAction((await host.getAvailableSelection(a)).find(action => action.type === 'use-skill')!)
-  await peer.submitAction((await peer.getAvailableSelection()).find(action => action.type === 'use-skill')!)
-  await nextTurn
+  peer.BattleEvent(message => {
+    if (message.type === BattleMessageType.Damage) remoteHits.push(message)
+  })
+  let castSkillId: string | undefined
+  let targetPetId: string | undefined
+  for (const turn of [1, 2, 3]) {
+    const actionType = turn === 2 ? 'switch-pet' : 'use-skill'
+    const nextTurn = new Promise<void>(resolve => {
+      const off = peer.onSnapshot(({ battleState, availableSelections }) => {
+        if (battleState.currentTurn === turn && availableSelections.some(action => action.type === 'use-skill')) {
+          off()
+          resolve()
+        }
+      })
+    })
+    const localAction = (await host.getAvailableSelection(a)).find(action => action.type === actionType)!
+    const remoteAction = (await peer.getAvailableSelection()).find(action => action.type === actionType)!
+    if (turn === 1 && localAction.type === 'use-skill') castSkillId = localAction.skill
+    if (turn === 2 && remoteAction.type === 'switch-pet') targetPetId = remoteAction.pet
+    await host.submitAction(localAction)
+    await peer.submitAction(remoteAction)
+    await nextTurn
+    const delayedHits = remoteHits.filter(m => m.type === BattleMessageType.Damage && m.data.source === castSkillId)
+    expect(delayedHits).toHaveLength(turn === 3 ? 1 : 0)
+    if (turn === 3) {
+      expect(delayedHits[0].data).toMatchObject({ target: targetPetId, damageType: 'Special' })
+      expect(delayedHits[0].data).not.toHaveProperty('result')
+    }
+  }
+  expect(remoteHits.map(m => [m.sequenceId, m.data])).toEqual(localHits.map(m => [m.sequenceId, m.data]))
   const local = (await host.getState(b, true)).players.find(player => player.id === b)!,
     remote = (await peer.getState()).players.find(player => player.id === b)!
   expect(remote.rage).toBe(local.rage)

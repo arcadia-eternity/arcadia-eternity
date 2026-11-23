@@ -45,30 +45,27 @@ export class HealPhase extends SynchronousPhase<HealContext> {
  * This function contains the core healing logic
  */
 export function executeHealOperation(context: HealContext, battle: Battle): void {
-  // Apply OnBeforeHeal effects to modify healing value
+  const hp = prepareHeal(context, battle)
+  if (hp === undefined) return
+  context.target.currentHp = hp
+  notifyHeal(context, battle)
+}
+
+export function prepareHeal(context: HealContext, battle: Battle): number | undefined {
   battle.applyEffects(context, EffectTrigger.OnBeforeHeal)
   context.updateHealResult()
 
-  if (!context.available) {
+  if (!context.available || !context.target.isActive() || context.target.currentHp <= 0) {
     battle.emitMessage(BattleMessageType.HealFail, {
       target: context.target.id,
-      reason: 'disabled',
+      reason: context.available ? 'disactivated' : 'disabled',
     })
     return
   }
+  return Math.floor(Math.min(context.target.stat.maxHp, context.target.currentHp + context.healResult))
+}
 
-  if (!context.target.isActive() || context.target.currentHp <= 0) {
-    battle.emitMessage(BattleMessageType.HealFail, {
-      target: context.target.id,
-      reason: 'disactivated',
-    })
-    return
-  }
-
-  // Apply healing
-  const newHp = Math.floor(Math.min(context.target.stat.maxHp!, context.target.currentHp + context.healResult))
-  context.target.currentHp = newHp
-
+export function notifyHeal(context: HealContext, battle: Battle): void {
   battle.applyEffects(context, EffectTrigger.OnHeal)
 
   battle.emitMessage(BattleMessageType.Heal, {

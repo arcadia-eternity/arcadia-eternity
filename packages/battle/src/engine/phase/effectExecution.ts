@@ -1,9 +1,11 @@
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
 import { SynchronousPhase } from './base'
-import { EffectContext, type TriggerContextMap } from '../context'
+import { DamageContext, EffectContext, type TriggerContextMap } from '../context'
 import type { Battle } from '../battle'
 import { Effect, type EffectContainer } from '../effect'
 
+import { damageRuleId, isReplacementTrigger, runReplacementSample } from '../replacementSampling'
+import { evaluationSavepoint, getDamageEvaluation, runDamageAuthor } from '../damageEvaluation'
 import { createChildLogger } from '../logger'
 
 /**
@@ -74,7 +76,7 @@ function executeEffectExecutionOperation<T extends EffectTrigger>(
     const { effect, context } = effectQueue.shift()!
 
     // Apply BeforeEffect effects
-    battle.applyEffects(context, EffectTrigger.BeforeEffect)
+    runReplacementSample(context, 'before', () => battle.applyEffects(context, EffectTrigger.BeforeEffect))
 
     if (!context.available) {
       battle.emitMessage(BattleMessageType.EffectApplyFail, {
@@ -97,7 +99,7 @@ function executeEffectExecutionOperation<T extends EffectTrigger>(
       context.success = true
 
       // Apply AfterEffect effects
-      battle.applyEffects(context, EffectTrigger.AfterEffect)
+      runReplacementSample(context, 'after', () => battle.applyEffects(context, EffectTrigger.AfterEffect))
     } catch (error) {
       battle.executionBudget.assertActive()
       logger.error(`Effect Error ${effect.id}:`, error)
@@ -142,14 +144,20 @@ function collectEffectsFromContainers<T extends EffectTrigger>(
         .forEach(effect => {
           const effectContext = new EffectContext(parentContext, trigger, container as any, effect)
 
-          try {
-            if (!effect.condition || effect.condition(effectContext)) {
-              const effectKey = `${(container as any).id || 'unknown'}_${effect.id}_${container.constructor.name}`
+          if (
+            isReplacementTrigger(trigger) &&
+            parentContext instanceof DamageContext &&
+            parentContext.resolution.applied.has(damageRuleId(effectContext))
+          )
+            return
 
-              if (!addedEffects.has(effectKey)) {
-                addedEffects.add(effectKey)
-                effects.push({ effect, context: effectContext })
-              }
+          try {
+            if (effect.condition && !matchesCondition(effectContext, effect.condition)) return
+            const effectKey = `${(container as any).id || 'unknown'}_${effect.id}_${container.constructor.name}`
+
+            if (!addedEffects.has(effectKey)) {
+              addedEffects.add(effectKey)
+              effects.push({ effect, context: effectContext })
             }
           } catch (err) {
             parentContext.battle.executionBudget.assertActive()
@@ -160,4 +168,19 @@ function collectEffectsFromContainers<T extends EffectTrigger>(
   })
 
   return effects
+}
+
+function matchesCondition(
+  context: EffectContext<EffectTrigger>,
+  predicate: (context: EffectContext<EffectTrigger>) => boolean,
+): boolean {
+  const evaluation = getDamageEvaluation()
+  if (!evaluation) return predicate(context)
+  // A native predicate can see the proposal. Only its return value survives candidate discovery.
+  const rollback = evaluationSavepoint(evaluation, context.parent)
+  try {
+    return runDamageAuthor(undefined, () => runReplacementSample(context, 'when', () => predicate(context)))
+  } finally {
+    rollback()
+  }
 }

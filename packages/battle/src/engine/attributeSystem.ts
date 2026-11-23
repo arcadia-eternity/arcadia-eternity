@@ -1,3 +1,5 @@
+import { getDamageEvaluation } from './damageEvaluation'
+import { applyNumericModifier, type NumericModifierOperation } from './modifierMath'
 import { ExecutionBudgetExceeded } from './execution/budget'
 import { rememberModifierCleanup, describeCleanup, deactivateCleanup, noopCleanup } from './snapshotBindings'
 // attribute-system.ts
@@ -57,7 +59,7 @@ export class Modifier<T extends number | boolean | string = any> {
     public durationType: DurationType,
     public id: string,
     initialValue: T | ReactiveValue<T>,
-    public type: 'percent' | 'delta' | 'override' | 'clampMax' | 'clampMin' | 'clamp',
+    public type: NumericModifierOperation | 'clamp',
     public priority: number,
     public source?: MarkInstance | SkillInstance,
     minValue?: number,
@@ -79,44 +81,16 @@ export class Modifier<T extends number | boolean | string = any> {
     for (const cleanup of this.extraCleanups.splice(0)) cleanup()
   }
 
-  // 统一的 apply 方法
   apply(current: T): T {
-    // Get the current value from the Subject
-    const currentValue = this.getCurrentValue()
-
-    switch (this.type) {
-      case 'percent':
-        if (typeof currentValue !== 'number') return current
-        // Convert percentage to multiplier: 50 -> 1.5, -25 -> 0.75, 0 -> 1.0
-        const multiplier = 1 + (currentValue as number) / 100
-        return ((current as number) * multiplier) as number as T
-      case 'delta':
-        if (typeof currentValue !== 'number') return current
-        return ((current as number) + (currentValue as number)) as T
-      case 'override':
-        return currentValue
-      case 'clampMax':
-        if (typeof current !== 'number' || typeof currentValue !== 'number') return current
-        return Math.min(current as number, currentValue as number) as T
-      case 'clampMin':
-        if (typeof current !== 'number' || typeof currentValue !== 'number') return current
-        return Math.max(current as number, currentValue as number) as T
-      case 'clamp':
-        if (typeof current !== 'number') return current
-        const numCurrent = current as number
-        let result = numCurrent
-        // Apply min clamp if minValue is provided
-        if (this.minValue !== undefined) {
-          result = Math.max(result, this.minValue)
-        }
-        // Apply max clamp if maxValue is provided
-        if (this.maxValue !== undefined) {
-          result = Math.min(result, this.maxValue)
-        }
-        return result as T
-      default:
-        return current
+    const value = this.getCurrentValue()
+    if (this.type === 'override') return value
+    if (typeof current !== 'number') return current
+    if (this.type === 'clamp') {
+      // Attribute bounds preserve the lower bound when a reactive range crosses.
+      return Math.max(this.minValue ?? -Infinity, Math.min(this.maxValue ?? Infinity, current)) as T
     }
+    if (typeof value !== 'number') return current
+    return applyNumericModifier(current, this.type, value) as T
   }
 }
 
@@ -341,7 +315,6 @@ export class AttributeSystem<T extends AttributeData> {
 
   // Cross-object dependency tracking
   private static globalCalculationStack = new Map<string, Set<string>>()
-  private static globalDependencyGraph = new Map<string, Set<string>>()
   private objectId: string
 
   // Memory management
@@ -665,18 +638,7 @@ export class AttributeSystem<T extends AttributeData> {
 
     for (const modifier of modifiers) {
       try {
-        // Track dependencies for ReactiveValue-based modifiers
-        if (modifier.value instanceof Signal) {
-          // For reactive modifiers, we need to track potential dependencies
-          // This is a simplified approach - in practice, you might want more sophisticated tracking
-          const modifierValue = modifier.getCurrentValue()
-
-          // Apply the modifier with the current value
-          result = this.applyModifierValue(result, modifier, modifierValue)
-        } else {
-          // For static modifiers, apply directly
-          result = modifier.apply(result)
-        }
+        result = modifier.apply(result)
       } catch (error) {
         if (error instanceof ExecutionBudgetExceeded || isStrictValueRead()) throw error
         this.logger.warn(`Error applying modifier '${modifier.id}' to attribute '${String(key)}':`, error)
@@ -686,40 +648,6 @@ export class AttributeSystem<T extends AttributeData> {
     }
 
     return result
-  }
-
-  /**
-   * Apply a single modifier value safely
-   */
-  private applyModifierValue(
-    current: number | boolean | string,
-    modifier: Modifier,
-    modifierValue: any,
-  ): number | boolean | string {
-    switch (modifier.type) {
-      case 'percent':
-        if (typeof modifierValue !== 'number' || typeof current !== 'number') return current
-        const multiplier = 1 + (modifierValue as number) / 100
-        return (current as number) * multiplier
-      case 'delta':
-        if (typeof modifierValue !== 'number' || typeof current !== 'number') return current
-        return (current as number) + (modifierValue as number)
-      case 'override':
-        return modifierValue
-      case 'clampMax':
-        if (typeof current !== 'number' || typeof modifierValue !== 'number') return current
-        return Math.min(current as number, modifierValue as number)
-      case 'clampMin':
-        if (typeof current !== 'number' || typeof modifierValue !== 'number') return current
-        return Math.max(current as number, modifierValue as number)
-      case 'clamp':
-        if (typeof current !== 'number') return current
-        const min = modifier.minValue ?? Number.NEGATIVE_INFINITY
-        const max = modifier.maxValue ?? Number.POSITIVE_INFINITY
-        return Math.max(min, Math.min(max, current as number))
-      default:
-        return current
-    }
   }
 
   hasAttribute(key: AttributeKey): boolean {
@@ -811,6 +739,7 @@ export class AttributeSystem<T extends AttributeData> {
   }
 
   addModifier(key: AttributeKey, modifier: Modifier): () => void {
+    if (getDamageEvaluation()) throw new Error('Cannot change attributes during damage evaluation')
     // Check for duplicate modifiers from the same source
     if (modifier.source) {
       const sourceId = modifier.source.id
@@ -937,6 +866,7 @@ export class AttributeSystem<T extends AttributeData> {
 
   // 更新基础值（如等级变化）
   updateBaseValue(key: AttributeKey, value: number | boolean | string) {
+    if (getDamageEvaluation()) throw new Error('Cannot change attributes during damage evaluation')
     this.baseAttributes.get(key)!.next(value)
     // Update fallback value when base value changes
     this.fallbackValues.set(key, value)
@@ -1001,53 +931,6 @@ export class AttributeSystem<T extends AttributeData> {
   }
 
   /**
-   * Track cross-object dependency for debugging
-   */
-  trackCrossObjectDependency(fromObjectId: string, fromKey: string, toObjectId: string, toKey: string): void {
-    const fromGlobalKey = `${fromObjectId}.${fromKey}`
-    const toGlobalKey = `${toObjectId}.${toKey}`
-
-    if (!AttributeSystem.globalDependencyGraph.has(fromGlobalKey)) {
-      AttributeSystem.globalDependencyGraph.set(fromGlobalKey, new Set())
-    }
-    AttributeSystem.globalDependencyGraph.get(fromGlobalKey)!.add(toGlobalKey)
-  }
-
-  /**
-   * Check if there are cross-object circular dependencies
-   */
-  static hasGlobalCircularDependencies(): boolean {
-    const visited = new Set<string>()
-    const recursionStack = new Set<string>()
-
-    const dfs = (node: string): boolean => {
-      if (recursionStack.has(node)) return true
-      if (visited.has(node)) return false
-
-      visited.add(node)
-      recursionStack.add(node)
-
-      const dependencies = AttributeSystem.globalDependencyGraph.get(node)
-      if (dependencies) {
-        for (const dep of dependencies) {
-          if (dfs(dep)) return true
-        }
-      }
-
-      recursionStack.delete(node)
-      return false
-    }
-
-    for (const node of AttributeSystem.globalDependencyGraph.keys()) {
-      if (!visited.has(node)) {
-        if (dfs(node)) return true
-      }
-    }
-
-    return false
-  }
-
-  /**
    * Get global calculation stack for debugging
    */
   static getGlobalCalculationStack(): Map<string, Set<string>> {
@@ -1055,18 +938,10 @@ export class AttributeSystem<T extends AttributeData> {
   }
 
   /**
-   * Get global dependency graph for debugging
-   */
-  static getGlobalDependencyGraph(): Map<string, Set<string>> {
-    return new Map(AttributeSystem.globalDependencyGraph)
-  }
-
-  /**
    * Clear all global tracking data
    */
   static clearGlobalTracking(): void {
     AttributeSystem.globalCalculationStack.clear()
-    AttributeSystem.globalDependencyGraph.clear()
   }
 
   /**
@@ -1175,15 +1050,6 @@ export class AttributeSystem<T extends AttributeData> {
       }
     }
 
-    // Clean up global dependency graph entries for this object
-    const keysToDelete: string[] = []
-    for (const [key, _] of AttributeSystem.globalDependencyGraph) {
-      if (key.startsWith(`${this.objectId}.`)) {
-        keysToDelete.push(key)
-      }
-    }
-    keysToDelete.forEach(key => AttributeSystem.globalDependencyGraph.delete(key))
-
     this.logger.debug(`AttributeSystem ${this.objectId} destroyed successfully`)
   }
 
@@ -1219,7 +1085,6 @@ export class AttributeSystem<T extends AttributeData> {
     activeInstances: number
     destroyedInstances: number
     globalCalculationStackSize: number
-    globalDependencyGraphSize: number
     memoryUsageByInstance: ReturnType<AttributeSystem<any>['getMemoryStats']>[]
   } {
     let activeCount = 0
@@ -1242,7 +1107,6 @@ export class AttributeSystem<T extends AttributeData> {
       activeInstances: activeCount,
       destroyedInstances: destroyedCount,
       globalCalculationStackSize: AttributeSystem.globalCalculationStack.size,
-      globalDependencyGraphSize: AttributeSystem.globalDependencyGraph.size,
       memoryUsageByInstance: instanceStats,
     }
   }

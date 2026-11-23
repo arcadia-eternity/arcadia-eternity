@@ -1615,7 +1615,7 @@ export class MarkApplicationsGeneratedEffects {
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
-            const left = ctx.read(contexts.damage.select(event => event.damageResult).first())
+            const left = ctx.read(contexts.damageResult.select(event => event.hpLoss).first())
             const right = ctx.read(parameters.condition_1_value)
             return left !== undefined && right !== undefined && left < right
           }),
@@ -1629,7 +1629,7 @@ export class MarkApplicationsGeneratedEffects {
           priority: 0,
           parameters,
           when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
-            const left = ctx.read(contexts.damage.select(event => event.damageResult).first())
+            const left = ctx.read(contexts.damageResult.select(event => event.hpLoss).first())
             const right = ctx.read(parameters.condition_1_value)
             return left !== undefined && right !== undefined && left < right
           }),

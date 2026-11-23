@@ -24,6 +24,7 @@ import {
   UseSkillContext,
   type Species,
   type BattleMessage,
+  type DamageOrigin,
   type PlayerSelection,
   type playerId,
   type petId,
@@ -43,6 +44,7 @@ export function makeScenario(
   ability?: BaseMark,
   config?: ConfigSystem,
   timerConfig?: Partial<TimerConfig>,
+  leadSkill?: BaseSkill,
 ) {
   const counters = { created: 0, expired: 0, destroyed: 0, ticked: 0, hits: 0 }
   const debuff = new BaseMark(
@@ -172,7 +174,7 @@ export function makeScenario(
     return new Pet(id, id as petId, base, 50, evs, evs, Nature.Hardy, skills, id === 'A/lead' ? ability : undefined)
   }
   const a = new (ai ? AIPlayer : Player)('A', 'A' as playerId, [
-    pet('A/lead', good, [setup]),
+    pet('A/lead', good, [leadSkill ?? setup]),
     pet('A/reserve', good, [strike]),
   ])
   const b = new Player('B', 'B' as playerId, [pet('B/lead', weak, [tap]), pet('B/reserve', weak, [tap])])
@@ -195,6 +197,11 @@ export async function runScenario(seed = 201) {
       ),
     ),
   )
+  const canonicalOrigin = (origin: DamageOrigin) => ({
+    ...origin,
+    executorId: skillIdentities.get(origin.executorId) ?? origin.executorId,
+    skillInstanceId: origin.skillInstanceId && (skillIdentities.get(origin.skillInstanceId) ?? origin.skillInstanceId),
+  })
   const messages: BattleMessage[] = []
   const actions: { turn: number; selection: PlayerSelection }[] = []
   const checkpoints: { turn: number; rage: number[]; hp: number[]; accuracy: number; atk: number }[] = []
@@ -250,7 +257,18 @@ export async function runScenario(seed = 201) {
       switches: messages.filter(m => m.type === BattleMessageType.PetSwitch).map(m => m.data),
       damage: messages
         .filter(m => m.type === BattleMessageType.Damage)
-        .map(m => ({ ...m.data, source: skillIdentities.get(m.data.source) ?? m.data.source })),
+        .map(({ data }) => {
+          const result = data.result
+          return {
+            ...data,
+            source: skillIdentities.get(data.source) ?? data.source,
+            result: result && {
+              ...result,
+              origin: canonicalOrigin(result.origin),
+              intent: { ...result.intent, origin: canonicalOrigin(result.intent.origin) },
+            },
+          }
+        }),
     }
   } finally {
     await battle.cleanup()

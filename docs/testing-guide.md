@@ -16,7 +16,6 @@ pnpm test:battle
 pnpm verify:battle-hosts
 pnpm verify:battle-waiting-snapshots
 pnpm verify:battle-behaviors
-pnpm verify:battle-templates
 pnpm verify:battle-native
 pnpm verify:battle-native-pack
 ```
@@ -73,7 +72,7 @@ Electron 基础 IPC 检查：
 node --test packages/web-ui/electron/test/*.test.mjs
 ```
 
-真实桌面进程、窗口与本地试战另有环境开关和服务前提，见[内容管理验证](guides/content-management.md#验证)与[试战生命周期](guides/local-trial-lifecycle.md#验证重点)。默认跳过的真实宿主测试不计作已验收；正式安装、签名、升级和平台矩阵由 #209／#221 继续跟踪。
+真实桌面进程、窗口与本地试战另有环境开关和服务前提，见[内容管理验证](guides/content-management.md#验证)与[试战生命周期](guides/local-trial-lifecycle.md#验证范围)。默认跳过的真实宿主测试不计作已验收；正式安装、签名、升级和平台矩阵由 #209／#221 继续跟踪。
 
 ## 全仓检查与维护
 

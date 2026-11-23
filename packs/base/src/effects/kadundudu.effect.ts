@@ -78,11 +78,7 @@ const damageNotFromHongxinLianjie = contexts.damage.condition((_ctx, events) =>
   events.some(event => (event.source as { baseId?: string }).baseId !== LIANJIE),
 )
 
-/**
- * Original evidence only covers the physical/special skill damage path; the
- * project's Effect damage bypasses OnBeforeCalculateDamage and is not widened
- * here without original evidence.
- */
+/** 红心连接 shares physical and special damage. */
 const damageIsPhysicalOrSpecial = contexts.damage.condition((_ctx, events) =>
   events.some(event => event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
 )
@@ -216,7 +212,7 @@ export class KadunduduEffects {
           damageNotFromHongxinLianjie,
         ),
         apply: targets.opponentActive.apply(
-          ops.dealDamage(contexts.damage.select(event => Math.floor(event.damageResult / 3)).first()),
+          ops.dealDamage(contexts.damageResult.select(event => Math.floor(event.hpLoss / 3)).first()),
         ),
       },
       /** 特性 印记 (feature 1029): +10% damage while any 红心印记 / 桃红印记 is present. */

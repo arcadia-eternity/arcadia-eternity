@@ -1,4 +1,5 @@
 import { EffectTrigger } from '@arcadia-eternity/const'
+import { getDamageEvaluation } from '../damageEvaluation'
 import { Battle } from '../battle'
 import { EffectContext } from '../context'
 import { MarkInstanceImpl, type MarkInstance } from '../mark'
@@ -86,6 +87,7 @@ function stateConfig(
       throw new Error(`Conflicting effect state definition: ${definition.id}`)
   } else {
     if (config.hasRegisteredConfig(key)) throw new Error(`Conflicting effect state definition: ${definition.id}`)
+    if (getDamageEvaluation()) return { config, key }
     config.registerConfig(metadataKey, metadata)
     config.registerConfig(key, definition.default)
   }
@@ -108,6 +110,7 @@ export function setEffectState<K extends keyof StateTypes>(
   definition: EffectStateDefinition<K>,
   value: StateTypes[K],
 ): void {
+  if (getDamageEvaluation()) throw new Error('Cannot write effect state during damage evaluation')
   if (!validValue(definition.type, value)) throw new Error(`Invalid effect state value: ${definition.id}`)
   const { config, key } = stateConfig(context, entity, definition)
   config.set(key, value, entity)

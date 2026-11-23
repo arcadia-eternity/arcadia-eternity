@@ -10,7 +10,7 @@ const recoveryHp = owner
 /** Source: effect_mark_shiguangchongsheng. Direct assignment deliberately does not become healing. */
 export const timeRebirth = defineEffect({
   id: 'effect_mark_shiguangchongsheng',
-  triggers: [EffectTrigger.PostDamage],
+  triggers: [EffectTrigger.OnDamage],
   when(ctx) {
     return conditions.selfBeDamaged(ctx) && isAtZeroHp(ctx)
   },

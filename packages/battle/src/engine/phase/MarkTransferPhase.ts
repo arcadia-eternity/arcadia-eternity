@@ -1,3 +1,4 @@
+import { matchesMarkApplication } from '../deferredDamage'
 import { EffectTrigger, StackStrategy } from '@arcadia-eternity/const'
 import type { Battle } from '../battle'
 import { SwitchPetContext, EffectContext, AddMarkContext, StackContext } from '../context'
@@ -47,9 +48,10 @@ export function executeMarkTransferOperation(
   battle: Battle,
 ): void {
   marks.forEach(mark => {
+    if (!mark.isActive || !mark.owner) return
     mark.cleanupOwnerContributions()
     mark.detach()
-    const existingMark = target.marks.find(m => m.base.id === mark.base.id)
+    const existingMark = target.marks.find(m => matchesMarkApplication(m, mark.base, mark.deferredDamage))
     if (existingMark) {
       // Create EffectContext for stacking
       const effectContext =
@@ -82,6 +84,9 @@ export function executeMarkTransferOperation(
       )
       battle.phaseManager.registerPhase(stackPhase)
       battle.phaseManager.executePhase(stackPhase.id)
+      // The incoming instance has been merged and may still be in this turn's update list.
+      mark.isActive = false
+      mark.deferredDamage = undefined
       battle.configSystem.releaseScope(mark)
     } else {
       // Transfer mark directly

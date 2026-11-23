@@ -82,7 +82,7 @@ for (const kind of ['pet', 'skill', 'mark'] as const)
         })
         b.activePet.damage(context)
         if (damageType === DamageType.Effect) {
-          expect(trace).toEqual([EffectTrigger.OnDamage, BattleMessageType.Damage])
+          expect(trace).toEqual([BattleMessageType.Damage, EffectTrigger.OnDamage])
           expect(b.activePet.currentHp).toBe(hp - 20)
         } else if (variant === 'cancel') {
           expect(trace).toEqual([EffectTrigger.OnBeforeCalculateDamage, BattleMessageType.DamageFail])
@@ -92,8 +92,8 @@ for (const kind of ['pet', 'skill', 'mark'] as const)
           expect(trace).toEqual([
             EffectTrigger.OnBeforeCalculateDamage,
             ...(variant === 'ignore-shield' ? [] : [EffectTrigger.Shield]),
-            EffectTrigger.OnDamage,
             BattleMessageType.Damage,
+            EffectTrigger.OnDamage,
             EffectTrigger.PostDamage,
             ...(variant === 'critical' ? [EffectTrigger.OnCritPostDamage] : []),
           ])
@@ -135,6 +135,5 @@ for (const variant of ['normal', 'cancel', 'zero'] as const)
     battle.phaseManager.executePhase(phase.id)
     expect(damages).toHaveLength(1)
     expect(damages[0].source).toBe(skill)
-    expect(rage).toHaveLength(variant === 'cancel' ? 0 : 1)
-    if (variant === 'zero') expect(rage[0].value).toBe(0)
+    expect(rage).toHaveLength(variant === 'normal' ? 1 : 0)
   })

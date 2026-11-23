@@ -1,5 +1,6 @@
+import { matchesMarkApplication } from '../deferredDamage'
 import { markParameterContract, normalizeMarkInstanceParams, sameMarkInstanceParams } from '../content/mark-parameters'
-import { EffectTrigger, StackStrategy, BattleMessageType } from '@arcadia-eternity/const'
+import { EffectTrigger, StackStrategy, BattleMessageType, type markId } from '@arcadia-eternity/const'
 import type { Battle } from '../battle'
 import { AddMarkContext, RemoveMarkContext, StackContext } from '../context'
 import type { MarkOwner } from '../entity'
@@ -59,7 +60,7 @@ export function executeAddMarkOperation(context: AddMarkContext, battle: Battle)
   const instanceParams = normalizeMarkInstanceParams(context.baseMark, context.instanceParams)
   contract?.assertInstalled(battle.configSystem)
   const parameterizedExisting = contract
-    ? context.target.marks.find(mark => mark.base.id === context.baseMark.id)
+    ? context.target.marks.find(mark => matchesMarkApplication(mark, context.baseMark, context.deferredDamage))
     : undefined
   if (parameterizedExisting && !sameMarkInstanceParams(parameterizedExisting.instanceParams, instanceParams)) {
     context.result = 'parameter-conflict'
@@ -82,12 +83,14 @@ export function executeAddMarkOperation(context: AddMarkContext, battle: Battle)
 
   // Create new mark instance
   const config = {
+    id: battle.allocateEventId('mark') as markId,
     instanceParams,
     config: context.config,
     duration: context.duration ?? context.config?.duration,
     stack: context.stack ?? context.config?.maxStacks,
   }
   const newMark = context.baseMark.createInstance(config)
+  newMark.deferredDamage = context.deferredDamage
   newMark.registerBattle(battle)
 
   // Check for existing stat level mark of the same stat type
@@ -112,7 +115,9 @@ export function executeAddMarkOperation(context: AddMarkContext, battle: Battle)
   }
 
   // Check for existing mark of the same type (for non-stat level marks)
-  const existingMark = existingStatLevelMark || context.target.marks.find(mark => mark.base.id === context.baseMark.id)
+  const existingMark =
+    existingStatLevelMark ||
+    context.target.marks.find(mark => matchesMarkApplication(mark, context.baseMark, context.deferredDamage))
 
   if (existingMark || existingOppositeMark) {
     const targetMark = existingMark || existingOppositeMark!

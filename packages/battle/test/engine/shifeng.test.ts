@@ -10,6 +10,8 @@ import {
   SwitchPetPhase,
   TurnContext,
   UseSkillContext,
+  defineNativeEffect,
+  type effectId,
   type Battle,
   type Player,
 } from '@arcadia-eternity/battle/engine'
@@ -126,8 +128,11 @@ it.each([
   [0.4, false],
 ])('uses the 40%% secondary chance after its third charge, with random draw %s', (random, expected) => {
   const { battle, a, b } = setup([slowSkill, poisonSkill])
+  // Keep the target alive through the three setup hits and the fourth chance check.
+  addMark(battle, b, b, 'mark_hanbinghujia', 1000)
   const rng = vi.spyOn(battle, 'random').mockReturnValue(0.99)
   for (let i = 0; i < 3; i++) attack(battle, a, slowSkill, true)
+  expect(b.activePet.isAlive).toBe(true)
   rng.mockReturnValue(random)
   attack(battle, a, poisonSkill, true)
   expect(mark(a.activePet, needles)?.stack).toBe(0)
@@ -202,3 +207,27 @@ it.each([
     expect(a.activePet.currentHp).toBe(ownHp + 12)
   },
 )
+
+it('drains the committed HP loss even if the victim heals in its own damage reaction', () => {
+  const { battle, a, b } = setup(['skill_xiongfengzhici'])
+  vi.spyOn(battle, 'random').mockReturnValue(0.99)
+  const target = b.activePet
+  addMark(battle, b, b, 'mark_hanbinghujia', 1000)
+  target.currentHp -= 20
+  a.activePet.currentHp -= 100
+  const attackerHp = a.activePet.currentHp
+  const targetHp = target.currentHp
+  target.skills[0].effects.push(
+    defineNativeEffect({
+      id: 'fixture/later-heal' as effectId,
+      triggers: [EffectTrigger.OnDamage],
+      priority: 10,
+      apply: ({ parent }) => {
+        parent.target.currentHp += 10
+      },
+    }),
+  )
+  attack(battle, a, 'skill_xiongfengzhici', true)
+  expect(target.currentHp).toBe(targetHp - 50 + 10)
+  expect(a.activePet.currentHp).toBe(attackerHp + 50)
+})

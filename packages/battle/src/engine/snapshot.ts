@@ -1,3 +1,4 @@
+import { readDeferredDamage } from './deferredDamage'
 import { validateEffectStateSnapshot } from './content/effect-state'
 import { markParameterContract, normalizeMarkInstanceParams, sameMarkInstanceParams } from './content/mark-parameters'
 import mitt from 'mitt'
@@ -286,7 +287,7 @@ const ledger = {
   Battle: {
     ctor: Battle,
     fields:
-      'type lastStateMessage id elementMultipliers enhancementActive allowFaintSwitch showHidden configSystem actionLog status currentPhase currentTurn lastKiller marks victor pendingForcedSwitches pendingFaintSwitch isInitialSwitchPhase petMap skillMap sequenceId playerA playerB',
+      'type lastStateMessage id elementMultipliers enhancementActive allowFaintSwitch showHidden configSystem actionLog status currentPhase currentTurn lastKiller marks victor pendingForcedSwitches pendingFaintSwitch isInitialSwitchPhase petMap skillMap eventSequence sequenceId playerA playerB',
     runtime:
       'executionBudget battle parent logger phaseManager timerManager transformationSystem emitter rng cancelled _isStarting messageCallbacks waitingResolvers restoredSelection cleanupPromise',
   },
@@ -315,13 +316,13 @@ const ledger = {
   MarkInstanceImpl: {
     ctor: MarkInstanceImpl,
     fields:
-      'base instanceParams suppression owner id effects temporaryEffects config tags attributeSystem attributeModifierCleanups',
+      'base deferredDamage instanceParams suppression owner id effects temporaryEffects config tags attributeSystem attributeModifierCleanups',
     runtime: 'emitter',
   },
   StatLevelMarkInstanceImpl: {
     ctor: StatLevelMarkInstanceImpl,
     fields:
-      'base instanceParams suppression owner id effects temporaryEffects config tags attributeSystem attributeModifierCleanups modifierCleanupFn statLevelAttributeSystem stageMultiplier$',
+      'base deferredDamage instanceParams suppression owner id effects temporaryEffects config tags attributeSystem attributeModifierCleanups modifierCleanupFn statLevelAttributeSystem stageMultiplier$',
     runtime: 'emitter levelAccessors',
   },
   BaseSkill: {
@@ -392,7 +393,6 @@ function assertBoundary(battle: Battle, boundary: BattleSnapshot['boundary']) {
     battle.phaseManager.getPhasesByState(PhaseState.Failed).length
   )
     throw new Error('Snapshot cannot discard pending or failed phases')
-  battle.phaseManager.assertSnapshotSafe()
   for (const container of [
     ...battle.marks,
     ...[...battle.petMap.values()].flatMap(pet => [...pet.skills, ...pet.marks]),
@@ -468,6 +468,7 @@ export function snapshotBattle(
         if (value instanceof BaseMark && markParameterContract(value))
           throw new Error('Parameterized mark requires registered snapshot content')
         if (value instanceof MarkInstanceImpl) {
+          if (value.deferredDamage !== undefined) readDeferredDamage(value.deferredDamage)
           const params = normalizeMarkInstanceParams(value.base, value.instanceParams)
           if (!sameMarkInstanceParams(params, value.instanceParams)) throw new Error('Invalid mark instance parameters')
           markParameterContract(value.base)?.validateScope(battle.configSystem.exportSnapshotState(), value)
@@ -796,6 +797,7 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
     for (const { object, state } of attributes) object.restoreSnapshotModifiers(state)
     for (const object of objects)
       if (object instanceof MarkInstanceImpl) {
+        if (object.deferredDamage !== undefined) object.deferredDamage = readDeferredDamage(object.deferredDamage)
         const params = normalizeMarkInstanceParams(object.base, object.instanceParams)
         if (!sameMarkInstanceParams(params, object.instanceParams)) throw new Error('Invalid mark instance parameters')
         const contract = markParameterContract(object.base)
@@ -992,6 +994,13 @@ function validateSnapshot(input: unknown, catalog: SnapshotCatalog): BattleSnaps
       ])
       if (Object.keys(node.fields).some(key => !allowed.has(key))) throw new Error('Unknown snapshot domain field')
       const optional = new Set(node.kind === 'Pet' ? ['currentAbility', 'currentEmblem', 'lastUsedSkillElement'] : [])
+      if (node.kind === 'Battle') {
+        optional.add('eventSequence')
+        const sequence = node.fields.eventSequence
+        if (sequence !== undefined && (typeof sequence !== 'number' || !Number.isSafeInteger(sequence) || sequence < 0))
+          throw new Error('Invalid snapshot event sequence')
+      }
+      if (node.kind === 'MarkInstanceImpl' || node.kind === 'StatLevelMarkInstanceImpl') optional.add('deferredDamage')
       if (['SkillInstance', 'MarkInstanceImpl', 'StatLevelMarkInstanceImpl'].includes(node.kind))
         optional.add('temporaryEffects')
       if (spec.fields.split(' ').some(key => !optional.has(key) && !Object.hasOwn(node.fields, key)))

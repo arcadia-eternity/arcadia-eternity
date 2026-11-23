@@ -51,18 +51,18 @@ function powerWhen(gender: Condition, bonus: number) {
 
 function drainWhen(gender: Condition, amount: number) {
   const target = contexts.skillUse.flatMap(event => (event.actualTarget ? [event.actualTarget] : []))
-  const hp = target.select(pet => pet.currentHp).first()
+  const drain = target.apply(ops.dealDamage(amount))
+  const restore = targets.ownerPet.apply(ops.heal(contexts.damageResult.select(result => result.hpLoss).first()))
   return {
-    triggers: [EffectTrigger.OnHit] as const,
+    triggers: [EffectTrigger.OnHit, EffectTrigger.OnDamage] as const,
     priority: 0,
-    when: conditions.all(conditions.selfUsesSkill, gender),
-    apply: (ctx => {
-      const before = ctx.read(hp) ?? 0
-      if (before <= 0) return
-      target.apply(ops.dealDamage(Math.min(amount, before)))(ctx)
-      const lost = before - (ctx.read(hp) ?? before)
-      if (lost > 0) targets.ownerPet.apply(ops.heal(lost))(ctx)
-    }) satisfies Action,
+    when: (ctx =>
+      ctx.trigger === EffectTrigger.OnHit
+        ? conditions.selfUsesSkill(ctx) && gender(ctx)
+        : conditions.thisEffectCausedDamage(ctx)) satisfies Condition<EffectTrigger.OnHit | EffectTrigger.OnDamage>,
+    apply: (ctx => (ctx.trigger === EffectTrigger.OnHit ? drain(ctx) : restore(ctx))) satisfies Action<
+      EffectTrigger.OnHit | EffectTrigger.OnDamage
+    >,
   }
 }
 

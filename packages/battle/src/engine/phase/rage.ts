@@ -11,7 +11,7 @@ import type { Player } from '../player'
 export class RagePhase extends SynchronousPhase<RageContext> {
   constructor(
     battle: Battle,
-    private readonly parentContext: any, // UseSkillContext, EffectContext, or TurnContext
+    private readonly parentContext: RageContext['parent'],
     private readonly target: Player,
     private readonly reason: 'turn' | 'damage' | 'skill' | 'skillHit' | 'switch' | 'effect',
     private readonly modifiedType: 'setting' | 'add' | 'reduce',
@@ -68,16 +68,19 @@ export function executeRageOperation(context: RageContext, battle: Battle): void
       context.target.settingRage(context.target.currentRage + context.rageChangeResult)
       battle.applyEffects(context, EffectTrigger.OnRageGain)
       break
-    case 'reduce':
+    case 'reduce': {
       battle.applyEffects(context, EffectTrigger.BeforeRageLoss)
       if (!context.available) {
         context.rageChangeResult = 0
         return
       }
       context.updateRageChangeResult()
-      context.target.settingRage(context.target.currentRage - context.rageChangeResult)
+      const rageBeforePayment = context.target.currentRage
+      context.target.settingRage(rageBeforePayment - context.rageChangeResult)
+      context.rageSpent = Math.max(0, rageBeforePayment - context.target.currentRage)
       battle.applyEffects(context, EffectTrigger.OnRageLoss)
       break
+    }
   }
 
   battle.emitMessage(BattleMessageType.RageChange, {

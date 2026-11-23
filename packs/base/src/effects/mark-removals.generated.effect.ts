@@ -35,7 +35,7 @@ export class MarkRemovalsGeneratedEffects {
         triggers: [EffectTrigger.PostDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, (ctx: EffectFrame) => {
-          const left = ctx.read(contexts.damage.select(event => event.damageResult).first())
+          const left = ctx.read(contexts.damageResult.select(event => event.hpLoss).first())
           const right = 100
           return left !== undefined && right !== undefined && left >= right
         }),
