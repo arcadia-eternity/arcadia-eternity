@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.17.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.17.0...arcadia-eternity-v4.17.1) (2026-11-23)
+
+
+### 🐛 Bug Fixes
+
+* **base:** correct mark lifetimes and battle triggers ([f823e5b](https://github.com/arcadia-eternity/arcadia-eternity/commit/f823e5beca1e7055e58f9b50924fc118b47842eb))
+* **battle:** reduce effect selector overhead and allow for browser delays ([354426f](https://github.com/arcadia-eternity/arcadia-eternity/commit/354426fdffe885eb3059d17733324447d5ea57f4))
+* **release:** group client and official content in one release PR ([30f4d26](https://github.com/arcadia-eternity/arcadia-eternity/commit/30f4d26cf41a698fff47cb1196fad6c5de2be546))
+
 ## [4.17.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.16.3...arcadia-eternity-v4.17.0) (2026-11-23)
 
 
