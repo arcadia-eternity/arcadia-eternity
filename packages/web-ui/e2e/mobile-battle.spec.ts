@@ -56,6 +56,7 @@ test('skill details follow battle scale and let touches reach the controls under
 
 test('active pet stats open toward the battlefield and stay clear of the side rosters', async ({ page }) => {
   await page.getByRole('button', { name: '继续游戏' }).tap()
+  await expect(page.getByTestId('battle-actions-ready')).toHaveAttribute('data-ready', 'true')
   for (const viewport of [
     { width: 390, height: 844 },
     { width: 844, height: 390 },
@@ -63,9 +64,11 @@ test('active pet stats open toward the battlefield and stay clear of the side ro
     await page.setViewportSize(viewport)
     for (const side of ['right', 'left'] as const) {
       const portrait = page.locator(`[data-battle-status="${side}"] .battle-status__portrait`)
-      await portrait.tap()
-      const detail = page.locator('[role="tooltip"]:not([inert])').filter({ hasText: '休罗斯 属性' })
-      await expect(detail).toBeVisible()
+      const control = page.locator(`[data-battle-status="${side}"]`).getByRole('button', { name: / 属性$/ })
+      await control.tap()
+      await expect(control).toHaveAttribute('aria-expanded', 'true')
+      const detail = page.locator('[role="tooltip"]:not([inert])')
+      await expect(detail).toContainText((await control.getAttribute('aria-label'))!)
       const anchor = (await portrait.boundingBox())!
       const roster = (await page.locator(`.battle-roster--${side}`).boundingBox())!
       const panel = (await detail.boundingBox())!
@@ -77,6 +80,9 @@ test('active pet stats open toward the battlefield and stay clear of the side ro
       }
       expect(panel.y).toBeGreaterThanOrEqual(host.y)
       expect(panel.y + panel.height).toBeLessThanOrEqual(host.y + host.height)
+      await control.tap()
+      await expect(control).toHaveAttribute('aria-expanded', 'false')
+      await expect(detail).toHaveCount(0)
     }
   }
 })

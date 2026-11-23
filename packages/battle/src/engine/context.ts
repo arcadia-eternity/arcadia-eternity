@@ -493,7 +493,7 @@ export class DamageContext extends Context {
   }
 
   get damageResult(): number {
-    return this.result?.hpLoss ?? this.resolution.remaining ?? this.resolution.evaluate()
+    return this.result?.dealtDamage ?? this.resolution.remaining ?? this.resolution.evaluate()
   }
 
   /** Numeric terms are sampled once by authoring Values in the active effect frame. */

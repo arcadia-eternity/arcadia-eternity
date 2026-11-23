@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.16.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.16.2...arcadia-eternity-v4.16.3) (2026-11-23)
+
+
+### 🐛 Bug Fixes
+
+* **battle:** report overkill damage separately from HP loss ([395ea76](https://github.com/arcadia-eternity/arcadia-eternity/commit/395ea76cf9994c624b8f2bc5641476ceb70932d1))
+* **web:** keep battle stats open after a touch ([a7adf95](https://github.com/arcadia-eternity/arcadia-eternity/commit/a7adf95112d7fa06ee44229944ee00afe05c4c49))
+
 ## [4.16.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.16.1...arcadia-eternity-v4.16.2) (2026-11-23)
 
 

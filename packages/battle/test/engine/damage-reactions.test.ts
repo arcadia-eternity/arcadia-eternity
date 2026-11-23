@@ -76,7 +76,7 @@ it('reflects a committed hit and awards the skill drain only for HP lost by its 
   defender.damage(damage)
 
   expect(messages.map(hit => [hit.target, hit.damage])).toEqual([
-    [defender.id, 32],
+    [defender.id, 100],
     [attacker.id, 8],
   ])
   expect(healing).toEqual([8])
