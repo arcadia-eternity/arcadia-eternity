@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.13.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v4.13.1...data-pack-base-v4.13.2) (2026-11-23)
+
+
+### ♻️ Code Refactoring
+
+* **battle:** resolve damage events and mark-held delayed strikes ([#328](https://github.com/arcadia-eternity/arcadia-eternity/issues/328)) ([180e66b](https://github.com/arcadia-eternity/arcadia-eternity/commit/180e66bf1b1153c0b1694ed13ce0a34bb31a533e))
+
 ## [4.13.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v4.13.0...data-pack-base-v4.13.1) (2026-11-22)
 
 
