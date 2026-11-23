@@ -365,7 +365,7 @@ contexts.skillUse.apply(ops.setSkillSureHit(true))
 // @ts-expect-error Skill flags require booleans.
 ops.setSkillSureHit(1)
 
-const consumptionEvent = defineEffect({
+export const consumptionEvent = defineEffect({
   id: 'type-test/consumption-context',
   triggers: [EffectTrigger.OnBeforeConsumeStack],
   apply(ctx) {
@@ -442,7 +442,7 @@ sdk.defineCodeEffect({
   triggers: ['ImaginaryTrigger'],
   apply() {},
 })
-const nativeModule: sdk.CodeEffectModule = {
+export const nativeModule: sdk.CodeEffectModule = {
   createEffects: ({ sdk: injected, id }) => [
     injected.defineCodeEffect({
       id: id('native'),

@@ -8,7 +8,7 @@
 | RNG        | 独立 `sfc32-v1`，支持状态续接                                                                                                      | `rng.test.ts`                                                              |
 | 阶段错误   | 默认传播；非零 retryCount/timeout 在修改前拒绝，自动回滚重试尚未实现                                                               | `phase-lifecycle.test.ts`                                                  |
 | 阶段 scope | Current 取最近活跃匹配实例，无则取下一实例；Next 跳过注册时活跃实例；显式 phaseId 优先；Any 在匹配类型中生效并于首个匹配完成时清理 | `historical-fixes.test.ts`                                                 |
-| 伤害/怒气  | 保留真实上下文；技能伤害来源为 SkillInstance，按 DamageType 分类；取消伤害不派发衍生怒气；Rage 前事件在结算前、后事件在结算后      | `historical-damage-lifecycle.test.ts`、`historical-rage-lifecycle.test.ts` |
+| 伤害/怒气  | [伤害结算](damage-resolution.md)区分来源与适用规则。受伤怒气按实际损血计算，归属最终目标                                           | `historical-damage-lifecycle.test.ts`、`historical-rage-lifecycle.test.ts` |
 | 层数消耗   | 经 ConsumeStackPhase；前事件可取消/修改，扣层固定后派发后事件与消息，后事件取消不回滚已扣层                                        | `historical-stack-consumption.test.ts`                                     |
 | 技能结束   | SkillUseEnd 效果在技能 finally 的印记清理后派发；try 之前的早期失败不派发                                                          | `automatic-stack-consumption.test.ts`                                      |
 | 临时效果   | 绑定最近 Skill、其次 Turn、否则当前阶段；阶段 finally 清理；加入效果不重派当前触发器                                               | `temporary-effects.test.ts`、`random-temporary-effect.test.ts`             |

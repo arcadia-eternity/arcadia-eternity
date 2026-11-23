@@ -1,3 +1,4 @@
+import { applyNumericModifier } from './modifierMath'
 import { rememberModifierCleanup, deactivateCleanup, describeCleanup } from './snapshotBindings'
 import type { baseMarkId, baseSkillId, markId, petId, playerId, skillId, speciesId } from '@arcadia-eternity/const'
 import { Signal, ReactiveValue, isReactiveValue, getValueRecipe, untracked } from './reactiveValue'
@@ -12,17 +13,7 @@ import { createChildLogger, type BattleLogger } from './logger'
 
 export type ScopeObject = MarkInstance | SkillInstance | Pet | Player | Battle | BattlePhaseBase
 export type ConfigValue =
-  | string
-  | number
-  | boolean
-  | markId
-  | skillId
-  | petId
-  | playerId
-  | baseMarkId
-  | baseSkillId
-  | speciesId
-  | null
+  string | number | boolean | markId | skillId | petId | playerId | baseMarkId | baseSkillId | speciesId | null
 
 export enum ConfigModifierType {
   override = 'override',
@@ -130,7 +121,7 @@ export class ConfigModifier {
 
       case ConfigModifierType.delta:
         if (typeof base === 'number' && typeof modifierValue === 'number') {
-          return base + modifierValue
+          return applyNumericModifier(base, 'delta', modifierValue)
         }
         throw new Error(`Delta modifier can only be applied to numeric values`)
 

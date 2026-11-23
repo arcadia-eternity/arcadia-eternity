@@ -15,7 +15,7 @@ export class ContextControlsGeneratedEffects {
   static build() {
     return defineEffects({
       effect_block_damage_under_60: {
-        triggers: [EffectTrigger.OnDamage],
+        triggers: [EffectTrigger.OnDamageReplacement],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, (ctx: EffectFrame) => {
           const left = ctx.read(contexts.damage.select(event => event.damageResult).first())
@@ -31,7 +31,7 @@ export class ContextControlsGeneratedEffects {
         apply: actions.sequence(contexts.skillUse.apply(ops.setActualTarget(targets.ownerPet.first()))),
       },
       effect_mark_prevent_damage: {
-        triggers: [EffectTrigger.OnBeforeCalculateDamage],
+        triggers: [EffectTrigger.OnDamageReplacement],
         priority: 0,
         when: conditions.sourceOwnsEvent,
         apply: actions.sequence(contexts.damage.apply(ops.preventDamage())),

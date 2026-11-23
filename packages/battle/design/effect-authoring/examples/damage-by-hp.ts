@@ -1,2 +1,2 @@
 /** Readable production candidate; not automatically installed. */
-export { damageBoostByHp } from '@arcadia-eternity/data-pack-base/effects'
+export { damageBoostByHp } from '../../../../../packs/base/src/effects/authored/damage-by-hp'

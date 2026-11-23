@@ -1,9 +1,12 @@
+import { damageRuleId } from '../../replacementSampling'
+import { assertEvaluationOperation, getDamageEvaluation } from '../../damageEvaluation'
+import { deferSkillDamage } from '../../deferredDamage'
 import { nanoid } from 'nanoid'
 import type { TSchema } from '@sinclair/typebox'
 import { ConfigModifier, ConfigDurationType, ConfigModifierType } from '../../config'
 import { Modifier, DurationType } from '../../attributeSystem'
 import {
-  BattleMessageType,
+  DamageType,
   type effectId,
   EffectTrigger,
   type StatTypeWithoutHp,
@@ -13,6 +16,7 @@ import {
 import {
   AddMarkContext,
   DamageContext,
+  DefeatContext,
   HealContext,
   UseSkillContext,
   SwitchPetContext,
@@ -25,6 +29,7 @@ import {
   RemoveMarkContext,
 } from '../../context'
 import { Pet } from '../../pet'
+import { setEffectHp } from '../../damageState'
 import { Player } from '../../player'
 import { RagePhase } from '../../phase/rage'
 import { BaseSkill, SkillInstance } from '../../skill'
@@ -271,7 +276,7 @@ function selector<T>(query: (ctx: Frame) => readonly T[]): C.Selector<T> {
               target,
               get: () => target.currentHp,
               set: value => {
-                target.currentHp = value
+                setEffectHp(engine(ctx), target, value)
               },
             })
           } else if (target instanceof UseSkillContext && (key === 'rage' || key === 'evasion' || key === 'priority')) {
@@ -306,6 +311,12 @@ export const targets: typeof C.targets = {
   sourceSkill: selector(ctx => {
     const source = scope(ctx).source
     return source instanceof SkillInstance ? [source] : []
+  }),
+  damageOriginPet: selector(ctx => {
+    const event = nearestContext(ctx, DamageContext)
+    const petId = event?.origin.petId
+    const pet = petId && engine(ctx).battle.petMap.get(petId)
+    return pet ? [pet] : []
   }),
   selfTeam: selector(ctx => [...(directSkillEvent(ctx)?.pet.owner?.team ?? owner(ctx)?.owner?.team ?? [])]),
   selfSkills: selector(ctx => [...(skillActorOrOwner(ctx)?.skills ?? [])]),
@@ -377,6 +388,24 @@ export const contexts: typeof C.contexts = {
     const event = nearestContext(ctx, DamageContext)
     return event ? [event] : []
   }),
+  damageSkill: selector(ctx => {
+    const event = nearestContext(ctx, DamageContext)
+    const origin = event?.origin
+    if (!origin?.skillId || !origin.skillCategory) return []
+    return [
+      {
+        id: origin.skillId,
+        category: origin.skillCategory,
+        element: event?.element ?? origin.skillElement,
+        tags: origin.skillTags ?? [],
+        hits: origin.hitCount ?? 1,
+      },
+    ]
+  }),
+  damageResult: selector(ctx => {
+    const result = nearestContext(ctx, DamageContext)?.result
+    return result ? [result] : []
+  }),
   rage: selector(ctx => {
     const event = nearestContext(ctx, RageContext)
     return event ? [event] : []
@@ -419,11 +448,31 @@ export const conditions: typeof C.conditions = {
       items.some(item => item(ctx)),
   not: item => ctx => !item(ctx),
   selfUsesSkill(ctx) {
-    const skill = contexts.nearestSkillUse(ctx)
     const source = engine(ctx).source
+    if (ctx.parent instanceof DamageContext) {
+      const origin = ctx.parent.origin
+      return (
+        !!origin.skillId &&
+        source.owner instanceof Pet &&
+        source.owner.id === origin.petId &&
+        (!(source instanceof SkillInstance) || source.id === origin.skillInstanceId)
+      )
+    }
+    if (ctx.parent instanceof DefeatContext) {
+      return (
+        !!ctx.parent.skill &&
+        source.owner === ctx.parent.killer &&
+        (!(source instanceof SkillInstance) || source === ctx.parent.skill)
+      )
+    }
+    const skill = contexts.nearestSkillUse(ctx)
     return !!skill && source.owner === skill.pet && (!(source instanceof SkillInstance) || source === skill.skill)
   },
   skillActorDiffersFromOwner(ctx) {
+    if (ctx.parent instanceof DamageContext) {
+      const origin = ctx.parent.origin
+      return !!origin.skillId && !!origin.petId && owner(ctx)?.id !== origin.petId
+    }
     const skill = contexts.nearestSkillUse(ctx)
     return !!skill && engine(ctx).source.owner !== skill.pet
   },
@@ -437,9 +486,9 @@ export const conditions: typeof C.conditions = {
     return (
       event instanceof RageContext &&
       event.reason === 'damage' &&
-      event.parent instanceof UseSkillContext &&
+      event.parent instanceof DamageContext &&
       sourceOwner instanceof Pet &&
-      sourceOwner === event.target.activePet
+      sourceOwner === event.parent.target
     )
   },
   ownerUsesSkill: ctx => ctx.parent instanceof UseSkillContext && owner(ctx) === ctx.parent.pet,
@@ -451,7 +500,7 @@ export const conditions: typeof C.conditions = {
     if (
       event instanceof RageContext &&
       event.reason === 'damage' &&
-      event.parent instanceof UseSkillContext &&
+      event.parent instanceof DamageContext &&
       sourceOwner instanceof Pet
     )
       return sourceOwner.owner === event.target
@@ -463,6 +512,7 @@ export const conditions: typeof C.conditions = {
   },
   ownerIsSkillTarget: ctx => {
     const pet = owner(ctx)
+    if (ctx.parent instanceof DefeatContext) return pet === ctx.parent.target
     return pet !== undefined && ctx.parent instanceof UseSkillContext && pet === ctx.parent.actualTarget
   },
   ownerSwitchesIn: ctx => ctx.parent instanceof SwitchPetContext && owner(ctx) === ctx.parent.switchInPet,
@@ -506,6 +556,18 @@ export const conditions: typeof C.conditions = {
       mark.initialLevel !== 0 &&
       (direction === 'all' || (direction === 'up' ? mark.initialLevel > 0 : mark.initialLevel < 0))
     )
+  },
+  thisEffectCausedDamage: ctx => {
+    const origin = nearestContext(ctx, DamageContext)?.result?.origin
+    const source = engine(ctx)
+    return (
+      origin?.trigger === 'effect' && origin.executorId === source.source.id && origin.effectId === source.effect?.id
+    )
+  },
+  thisEffectModifiedDamage: ctx => {
+    const trace = nearestContext(ctx, DamageContext)?.result?.trace
+    const id = damageRuleId(engine(ctx))
+    return trace?.some(entry => entry.kind === 'modifier' && entry.id === id) ?? false
   },
   damageTargetBelongsToOtherPlayer: ctx => {
     const pet = owner(ctx),
@@ -690,9 +752,51 @@ function modifyContext<T extends DamageContext | HealContext | RageContext>(
       throw new Error('Expected finite numeric input')
     for (const event of selected) {
       if (event.battle !== engine(ctx).battle) throw new Error(`Cross-battle ${kind} context`)
-      event.addModified(p, d)
+      if (event instanceof DamageContext) event.addModified(p, d, damageRuleId(engine(ctx)))
+      else event.addModified(p, d)
     }
   }
+}
+type DamageChange = Parameters<DamageContext['addRule']>[0]['change']
+type StackPayment = number | 'all'
+function damageReplacement(
+  change: (ctx: Frame) => DamageChange | undefined,
+  payment?: StackPayment,
+): C.Operator<DamageContext> {
+  return (ctx, selected) => {
+    const source = engine(ctx)
+    for (const event of selected) {
+      if (event.battle !== source.battle) throw new Error('Cross-battle damage context')
+      if (event !== source.parent || ![EffectTrigger.OnDamageReplacement, EffectTrigger.Shield].includes(ctx.trigger))
+        throw new Error('Replacement requires the current proposed damage')
+    }
+    if (!selected.length) return
+    const proposal = change(ctx)
+    if (!proposal) return
+    const stacks = payment ?? source.effect?.consumesStacks
+    if (stacks !== undefined && !(source.source instanceof MarkInstanceImpl))
+      throw new Error('Damage replacement stack payment requires a mark')
+    if (stacks !== undefined && stacks !== 'all' && (!Number.isSafeInteger(stacks) || stacks <= 0))
+      throw new Error('Expected positive damage replacement cost')
+    const cost =
+      source.source instanceof MarkInstanceImpl && stacks !== undefined ? { mark: source.source, stacks } : undefined
+    for (const event of selected) {
+      event.addRule({
+        id: damageRuleId(source),
+        priority: source.effect?.priority,
+        target: event.target,
+        change: proposal,
+        cost,
+      })
+    }
+  }
+}
+function readDamageAmount(ctx: Frame, input: unknown): number | undefined {
+  const result = read(ctx, input)
+  if (result === undefined) return
+  if (typeof result !== 'number' || !Number.isFinite(result) || result < 0)
+    throw new Error('Expected a nonnegative finite damage amount')
+  return result
 }
 /** Skill numeric actions read separately for every target, preserving list order. */
 function modifySkillValues(
@@ -838,7 +942,10 @@ function parameterModifier(
     }
   }
 }
-export const ops: typeof C.ops = {
+const operatorFactories: typeof C.ops = {
+  deferSkillDamage: (holder, options) => (ctx, selected) => {
+    for (const cast of selected) deferSkillDamage(engine(ctx), cast, holder, options)
+  },
   setSkill:
     (input, updateConfig = false) =>
     (ctx, selected) => {
@@ -857,11 +964,7 @@ export const ops: typeof C.ops = {
     for (const target of selected) assertWriteTarget(ctx, target)
     for (const target of selected) {
       assertWriteTarget(ctx, target)
-      if (!target.isAlive) continue
-      target.currentHp = 0
-      target.isAlive = false
-      // Authored effect sources are marks or skills, never a Pet.
-      engine(ctx).battle.emitMessage(BattleMessageType.PetDefeated, { pet: target.id, killer: undefined })
+      if (target.isAlive && target.currentHp > 0) setEffectHp(engine(ctx), target, 0)
     }
   },
   addTemporaryEffect: input => (ctx, selected) => {
@@ -996,13 +1099,73 @@ export const ops: typeof C.ops = {
       },
       (event, strategy) => event.setIgnoreStageStrategy(strategy),
     ),
-  preventDamage: () => (ctx, selected) => {
-    for (const event of selected)
-      if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle damage context')
-    for (const event of selected) {
-      if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle damage context')
-      event.available = false
+  cancelDamage: () => (ctx, selected) => {
+    const evaluation = getDamageEvaluation()
+    if (
+      !evaluation ||
+      engine(ctx).parent !== evaluation ||
+      ![EffectTrigger.OnBeforeCalculateDamage, EffectTrigger.OnDamageReplacement].includes(ctx.trigger) ||
+      selected.some(event => event !== evaluation)
+    )
+      throw new Error('Cancellation requires the current damage proposal')
+    if (selected.length) evaluation.available = false
+  },
+  preventDamage: (options = {}) =>
+    damageReplacement(ctx => {
+      if (options.amount !== undefined && options.fraction !== undefined)
+        throw new Error('Specify a prevention amount or fraction')
+      const amount = readDamageAmount(ctx, options.amount)
+      const fraction = readDamageAmount(ctx, options.fraction)
+      if (
+        (options.amount !== undefined && amount === undefined) ||
+        (options.fraction !== undefined && fraction === undefined)
+      )
+        return
+      if (fraction !== undefined && fraction > 1) throw new Error('Expected prevention fraction at most one')
+      return { kind: 'prevent', amount, fraction }
+    }, options.stacks),
+  replaceDamageWithHeal: (fraction, stacks) =>
+    damageReplacement(ctx => {
+      const value = readDamageAmount(ctx, fraction)
+      return value === undefined ? undefined : { kind: 'heal', fraction: value, source: engine(ctx) }
+    }, stacks),
+  surviveDamage: (hp, stacks) =>
+    damageReplacement(ctx => {
+      const value = readDamageAmount(ctx, hp)
+      return value === undefined ? undefined : { kind: 'survive', hp: value }
+    }, stacks),
+  redirectDamage: target =>
+    damageReplacement(ctx => {
+      const recipient = read(ctx, target)
+      if (recipient === undefined) return
+      if (!(recipient instanceof Pet)) throw new Error('Expected damage redirect pet')
+      assertWriteTarget(ctx, recipient)
+      return { kind: 'redirect', target: recipient }
+    }),
+  spendRageForHit: coefficient => (ctx, selected) => {
+    const frame = engine(ctx)
+    if (ctx.trigger !== EffectTrigger.PreDamage || selected.length !== 1 || selected[0] !== ctx.parent)
+      throw new Error('Hit payment requires the current PreDamage context')
+    const factor = readDamageAmount(ctx, coefficient)
+    if (factor === undefined) return
+    const cast = ctx.parent
+    const player = cast.origin
+    if (player.currentRage <= 0) return
+    if (!Number.isFinite(player.maxRage * factor)) throw new Error('Rage damage bonus must be finite')
+    const payment = new RageContext(frame, player, 'effect', 'reduce', player.currentRage)
+    player.addRage(payment)
+    if (payment.rageSpent > 0) {
+      cast.paidDamageBonuses.push({ sourceId: damageRuleId(frame), delta: Math.floor(payment.rageSpent * factor) })
     }
+  },
+  payDamageStacks: (amount, fallback) => (ctx, selected) => {
+    const event = engine(ctx).parent
+    if (!(event instanceof DamageContext) || ctx.trigger !== EffectTrigger.OnBeforeCalculateDamage)
+      throw new Error('Stack payment requires damage evaluation')
+    if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error('Expected positive stack payment')
+    for (const mark of selected) assertWriteTarget(ctx, mark)
+    if (!selected.some(mark => event.reserveModifierCost(mark, amount)))
+      event.addModified(fallback.percent, fallback.delta, damageRuleId(engine(ctx)))
   },
   modifyDamage: input => modifyContext(input, 'damage'),
   setDamageThreshold:
@@ -1019,7 +1182,7 @@ export const ops: typeof C.ops = {
       if (lower === undefined && upper === undefined) return
       for (const event of selected) {
         if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle damage context')
-        event.addThreshold(lower, upper)
+        event.addThreshold(lower, upper, damageRuleId(engine(ctx)))
       }
     },
   modifyHeal: input => modifyContext(input, 'heal'),
@@ -1037,11 +1200,17 @@ export const ops: typeof C.ops = {
       const source = engine(ctx)
       pet.heal(new HealContext(source, source.source, pet, n))
     }),
-  dealDamage: amount =>
-    numeric(amount, (ctx, pet, n) => {
-      const source = engine(ctx)
-      pet.damage(new DamageContext(source, source.source, pet, n))
-    }),
+  dealDamage: (amount, options = {}) => {
+    const { damageType = DamageType.Effect, element, policy = {} } = options
+    if (!Object.values(DamageType).includes(damageType) || (element !== undefined && typeof element !== 'string'))
+      throw new Error('Invalid effect damage category or element')
+    for (const [key, value] of Object.entries(policy)) {
+      if (!['skillModifiers', 'shields', 'skillReactions'].includes(key) || typeof value !== 'boolean')
+        throw new Error('Invalid effect damage policy')
+    }
+    const proposal = { damageType, element, policy: { ...policy } }
+    return numeric(amount, (ctx, pet, n) => pet.damage(DamageContext.fromEffect(engine(ctx), pet, n, proposal)))
+  },
   addRage: amount =>
     numeric(amount, (ctx, target, n) => {
       const source = engine(ctx)
@@ -1253,6 +1422,22 @@ export const ops: typeof C.ops = {
   bindAttribute: input => bindAttributeOperator<Pet>(input),
   bindSkillAttribute: input => bindAttributeOperator<SkillInstance>(input),
 }
+/** Guard at invocation: authors may retain an operator or invoke it without a Selector. */
+export const ops = Object.fromEntries(
+  Object.entries(operatorFactories).map(([name, factory]) => [
+    name,
+    (...args: never[]) => {
+      const operator = (factory as (...args: never[]) => C.Operator<unknown>)(...args)
+      const guarded: C.Operator<unknown> = (frame, selected) => {
+        if (getDamageEvaluation()) assertEvaluationOperation(name, selected, engine(frame))
+        operator(frame, selected)
+      }
+      const bindings = actionBindings.get(operator)
+      if (bindings) actionBindings.set(guarded, bindings)
+      return guarded
+    },
+  ]),
+) as typeof C.ops
 function bindAttributeOperator<T extends Pet | SkillInstance>(
   input: C.AttributeBindingOptions<`${keyof Pet['stat']}` | 'power' | 'rage' | 'priority'>,
 ): C.Operator<T> {
@@ -1328,8 +1513,9 @@ export function compileEffect<
       ops: {
         modifyDamage: (event: DamageContext, change: { delta: number; percent: number }) => {
           runAction(result as Frame, () => {
+            assertEvaluationOperation('modifyDamage', [event], source)
             if (event.battle !== source.battle) throw new Error('Cross-battle damage context')
-            event.addModified(change.percent, change.delta)
+            event.addModified(change.percent, change.delta, damageRuleId(source))
           })
         },
       },

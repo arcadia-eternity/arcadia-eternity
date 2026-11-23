@@ -104,6 +104,7 @@ export function executeMarkStackOperation(context: StackContext, battle: Battle)
   const finalDuration = context.durationAfter
 
   // Apply final results
+  if (strategy === StackStrategy.replace) existingMark.deferredDamage = newMark.deferredDamage
   existingMark.attributeSystem.setStack(finalStacks)
   existingMark.attributeSystem.setDuration(finalDuration)
   existingMark.isActive = true

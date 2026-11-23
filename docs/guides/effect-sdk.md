@@ -48,7 +48,7 @@ export class HealOnHit {
 
 `context.source` 是当前技能或印记实例，`context.parent` 是当前触发对应的真实事件，`context.battle` 是本局。比如 `OnHit` 的 parent 是 `UseSkillContext`，`OnDamage` 是 `DamageContext`。多个触发用 `context.trigger` 缩窄类型。
 
-触发收集会遍历相关来源。声明 `OnHit` 本身不意味着只有该来源使用技能时才运行，示例通过 `context.source === context.parent.skill` 明确这一条件。印记若监听持有者出招，需比较 `source.owner` 和事件的 `pet`。嵌套伤害的直接父事件不一定是技能，应遍历祖先，或使用已有上下文查询工具。
+触发收集会遍历相关来源。声明 `OnHit` 本身不意味着只有该来源使用技能时才运行，示例通过 `context.source === context.parent.skill` 明确这一条件。印记若监听持有者出招，需比较 `source.owner` 和事件的 `pet`。通过 contexts.damageResult 查询已提交的伤害。对反伤、延迟伤害等情形，用结果的 origin 识别原施法者、技能与持有者。见[伤害结算与时序](damage-resolution.md)。
 
 效果的条件判断在收集时执行，按优先级结算前还会触发 `BeforeEffect`。回调应重新读取可能变化的 HP、目标、归属或印记状态。回调同步执行；顺序、分支、循环和复用直接使用 TypeScript。原生领域方法保留原有检查；操作其他对局的对象需要作者自行避免，选择器工具的跨局写入校验并不覆盖任意直接调用。
 

@@ -48,16 +48,11 @@ export class BattleSwitchPhase extends InteractivePhase<BattleSwitchContext> {
         player => !player.activePet.isAlive,
       )
 
-      // 检查是否有击破奖励更换
-      // 重要：如果双方都需要强制更换，则不应该有击破奖励更换
-      if (this.battle.allowFaintSwitch && this.battle.lastKiller && this.battle.pendingForcedSwitches.length < 2) {
-        this.battle.pendingFaintSwitch = this.battle.lastKiller
-      } else {
-        this.battle.pendingFaintSwitch = undefined
-      }
+      this.battle.pendingFaintSwitch = this.battle.faintSwitchPlayer
 
       // 如果没有任何需要更换的情况，退出循环
       if (this.battle.pendingForcedSwitches.length === 0 && !this.battle.pendingFaintSwitch) {
+        this.clearPendingSwitches()
         break
       }
 

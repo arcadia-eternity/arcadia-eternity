@@ -21,7 +21,7 @@ export class DamageModifiersGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
-          contexts.skillUse.condition((_ctx, events) => events.some(event => event.skill.tags.includes('yutu'))),
+          contexts.damageSkill.condition((_ctx, events) => events.some(event => event.tags.includes('yutu'))),
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 40 })),
       },
@@ -122,7 +122,7 @@ export class DamageModifiersGeneratedEffects {
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
       },
       effect_ability_damage_reduction_below_25_percent: {
-        triggers: [EffectTrigger.OnDamage],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.currentHp).first())
@@ -150,12 +150,12 @@ export class DamageModifiersGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
-          contexts.skillUse.condition((_ctx, events) => events[0]?.element === 'Ice'),
+          contexts.damageSkill.condition((_ctx, events) => events[0]?.element === 'Ice'),
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 15, delta: 0 })),
       },
       effect_ability_increase_special_damage_taken_15_percent: {
-        triggers: [EffectTrigger.OnDamage],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
@@ -164,7 +164,7 @@ export class DamageModifiersGeneratedEffects {
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 15, delta: 0 })),
       },
       effect_ability_physical_damage_reduction_below_25_percent: {
-        triggers: [EffectTrigger.OnDamage],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
@@ -228,7 +228,7 @@ export class DamageModifiersGeneratedEffects {
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
       },
       effect_ability_reduce_physical_damage_30_percent: {
-        triggers: [EffectTrigger.OnDamage],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
@@ -237,7 +237,7 @@ export class DamageModifiersGeneratedEffects {
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -30, delta: 0 })),
       },
       effect_ability_reduce_special_damage_10_percent: {
-        triggers: [EffectTrigger.OnDamage],
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
@@ -277,7 +277,7 @@ export class DamageModifiersGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
-          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Climax'),
+          contexts.damageSkill.condition((_ctx, events) => events[0]?.category === 'Climax'),
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       },
@@ -286,7 +286,7 @@ export class DamageModifiersGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
-          contexts.skillUse.condition((_ctx, events) => events.some(event => event.skill.tags.includes('quan'))),
+          contexts.damageSkill.condition((_ctx, events) => events.some(event => event.tags.includes('quan'))),
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 5, delta: 0 })),
       },
@@ -295,7 +295,7 @@ export class DamageModifiersGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
-          contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_zhongji'),
+          contexts.damageSkill.condition((_ctx, events) => events[0]?.id === 'skill_zhongji'),
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 35, delta: 0 })),
       },
@@ -313,7 +313,7 @@ export class DamageModifiersGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
-          contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Physical'),
+          contexts.damageSkill.condition((_ctx, events) => events[0]?.category === 'Physical'),
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 100, delta: 0 })),
       },
@@ -353,7 +353,7 @@ export class DamageModifiersGeneratedEffects {
           parameters,
           when: conditions.all(
             conditions.selfBeDamaged,
-            contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_hongbaoshizhiguang'),
+            contexts.damageSkill.condition((_ctx, events) => events[0]?.id === 'skill_hongbaoshizhiguang'),
           ),
           apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: parameters.delta })),
         }
@@ -459,7 +459,7 @@ export class DamageModifiersGeneratedEffects {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
-          const left = ctx.read(contexts.skillUse.select(event => event.multihitResult).first())
+          const left = ctx.read(contexts.damageSkill.select(event => event.hits).first())
           const right = 1
           return left !== undefined && right !== undefined && left > right
         }),
@@ -469,7 +469,7 @@ export class DamageModifiersGeneratedEffects {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
-          const element = ctx.read(contexts.skillUse.select(event => event.element).first())
+          const element = ctx.read(contexts.damageSkill.select(event => event.element).first())
           const own = ctx.read(targets.ownerPet.select(pet => pet.element).first())
           return element !== undefined && own !== undefined && element === own
         }),
@@ -479,7 +479,7 @@ export class DamageModifiersGeneratedEffects {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
-          const element = ctx.read(contexts.skillUse.select(event => event.element).first())
+          const element = ctx.read(contexts.damageSkill.select(event => event.element).first())
           const own = ctx.read(targets.ownerPet.select(pet => pet.element).first())
           return element !== undefined && own !== undefined && element === own
         }),
@@ -500,7 +500,7 @@ export class DamageModifiersGeneratedEffects {
           parameters,
           when: conditions.all(
             conditions.selfBeDamaged,
-            contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_jiguang'),
+            contexts.damageSkill.condition((_ctx, events) => events[0]?.id === 'skill_jiguang'),
           ),
           apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: parameters.delta })),
         }
@@ -520,7 +520,7 @@ export class DamageModifiersGeneratedEffects {
           parameters,
           when: conditions.all(
             conditions.selfBeDamaged,
-            contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_jueying'),
+            contexts.damageSkill.condition((_ctx, events) => events[0]?.id === 'skill_jueying'),
           ),
           apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: parameters.delta })),
         }
@@ -540,7 +540,7 @@ export class DamageModifiersGeneratedEffects {
           parameters,
           when: conditions.all(
             conditions.selfBeDamaged,
-            contexts.skillUse.condition((_ctx, events) => events[0]?.skill.baseId === 'skill_lanbaoshizhili'),
+            contexts.damageSkill.condition((_ctx, events) => events[0]?.id === 'skill_lanbaoshizhili'),
           ),
           apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: parameters.delta })),
         }
@@ -659,16 +659,20 @@ export class DamageModifiersGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
-          contexts.skillUse.condition((_ctx, events) => events[0]?.element === 'Fire'),
+          contexts.damageSkill.condition((_ctx, events) => events[0]?.element === 'Fire'),
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
       },
       effect_mark_reduce_next_skill_damage_50_percent: {
-        triggers: [EffectTrigger.OnBeforeCalculateDamage],
+        triggers: [EffectTrigger.OnDamageReplacement],
         priority: 0,
-        consumesStacks: 1,
-        when: conditions.selfBeDamaged,
-        apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
+        when: conditions.all(
+          conditions.selfBeDamaged,
+          contexts.damage.condition((_ctx, events) =>
+            events.some(event => event.damageType === 'Physical' || event.damageType === 'Special'),
+          ),
+        ),
+        apply: contexts.damage.apply(ops.preventDamage({ fraction: 0.5, stacks: 1 })),
       },
       effect_mark_reduce_opponent_spa_damage_20_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
@@ -871,7 +875,7 @@ export class DamageModifiersGeneratedEffects {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
-          const left = ctx.read(contexts.skillUse.select(event => event.multihitResult).first())
+          const left = ctx.read(contexts.damageSkill.select(event => event.hits).first())
           const right = 3
           return left !== undefined && right !== undefined && left === right
         }),

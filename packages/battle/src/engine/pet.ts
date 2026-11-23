@@ -161,26 +161,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   }
 
   public damage(context: DamageContext): boolean {
-    // Damage logic has been moved to DamagePhase
-    // This method now delegates to the phase system
-    const damagePhase = new DamagePhase(
-      context.battle,
-      context.parent,
-      context.source,
-      context.target,
-      context.baseDamage,
-      context.damageType,
-      context.crit,
-      context.effectiveness,
-      context.ignoreShield,
-      context.randomFactor,
-      context.modified,
-      context.minThreshold,
-      context.maxThreshold,
-      context.element,
-      undefined,
-      context,
-    )
+    const damagePhase = new DamagePhase(context.battle, context)
     context.battle.phaseManager.registerPhase(damagePhase)
     context.battle.phaseManager.executePhase(damagePhase.id)
     return this.isAlive

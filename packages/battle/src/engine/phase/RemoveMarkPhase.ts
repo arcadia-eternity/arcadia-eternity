@@ -53,6 +53,7 @@ export function executeRemoveMarkOperation(context: RemoveMarkContext, battle: B
 
   // Mark as inactive
   mark.isActive = false
+  mark.deferredDamage = undefined
 
   // Clean up attribute modifiers before destroying the mark
   mark.cleanupAttributeModifiers()

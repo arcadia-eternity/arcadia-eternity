@@ -1,3 +1,5 @@
+import { getDamageEvaluation } from './damageEvaluation'
+import { applyNumericModifier, type NumericModifierOperation } from './modifierMath'
 import { ExecutionBudgetExceeded } from './execution/budget'
 import { rememberModifierCleanup, describeCleanup, deactivateCleanup, noopCleanup } from './snapshotBindings'
 // attribute-system.ts
@@ -57,7 +59,7 @@ export class Modifier<T extends number | boolean | string = any> {
     public durationType: DurationType,
     public id: string,
     initialValue: T | ReactiveValue<T>,
-    public type: 'percent' | 'delta' | 'override' | 'clampMax' | 'clampMin' | 'clamp',
+    public type: NumericModifierOperation | 'clamp',
     public priority: number,
     public source?: MarkInstance | SkillInstance,
     minValue?: number,
@@ -79,44 +81,16 @@ export class Modifier<T extends number | boolean | string = any> {
     for (const cleanup of this.extraCleanups.splice(0)) cleanup()
   }
 
-  // 统一的 apply 方法
   apply(current: T): T {
-    // Get the current value from the Subject
-    const currentValue = this.getCurrentValue()
-
-    switch (this.type) {
-      case 'percent':
-        if (typeof currentValue !== 'number') return current
-        // Convert percentage to multiplier: 50 -> 1.5, -25 -> 0.75, 0 -> 1.0
-        const multiplier = 1 + (currentValue as number) / 100
-        return ((current as number) * multiplier) as number as T
-      case 'delta':
-        if (typeof currentValue !== 'number') return current
-        return ((current as number) + (currentValue as number)) as T
-      case 'override':
-        return currentValue
-      case 'clampMax':
-        if (typeof current !== 'number' || typeof currentValue !== 'number') return current
-        return Math.min(current as number, currentValue as number) as T
-      case 'clampMin':
-        if (typeof current !== 'number' || typeof currentValue !== 'number') return current
-        return Math.max(current as number, currentValue as number) as T
-      case 'clamp':
-        if (typeof current !== 'number') return current
-        const numCurrent = current as number
-        let result = numCurrent
-        // Apply min clamp if minValue is provided
-        if (this.minValue !== undefined) {
-          result = Math.max(result, this.minValue)
-        }
-        // Apply max clamp if maxValue is provided
-        if (this.maxValue !== undefined) {
-          result = Math.min(result, this.maxValue)
-        }
-        return result as T
-      default:
-        return current
+    const value = this.getCurrentValue()
+    if (this.type === 'override') return value
+    if (typeof current !== 'number') return current
+    if (this.type === 'clamp') {
+      // Attribute bounds preserve the lower bound when a reactive range crosses.
+      return Math.max(this.minValue ?? -Infinity, Math.min(this.maxValue ?? Infinity, current)) as T
     }
+    if (typeof value !== 'number') return current
+    return applyNumericModifier(current, this.type, value) as T
   }
 }
 
@@ -664,18 +638,7 @@ export class AttributeSystem<T extends AttributeData> {
 
     for (const modifier of modifiers) {
       try {
-        // Track dependencies for ReactiveValue-based modifiers
-        if (modifier.value instanceof Signal) {
-          // For reactive modifiers, we need to track potential dependencies
-          // This is a simplified approach - in practice, you might want more sophisticated tracking
-          const modifierValue = modifier.getCurrentValue()
-
-          // Apply the modifier with the current value
-          result = this.applyModifierValue(result, modifier, modifierValue)
-        } else {
-          // For static modifiers, apply directly
-          result = modifier.apply(result)
-        }
+        result = modifier.apply(result)
       } catch (error) {
         if (error instanceof ExecutionBudgetExceeded || isStrictValueRead()) throw error
         this.logger.warn(`Error applying modifier '${modifier.id}' to attribute '${String(key)}':`, error)
@@ -685,40 +648,6 @@ export class AttributeSystem<T extends AttributeData> {
     }
 
     return result
-  }
-
-  /**
-   * Apply a single modifier value safely
-   */
-  private applyModifierValue(
-    current: number | boolean | string,
-    modifier: Modifier,
-    modifierValue: any,
-  ): number | boolean | string {
-    switch (modifier.type) {
-      case 'percent':
-        if (typeof modifierValue !== 'number' || typeof current !== 'number') return current
-        const multiplier = 1 + (modifierValue as number) / 100
-        return (current as number) * multiplier
-      case 'delta':
-        if (typeof modifierValue !== 'number' || typeof current !== 'number') return current
-        return (current as number) + (modifierValue as number)
-      case 'override':
-        return modifierValue
-      case 'clampMax':
-        if (typeof current !== 'number' || typeof modifierValue !== 'number') return current
-        return Math.min(current as number, modifierValue as number)
-      case 'clampMin':
-        if (typeof current !== 'number' || typeof modifierValue !== 'number') return current
-        return Math.max(current as number, modifierValue as number)
-      case 'clamp':
-        if (typeof current !== 'number') return current
-        const min = modifier.minValue ?? Number.NEGATIVE_INFINITY
-        const max = modifier.maxValue ?? Number.POSITIVE_INFINITY
-        return Math.max(min, Math.min(max, current as number))
-      default:
-        return current
-    }
   }
 
   hasAttribute(key: AttributeKey): boolean {
@@ -810,6 +739,7 @@ export class AttributeSystem<T extends AttributeData> {
   }
 
   addModifier(key: AttributeKey, modifier: Modifier): () => void {
+    if (getDamageEvaluation()) throw new Error('Cannot change attributes during damage evaluation')
     // Check for duplicate modifiers from the same source
     if (modifier.source) {
       const sourceId = modifier.source.id
@@ -936,6 +866,7 @@ export class AttributeSystem<T extends AttributeData> {
 
   // 更新基础值（如等级变化）
   updateBaseValue(key: AttributeKey, value: number | boolean | string) {
+    if (getDamageEvaluation()) throw new Error('Cannot change attributes during damage evaluation')
     this.baseAttributes.get(key)!.next(value)
     // Update fallback value when base value changes
     this.fallbackValues.set(key, value)

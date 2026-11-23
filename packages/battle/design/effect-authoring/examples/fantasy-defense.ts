@@ -1,2 +1,2 @@
 /** Readable production candidate; not automatically installed. */
-export { consumeFantasyForDefense } from '@arcadia-eternity/data-pack-base/effects'
+export { consumeFantasyForDefense } from '../../../../../packs/base/src/effects/authored/fantasy-defense'

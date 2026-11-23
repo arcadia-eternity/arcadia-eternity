@@ -51,19 +51,10 @@ export class DamageThresholdsGeneratedEffects {
         apply: actions.sequence(contexts.damage.apply(ops.setDamageThreshold({ min: 100 }))),
       },
       effect_skill_save_hp_to_1: {
-        triggers: [EffectTrigger.OnDamage],
+        triggers: [EffectTrigger.OnDamageReplacement],
         priority: 0,
         when: conditions.selfUsesSkill,
-        apply: actions.sequence(
-          contexts.damage.apply(
-            ops.setDamageThreshold({
-              max: targets.opponentActive
-                .select(pet => pet.currentHp)
-                .first()
-                .map(n => n + -1),
-            }),
-          ),
-        ),
+        apply: contexts.damage.apply(ops.surviveDamage(1)),
       },
     })
   }

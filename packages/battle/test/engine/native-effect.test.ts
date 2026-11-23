@@ -26,7 +26,7 @@ it('uses correlated contexts through the real condition and effect execution cha
   battles.push(battle)
   const source = a.activePet.skills[0]
   const events: string[] = []
-  const triggers = [EffectTrigger.TurnStart, EffectTrigger.OnDamage] as const
+  const triggers = [EffectTrigger.TurnStart, EffectTrigger.OnBeforeCalculateDamage] as const
   const definition = {
     id: 'native/context' as effectId,
     triggers,
@@ -35,7 +35,7 @@ it('uses correlated contexts through the real condition and effect execution cha
       return ctx.trigger === EffectTrigger.TurnStart || ctx.parent.baseDamage > 0
     },
     apply(ctx: NativeEffectContext<(typeof triggers)[number]>) {
-      if (ctx.trigger === EffectTrigger.OnDamage) {
+      if (ctx.trigger === EffectTrigger.OnBeforeCalculateDamage) {
         const damage: DamageContext = ctx.parent
         damage.baseDamage += 7
       } else {
@@ -54,10 +54,10 @@ it('uses correlated contexts through the real condition and effect execution cha
   battle.applyEffects(turn, EffectTrigger.TurnStart, source)
   const parent = new EffectContext(turn, EffectTrigger.TurnStart, source)
   const damage = new DamageContext(parent, source, b.activePet, 10)
-  battle.applyEffects(damage, EffectTrigger.OnDamage, source)
+  battle.applyEffects(damage, EffectTrigger.OnBeforeCalculateDamage, source)
   expect(damage.baseDamage).toBe(17)
   damage.baseDamage = 0
-  battle.applyEffects(damage, EffectTrigger.OnDamage, source)
+  battle.applyEffects(damage, EffectTrigger.OnBeforeCalculateDamage, source)
   expect(events).toEqual(['when:turn', 'apply:turn', 'when:damage', 'apply:damage', 'when:damage'])
   expect(Object.isFrozen(effect)).toBe(true)
   expect(Object.isFrozen(effect.triggers)).toBe(true)

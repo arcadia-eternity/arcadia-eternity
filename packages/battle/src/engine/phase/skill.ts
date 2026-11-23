@@ -1,6 +1,7 @@
 import { EffectTrigger, Category, BattleMessageType } from '@arcadia-eternity/const'
 import { SynchronousPhase } from './base'
-import { UseSkillContext, RageContext, DamageContext, TurnContext } from '../context'
+import { makeSkillDamageContext } from '../skillDamage'
+import { UseSkillContext, RageContext, TurnContext } from '../context'
 import { MarkCleanupPhase } from './MarkCleanupPhase'
 import type { Battle } from '../battle'
 import type { Player } from '../player'
@@ -122,8 +123,10 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
     // Apply before multihit effects
     battle.applyEffects(context, EffectTrigger.BeforeMultiHit)
 
+    let landedHit = false
     // Execute multihit loop
     for (; context.currentHitCount <= context.multihitResult; context.currentHitCount++) {
+      if (!context.pet.isAlive || !context.actualTarget.isAlive) break
       // Hit check
       if (!context.hitResult) {
         battle.emitMessage(BattleMessageType.SkillMiss, {
@@ -136,41 +139,18 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
         // All subsequent hits will miss, no need to continue
         break
       } else {
+        landedHit = true
         battle.applyEffects(context, EffectTrigger.BeforeHit)
 
         // Calculate damage for non-status moves
-        if (context.category !== Category.Status) {
+        if (context.category !== Category.Status && !context.damageDeferred) {
           context.updateDamageResult()
 
           if (context.crit) battle.applyEffects(context, EffectTrigger.OnCritPreDamage)
           battle.applyEffects(context, EffectTrigger.PreDamage)
 
-          const damageContext = new DamageContext(
-            context,
-            context.skill,
-            context.actualTarget,
-            context.baseDamage,
-            context.damageType,
-            context.crit,
-            context.typeMultiplier,
-            context.ignoreShield,
-            context.randomFactor,
-            undefined,
-            undefined,
-            undefined,
-            context.element,
-          )
-
-          // Apply damage
+          const damageContext = makeSkillDamageContext(context, context.skill, context.actualTarget, context)
           context.actualTarget.damage(damageContext)
-
-          // A cancelled damage operation must not dispatch damage-derived rage, even with a zero amount.
-          if (damageContext.available) {
-            const gainedRage = Math.floor((damageContext.damageResult * 49) / context.actualTarget.stat.maxHp)
-            context.actualTarget.owner!.addRage(
-              new RageContext(context, context.actualTarget.owner!, 'damage', 'add', gainedRage),
-            )
-          }
         }
 
         battle.applyEffects(context, EffectTrigger.OnHit) // Trigger hit effects
@@ -178,21 +158,8 @@ export function executeSkillOperation(context: UseSkillContext, battle: Battle):
     }
 
     // Hit reward rage for non-status moves
-    if (context.category !== Category.Status && context.hitResult) {
+    if (context.category !== Category.Status && landedHit) {
       context.origin.addRage(new RageContext(context, context.origin, 'skillHit', 'add', 15))
-    }
-
-    // Check for defeat
-    if (context.actualTarget.currentHp <= 0) {
-      battle.emitMessage(BattleMessageType.PetDefeated, {
-        pet: context.actualTarget.id,
-        killer: context.pet.id,
-      })
-      context.actualTarget.isAlive = false
-      battle.applyEffects(context, EffectTrigger.OnDefeat) // Trigger defeat effects
-
-      battle.lastKiller = context.origin
-      context.defeated = true
     }
   } finally {
     // Use MarkCleanupPhase managed by PhaseManager

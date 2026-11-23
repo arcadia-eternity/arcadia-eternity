@@ -24,15 +24,15 @@ export class MarkStackGainsGeneratedEffects {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, (ctx: EffectFrame) => {
-          const left = ctx.read(contexts.damage.select(event => event.damageResult).first())
+          const left = ctx.read(contexts.damageResult.select(event => event.hpLoss).first())
           const right = 0
           return left !== undefined && right !== undefined && left > right
         }),
         apply: actions.sequence(
           targets.sourceMark.apply(
             ops.addStacks(
-              contexts.damage
-                .select(event => event.damageResult)
+              contexts.damageResult
+                .select(event => event.hpLoss)
                 .first()
                 .map(n => Math.floor(n * 0.5)),
             ),
