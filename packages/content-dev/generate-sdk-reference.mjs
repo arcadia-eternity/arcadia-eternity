@@ -184,7 +184,7 @@ export function generateSdkReference(ts, dependencyAnchor) {
     }
   }
 
-  const source = readFileSync(template, 'utf8')
+  const source = readFileSync(template, 'utf8').replaceAll('\r\n', '\n')
   function exampleRegion(region) {
     const start = '// #region ' + region + '\n'
     const tail = source.split(start)[1]

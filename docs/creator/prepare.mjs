@@ -19,7 +19,7 @@ async function readCreatorPage(page) {
   let markdown = await readFile(new URL(page.path + '.md', pagesRoot), 'utf8')
   for (const match of markdown.matchAll(/^<<< ([\w./-]+)(?:#([\w-]+))?$/gm)) {
     const [, file, region] = match
-    let code = await readFile(new URL(file, template), 'utf8')
+    let code = (await readFile(new URL(file, template), 'utf8')).replaceAll('\r\n', '\n')
     if (region) {
       const marker = '// #region ' + region + '\n'
       const start = code.indexOf(marker)
