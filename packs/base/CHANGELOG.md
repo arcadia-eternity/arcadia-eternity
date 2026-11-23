@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.14.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v4.14.0...data-pack-base-v4.14.1) (2026-11-23)
+
+
+### 🐛 Bug Fixes
+
+* **base:** correct mark lifetimes and battle triggers ([f823e5b](https://github.com/arcadia-eternity/arcadia-eternity/commit/f823e5beca1e7055e58f9b50924fc118b47842eb))
+
 ## [4.14.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v4.13.2...data-pack-base-v4.14.0) (2026-11-23)
 
 
