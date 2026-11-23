@@ -155,7 +155,26 @@ export const outputSchemas = {
       integrity: z.string(),
     })
     .passthrough(),
-  reference: z.object({ topic: z.string(), title: z.string() }).passthrough(),
+  reference: z
+    .object({
+      topic: z.string(),
+      title: z.string(),
+      symbol: z.string().optional(),
+      sdkVersion: z.string().optional(),
+      path: z.string().optional(),
+      markdown: z.string().optional(),
+      entries: z
+        .array(
+          z.object({
+            path: z.string(),
+            title: z.string(),
+            topic: z.string(),
+            symbols: z.array(z.string()),
+          }),
+        )
+        .optional(),
+    })
+    .passthrough(),
   'asset-inspect': z.object({ metadata: record }),
   battle: z
     .object({

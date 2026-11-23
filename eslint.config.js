@@ -40,7 +40,7 @@ export const sharedConfig = tseslint.config(
   },
   {
     ...tseslint.configs.disableTypeChecked,
-    files: ['.pnpmfile.cjs', 'packages/content-dev/**/*.mjs'],
+    files: ['.pnpmfile.cjs', 'packages/content-dev/**/*.mjs', 'docs/creator/**/*.{js,mjs}'],
   },
   // The engine retains its existing rule exceptions; host, sandbox and tests use the shared rules.
   {

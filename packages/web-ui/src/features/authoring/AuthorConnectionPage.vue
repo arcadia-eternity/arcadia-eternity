@@ -105,7 +105,7 @@ const examples = computed(() => {
   const tasks = [
     '我有个精灵点子。先问问我想让它怎么战斗，再帮我把它做进这个内容包。',
     explore,
-    '帮我做一个命中后降低对手速度的技能。',
+    '带我做霜击教程，把减速延长到三回合，再验证连续命中的效果。',
     '帮我看看这个内容包发布前还缺什么。',
   ]
   if (execute.value) tasks.push('运行项目的场景测试，告诉我哪些通过了、哪些需要修。')
@@ -130,10 +130,21 @@ const prompt = computed(() => {
     ...(props.readOnly || props.environmentProject
       ? []
       : [
+          '如我提到霜击教程，请调用 author_reference，传入 topic: tutorials、symbol: frost-strike。',
           '之后若我要求提交或同步，读取 author_reference 的 git 主题。准备或发布版本时读取 release 主题。使用本机 Git，以及你已获授权的 gh 或 GitHub 连接。',
         ]),
   ].join('\n\n')
 })
+const creatorDocsUrl = 'https://arcadia-creator-docs.pages.dev'
+async function openCreatorDocs(event: MouseEvent) {
+  if (!window.arcadiaDesktop?.openServerWebsite) return
+  event.preventDefault()
+  try {
+    await window.arcadiaDesktop.openServerWebsite({ url: creatorDocsUrl })
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : String(cause)
+  }
+}
 async function copy(value: string, success: string) {
   notice.value = ''
   manualCopy.value = ''
@@ -154,6 +165,9 @@ async function copy(value: string, success: string) {
       <header class="connection-header">
         <div class="assistant-icon"><ChatBubbleLeftRightIcon aria-hidden="true" /></div>
         <h1 id="ai-connection-title">连接 AI 助手</h1>
+        <a class="creator-docs" :href="creatorDocsUrl" target="_blank" rel="noopener" @click="openCreatorDocs"
+          >创作者文档</a
+        >
       </header>
       <div class="setup-column">
         <section class="prompt-card" aria-labelledby="connection-prompt-title">
@@ -250,6 +264,10 @@ button {
 .connection-header {
   grid-column: 1 / -1;
   gap: 14px;
+}
+.creator-docs {
+  margin-inline-start: auto;
+  color: var(--author-accent);
 }
 .assistant-icon {
   color: var(--author-accent);

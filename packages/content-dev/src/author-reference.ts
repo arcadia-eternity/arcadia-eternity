@@ -6,8 +6,12 @@ import { EnvironmentDocumentSchema } from './debug-environments.ts'
 import { WorkspaceError } from './workspace.ts'
 import { errorCode } from './types.ts'
 
+import { creatorPages, creatorSdkVersion, readCreatorPage } from './creator-docs.ts'
+
 export const referenceTopics = [
   'authoring',
+  'tutorials',
+  'mcp',
   'species',
   'skills',
   'marks',
@@ -39,9 +43,26 @@ async function template(file: string): Promise<string> {
 }
 
 /** Discover installed SDK contracts, without importing a content project's executable effects. */
-export async function authorReference({ topic }: { topic?: string } = {}) {
+export async function authorReference({ topic, symbol }: { topic?: string; symbol?: string } = {}) {
   if (!topic || !(referenceTopics as readonly string[]).includes(topic))
     throw new WorkspaceError('REFERENCE_UNKNOWN', '请选择有效的作者参考主题')
+  const entries = creatorPages.filter(page => page.topic === topic)
+  const symbols = entries.flatMap(page => page.symbols)
+  if (symbol !== undefined) {
+    const page = entries.find(entry => entry.symbols.includes(symbol))
+    if (!page)
+      throw new WorkspaceError('REFERENCE_UNKNOWN', `未知的 ${topic} 条目：${symbol}。可查询：${symbols.join('、')}`)
+    return {
+      topic,
+      symbol,
+      title: page.title,
+      path: '/' + page.path,
+      sdkVersion: creatorSdkVersion,
+      markdown: await readCreatorPage(page),
+    }
+  }
+  if (topic === 'tutorials' || topic === 'mcp')
+    return { topic, title: topic === 'tutorials' ? '创作教程' : 'MCP 工具', sdkVersion: creatorSdkVersion, entries }
   if (topic === 'authoring') {
     const source = 'skills/arcadia-content-authoring/SKILL.md'
     const instructions = await template(source).catch(error => {
@@ -65,6 +86,7 @@ export async function authorReference({ topic }: { topic?: string } = {}) {
       title: `${topic}: parser fields and source example`,
       source: '@arcadia-eternity/battle/engine',
       stage: 'linked-runtime',
+      entries,
       schema: toJsonSchemaCompat(parserSchemas[topic]),
       examples: [{ language: 'yaml', text: await template(examples[topic] ?? '') }],
       notes: [
@@ -126,6 +148,7 @@ export async function authorReference({ topic }: { topic?: string } = {}) {
     return {
       topic,
       title: 'Native TypeScript effects',
+      entries,
       source: '@arcadia-eternity/content-sdk/dist/template/src/effects/slow.effect.ts',
       examples: [{ language: 'typescript', text: await template('src/effects/slow.effect.ts') }],
       notes: [

@@ -344,9 +344,10 @@ if (!session.workspace.readOnly) {
 }
 tool(
   'author_reference',
-  'Read the actual SDK schemas or focused authoring guidance. Schema notes distinguish normalized runtime definitions from source references. Description guidance covers current supported semantics, not future generic reference protocols.',
+  'Read installed SDK schemas or creator docs. Omit symbol to discover topic entries. Use an exact symbol from an entry to read its versioned reference or tutorial.',
   {
     topic: z.enum(referenceTopics),
+    symbol: z.string().min(1).max(128).optional(),
   },
   'reference',
   undefined,
