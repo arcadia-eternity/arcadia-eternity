@@ -344,9 +344,11 @@ if (!session.workspace.readOnly) {
 }
 tool(
   'author_reference',
-  'Read installed SDK schemas or creator docs. Omit symbol to discover topic entries. Use an exact symbol from an entry to read its versioned reference or tutorial.',
+  'Look up an exact creator SDK symbol (e.g. EffectTrigger.OnHit or Pet.addMark), or search SDK names with query and offset. A trigger includes its typed parent, accessible fields, method receivers and example. Supply a handbook topic for guides or schemas.',
   {
-    topic: z.enum(referenceTopics),
+    topic: z.enum(referenceTopics).optional(),
+    query: z.string().min(1).max(128).optional(),
+    offset: z.number().int().min(0).optional(),
     symbol: z.string().min(1).max(128).optional(),
   },
   'reference',

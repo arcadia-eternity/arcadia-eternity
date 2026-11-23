@@ -11,3 +11,5 @@
 <<< src/effects/slow.effect.ts#apply-slow
 
 `content.id('slow')` 按当前包的命名空间解析印记 ID。`Pet.addMark` 接受一个 `AddMarkContext`；这里传入当前效果上下文、实际目标和印记定义。省略持续时间时取[印记配置](./mark-duration.md)。如果攻击未命中，这个命中回调不会执行。
+
+[查触发时机与上下文字段](/sdk/triggers/OnHit) · [查 Pet.addMark 签名](/sdk/objects/Pet#member-addMark)

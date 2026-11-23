@@ -1,17 +1,21 @@
 **会话条件**　连接到创作 MCP 即可读取，支持只读会话。
 
-先读主题目录，再用返回的 `symbols` 精确定位条目。在 AI 客户端里调用工具 `author_reference`，传入以下参数：
+用完整的 SDK 符号名调用 `author_reference`。例如，查询霜击监听的触发器：
 
 ```json
-{ "topic": "effects", "symbol": "EffectTrigger.OnHit" }
+{ "symbol": "EffectTrigger.OnHit" }
 ```
 
-| 参数     | 用法                                                                                                                     |
-| -------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `topic`  | 必填。用 `tutorials` 找实作，用 `species`、`skills`、`marks`、`effects`、`team`、`environment` 查机制，用 `mcp` 查工具。 |
-| `symbol` | 可选，区分大小写。省略时读取主题；填写后返回该符号所在的参考页。                                                         |
+| 参数     | 用法                                                                                                                                                |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `topic`  | 查 SDK 符号时可省略，或填 `sdk`。用 `tutorials` 找实作，用 `species`、`skills`、`marks`、`effects`、`team`、`environment` 查机制，用 `mcp` 查工具。 |
+| `symbol` | 可选，区分大小写。省略时读取主题；填写后返回该符号所在的参考页。                                                                                    |
 
-精确查询的 `structuredContent.result` 含有 `topic`、`symbol`、`title`、`path`、`sdkVersion` 和 `markdown`。`path` 是文档站内路径，正文和示例取自本机 SDK。查询未知条目会返回 `REFERENCE_UNKNOWN`。先用同一主题列举条目，再用其中的名字重试。
+SDK 查询返回 `parent`、`fields`、`methods` 和 `example`（触发器），以及声明位置、签名和相关符号。以命中为例，先查 `EffectTrigger.OnHit`，再查 `UseSkillContext.actualTarget` 和 `Pet.addMark`，就能确认实际目标需要判空，并取得加印记的方法签名。[浏览命中事件](/sdk/triggers/OnHit)
+
+只记得名字的一部分时传 `{"query":"addMark"}`。结果按符号名排序，最多返回 50 个；用 `nextOffset` 的值作为下一次请求的 `offset`，直到返回 `null`。用 `{"topic":"sdk"}` 从第一个符号开始浏览。
+
+手册主题的精确查询与 SDK 查询的 `structuredContent.result` 都含有 `topic`、`symbol`、`title`、`path`、`sdkVersion` 和 `markdown`。`path` 是文档站内路径，正文和示例取自本机 SDK。查询未知条目会返回 `REFERENCE_UNKNOWN`。先用同一主题列举条目，再用其中的名字重试。
 
 ## 根据任务选主题
 

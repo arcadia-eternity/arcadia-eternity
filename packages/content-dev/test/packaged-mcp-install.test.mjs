@@ -89,6 +89,11 @@ test(
     await sdk.run(root, 'init', 'pack', consumer)
 
     await sdk.session(addon, ['--read-only'], async call => {
+      const event = await call('author_reference', { symbol: 'EffectTrigger.OnHit' })
+      assert.equal(event.parent, 'UseSkillContext')
+      const search = await call('author_reference', { query: 'bindAttribute' })
+      assert.ok(search.matches.some(item => item.symbol === 'ops.bindAttribute'))
+      assert.match((await call('author_reference', { symbol: 'Pet.addMark' })).signature, /AddMarkContext/)
       const guide = await call('author_reference', { topic: 'tutorials', symbol: 'frost-strike' })
       const hit = await call('author_reference', { topic: 'effects', symbol: 'Pet.addMark' })
       assert.match(guide.markdown, /三回合/)

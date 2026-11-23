@@ -93,3 +93,78 @@ test('each handbook page is discoverable and readable through its installed MCP 
     }
   }
 })
+
+test('SDK symbols cover dispatched triggers and preserve the actual frame and domain capabilities', async () => {
+  const { nativeEffectTriggers } = await import('@arcadia-eternity/battle/authoring')
+  const enumeration = await authorReference({ symbol: 'EffectTrigger' })
+  const native = []
+  for (const symbol of enumeration.members) {
+    const item = await authorReference({ symbol })
+    if (item.kind !== '触发器') continue
+    native.push(symbol.slice('EffectTrigger.'.length))
+    assert.ok(item.description && item.example && item.dispatches.length, symbol)
+    assert.ok(item.fields.length, symbol)
+    for (const name of [item.parent, ...item.fields, ...item.methods.map(method => method.symbol)])
+      assert.equal((await authorReference({ symbol: name })).symbol, name)
+  }
+  assert.deepEqual(native.sort(), [...nativeEffectTriggers].sort())
+  const hit = await authorReference({ symbol: 'EffectTrigger.OnHit' })
+  assert.equal(hit.parent, 'UseSkillContext')
+  assert.ok(
+    hit.methods.some(method => method.receiver === 'ctx.parent.actualTarget' && method.symbol === 'Pet.addMark'),
+  )
+  assert.match((await authorReference({ symbol: 'UseSkillContext.actualTarget' })).signature, /Pet \| undefined/)
+  assert.match((await authorReference({ symbol: 'Pet.addMark' })).signature, /AddMarkContext.*parameter-conflict/)
+  assert.match(
+    (await authorReference({ symbol: 'ops.bindAttribute' })).signature,
+    /AttributeBindingOptions.*Operator<Pet>/,
+  )
+  assert.match((await authorReference({ symbol: 'ParameterCatalog.read' })).signature, /\n/)
+  assert.match((await authorReference({ symbol: 'EffectFrame.ops.modifyDamage' })).signature, /DamageContext/)
+  const before = await authorReference({ symbol: 'EffectTrigger.OnBeforeCalculateDamage' })
+  assert.ok(before.methods.some(m => m.symbol === 'DamageContext.addModified'))
+  assert.ok(!before.methods.some(m => m.symbol === 'Pet.damage'))
+  for (const symbol of [
+    'Pet.cleanupAttributeModifiers',
+    'UseSkillContext.updateActualTarget',
+    'NativeEffectContext.sourceActor',
+  ])
+    await assert.rejects(authorReference({ symbol }), { code: 'REFERENCE_UNKNOWN' })
+  const a = await authorReference({ topic: 'sdk' })
+  const b = await authorReference({ topic: 'sdk', offset: a.nextOffset })
+  assert.equal(a.matches.length, 50)
+  assert.ok(a.matches.at(-1).symbol < b.matches[0].symbol)
+  const found = await authorReference({ query: 'addmark' })
+  assert.ok(found.matches.some(item => item.symbol === 'Pet.addMark'))
+})
+
+test('every trigger example type-checks against the content SDK entry', async () => {
+  const { default: ts } = await import('typescript')
+  const { nativeEffectTriggers } = await import('@arcadia-eternity/battle/authoring')
+  const { fileURLToPath } = await import('node:url')
+  const source = [
+    "import { effect, on, EffectTrigger, type NativeEffectContext, type EffectModuleContext, AddMarkContext, defineCodeEffect, numberParam, targets, ops } from '@arcadia-eternity/content-sdk'",
+  ]
+  for (const trigger of nativeEffectTriggers) {
+    const event = await authorReference({ symbol: 'EffectTrigger.' + trigger })
+    source.push(event.example.replace('function readEvent(', 'function read' + trigger + '('))
+  }
+  const file = fileURLToPath(new URL('../test/trigger-examples.ts', import.meta.url))
+  const options = {
+    target: ts.ScriptTarget.ESNext,
+    module: ts.ModuleKind.ESNext,
+    moduleResolution: ts.ModuleResolutionKind.Bundler,
+    strict: true,
+    skipLibCheck: true,
+    types: [],
+    paths: { '@arcadia-eternity/content-sdk': [fileURLToPath(new URL('../src/index.ts', import.meta.url))] },
+  }
+  const host = ts.createCompilerHost(options)
+  const read = host.readFile.bind(host)
+  host.readFile = name => (name === file ? source.join('\n') : read(name))
+  const program = ts.createProgram([file], options, host)
+  const unit = program.getSourceFile(file)
+  assert.ok(unit)
+  const errors = [...program.getSyntacticDiagnostics(unit), ...program.getSemanticDiagnostics(unit)]
+  assert.equal(ts.formatDiagnostics(errors, host), '')
+})

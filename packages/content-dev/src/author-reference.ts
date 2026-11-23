@@ -8,7 +8,10 @@ import { errorCode } from './types.ts'
 
 import { creatorPages, creatorSdkVersion, readCreatorPage } from './creator-docs.ts'
 
+import { installedSdkCatalog, sdkGroups, sdkPath } from './sdk-reference.ts'
+
 export const referenceTopics = [
+  'sdk',
   'authoring',
   'tutorials',
   'mcp',
@@ -43,7 +46,43 @@ async function template(file: string): Promise<string> {
 }
 
 /** Discover installed SDK contracts, without importing a content project's executable effects. */
-export async function authorReference({ topic, symbol }: { topic?: string; symbol?: string } = {}) {
+export async function authorReference({
+  topic,
+  symbol,
+  query,
+  offset = 0,
+}: { topic?: string; symbol?: string; query?: string; offset?: number } = {}) {
+  if (topic === 'sdk' || topic === undefined) {
+    if ((query !== undefined && typeof query !== 'string') || !Number.isSafeInteger(offset) || offset < 0)
+      throw new WorkspaceError('INPUT_INVALID', 'query 需要字符串，offset 需要非负整数')
+    const catalog = await installedSdkCatalog()
+    if (symbol) {
+      const item = catalog.byName.get(symbol)
+      if (!item) throw new WorkspaceError('REFERENCE_UNKNOWN', `未知 SDK 符号：${symbol}。使用 query 搜索名称。`)
+      return {
+        ...item,
+        topic: 'sdk',
+        title: symbol,
+        sdkVersion: creatorSdkVersion,
+        path: sdkPath(item),
+        members: catalog.children.get(symbol)?.map(child => child.symbol),
+        markdown: catalog.markdown(item),
+      }
+    }
+    const matches = query
+      ? catalog.records.filter(item => item.symbol.toLowerCase().includes(query.toLowerCase()))
+      : catalog.records
+    const end = offset + 50
+    return {
+      topic: 'sdk',
+      title: '战斗 SDK 符号索引',
+      sdkVersion: creatorSdkVersion,
+      groups: sdkGroups,
+      total: matches.length,
+      matches: matches.slice(offset, end).map(item => ({ symbol: item.symbol, kind: item.kind, path: sdkPath(item) })),
+      nextOffset: end < matches.length ? end : null,
+    }
+  }
   if (!topic || !(referenceTopics as readonly string[]).includes(topic))
     throw new WorkspaceError('REFERENCE_UNKNOWN', '请选择有效的作者参考主题')
   const entries = creatorPages.filter(page => page.topic === topic)

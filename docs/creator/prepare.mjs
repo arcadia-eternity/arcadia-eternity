@@ -1,3 +1,4 @@
+import { prepareSdk } from './prepare-sdk.mjs'
 import { copyFile, mkdir, writeFile, rm } from 'node:fs/promises'
 import {
   creatorSections,
@@ -30,6 +31,7 @@ for (const page of creatorPages) {
   await writeFile(new URL(page.path + '.md', output), body + '\n' + query + '\n')
 }
 
+const sdkNavigation = await prepareSdk(output, creatorSdkVersion)
 const origin = 'https://arcadia-creator-docs.pages.dev'
 const index = creatorSections.flatMap(section => [
   '## ' + section.title,
@@ -39,7 +41,13 @@ const index = creatorSections.flatMap(section => [
 ])
 await writeFile(
   new URL('public/llms.txt', output),
-  [`# Arcadia 创作者文档 · SDK ${creatorSdkVersion}`, '', ...index].join('\n'),
+  [
+    `# Arcadia 创作者文档 · SDK ${creatorSdkVersion}`,
+    '',
+    '[SDK 符号索引（JSON）](' + origin + '/sdk-index.json)',
+    '',
+    ...index,
+  ].join('\n'),
 )
 const apiIndex = creatorSections
   .filter(section => section.reference)
@@ -56,7 +64,11 @@ await writeFile(
   [
     '# API 参考',
     '',
-    '按文件字段、战斗符号或工具名查询。每页末尾附有读取本机 SDK 版本的 MCP 调用。',
+    '## 战斗 SDK',
+    '',
+    '从[霜击的命中事件](/sdk/triggers/OnHit)开始，可以查到回调收到的上下文、目标精灵的方法和模板代码。AI 可下载[版本化符号索引](/sdk-index.json)，或通过本机 MCP 调用 `author_reference({"symbol":"EffectTrigger.OnHit"})`。',
+    '',
+    ...sdkNavigation.map(item => '- [' + item.text + '](' + item.link + ')'),
     '',
     ...apiIndex,
   ].join('\n'),
@@ -66,9 +78,12 @@ await writeFile(
   new URL('navigation.json', output),
   JSON.stringify({
     version: creatorSdkVersion,
-    sidebar: creatorSections.map(section => ({
-      text: section.title,
-      items: section.pages.map(page => ({ text: page.title, link: '/' + page.path })),
-    })),
+    sidebar: [
+      { text: '战斗 SDK 符号索引', collapsed: false, items: sdkNavigation },
+      ...creatorSections.map(section => ({
+        text: section.title,
+        items: section.pages.map(page => ({ text: page.title, link: '/' + page.path })),
+      })),
+    ],
   }),
 )
