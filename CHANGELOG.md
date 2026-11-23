@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.16.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.16.1...arcadia-eternity-v4.16.2) (2026-11-23)
+
+
+### 🐛 Bug Fixes
+
+* **web:** open active pet stats toward the battlefield ([1242b02](https://github.com/arcadia-eternity/arcadia-eternity/commit/1242b022ab39d737ce76374dc908341ae0d4d732))
+* **web:** preserve local battle setup across rematches ([841142b](https://github.com/arcadia-eternity/arcadia-eternity/commit/841142b7d4c70ddb2e020fd3513bc848392df213))
+* **web:** restore mobile battle tooltips and fullscreen prompt ([01a7c26](https://github.com/arcadia-eternity/arcadia-eternity/commit/01a7c264a0534f176a6e16bef9bfecab0829d5fd))
+
 ## [4.16.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.16.0...arcadia-eternity-v4.16.1) (2026-11-23)
 
 
