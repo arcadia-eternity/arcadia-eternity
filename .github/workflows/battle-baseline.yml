@@ -341,6 +341,7 @@ jobs:
           node --test scripts/stage-author-sdk.test.mjs
       - name: Verify SDK archives and reproducible official content releases
         run: |
+          node --test scripts/resolve-release-tags.test.mjs
           node scripts/release-author-sdk.mjs pack "$RUNNER_TEMP/sdk"
           node scripts/release-author-sdk.mjs pack-base "$RUNNER_TEMP/base"
           pnpm --filter @arcadia-eternity/data-pack-base run build

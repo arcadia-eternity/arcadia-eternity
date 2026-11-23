@@ -2,7 +2,7 @@
 import { execFileSync } from 'node:child_process'
 import { appendFileSync, readFileSync } from 'node:fs'
 
-const manifest = JSON.parse(readFileSync('packs/.release-please-manifest.json', 'utf8'))
+const manifest = JSON.parse(readFileSync('.release-please-manifest.json', 'utf8'))
 const version = manifest.packs
 if (typeof version !== 'string' || !/^\d+\.\d+\.\d+$/.test(version))
   throw new Error('Invalid released official content version')

@@ -60,11 +60,35 @@
           "jsonpath": "$.devDependencies[?(@property.startsWith('@arcadia-eternity/'))]"
         }
       ]
+    },
+    "packs": {
+      "release-type": "simple",
+      "changelog-path": "base/CHANGELOG.md",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "base/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "environment-default/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "environment-training-120/package.json",
+          "jsonpath": "$.version"
+        }
+      ],
+      "component": "data-pack-base",
+      "draft": true,
+      "force-tag-creation": true
     }
   },
   "skip-github-release": false,
   "skip-github-pull-request": false,
-  "separate-pull-requests": true,
+  "separate-pull-requests": false,
   "always-update": true,
   "include-v-in-tag": true,
   "changelog-sections": [
