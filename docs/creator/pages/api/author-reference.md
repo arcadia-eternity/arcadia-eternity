@@ -29,7 +29,8 @@ SDK 查询返回 `parent`、`fields`、`methods` 和 `example`（触发器），
 
 ## 霜击查询
 
-- 教程全文：`{"topic":"tutorials","symbol":"frost-strike"}`
+- 课程目录：`{"topic":"tutorials","symbol":"frost-strike"}`
+- 分课查询：在 `tutorials` 主题使用 `frost-strike.trace`、`frost-strike.change` 或 `frost-strike.verify`。
 - 印记字段：`{"topic":"marks","symbol":"config.duration"}`
 - 速度绑定：`{"topic":"effects","symbol":"ops.bindAttribute"}`
 - 固定种子试战：`{"topic":"mcp","symbol":"battle_create"}`

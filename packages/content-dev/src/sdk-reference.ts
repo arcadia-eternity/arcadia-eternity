@@ -32,7 +32,14 @@ export interface SdkSymbol {
 export function sdkPath(item: SdkSymbol) {
   if (item.group === 'triggers') return '/sdk/triggers/' + item.symbol.split('.')[1]
   const base = '/sdk/' + item.group + '/' + (item.owner ?? item.symbol)
-  return item.owner ? base + '#member-' + item.symbol.slice(item.owner.length + 1) : base
+  if (!item.owner) return base
+  const name = item.symbol.slice(item.owner.length + 1)
+  if (item.owner === 'ops') return base + '/' + name
+  if (item.owner === 'BattleMessageData' || item.owner === 'Events') {
+    const [event, ...field] = name.split('.')
+    return base + '/' + event + (field.length ? '#member-' + field.join('.') : '')
+  }
+  return base + '#member-' + name
 }
 
 function code(text: string) {

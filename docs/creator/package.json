@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node prepare.mjs && vitepress build",
+    "build": "node prepare.mjs && vitepress build && node check-routes.mjs",
     "dev": "node prepare.mjs && vitepress dev"
   },
   "devDependencies": {

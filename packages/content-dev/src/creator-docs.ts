@@ -14,7 +14,8 @@ function page(path: string, title: string, topic: string, ...symbols: string[]):
 
 export const creatorSections = [
   {
-    title: '开始创作',
+    title: '从工作台开始',
+    outcome: '建立资料包，用霜团打一场可复现的对战，再连接 AI 助手。',
     reference: false,
     pages: [
       page('start/first-battle', '创建项目，打第一场对战', 'tutorials', 'first-battle'),
@@ -23,18 +24,35 @@ export const creatorSections = [
     ],
   },
   {
-    title: '制作内容与赛制',
+    title: '实作课程 · 霜击',
+    outcome: '把减速从两回合延长到三回合，验证再次命中只刷新持续时间。',
+    reference: false,
+    pages: [
+      page('frost-strike', '把霜击的减速延长到三回合', 'tutorials', 'frost-strike'),
+      page('tutorials/frost-strike/trace', '追踪命中后的减速效果', 'tutorials', 'frost-strike.trace'),
+      page('tutorials/frost-strike/change', '修改印记的持续时间', 'tutorials', 'frost-strike.change'),
+      page('tutorials/frost-strike/verify', '验证刷新与到期恢复', 'tutorials', 'frost-strike.verify'),
+    ],
+  },
+  {
+    title: '制作精灵与技能',
+    outcome: '制作冰砾和雪芽，配置配招、立绘和技能描述。',
     reference: false,
     pages: [
       page('make/first-skill', '给霜团做一招新技能', 'tutorials', 'first-skill'),
       page('make/first-species', '制作第一只精灵', 'tutorials', 'first-species'),
-      page('frost-strike', '把霜击的减速延长到三回合', 'tutorials', 'frost-strike'),
       page('make/presentation', '替换立绘与编写技能描述', 'descriptions', 'presentation', 'locales'),
-      page('make/singles-cup', '举办单精灵杯', 'tutorials', 'singles-cup'),
     ],
   },
   {
+    title: '编排赛制',
+    outcome: '举办单精灵杯，用两支队伍检查报名规则。',
+    reference: false,
+    pages: [page('make/singles-cup', '举办单精灵杯', 'tutorials', 'singles-cup')],
+  },
+  {
     title: '测试与发布',
+    outcome: '把机制写成断言，安装到本机环境，生成可分享的发行归档。',
     reference: false,
     pages: [
       page('test/scenarios', '编写战斗场景测试', 'effects', 'prepareContentPack', 'attack'),
@@ -78,7 +96,7 @@ export const creatorSections = [
     ],
   },
   {
-    title: '战斗 SDK',
+    title: '效果用法',
     reference: true,
     pages: [
       page(

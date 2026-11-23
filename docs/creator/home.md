@@ -9,11 +9,11 @@ hero:
     alt: 模板精灵霜团
   actions:
     - theme: brand
-      text: 创建第一个项目
-      link: /start/first-battle
+      text: 创作教程
+      link: /tutorials/
     - theme: alt
-      text: 查询 API
-      link: /api/
+      text: 查战斗 SDK
+      link: /sdk/
 features:
   - title: 制作自己的精灵
     details: 给雪芽设定种族值、配上技能，用它替换蓝队的首发。
