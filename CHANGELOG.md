@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.15.7](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.15.6...arcadia-eternity-v4.15.7) (2026-11-23)
+
+
+### ♻️ Code Refactoring
+
+* **battle:** remove unused phase scheduling and dependency tracking ([d348940](https://github.com/arcadia-eternity/arcadia-eternity/commit/d3489408247e684d89dbc10c19720ad0931f3ac5))
+* **battle:** resolve damage events and mark-held delayed strikes ([#328](https://github.com/arcadia-eternity/arcadia-eternity/issues/328)) ([180e66b](https://github.com/arcadia-eternity/arcadia-eternity/commit/180e66bf1b1153c0b1694ed13ce0a34bb31a533e))
+
 ## [4.15.6](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.15.5...arcadia-eternity-v4.15.6) (2026-11-22)
 
 
