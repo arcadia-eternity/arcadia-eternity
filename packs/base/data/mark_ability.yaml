@@ -373,7 +373,7 @@
   config: *ability_config
   tags: [ability]
   effect:
-    - effect_ability_palading_shensheng_immune_crit
+    - effect_ability_prevent_incoming_crit_if_shensheng
 - id: mark_ability_yinji
   config: *ability_config
   tags: [ability]
@@ -389,18 +389,18 @@
   tags:
     - ability
   effect:
-    - effect_bingchuantun_ability_houjin_damage
+    - effect_ability_amplify_outgoing_attack_damage_10_percent_if_last
 - id: mark_ability_ganjue
   config: *ability_config
   tags: [ability]
   effect:
-    - effect_ability_ganjue_add_rage
+    - effect_ability_add_rage_5_on_hit_if_opponent_lost_sense
 - id: mark_ability_fengzhen
   config: *ability_config
   tags: [ability]
   effect:
-    - effect_shifeng_ability_init_needles
-    - effect_shifeng_ability_immune_status
+    - effect_ability_add_mark_self_fenghuangzhen_3_on_battle_start
+    - effect_ability_block_abnormal_status_when_fenghuangzhen_depleted
 - id: mark_ability_tiaotiaoshu
   config:
     persistent: true
@@ -411,7 +411,7 @@
   tags:
     - ability
   effect:
-    - effect_tiaotiaoshu_ability_accuracy_down
+    - effect_ability_reduce_incoming_status_skill_accuracy_10
 - id: mark_ability_pangpang
   config:
     persistent: true
@@ -422,7 +422,7 @@
   tags:
     - ability
   effect:
-    - effect_pangpang_ability_rage_regen
+    - effect_ability_add_5_rage_at_turn_end_if_weizui_or_lanzui
 - id: mark_ability_abu
   config:
     persistent: true
@@ -433,7 +433,7 @@
   tags:
     - ability
   effect:
-    - effect_abu_ability_rage_drain
+    - effect_ability_drain_opponent_rage_10_on_first_skill_hit
 - id: mark_ability_niya
   config:
     persistent: true
@@ -444,7 +444,7 @@
   tags:
     - ability
   effect:
-    - effect_niya_ability_normal_boost
+    - effect_ability_increase_normal_attack_damage_dealt_25_percent
 - id: mark_ability_boli
   config:
     persistent: true
@@ -455,7 +455,7 @@
   tags:
     - ability
   effect:
-    - effect_boli_ability_damage_boost
+    - effect_ability_increase_damage_10_percent_if_opponent_hp_below_half
 - id: mark_ability_huohuali
   config:
     persistent: true
@@ -466,7 +466,7 @@
   tags:
     - ability
   effect:
-    - effect_huohuali_ability_crit_damage
+    - effect_ability_increase_crit_damage_10_percent
 - id: mark_ability_xiaojie
   config:
     persistent: true
@@ -477,7 +477,7 @@
   tags:
     - ability
   effect:
-    - effect_xiaojie_ability_spe_down_atk_up
+    - effect_ability_raise_atk_1_stage_before_receiving_spe_drop
 - id: mark_ability_lulu
   config:
     persistent: true
@@ -488,7 +488,7 @@
   tags:
     - ability
   effect:
-    - effect_lulu_ability_sandbunshin_growth
+    - effect_ability_add_shafenshen_1_stack_at_turn_end_while_active
 - id: mark_ability_qiaoba
   config:
     persistent: true
@@ -499,8 +499,8 @@
   tags:
     - ability
   effect:
-    - effect_qiaoba_ability_blue_wave_on_damage
-    - effect_qiaoba_ability_berserk_on_three_waves
+    - effect_ability_add_mark_self_lanbo_on_damage
+    - effect_ability_add_mark_self_baozou_when_lanbo_reaches_3_stacks
 - id: mark_ability_dayandujiao
   config:
     persistent: true
@@ -511,7 +511,7 @@
   tags:
     - ability
   effect:
-    - effect_dayandujiao_ability_focus_power
+    - effect_ability_add_power_5_to_attack_if_owner_has_jiaodianfushi
 - id: mark_ability_fengyong
   config:
     persistent: true
@@ -522,7 +522,7 @@
   tags:
     - ability
   effect:
-    - effect_fengyong_ability_refresh_poison
+    - effect_ability_refresh_opponent_zhongdu_duration_on_damage
 - id: mark_ability_azi
   config:
     persistent: true
@@ -533,8 +533,8 @@
   tags:
     - ability
   effect:
-    - effect_azi_ability_special_damage
-    - effect_azi_ability_physical_accuracy
+    - effect_ability_increase_special_damage_5_percent
+    - effect_ability_add_physical_skill_accuracy_5_percent
 - id: mark_ability_mimi
   config:
     persistent: true
@@ -545,8 +545,8 @@
   tags:
     - ability
   effect:
-    - effect_mimi_ability_tanli_on_hp_loss
-    - effect_mimi_ability_benghuai_power
+    - effect_ability_gain_tanli_on_hp_loss_and_add_benghuai_at_200
+    - effect_ability_double_benghuai_skill_power_with_benghuai_mark
 - id: mark_ability_xiaoxiaoemo
   config:
     persistent: true
@@ -557,7 +557,7 @@
   tags:
     - ability
   effect:
-    - effect_xiaoxiaoemo_ability_contract_crit_heal
+    - effect_ability_heal_self_60_on_crit_damage_if_opponent_has_mark_emoqiyue
 - id: mark_ability_kadunjiujiu_171
   config:
     persistent: true
@@ -568,7 +568,7 @@
   tags:
     - ability
   effect:
-    - effect_kadunjiujiu_171_ability_priority
+    - effect_ability_raise_attack_skill_priority_1_10_percent
 - id: mark_ability_atongtie
   config:
     persistent: true
@@ -579,7 +579,7 @@
   tags:
     - ability
   effect:
-    - effect_atongtie_ability_overload
+    - effect_ability_add_mark_self_guozai_at_100_rage_on_gain_or_turn_start
 - id: mark_ability_mika
   config:
     persistent: true
@@ -590,7 +590,7 @@
   tags:
     - ability
   effect:
-    - effect_mika_ability_qualification_damage
+    - effect_ability_deal_damage_based_on_iv_after_non_status_hit
 - id: mark_ability_qiuding
   config:
     persistent: true
@@ -601,7 +601,7 @@
   tags:
     - ability
   effect:
-    - effect_qiuding_ability_def_reduction
+    - effect_ability_reduce_incoming_physical_damage_10_percent_if_def_above_500
 - id: mark_ability_badu
   config:
     persistent: true
@@ -612,7 +612,7 @@
   tags:
     - ability
   effect:
-    - effect_badu_ability_spd_reduction
+    - effect_ability_reduce_special_damage_10_percent_if_spd_over_500
 - id: mark_ability_feide
   config:
     persistent: true
@@ -623,8 +623,8 @@
   tags:
     - ability
   effect:
-    - effect_feide_ability_damage_up
-    - effect_feide_ability_rage_loss
+    - effect_ability_increase_attack_damage_5_percent
+    - effect_ability_reduce_rage_gain_5
 - id: mark_ability_nuoji
   config:
     persistent: true
@@ -635,7 +635,7 @@
   tags:
     - ability
   effect:
-    - effect_nuoji_ability_plan_rage
+    - effect_ability_add_rage_self_5_at_turn_end_with_any_plan
 - id: mark_ability_kaise
   config:
     persistent: true
@@ -646,7 +646,7 @@
   tags:
     - ability
   effect:
-    - effect_kaise_ability_hot_burn
+    - effect_ability_deal_opponent_special_damage_6_percent_max_hp_capped_at_100_in_field_yanre
 - id: mark_ability_kelipu
   config:
     persistent: true
@@ -657,7 +657,7 @@
   tags:
     - ability
   effect:
-    - effect_kelipu_ability_reserve_damage
+    - effect_ability_increase_attack_damage_10_percent_with_chubeixiang
 - id: mark_ability_aisa
   config:
     persistent: true
@@ -668,7 +668,7 @@
   tags:
     - ability
   effect:
-    - effect_aisa_ability_crit
+    - effect_ability_add_crit_rate_5_percent_before_check
 - id: mark_ability_moumou
   config:
     persistent: true
@@ -679,7 +679,7 @@
   tags:
     - ability
   effect:
-    - effect_moumou_ability_heal_on_hit
+    - effect_ability_heal_self_15_hp_after_non_status_hit
 - id: mark_ability_langpu
   config:
     persistent: true
@@ -690,11 +690,11 @@
   tags:
     - ability
   effect:
-    - effect_langpu_ability_crit_reduction
-    - effect_langpu_ability_crit_counter
+    - effect_ability_reduce_critical_attack_damage_taken_35_percent
+    - effect_ability_add_mark_self_huixin_after_taking_critical_attack_damage
 - id: mark_ability_cangyuepodi
   config: *ability_config
   tags: [ability]
   effect:
-    - effect_yinji_ability_moon_zhuiluo
-    - effect_yinji_ability_earth_zhikong
+    - effect_ability_add_mark_opponent_zhuiluo_on_moon_skill_hit
+    - effect_ability_add_mark_opponent_zhikong_on_earth_skill_hit

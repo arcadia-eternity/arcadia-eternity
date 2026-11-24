@@ -228,21 +228,6 @@ export class VitalActionsGeneratedEffects {
           targets.ownerPet.apply(ops.heal(targets.ownerPet.select(pet => pet.stat.maxHp).first())),
         ),
       },
-      effect_mark_posion_damage: {
-        triggers: [EffectTrigger.TurnEnd],
-        priority: 0,
-        when: conditions.ownerIsActive,
-        apply: actions.sequence(
-          targets.ownerPet.apply(
-            ops.dealDamage(
-              targets.sourceMark
-                .select(mark => mark.stack)
-                .first()
-                .map(n => Math.floor(n * 10)),
-            ),
-          ),
-        ),
-      },
       effect_mark_reduce_opponent_rage_15_if_damage_below_75: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
@@ -507,24 +492,6 @@ export class VitalActionsGeneratedEffects {
                 .select(event => event.hpLoss)
                 .first()
                 .map(n => Math.floor(n * 0.5)),
-            ),
-          ),
-        ),
-      },
-      effect_skill_heal_self_1_16_if_aideminyi: {
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_aideminyi').condition(checks.exists()),
-        ),
-        apply: actions.sequence(
-          targets.ownerPet.apply(
-            ops.heal(
-              targets.ownerPet
-                .select(pet => pet.stat.maxHp)
-                .first()
-                .map(n => Math.floor(n / 16)),
             ),
           ),
         ),

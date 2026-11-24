@@ -44,7 +44,7 @@ export class MikaEffects {
     const selfSkillHit = conditions.selfUsesSkill
 
     return defineEffects({
-      effect_mika_ability_qualification_damage: {
+      effect_ability_deal_damage_based_on_iv_after_non_status_hit: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
@@ -66,7 +66,7 @@ export class MikaEffects {
             ),
           ),
       },
-      effect_mika_emblem_climax_min_effect: {
+      effect_emblem_set_climax_min_type_multiplier_1: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
@@ -75,7 +75,7 @@ export class MikaEffects {
         ),
         apply: contexts.skillUse.apply(ops.setMinimumTypeMultiplier(1)),
       },
-      effect_mika_skill_guangshufanchong: {
+      effect_skill_add_rage_20_if_hp_loss_below_100: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(
@@ -84,31 +84,25 @@ export class MikaEffects {
         ),
         apply: rageUp,
       },
-      effect_mika_skill_guangjiangongji: {
+      effect_skill_min_damage_85: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: selfSkillHit,
         apply: contexts.damage.apply(ops.setDamageThreshold({ min: 85 })),
       },
-      effect_mika_skill_fenlituji: {
+      effect_skill_reduce_opponent_def_1_stage_25_percent: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, conditions.all(selfSkillHit, conditions.chance(25))),
+        when: conditions.all(selfSkillHit, conditions.chance(25)),
         apply: defDown,
       },
-      effect_mika_skill_guangxianchuantou: {
-        triggers: [EffectTrigger.BeforeUseSkillCheck],
-        priority: 0,
-        when: selfSkillHit,
-        apply: contexts.skillUse.apply(ops.setIgnoreShield()),
-      },
-      effect_mika_skill_guangxiansuoding: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
+      effect_skill_raise_spa_1_stage_add_mark_self_guangxiansuoding_before_hit: {
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: selfSkillHit,
         apply: actions.sequence(spaUp, ownerPet.apply(ops.addMark(lightLock))),
       },
-      effect_mika_skill_guangshuchongji: {
+      effect_skill_raise_spa_1_stage_if_hp_loss_below_100: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(
@@ -117,31 +111,31 @@ export class MikaEffects {
         ),
         apply: spaUp,
       },
-      effect_mika_skill_amadisiguang: {
+      effect_skill_add_mark_opponent_shiming_20_percent_on_hit: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, conditions.all(selfSkillHit, conditions.chance(20))),
+        when: conditions.all(selfSkillHit, conditions.chance(20)),
         apply: blindApply,
       },
-      effect_mika_skill_guangzhidun: {
+      effect_skill_add_mark_self_guangzhidun_if_first_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(selfSkillHit, conditions.firstSkillThisTurn),
         apply: ownerPet.apply(ops.addMark(lightShield)),
       },
-      effect_mika_skill_xiaotaiyang: {
+      effect_skill_heal_self_quarter_max_hp_on_miss: {
         triggers: [EffectTrigger.OnMiss],
         priority: 0,
         when: selfSkillHit,
         apply: healQuarter,
       },
-      effect_mika_skill_huixuanguangren: {
+      effect_skill_add_mark_self_huixuanguangren_on_miss: {
         triggers: [EffectTrigger.OnMiss],
         priority: 0,
         when: selfSkillHit,
         apply: ownerPet.apply(ops.addMark(spinBlade)),
       },
-      effect_mika_mark_guangxiansuoding_surehit: {
+      effect_mark_set_non_status_skills_sure_hit: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(
@@ -150,7 +144,7 @@ export class MikaEffects {
         ),
         apply: contexts.skillUse.apply(ops.setSureHit()),
       },
-      effect_mika_mark_huixuanguangren_power: {
+      effect_mark_double_huixuanguangren_power_and_consume: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(

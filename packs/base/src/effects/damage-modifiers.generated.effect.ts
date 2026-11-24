@@ -1045,25 +1045,6 @@ export class DamageModifiersGeneratedEffects {
           ),
         }
       })(),
-      effect_skill_fixed_damage_by_self_max_hp_minus_500: {
-        triggers: [EffectTrigger.OnBeforeCalculateDamage],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
-          const left = ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first())
-          const right = 500
-          return left !== undefined && right !== undefined && left > right
-        }),
-        apply: contexts.damage.apply(
-          ops.modifyDamage({
-            percent: 0,
-            delta: targets.ownerPet
-              .select(pet => pet.stat.maxHp)
-              .first()
-              .map(n => n + -500)
-              .map(n => Math.max(n, 0)),
-          }),
-        ),
-      },
       effect_skill_fixed_damage_max_hp_1_8: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,

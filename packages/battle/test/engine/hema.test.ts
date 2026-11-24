@@ -13,6 +13,7 @@ import {
 } from '@arcadia-eternity/battle/engine'
 import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
 import { loadBasePrototypeData } from './base-metadata'
+import { petBattle } from './original-pet-battle'
 
 const catalog = createOfficialContent(loadBasePrototypeData(), 'hema/test')
 const stats = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }
@@ -198,4 +199,37 @@ it.each([
   battle.applyEffects(skillUse, EffectTrigger.AfterUseSkillCheck)
   skillUse.updateHitResult()
   expect(skillUse.hitResult).toBe(willHit)
+})
+
+it.each([
+  ['skill_chandouchongji', 'opponent', ['stat_stage_spe_down']],
+  ['skill_guaiyichongji', 'opponent', ['stat_stage_def_down']],
+  ['skill_kusechouda', 'opponent', ['stat_stage_spd_down']],
+  ['skill_beiheyimi', 'self', ['stat_stage_def_up', 'stat_stage_spd_up', 'stat_stage_spe_up']],
+] as const)('%s applies its sense-dependent stages before damage and only on a hit', (skill, target, expected) => {
+  const { battle, owner, opponent, use } = petBattle('pet_heyimi', ['skill_chaogansangshibo', skill])
+  const pet = (target === 'self' ? owner : opponent).activePet
+  const stages = () =>
+    pet.marks
+      .map(mark => mark.baseId)
+      .filter(id => id.startsWith('stat_stage_'))
+      .sort()
+  const stagesAfterBeforeHit: string[][] = []
+  const applyEffects = battle.applyEffects.bind(battle)
+  vi.spyOn(battle, 'applyEffects').mockImplementation((context, trigger, ...sources) => {
+    const result = applyEffects(context, trigger, ...sources)
+    if (trigger === EffectTrigger.BeforeHit && context instanceof UseSkillContext && context.skill.baseId === skill) {
+      stagesAfterBeforeHit.push(stages())
+    }
+    return result
+  })
+  vi.spyOn(battle, 'random').mockReturnValue(0.5)
+
+  use('skill_chaogansangshibo')
+  use(skill, owner, false)
+  expect(stages()).toEqual([])
+  expect(stagesAfterBeforeHit).toEqual([])
+
+  use(skill)
+  expect(stagesAfterBeforeHit).toEqual([expected])
 })

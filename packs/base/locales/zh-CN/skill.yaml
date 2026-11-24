@@ -2900,12 +2900,9 @@ skill_fangkongdong:
 skill_zuizhongcaijue:
   name: 最终裁决
   description: 击败具有拷问的对手时恢复自身最大体力的1/4
-skill_chongzhuang_palading:
-  name: 冲撞
-  description: 向对手冲撞过去
 skill_guangxiangongji:
   name: 光线攻击
-  description: 用光线攻击对手
+  description: 5%弱化对手特防1级
 skill_zhengyizhihuo:
   name: 正义之火
   description: 提升<buff>物防</buff> 神圣状态下额外提升<buff>特防</buff>
@@ -2920,7 +2917,7 @@ skill_chengjiezhiguang:
   description: 惩戒恶人的光芒 神圣状态下额外附带<damage>15%特攻值的伤害</damage>
 skill_bihuzhihuo:
   name: 庇护之火
-  description: 在战场获得<markName>庇护</markName> 恢复<heal>1/8体力</heal>且5回合格挡<shield>50点物理伤害</shield>
+  description: 恢复<heal>1/8体力</heal>并获得5回合<markName>格挡</markName>
 skill_shengguangxili:
   name: 圣光洗礼
   description: 接受圣光的洗礼 清除自己的不良状态
@@ -2935,7 +2932,7 @@ skill_zhengfazhihuo:
   description: 骑士的决心与怒火 3回合<damage>伤害增加35%</damage>并转化<heal>35%伤害为体力</heal>
 skill_shengyouzhihuo:
   name: 圣佑之火
-  description: 在战场获得<markName>庇护</markName> 恢复<heal>1/8体力</heal>且5回合受到特攻伤害减半
+  description: 恢复<heal>1/8体力</heal>并获得5回合<markName>庇护</markName>
 skill_rongyaodeshengzhan:
   name: 荣耀的圣战
   description: <strong>必杀技</strong> 充满荣耀的圣战 神圣状态下提升物防或特防
@@ -2985,7 +2982,7 @@ skill_hongxinlianjie:
   name: 红心连接
   description: 消耗<markName>红心印记</markName>和<markName>心之印记</markName>使自身获得<markName>红心连接</markName>
 
-skill_quanliyiji_kadundudu:
+skill_quanliyiji_shenggong_10:
   name: 全力一击
   description: 【85】10%强化自身物攻1级
 skill_bingzhui:
@@ -3042,7 +3039,7 @@ skill_guaiyichongji:
 skill_kusechouda:
   name: 苦涩抽打
   description: 对手失去味觉时，使其特防下降1级
-skill_chouda_hema:
+skill_chouda_jiangwufang:
   name: 抽打
   description: 命中后使对手物防下降1级。
 skill_ganjuebaoli:
@@ -3771,9 +3768,6 @@ skill_taobizhihun:
 skill_diyupaoxiao:
   name: 地狱咆哮
   description: 对手具有恶魔契约时伤害增加50%
-skill_xinlianxin_haoyin:
-  name: 心连心
-  description: 消耗心之印记必中
 skill_xinsushanyao:
   name: 心速闪耀
   description: 先制+1
@@ -3783,21 +3777,12 @@ skill_xuyuan:
 skill_qingyingshenzi:
   name: 轻盈身姿
   description: 强化自身速度1级并获得减重
-skill_quanlichongfeng_2:
-  name: 全力冲锋
-  description: 15%强化自身物攻1级
 skill_fanxincuican:
   name: 繁心璀璨
   description: 必中 15%强化自身特攻1级
 skill_xinlingsuo:
   name: 心灵锁
   description: 使对手获得50点伤害减少
-skill_xuehongyinji_sanhuihe:
-  name: 血红印记
-  description: 使对手获得血红印记
-skill_xinyuan_2:
-  name: 心愿
-  description: 恢复自身最大体力的25% 连续使用效果减半
 skill_wajietuji:
   name: 瓦解突击
   description: 使对手获得物攻减半
@@ -3840,9 +3825,6 @@ skill_monengzhadan:
 skill_yuanshizhadan:
   name: 原始炸弹
   description: 20%弱化对手速度1级
-skill_guangxiangongji_jiangtefang:
-  name: 光线攻击
-  description: 5%弱化对手特防1级
 skill_gaosuzitai:
   name: 高速姿态
   description: 强化自身速度1级
@@ -4092,9 +4074,6 @@ skill_zhuoreyiji:
 skill_huoyanpenshe:
   name: 火焰喷射
   description: 10%使对手烧伤
-skill_lieyanzhiqu_chijiumianyi:
-  name: 烈焰之躯
-  description: 使自身获得不良免疫
 skill_chiretuji_yanre:
   name: 炽热突击
   description: 炎热时增加30点威力
@@ -4212,9 +4191,6 @@ skill_xuanmushanguang:
 skill_jilang:
   name: 激浪
   description: 5%弱化对手特防1级
-skill_niliu_2:
-  name: 逆流
-  description: 弱化对手速度1级
 skill_hailangzhenpao:
   name: 海浪震炮
   description: 使自身获得必中

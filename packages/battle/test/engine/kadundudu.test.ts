@@ -12,7 +12,7 @@ import {
   type Player,
 } from '@arcadia-eternity/battle/engine'
 import { createOfficialContent, type OfficialPrototypeData } from '@arcadia-eternity/data-pack-base/effects'
-import { afterEach, beforeAll, expect, it } from 'vitest'
+import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { loadBasePrototypeData } from './base-metadata'
 
 const baseData: OfficialPrototypeData = loadBasePrototypeData()
@@ -223,7 +223,7 @@ it('loads form 71 stats, the 17-move learn list, and battle-start ability/emblem
     'skill_jianren',
     'skill_hongxinqianghua',
     'skill_hongxinshexian',
-    'skill_quanliyiji_kadundudu',
+    'skill_quanliyiji_shenggong_10',
     'skill_tuihuashexian',
     'skill_quanlichongfeng',
     'skill_hongxinhuifu',
@@ -253,6 +253,35 @@ it('grants the 印记 and 红心 emblem marks to active and benched team members
     expect(member.marks.filter(mark => mark.baseId === 'mark_ability_yinji')).toHaveLength(1)
     expect(member.marks.filter(mark => mark.baseId === 'mark_emblem_hongxin')).toHaveLength(1)
   }
+})
+
+it.each([
+  [undefined, false, false],
+  ['mark_xinzhiyinji', true, false],
+  ['mark_xuehongyinji', true, true],
+] as const)('心连心 with mark %s hits = %s and retains the mark = %s', async (mark, hits, retainsMark) => {
+  const { battle, a, b, directory } = start(testData, [
+    team('A', [pet('pet_kadunjiujiu_171', ['skill_xinlianxin'], { level: 100 })]),
+    team('B', [pet('pet_dilan', ['skill_test_status'], { maxHp: 9999 })]),
+  ])
+  a.currentRage = 100
+  const damage = collectDamage(battle)
+  const ready = prompt(battle)
+  running.push(battle.startBattle().catch(() => {}))
+  await ready
+
+  if (mark) addMark(battle, directory, b.activePet, mark)
+  const rng = vi.spyOn(battle, 'random').mockReturnValue(0.99)
+  try {
+    await runTurn(battle, () => {
+      use(battle, a, 'skill_xinlianxin')
+      use(battle, b, 'skill_test_status')
+    })
+  } finally {
+    rng.mockRestore()
+  }
+  expect(damage.some(record => record.target === b.activePet.id && record.damage > 0)).toBe(hits)
+  if (mark) expect(hasMark(b.activePet, mark)).toBe(retainsMark)
 })
 
 it('红心印记 adds one self stack per hit and the 印记 ability raises damage by 10%', async () => {
@@ -713,7 +742,7 @@ it('clears 红心印记 on switch while the battle-start ability/emblem marks fo
 })
 
 it.each([0.09, 0.11])('restoration secondary effects respect the 10 percent chance (roll %s)', async roll => {
-  for (const skill of ['skill_hongxinshexian', 'skill_qunxinmantian', 'skill_quanliyiji_kadundudu']) {
+  for (const skill of ['skill_hongxinshexian', 'skill_qunxinmantian', 'skill_quanliyiji_shenggong_10']) {
     const { battle, a, b } = start(testData, [
       team('A', [kadunPet(KADUN, [skill], { maxHp: 8000 })]),
       team('B', [pet('pet_dilan', ['skill_test_status'], { maxHp: 99999 })]),

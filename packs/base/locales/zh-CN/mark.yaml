@@ -740,11 +740,11 @@ mark_shensheng:
   name: 神圣
   description: 每回合恢复<heal>1/16体力</heal> 体力低于1/2时恢复<heal>1/8体力</heal>
 mark_bihu:
-  name: 庇护
-  description: 恢复<heal>1/8体力</heal>且5回合格挡<shield>50点物理伤害</shield>
+  name: 格挡
+  description: 格挡<shield>50点物理伤害</shield>
 mark_shengyou:
-  name: 圣佑
-  description: 恢复<heal>1/8体力</heal>且5回合受到特攻伤害减半
+  name: 庇护
+  description: 受到特攻伤害减半
 mark_gongzheng:
   name: 公正
   description: 无法获得能力提升效果

@@ -63,13 +63,13 @@ export class BoliEffects {
     }
 
     return defineEffects({
-      effect_boli_ability_damage_boost: {
+      effect_ability_increase_damage_10_percent_if_opponent_hp_below_half: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentBelowHalf),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       },
-      effect_boli_emblem_sure_hit: {
+      effect_emblem_sure_hit_for_guaixiao_skills: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(
@@ -78,14 +78,14 @@ export class BoliEffects {
         ),
         apply: contexts.skillUse.apply(ops.setSureHit()),
       },
-      effect_boli_skill_hanbingpaoxiao: {
+      effect_skill_add_mark_opponent_hunmi_50_percent_if_opponent_hp_below_half: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentBelowHalf, conditions.chance(50)),
         apply: targets.opponentActive.apply(ops.addMark(confuse)),
       },
-      effect_boli_skill_yemanchongji: powerWhen(opponentHasConfuse, 2),
-      effect_boli_skill_hanbingshigu: {
+      effect_skill_double_power_if_opponent_has_hunmi_after_check: powerWhen(opponentHasConfuse, 2),
+      effect_skill_deal_opponent_current_hp_13_percent_max_400: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
@@ -99,15 +99,15 @@ export class BoliEffects {
           ),
         ),
       },
-      effect_boli_skill_suiliepaiji: powerWhen(opponentBelowQuarter, 2),
-      effect_boli_skill_xianzubinghun: {
+      effect_skill_double_power_if_opponent_hp_below_quarter_after_check: powerWhen(opponentBelowQuarter, 2),
+      effect_skill_add_mark_opponent_xianzubinghun: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.opponentActive.apply(ops.addMark(ancestor)),
       },
-      effect_boli_skill_hanbingtuxi: secondaryStatus(frostbite, 50),
-      effect_boli_skill_bingqinxuemai: {
+      effect_skill_add_mark_opponent_dongshang_50_percent: secondaryStatus(frostbite, 50),
+      effect_skill_heal_self_60_90_120_by_hp_ratio: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
@@ -126,20 +126,20 @@ export class BoliEffects {
           ),
         ),
       },
-      effect_boli_skill_hanbingxiaohun: {
+      effect_skill_add_mark_opponent_haipa_50_percent_if_opponent_hp_below_half: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentBelowHalf, conditions.chance(50)),
         apply: targets.opponentActive.apply(ops.addMark(fear)),
       },
-      effect_boli_skill_manxiongzhili: powerWhen(opponentHasFear, 2),
-      effect_boli_skill_guaixiaobenxi: {
+      effect_skill_double_power_if_opponent_has_haipa_after_check: powerWhen(opponentHasFear, 2),
+      effect_skill_reduce_opponent_def_1_stage_if_opponent_hp_below_half_before_hit: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentBelowHalf),
         apply: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
       },
-      effect_boli_ancestor_block_heal: {
+      effect_mark_prevent_owner_healing: {
         triggers: [EffectTrigger.OnBeforeHeal],
         priority: 0,
         when: conditions.selfBeHealed,

@@ -18,12 +18,12 @@ const specialDamage = contexts.damage.condition((_, events) =>
   events.some(event => event.damageType === DamageType.Special),
 )
 
-const physicalSkill = contexts.skillUse.condition((_, events) =>
-  events.some(event => event.skill.category === 'Physical'),
-)
-
 const attackDamage = contexts.damage.condition((_, events) =>
   events.some(event => event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
+)
+
+const physicalSkill = contexts.skillUse.condition((_, events) =>
+  events.some(event => event.skill.category === 'Physical'),
 )
 
 const opponentActive = targets.opponentActive
@@ -39,132 +39,90 @@ export class AziEffects {
     if (!paralysis) throw new Error('Missing paralysis mark')
 
     return defineEffects({
-      effect_azi_ability_special_damage: {
+      effect_ability_increase_special_damage_5_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, specialDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 5, delta: 0 })),
       },
-      effect_azi_ability_physical_accuracy: {
+      effect_ability_add_physical_skill_accuracy_5_percent: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, physicalSkill),
         apply: contexts.skillUse.apply(ops.addAccuracy(5)),
       },
-      effect_azi_emblem_taunt_rage: {
+      effect_emblem_add_self_rage_20_when_using_tiaoxin: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, skillIs('skill_tiaoxin')),
         apply: ownerPet.apply(ops.addRage(20)),
       },
-      effect_azi_skill_zidianguang_priority: {
+      effect_skill_add_priority_1_if_opponent_rage_above_50: {
         triggers: [EffectTrigger.BeforeSort],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, skillIs('skill_zidianguang'), opponentRageAbove50),
+        when: conditions.all(conditions.selfUsesSkill, opponentRageAbove50),
         apply: contexts.skillUse.property('priority').apply(ops.add(1)),
       },
-      effect_azi_skill_zidianpo_priority: {
+      effect_skill_add_priority_1_if_opponent_rage_below_50: {
         triggers: [EffectTrigger.BeforeSort],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, skillIs('skill_zidianpo'), opponentRageBelow50),
+        when: conditions.all(conditions.selfUsesSkill, opponentRageBelow50),
         apply: contexts.skillUse.property('priority').apply(ops.add(1)),
       },
-      effect_azi_skill_ziguangbo_power: {
+      effect_skill_add_power_40_if_opponent_rage_above_50: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, skillIs('skill_ziguangbo'), opponentRageAbove50),
+        when: conditions.all(conditions.selfUsesSkill, opponentRageAbove50),
         apply: contexts.skillUse.apply(ops.addPower(40)),
       },
-      effect_azi_skill_ziguangzhan_power: {
+      effect_skill_add_power_40_if_opponent_rage_below_50: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, skillIs('skill_ziguangzhan'), opponentRageBelow50),
+        when: conditions.all(conditions.selfUsesSkill, opponentRageBelow50),
         apply: contexts.skillUse.apply(ops.addPower(40)),
       },
-      effect_azi_skill_zidiantongti_atk: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
+      effect_skill_raise_spd_1_stage_if_opponent_rage_below_50: {
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, skillIs('skill_zidiantongti')),
-        apply: ownerPet.apply(ops.changeStatStage('atk', 1)),
-      },
-      effect_azi_skill_zidiantongti_spd: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, skillIs('skill_zidiantongti'), opponentRageBelow50),
+        when: conditions.all(conditions.selfUsesSkill, opponentRageBelow50),
         apply: ownerPet.apply(ops.changeStatStage('spd', 1)),
       },
-      effect_azi_skill_chuantoudianqiu_surehit: {
-        triggers: [EffectTrigger.BeforeUseSkillCheck],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, skillIs('skill_chuantoudianqiu')),
-        apply: contexts.skillUse.apply(ops.setSureHit()),
-      },
-      effect_azi_skill_chuantoudianqiu_ignore_shield: {
-        triggers: [EffectTrigger.BeforeUseSkillCheck],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, skillIs('skill_chuantoudianqiu')),
-        apply: contexts.skillUse.apply(ops.setIgnoreShield()),
-      },
-      effect_azi_skill_zidianchongji_paralysis: {
+      effect_skill_add_mark_opponent_mabi_40_percent: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, skillIs('skill_zidianchongji'), conditions.chance(40)),
+        when: conditions.all(conditions.selfUsesSkill, conditions.chance(40)),
         apply: opponentActive.apply(ops.addMark(paralysis)),
       },
-      effect_azi_skill_zidianguantong_spa: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
+      effect_skill_raise_def_1_stage_if_opponent_rage_above_50: {
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, skillIs('skill_zidianguantong')),
-        apply: ownerPet.apply(ops.changeStatStage('spa', 1)),
-      },
-      effect_azi_skill_zidianguantong_def: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, skillIs('skill_zidianguantong'), opponentRageAbove50),
+        when: conditions.all(conditions.selfUsesSkill, opponentRageAbove50),
         apply: ownerPet.apply(ops.changeStatStage('def', 1)),
       },
-      effect_azi_skill_zidianleimingqiang_surehit: {
-        triggers: [EffectTrigger.BeforeUseSkillCheck],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, skillIs('skill_zidianleimingqiang')),
-        apply: contexts.skillUse.apply(ops.setSureHit()),
-      },
-      effect_azi_skill_zidianleimingqiang_ignore_shield: {
-        triggers: [EffectTrigger.BeforeUseSkillCheck],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, skillIs('skill_zidianleimingqiang')),
-        apply: contexts.skillUse.apply(ops.setIgnoreShield()),
-      },
-      effect_azi_skill_juedianzhiqiang_surehit: {
-        triggers: [EffectTrigger.BeforeUseSkillCheck],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, skillIs('skill_juedianzhiqiang')),
-        apply: contexts.skillUse.apply(ops.setSureHit()),
-      },
-      effect_azi_skill_juedianzhiqiang_min_damage: {
+      effect_skill_min_physical_special_damage_100: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, skillIs('skill_juedianzhiqiang'), attackDamage),
+        when: conditions.all(conditions.selfUsesSkill, attackDamage),
         apply: contexts.damage.apply(ops.setDamageThreshold({ min: 100 })),
       },
-      effect_azi_skill_zidianlianzhan_multihit: {
+      effect_skill_add_multihit_1_if_opponent_rage_below_50: {
         triggers: [EffectTrigger.BeforeMultiHit],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, skillIs('skill_zidianlianzhan'), opponentRageBelow50),
+        when: conditions.all(conditions.selfUsesSkill, opponentRageBelow50),
         apply: contexts.skillUse.apply(ops.addMultihitResult(1)),
       },
-      effect_azi_skill_zidianjueguang_extra: {
+      effect_skill_deal_75_fixed_damage_to_skill_target_if_opponent_rage_above_50_on_hit: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, skillIs('skill_zidianjueguang'), opponentRageAbove50),
+        when: conditions.all(conditions.selfUsesSkill, opponentRageAbove50),
         apply: contexts.skillUse
           .flatMap(event => (event.actualTarget ? [event.actualTarget] : []))
           .apply(ops.dealDamage(75)),
       },
-      effect_azi_skill_tiaoxin_heal: {
+      effect_skill_heal_self_25_percent_max_hp_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, skillIs('skill_tiaoxin')),
+        when: conditions.selfUsesSkill,
         apply: ownerPet.apply(
           ops.heal(
             ownerPet
@@ -174,10 +132,10 @@ export class AziEffects {
           ),
         ),
       },
-      effect_azi_skill_tiaoxin_opponent_rage: {
+      effect_skill_add_opponent_rage_20_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, skillIs('skill_tiaoxin')),
+        when: conditions.selfUsesSkill,
         apply: opponentActive.apply(ops.addRage(20)),
       },
     })

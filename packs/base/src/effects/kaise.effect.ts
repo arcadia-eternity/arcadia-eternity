@@ -12,7 +12,6 @@ import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle
 
 const BURN = 'mark_shaoshang'
 const CONFUSION = 'mark_hunmi'
-const IMMUNE_STATUS = 'mark_mianyibuliang'
 const FLAME = 'mark_huomiao'
 const HOT = 'mark_global_yanre'
 
@@ -47,9 +46,8 @@ export class KaiseEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
     const burn = marks.get(BURN)
     const confusion = marks.get(CONFUSION)
-    const immuneStatus = marks.get(IMMUNE_STATUS)
     const flame = marks.get(FLAME)
-    if (!burn || !confusion || !immuneStatus || !flame) {
+    if (!burn || !confusion || !flame) {
       throw new Error('Missing kaise mark dependency')
     }
 
@@ -58,7 +56,7 @@ export class KaiseEffects {
     const flameTarget = targets.opponentActive.apply(ops.addMark(flame, { stack: 1 }))
 
     return defineEffects({
-      effect_kaise_mark_huomiao_explode: {
+      effect_mark_consume_self_2_stacks_deal_100_fixed_damage_on_stack: {
         triggers: [EffectTrigger.OnStack],
         priority: 0,
         when: ctx => ctx.parent.existingMark === ctx.read(targets.sourceMark.first()) && ctx.parent.stacksAfter >= 2,
@@ -67,7 +65,7 @@ export class KaiseEffects {
           targets.ownerPet.apply(ops.dealDamage(100))(ctx)
         },
       },
-      effect_kaise_ability_hot_burn: {
+      effect_ability_deal_opponent_special_damage_6_percent_max_hp_capped_at_100_in_field_yanre: {
         triggers: [EffectTrigger.TurnEnd],
         priority: 0,
         when: conditions.all(conditions.ownerIsActive, hotActive),
@@ -78,30 +76,23 @@ export class KaiseEffects {
           ),
         ),
       },
-      effect_kaise_emblem_burn_damage: {
+      effect_emblem_increase_damage_10_percent_if_opponent_has_mark_shaoshang: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentBurned),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       },
-      effect_kaise_skill_chirehuoyan_burn: hotSecondary(100, burnTarget),
-      effect_kaise_skill_chirehuomiao_flame: hotSecondary(100, flameTarget),
-      effect_kaise_skill_zhuoreyiji_spa: secondaryHit(10, targets.ownerPet.apply(ops.changeStatStage('spa', 1))),
-      effect_kaise_skill_huoyanpenshe_burn: secondaryHit(10, burnTarget),
-      effect_kaise_skill_lieyanzhiqu_immune: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: targets.ownerPet.apply(ops.addMark(immuneStatus, { stack: 1, duration: -1 })),
-      },
-      effect_kaise_skill_chiretuji_power: {
+      effect_skill_add_mark_opponent_shaoshang_in_field_yanre: hotSecondary(100, burnTarget),
+      effect_skill_add_mark_opponent_huomiao_1_in_field_yanre: hotSecondary(100, flameTarget),
+      effect_skill_add_mark_opponent_shaoshang_10_percent_any_element: secondaryHit(10, burnTarget),
+      effect_skill_add_power_30_in_field_yanre_before_damage: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hotActive),
         apply: contexts.skillUse.apply(ops.addPower(30)),
       },
-      effect_kaise_skill_yehuoliaoyuan_burn: secondaryHit(15, burnTarget),
-      effect_kaise_skill_huoyanzhiwu_confuse: hotSecondary(100, confuseTarget),
+      effect_skill_add_mark_opponent_shaoshang_15_percent_any_element: secondaryHit(15, burnTarget),
+      effect_skill_add_mark_opponent_hunmi_in_field_yanre: hotSecondary(100, confuseTarget),
     })
   }
 }

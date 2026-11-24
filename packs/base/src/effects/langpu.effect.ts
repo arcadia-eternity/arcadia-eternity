@@ -6,8 +6,6 @@ import {
   EffectTrigger,
   ops,
   targets,
-  type Action,
-  type Condition,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
 
@@ -24,17 +22,6 @@ const notCritDamage = contexts.damage.condition((_, events) => events.every(even
 const opponentIsIce = targets.opponentActive.condition((_, pets) => pets.some(pet => pet.element === 'Ice'))
 
 const skillTarget = contexts.skillUse.flatMap(event => (event.actualTarget ? [event.actualTarget] : []))
-
-function healFraction(fraction: number) {
-  return {
-    triggers: [EffectTrigger.AfterUseSkillCheck] as const,
-    priority: 0,
-    when: conditions.selfUsesSkill,
-    apply: targets.ownerPet.apply(
-      ops.heal(targets.ownerPet.select(pet => Math.floor(pet.stat.maxHp * fraction)).first()),
-    ),
-  }
-}
 
 function rageOnNoCrit(amount: number) {
   return {
@@ -79,54 +66,35 @@ export class LangpuEffects {
     if (!counterCrit) throw new Error('Missing langpu mark dependency')
 
     return defineEffects({
-      effect_langpu_ability_crit_reduction: {
+      effect_ability_reduce_critical_attack_damage_taken_35_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, attackDamage, critDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -35, delta: 0 })),
       },
-      effect_langpu_ability_crit_counter: {
+      effect_ability_add_mark_self_huixin_after_taking_critical_attack_damage: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, attackDamage, critDamage),
         apply: targets.ownerPet.apply(ops.addMark(counterCrit)),
       },
-      effect_langpu_emblem_crit_damage: {
+      effect_emblem_increase_critical_attack_damage_dealt_15_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, attackDamage, critDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 15, delta: 0 })),
       },
-      effect_langpu_skill_bingbao: rageOnNoCrit(15),
-      effect_langpu_skill_suibing: icePowerDouble(),
-      effect_langpu_skill_hanbingzhiti: powerOnNoCrit(35),
-      effect_langpu_skill_hanguang: healFraction(0.25),
-      effect_langpu_skill_xuebeng: flatDamageOnNoCrit(40),
-      effect_langpu_skill_xuerenpaoxiao: {
-        triggers: [EffectTrigger.OnHit] as const,
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, conditions.chance(20)),
-        apply: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
+      effect_skill_add_rage_self_15_on_noncritical_damage: rageOnNoCrit(15),
+      effect_skill_double_power_against_ice_opponent_after_check: icePowerDouble(),
+      effect_skill_add_power_35_unless_critical_damage_after_check: powerOnNoCrit(35),
+      effect_skill_deal_40_fixed_damage_on_noncritical_damage: flatDamageOnNoCrit(40),
+      effect_skill_min_attack_damage_95_if_not_first_skill: {
+        triggers: [EffectTrigger.OnBeforeCalculateDamage],
+        when: conditions.all(conditions.selfUsesSkill, attackDamage, conditions.not(conditions.firstSkillThisTurn)),
+        apply: contexts.damage.apply(ops.setDamageThreshold({ min: 95 })),
       },
-      effect_langpu_skill_hanbingfanshi: {
-        triggers: [EffectTrigger.BeforeUseSkillCheck, EffectTrigger.OnBeforeCalculateDamage] as const,
-        priority: 0,
-        when: (ctx =>
-          ctx.trigger === EffectTrigger.BeforeUseSkillCheck
-            ? conditions.selfUsesSkill(ctx)
-            : conditions.all(conditions.selfUsesSkill, attackDamage)(ctx)) satisfies Condition<
-          EffectTrigger.BeforeUseSkillCheck | EffectTrigger.OnBeforeCalculateDamage
-        >,
-        apply: (ctx => {
-          if (ctx.trigger === EffectTrigger.BeforeUseSkillCheck) {
-            contexts.skillUse.property('priority').apply(ops.add(-1))(ctx)
-          } else {
-            contexts.damage.apply(ops.setDamageThreshold({ min: 95 }))(ctx)
-          }
-        }) satisfies Action<EffectTrigger.BeforeUseSkillCheck | EffectTrigger.OnBeforeCalculateDamage>,
-      },
-      effect_langpu_skill_hanbingzhenji: powerOnNoCrit(40),
-      effect_langpu_skill_daxuebeng: flatDamageOnNoCrit(50),
+      effect_skill_add_power_40_unless_critical_damage_after_check: powerOnNoCrit(40),
+      effect_skill_deal_50_fixed_damage_on_noncritical_damage: flatDamageOnNoCrit(50),
     })
   }
 }

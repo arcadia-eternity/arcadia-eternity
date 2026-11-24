@@ -8,7 +8,6 @@ import {
   EffectTrigger,
   ops,
   targets,
-  type Action,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
 
@@ -23,13 +22,6 @@ const MENTAL_RESTRAINT = 'mark_xinlingzhiyue'
 
 const opponentActive = targets.opponentActive
 const ownerPet = targets.ownerPet
-
-function debuffOnHit(stat: 'atk' | 'def' | 'spa' | 'spd' | 'spe', chance: number, amount: number): Action {
-  return actions.choose(
-    conditions.all(conditions.selfUsesSkill, conditions.chance(chance)),
-    opponentActive.apply(ops.changeStatStage(stat, amount)),
-  )
-}
 
 @effectGroup({ id: 'abu' })
 export class AbuEffects {
@@ -46,8 +38,15 @@ export class AbuEffects {
     const ownerHasEmblem = targets.ownerMarks.where(mark => mark.baseId === EMBLEM && mark.isActive)
     const ownerHasResentment = targets.ownerMarks.where(mark => mark.baseId === ABU_RESENTMENT && mark.isActive)
 
+    const repeatedHit = conditions.all(
+      conditions.selfUsesSkill,
+      contexts.skillUse.condition((_, events) =>
+        events.some(({ pet, skill }) => pet.lastSkillUsedTimes > 1 && pet.lastMissedSkillId !== skill.baseId),
+      ),
+    )
+
     return defineEffects({
-      effect_abu_ability_rage_drain: {
+      effect_ability_drain_opponent_rage_10_on_first_skill_hit: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(
@@ -58,7 +57,7 @@ export class AbuEffects {
         ),
         apply: targets.opponentPlayer.apply(ops.reduceRage(10)),
       },
-      effect_abu_emblem_curse_reduction: {
+      effect_emblem_set_applied_zuzhou_duration_2_turns: {
         triggers: [EffectTrigger.OnBeforeAddMark],
         priority: 0,
         when: conditions.all(
@@ -68,53 +67,42 @@ export class AbuEffects {
         ),
         apply: contexts.addMark.apply(ops.setMarkDuration(2)),
       },
-      effect_abu_skill_zuzhoubengdai: {
+      effect_skill_reduce_opponent_def_1_stage_after_repeated_use_without_miss: {
         triggers: [EffectTrigger.BeforeHit],
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          contexts.skillUse.condition((_, events) =>
-            events.some(({ pet, skill }) => pet.lastSkillUsedTimes > 1 && pet.lastMissedSkillId !== skill.baseId),
-          ),
-        ),
+        when: repeatedHit,
         apply: opponentActive.apply(ops.changeStatStage('def', -1)),
       },
-      effect_abu_skill_bengdaichanrao: {
-        triggers: [EffectTrigger.OnHit],
+      effect_skill_reduce_opponent_spe_1_stage_after_repeated_use_without_miss: {
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: debuffOnHit('spe', 1, -1),
+        when: repeatedHit,
+        apply: opponentActive.apply(ops.changeStatStage('spe', -1)),
       },
-      effect_abu_skill_bengdaitishen: {
+      effect_skill_add_mark_self_bengdaitishen_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: ownerPet.apply(ops.addMark(bandageSubstitute, { stack: 1 })),
       },
-      effect_abu_skill_abuzuzhou: {
+      effect_skill_add_mark_opponent_zuzhou_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: opponentActive.apply(ops.addMark(curse, { stack: 1 })),
       },
-      effect_abu_skill_beishangfanji: {
-        triggers: [EffectTrigger.BeforeSort],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: contexts.skillUse.property('priority').apply(ops.add(-1)),
-      },
-      effect_abu_skill_abuzhiyuan: {
+      effect_skill_add_mark_self_abuzhiyuan_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: ownerPet.apply(ops.addMark(abuResentment, { stack: 1 })),
       },
-      effect_abu_skill_abuhaoku: {
+      effect_skill_add_mark_self_xinlingzhiyue_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: ownerPet.apply(ops.addMark(mentalRestraint, { stack: 1 })),
       },
-      effect_abu_skill_yuanqixiaosan: {
+      effect_skill_consume_abuzhiyuan_deal_100_effect_damage_ignoring_shields: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, ownerHasResentment.condition(checks.exists())),
@@ -123,7 +111,7 @@ export class AbuEffects {
           opponentActive.apply(ops.dealDamage(100, { damageType: DamageType.Effect, policy: { shields: false } })),
         ),
       },
-      effect_abu_resentment_rage_shield: {
+      effect_mark_prevent_direct_attack_damage_twice_current_rage_consume_1_stack: {
         triggers: [EffectTrigger.OnDamageReplacement],
         when: ctx =>
           conditions.selfBeDamaged(ctx) &&
@@ -136,7 +124,7 @@ export class AbuEffects {
           }),
         ),
       },
-      effect_abu_resentment_spend_rage: {
+      effect_mark_restore_1_stack_spend_ceil_half_prevented_damage_as_rage: {
         triggers: [EffectTrigger.OnConsumeStack],
         when: ctx => ctx.parent.reason === 'rule' && ctx.parent.mark === ctx.read(targets.sourceMark.first()),
         apply: ctx => {
@@ -145,7 +133,7 @@ export class AbuEffects {
           ownerPet.apply(ops.reduceRage(Math.ceil(preventedBySourceMark(ctx) / 2)))(ctx)
         },
       },
-      effect_abu_resentment_no_rage_cost: {
+      effect_mark_waive_non_climax_skill_rage_cost_if_has_abuzhiyuan: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(
@@ -155,7 +143,7 @@ export class AbuEffects {
         ),
         apply: contexts.skillUse.property('rage').apply(ops.assign(0)),
       },
-      effect_abu_bandage_substitute_double_rage: {
+      effect_mark_double_damage_rage_gain_and_consume: {
         triggers: [EffectTrigger.BeforeRageGain],
         priority: 0,
         when: conditions.ownerReceivesDamageRage,

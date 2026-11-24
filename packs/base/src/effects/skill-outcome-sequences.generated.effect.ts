@@ -155,7 +155,7 @@ export class SkillOutcomeSequencesGeneratedEffects {
         ),
       },
       effect_skill_consume_huanxiang_set_sure_hit: {
-        triggers: [EffectTrigger.BeforeHit],
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,

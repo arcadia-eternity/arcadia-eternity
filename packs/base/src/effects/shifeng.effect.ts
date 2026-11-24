@@ -4,6 +4,7 @@ import {
   DamageType,
   defineEffects,
   EffectTrigger,
+  numberParam,
   ops,
   targets,
   type Action,
@@ -18,12 +19,13 @@ const PARALYSIS = 'mark_mabi'
 const needles = targets.ownerMarks.where(mark => mark.baseId === NEEDLES && mark.isActive)
 const remainingNeedles = needles.first().attribute('stack')
 const spendNeedle = needles.apply(ops.consumeStacks(1))
-const rollSecondary = conditions.chance(40)
-
-function needleHit(secondary: Action) {
+function needleHit(secondary: Action, trigger: EffectTrigger.OnHit | EffectTrigger.BeforeHit, tags: string[]) {
+  const chance = numberParam({ default: 40, tags: ['skill_effect_probability', ...tags] })
+  const rollSecondary = conditions.chance(chance)
   return {
-    triggers: [EffectTrigger.OnHit] as const,
+    triggers: [trigger] as const,
     priority: 0,
+    parameters: { chance },
     when: conditions.selfUsesSkill,
     apply: (ctx => {
       const before = ctx.read(remainingNeedles) ?? 0
@@ -75,12 +77,12 @@ export class ShifengEffects {
     if (!needleMark || !poison || !paralysis) throw new Error('Missing needle, poison, or paralysis mark')
 
     return defineEffects({
-      effect_shifeng_ability_init_needles: {
+      effect_ability_add_mark_self_fenghuangzhen_3_on_battle_start: {
         triggers: [EffectTrigger.OnBattleStart],
         priority: 0,
         apply: targets.ownerPet.apply(ops.addMark(needleMark, { stack: 3 })),
       },
-      effect_shifeng_ability_immune_status: {
+      effect_ability_block_abnormal_status_when_fenghuangzhen_depleted: {
         triggers: [EffectTrigger.OnBeforeAddMark],
         priority: 0,
         when: conditions.all(
@@ -92,26 +94,38 @@ export class ShifengEffects {
         ),
         apply: contexts.addMark.apply(ops.disableContext()),
       },
-      effect_shifeng_emblem_male_damage: {
+      effect_emblem_increase_attack_damage_5_percent_if_male: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, male, attackDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 5, delta: 0 })),
       },
-      effect_shifeng_emblem_female_reduction: {
+      effect_emblem_reduce_incoming_attack_damage_5_percent_if_female: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, female, attackDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -5, delta: 0 })),
       },
-      effect_shifeng_skill_fenghuangduzhen: needleHit(targets.opponentActive.apply(ops.addMark(poison))),
-      effect_shifeng_skill_fenghuangjinzhen: needleHit(targets.opponentActive.apply(ops.addMark(paralysis))),
-      effect_shifeng_skill_fenghuangmizhen: needleHit(targets.opponentActive.apply(ops.changeStatStage('spe', -1))),
-      effect_shifeng_skill_fenghuangzhenwu: powerWhen(female, 10),
-      effect_shifeng_skill_xiongfengtuxi: powerWhen(male, 50),
-      effect_shifeng_skill_fenghuangchuji: powerWhen(female, 50),
-      effect_shifeng_skill_xiongfengzhici: drainWhen(male, 50),
-      effect_shifeng_skill_fenghuangjuezhen: drainWhen(female, 65),
+      effect_skill_add_mark_opponent_zhongdu_40_percent_or_consume_fenghuangzhen: needleHit(
+        targets.opponentActive.apply(ops.addMark(poison)),
+        EffectTrigger.OnHit,
+        [],
+      ),
+      effect_skill_add_mark_opponent_mabi_40_percent_or_consume_fenghuangzhen: needleHit(
+        targets.opponentActive.apply(ops.addMark(paralysis)),
+        EffectTrigger.OnHit,
+        ['mark_mabi_chance'],
+      ),
+      effect_skill_reduce_opponent_spe_1_stage_40_percent_or_consume_fenghuangzhen: needleHit(
+        targets.opponentActive.apply(ops.changeStatStage('spe', -1)),
+        EffectTrigger.BeforeHit,
+        [],
+      ),
+      effect_skill_add_power_10_if_female: powerWhen(female, 10),
+      effect_skill_add_power_50_if_male: powerWhen(male, 50),
+      effect_skill_add_power_50_if_female: powerWhen(female, 50),
+      effect_skill_drain_hp_50_if_male: drainWhen(male, 50),
+      effect_skill_drain_hp_65_if_female: drainWhen(female, 65),
     })
   }
 }

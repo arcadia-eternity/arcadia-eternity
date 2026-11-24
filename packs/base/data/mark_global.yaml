@@ -23,7 +23,7 @@
 - id: mark_global_baofengxue
   config: *global_config
   effect:
-    - effect_mark_baofengxue_ice_boost
+    - effect_mark_increase_ice_skill_damage_dealt_by_ice_pet_35_percent
 - id: mark_global_shachenbao
   config: *global_config
 - id: mark_global_dizhen

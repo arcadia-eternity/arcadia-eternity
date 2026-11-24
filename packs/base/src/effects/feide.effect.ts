@@ -102,115 +102,115 @@ export class FeideEffects {
     )
 
     return defineEffects({
-      effect_feide_ability_damage_up: {
+      effect_ability_increase_attack_damage_5_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, attackDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 5, delta: 0 })),
       },
-      effect_feide_ability_rage_loss: {
+      effect_ability_reduce_rage_gain_5: {
         triggers: [EffectTrigger.BeforeRageGain],
         priority: 0,
         when: conditions.ownerReceivesRage,
         apply: contexts.rage.apply(ops.modifyRage({ percent: 0, delta: -5 })),
       },
-      effect_feide_emblem_sure_hit_vs_terror: {
+      effect_emblem_sure_hit_if_opponent_has_kongju: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentHasTerror),
         apply: contexts.skillUse.apply(ops.setSureHit()),
       },
-      effect_feide_skill_zuogu: {
+      effect_skill_add_mark_self_zuogu: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: applyZuogu,
       },
-      effect_feide_skill_youpan: {
+      effect_skill_add_mark_self_youpan: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: applyYoupan,
       },
-      effect_feide_skill_zhanqian: {
+      effect_skill_add_mark_self_zhanqian: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: applyZhanqian,
       },
-      effect_feide_skill_yanghou: {
+      effect_skill_add_mark_self_yanghou: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: applyYanghou,
       },
-      effect_feide_skill_kongjuguangbo_power: {
+      effect_skill_double_power_if_level_above_target_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, ownerLevelHigherThanTarget),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
-      effect_feide_skill_kongjuguangbo_fear: {
+      effect_skill_add_mark_opponent_kongju_10_percent: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, rollFear),
         apply: opponentActive.apply(ops.addMark(terror)),
       },
-      effect_feide_skill_kongjushengbo_fear: {
+      effect_skill_add_mark_opponent_kongju: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: opponentActive.apply(ops.addMark(terror)),
       },
-      effect_feide_skill_kongjushengbo_accuracy: {
+      effect_skill_increase_accuracy_50_if_level_above_target_before_check: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, ownerLevelHigherThanTarget),
         apply: contexts.skillUse.apply(ops.addAccuracy(50)),
       },
-      effect_feide_skill_linghunxiqu_drain: {
+      effect_skill_heal_50_percent_damage_dealt: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: healFromDamage,
       },
-      effect_feide_skill_linghunchenji_silence: {
+      effect_skill_add_mark_opponent_chenmo_10_percent: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, rollSilence),
         apply: applySilence,
       },
-      effect_feide_skill_nixianlaiba_crit: {
+      effect_skill_sure_crit_if_acting_after_first_before_check: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, ownerMovedSecond),
         apply: contexts.skillUse.apply(ops.setSureCrit()),
       },
-      effect_feide_skill_woxianlaiba_crit: {
+      effect_skill_sure_crit_if_acting_first_before_check: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, ownerMovedFirst),
         apply: contexts.skillUse.apply(ops.setSureCrit()),
       },
-      effect_feide_skill_tianyuankuanghuanqu: {
+      effect_skill_add_mark_self_fengkuangdaocao_and_opponent_kuanghuanqu: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: actions.sequence(applyMadStraw, applyCarnival),
       },
-      effect_feide_skill_dengzheqiaoba: {
+      effect_skill_add_mark_self_shanbitisheng_and_manhuinuqi: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: actions.sequence(applyEvasionUp, applyRageRefill),
       },
-      effect_feide_skill_wopawuya_reduction: {
+      effect_skill_add_mark_shoudaoshanghaijianshao_30: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: ownerPet.apply(ops.addMark(damageDown, { stack: 30 })),
       },
-      effect_feide_skill_wochaoshenle_heal: {
+      effect_skill_heal_self_17_percent_max_hp_on_defeat_opponent: {
         triggers: [EffectTrigger.OnDefeat],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.damageTargetBelongsToOtherPlayer),
@@ -223,7 +223,7 @@ export class FeideEffects {
           ),
         ),
       },
-      effect_feide_mark_zuogu_power: {
+      effect_mark_add_power_35_to_youpan_next_turn: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
@@ -233,7 +233,7 @@ export class FeideEffects {
         ),
         apply: contexts.skillUse.apply(ops.addPower(35)),
       },
-      effect_feide_mark_youpan_power: {
+      effect_mark_add_power_35_to_zuogu_next_turn: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
@@ -243,7 +243,7 @@ export class FeideEffects {
         ),
         apply: contexts.skillUse.apply(ops.addPower(35)),
       },
-      effect_feide_mark_zhanqian_sure_hit: {
+      effect_mark_sure_hit_for_yanghou_next_turn: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(
@@ -253,7 +253,7 @@ export class FeideEffects {
         ),
         apply: contexts.skillUse.apply(ops.setSureHit()),
       },
-      effect_feide_mark_yanghou_sure_hit: {
+      effect_mark_sure_hit_for_zhanqian_next_turn: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(
@@ -263,18 +263,18 @@ export class FeideEffects {
         ),
         apply: contexts.skillUse.apply(ops.setSureHit()),
       },
-      effect_feide_mark_mad_straw_vulnerable: {
+      effect_mark_increase_attack_damage_received_75_percent_next_turn: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, attackDamage, isNextTurn),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 75, delta: 0 })),
       },
-      effect_feide_mark_cancel_carnival_on_switch: {
+      effect_mark_remove_self_on_owner_switch_out: {
         triggers: [EffectTrigger.OnSwitchOut],
         when: conditions.ownerIsActive,
         apply: targets.sourceMark.apply(ops.removeMark()),
       },
-      effect_feide_mark_carnival_end: {
+      effect_mark_deal_opponent_max_hp_half_to_owner_on_expiry: {
         triggers: [EffectTrigger.OnMarkDurationEnd],
         priority: 0,
         apply: ownerPet.apply(
@@ -286,12 +286,12 @@ export class FeideEffects {
           ),
         ),
       },
-      effect_feide_mark_shanbitisheng_evasion: {
+      effect_mark_add_owner_evasion_35_on_created: {
         triggers: [EffectTrigger.OnMarkCreated],
         priority: 0,
         apply: ownerPet.apply(ops.addAttributeModifier('evasion', 'delta', 35)),
       },
-      effect_feide_mark_rage_refill_on_evade: {
+      effect_mark_set_owner_rage_100_on_dodge: {
         triggers: [EffectTrigger.OnMiss],
         priority: 0,
         when: conditions.all(conditions.ownerIsActive, conditions.ownerIsSkillTarget),

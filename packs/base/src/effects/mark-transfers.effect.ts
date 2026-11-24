@@ -9,7 +9,7 @@ export class MarkTransfersEffects {
   static build() {
     return defineEffects({
       effect_skill_transfer_debuff_stage_to_opponent: {
-        triggers: [EffectTrigger.OnHit],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.opponentActive.apply(ops.transferStatStages(targets.ownerPet.first(), { strategy: 'negative' })),

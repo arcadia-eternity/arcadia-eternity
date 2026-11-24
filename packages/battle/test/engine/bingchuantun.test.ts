@@ -616,12 +616,15 @@ test('all three forms retain their own stats and inherited learning lists in the
   for (let i = 1; i < forms.length; i++)
     for (const learned of forms[i - 1].learnable_skills)
       assert.ok(forms[i].learnable_skills.some(row => row.skill_id === learned.skill_id && row.level === learned.level))
+  const hiddenSkills = forms[2].learnable_skills.filter(row => row.hidden)
+  assert.ok(hiddenSkills.every(row => row.level === 60))
   assert.deepEqual(
-    forms[2].learnable_skills
-      .filter(row => row.hidden)
-      .map(row => row.skill_id)
-      .sort(),
+    hiddenSkills.map(row => row.skill_id).sort(),
     ['skill_hanlengzhiqi', 'skill_bingzhuiyu', 'skill_binglengyiji', 'skill_binglengpifu'].sort(),
+  )
+  assert.deepEqual(
+    forms[2].learnable_skills.find(row => row.skill_id === 'skill_bingheshidai'),
+    { skill_id: 'skill_bingheshidai', level: 60, hidden: false },
   )
   assert.ok(!forms[0].learnable_skills.some(row => row.skill_id === 'skill_bingbao'))
 })

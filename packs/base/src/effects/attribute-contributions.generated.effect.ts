@@ -69,12 +69,6 @@ export class AttributeContributionsGeneratedEffects {
             .apply(ops.addSkillAttributeModifier('accuracy', 'delta', 5)),
         ),
       },
-      effect_mark_add_crit_rate_10_percent: {
-        triggers: [EffectTrigger.OnMarkCreated],
-        priority: 0,
-        when: () => true,
-        apply: actions.sequence(targets.ownerPet.apply(ops.addAttributeModifier('critRate', 'delta', 10))),
-      },
       effect_mark_add_crit_rate_5_percent: {
         triggers: [EffectTrigger.OnMarkCreated],
         priority: 0,
@@ -176,12 +170,6 @@ export class AttributeContributionsGeneratedEffects {
         priority: 0,
         when: () => true,
         apply: actions.sequence(targets.ownerPet.apply(ops.addAttributeModifier('accuracy', 'percent', -10))),
-      },
-      effect_mark_reduce_accuracy_15: {
-        triggers: [EffectTrigger.OnMarkCreated],
-        priority: 0,
-        when: () => true,
-        apply: actions.sequence(targets.ownerPet.apply(ops.addAttributeModifier('accuracy', 'delta', -15))),
       },
       effect_mark_reduce_accuracy_50: {
         triggers: [EffectTrigger.OnMarkCreated],

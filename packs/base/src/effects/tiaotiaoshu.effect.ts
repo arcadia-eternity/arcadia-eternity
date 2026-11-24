@@ -5,7 +5,6 @@ import {
   defineEffects,
   EffectTrigger,
   ops,
-  values,
   targets,
   type Condition,
 } from '@arcadia-eternity/battle/authoring'
@@ -40,12 +39,12 @@ function firstMovePowerMultiplier(multiplier: number) {
   }
 }
 
-function firstMoveStatDrop(stat: 'atk' | 'def' | 'spa' | 'spd' | 'spe', amount: number) {
+function firstMoveStatDrop(stat: 'spd' | 'spe') {
   return {
-    triggers: [EffectTrigger.OnHit] as const,
+    triggers: [EffectTrigger.BeforeHit] as const,
     priority: 0,
     when: conditions.all(conditions.selfUsesSkill, firstMove),
-    apply: targets.opponentActive.apply(ops.changeStatStage(stat, -amount)),
+    apply: targets.opponentActive.apply(ops.changeStatStage(stat, -1)),
   }
 }
 
@@ -73,7 +72,7 @@ export class TiaotiaoshuEffects {
     }
 
     return defineEffects({
-      effect_tiaotiaoshu_ability_accuracy_down: {
+      effect_ability_reduce_incoming_status_skill_accuracy_10: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
@@ -82,7 +81,7 @@ export class TiaotiaoshuEffects {
         ),
         apply: contexts.skillUse.apply(ops.addAccuracy(-10)),
       },
-      effect_tiaotiaoshu_emblem_weaken_immune_duration: {
+      effect_emblem_extend_mianyiruohua_applied_by_owner_2_turns: {
         triggers: [EffectTrigger.OnBeforeAddMark] as const,
         priority: 0,
         when: conditions.all(
@@ -98,73 +97,63 @@ export class TiaotiaoshuEffects {
           ),
         ),
       },
-      effect_tiaotiaoshu_skill_biansutuji: {
+      effect_skill_add_mark_self_biansu_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck] as const,
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(speedUp, { stack: 1 })),
       },
-      effect_tiaotiaoshu_skill_suishalianji: {
-        triggers: [EffectTrigger.AfterUseSkillCheck] as const,
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: contexts.skillUse.apply(ops.setMultihit(values.randomInt(2, 4))),
-      },
-      effect_tiaotiaoshu_skill_suishalianji_first: firstMovePowerMultiplier(2),
-      effect_tiaotiaoshu_skill_shazhiqiu: {
-        triggers: [EffectTrigger.BeforeHit],
-        when: conditions.all(conditions.selfUsesSkill, firstMove),
-        apply: targets.opponentActive.apply(ops.changeStatStage('spd', -1)),
-      },
-      effect_tiaotiaoshu_skill_yishouzhuangong: {
+      effect_skill_power_2x_if_first_after_check_priority_0: firstMovePowerMultiplier(2),
+      effect_skill_reduce_opponent_spd_1_stage_if_first: firstMoveStatDrop('spd'),
+      effect_skill_add_mark_self_yishouzhuangong_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck] as const,
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(guardCounter, { stack: 1 })),
       },
-      effect_tiaotiaoshu_skill_fangshoufanji: {
+      effect_skill_add_mark_self_shoudaoshanghaijianshao_50_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck] as const,
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(damageReduction, { stack: 50 })),
       },
-      effect_tiaotiaoshu_skill_yapo: firstMoveStatDrop('spe', 1),
-      effect_tiaotiaoshu_skill_shazhidaoren: firstMoveFlatDamage(35),
-      effect_tiaotiaoshu_skill_huixin: {
+      effect_skill_reduce_opponent_spe_1_stage_if_first: firstMoveStatDrop('spe'),
+      effect_skill_deal_35_effect_damage_if_first_on_hit: firstMoveFlatDamage(35),
+      effect_skill_add_mark_self_huixin_for_1_turn_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck] as const,
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(crit, { stack: 1, duration: 1 })),
       },
-      effect_tiaotiaoshu_skill_shanduo: {
+      effect_skill_add_mark_self_shanduo_for_1_turn_if_first: {
         triggers: [EffectTrigger.AfterUseSkillCheck] as const,
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, firstMove),
         apply: targets.ownerPet.apply(ops.addMark(dodge, { stack: 1, duration: 1 })),
       },
-      effect_tiaotiaoshu_skill_qitiao: {
+      effect_skill_add_mark_self_qitiao_for_1_turn_if_first: {
         triggers: [EffectTrigger.AfterUseSkillCheck] as const,
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, firstMove),
         apply: targets.ownerPet.apply(ops.addMark(leap, { stack: 1, duration: 1 })),
       },
-      effect_tiaotiaoshu_skill_pingheng: {
+      effect_skill_add_mark_self_mianyiruohua_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck] as const,
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(weakenImmune, { stack: 1 })),
       },
-      effect_tiaotiaoshu_mark_biansu_priority: {
+      effect_mark_add_1_priority_except_biansutuji: {
         triggers: [EffectTrigger.BeforeSort],
         when: conditions.all(conditions.ownerUsesSkill, usesOtherMove),
         apply: contexts.skillUse.property('priority').apply(ops.add(1)),
       },
-      effect_tiaotiaoshu_mark_biansu_consume: {
+      effect_mark_remove_self_after_check_except_biansutuji: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         when: conditions.all(conditions.ownerUsesSkill, usesOtherMove),
         apply: targets.sourceMark.apply(ops.removeMark()),
       },
-      effect_tiaotiaoshu_mark_yishouzhuangong_defense: {
+      effect_mark_reduce_incoming_attack_damage_50_percent_before_last_turn: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage] as const,
         priority: 0,
         when: conditions.all(
@@ -174,7 +163,7 @@ export class TiaotiaoshuEffects {
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
       },
-      effect_tiaotiaoshu_mark_yishouzhuangong_offense: {
+      effect_mark_amplify_outgoing_attack_damage_50_percent_on_last_turn: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage] as const,
         priority: 0,
         when: conditions.all(
@@ -184,7 +173,7 @@ export class TiaotiaoshuEffects {
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
       },
-      effect_tiaotiaoshu_mark_shanduo_evade: {
+      effect_mark_evade_targeted_physical_skill_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck] as const,
         priority: 0,
         when: conditions.all(
@@ -193,7 +182,7 @@ export class TiaotiaoshuEffects {
         ),
         apply: contexts.skillUse.apply(ops.setSureMiss()),
       },
-      effect_tiaotiaoshu_mark_qitiao_evade: {
+      effect_mark_evade_targeted_special_skill_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck] as const,
         priority: 0,
         when: conditions.all(

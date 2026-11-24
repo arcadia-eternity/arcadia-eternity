@@ -114,7 +114,7 @@ mark_emblem_lianfang:
   description: 自身替换上场时下一次受到的伤害减少25% 队友替换自身时受到伤害减少15%
 mark_emblem_yingguang:
   name: 荧光
-  description: 使荧光花粉额外使对手获得5点命中下降
+  description: 技能给对手施加的命中下降额外增加5层
 mark_emblem_jihuo:
   name: 集火
   description: 使火系技能必中

@@ -7,6 +7,7 @@ import {
   EffectTrigger,
   ops,
   targets,
+  values,
   type Action,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
@@ -49,7 +50,7 @@ export class PangpangEffects {
     const ownerPet = targets.ownerPet
 
     return defineEffects({
-      effect_pangpang_ability_rage_regen: {
+      effect_ability_add_5_rage_at_turn_end_if_weizui_or_lanzui: {
         triggers: [EffectTrigger.TurnEnd],
         priority: 0,
         when: conditions.all(
@@ -61,7 +62,7 @@ export class PangpangEffects {
         ),
         apply: ownerPet.apply(ops.addRage(5)),
       },
-      effect_pangpang_emblem_lanzui_duration: {
+      effect_emblem_set_received_lanzui_duration_3: {
         triggers: [EffectTrigger.OnBeforeAddMark],
         priority: 0,
         when: conditions.all(
@@ -70,7 +71,7 @@ export class PangpangEffects {
         ),
         apply: contexts.addMark.apply(ops.setMarkDuration(3)),
       },
-      effect_pangpang_skill_yinjiu_drink: {
+      effect_skill_add_mark_self_weizui_or_upgrade_to_lanzui: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
@@ -85,7 +86,7 @@ export class PangpangEffects {
           }
         }) satisfies Action,
       },
-      effect_pangpang_skill_yuntouzhuanxiang_crit: {
+      effect_skill_add_50_crit_rate_if_weizui_or_95_if_lanzui: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
@@ -97,7 +98,7 @@ export class PangpangEffects {
           }
         }) satisfies Action,
       },
-      effect_pangpang_skill_xingjiu_heal: {
+      effect_skill_consume_drunk_to_add_self_huifu_1_16_for_5_turns: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasAnyDrunk),
@@ -106,7 +107,7 @@ export class PangpangEffects {
           ownerPet.apply(ops.addMark(recovery, { duration: 5 }))(ctx)
         }) satisfies Action,
       },
-      effect_pangpang_skill_exin_effect: {
+      effect_skill_consume_drunk_to_set_accuracy_95_and_add_exin_to_both_for_3_turns: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasAnyDrunk),
@@ -117,8 +118,8 @@ export class PangpangEffects {
           ownerPet.apply(ops.addMark(exinMark, { stack: 1, duration: 3 }))(ctx)
         }) satisfies Action,
       },
-      effect_pangpang_skill_manmianhongguang_buff: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
+      effect_skill_raise_atk_1_stage_and_spa_1_stage_if_lanzui: {
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: (ctx => {
@@ -128,7 +129,7 @@ export class PangpangEffects {
           }
         }) satisfies Action,
       },
-      effect_pangpang_skill_xilihutu_power: {
+      effect_skill_add_power_50_if_weizui_or_100_if_lanzui: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
@@ -140,7 +141,7 @@ export class PangpangEffects {
           }
         }) satisfies Action,
       },
-      effect_pangpang_skill_fanwei_effect: {
+      effect_skill_consume_drunk_to_reduce_both_spd_1_stage: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasAnyDrunk),
@@ -150,22 +151,17 @@ export class PangpangEffects {
           ownerPet.apply(ops.changeStatStage('spd', -1))(ctx)
         }) satisfies Action,
       },
-      effect_pangpang_skill_shouwuzudao_multihit: {
-        triggers: [EffectTrigger.BeforeMultiHit],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: (ctx => {
-          if (ctx.read(hasLanzui)) {
-            contexts.skillUse.apply(ops.setMultihit(3))(ctx)
-            contexts.skillUse.apply(ops.addMultihitResult(2))(ctx)
-          } else if (ctx.read(hasWeizui)) {
-            contexts.skillUse.apply(ops.setMultihit(2))(ctx)
-            contexts.skillUse.apply(ops.addMultihitResult(1))(ctx)
-          }
-        }) satisfies Action,
-      },
-      effect_pangpang_skill_fali_effect: {
+      effect_skill_set_2_to_3_hits_if_weizui_or_3_to_5_if_lanzui: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
+        when: conditions.all(conditions.selfUsesSkill, hasAnyDrunk),
+        apply: actions.choose(
+          lanzui.condition((_, marks) => marks.length > 0),
+          contexts.skillUse.apply(ops.setMultihit(values.randomInt(3, 5))),
+          contexts.skillUse.apply(ops.setMultihit(values.randomInt(2, 3))),
+        ),
+      },
+      effect_skill_consume_drunk_to_reduce_both_spe_1_stage: {
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasAnyDrunk),
         apply: (ctx => {
@@ -174,13 +170,7 @@ export class PangpangEffects {
           ownerPet.apply(ops.changeStatStage('spe', -1))(ctx)
         }) satisfies Action,
       },
-      effect_pangpang_skill_jiuguidaluanda_clear: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: ownerPet.apply(ops.clearStatStages({ strategy: 'negative' })),
-      },
-      effect_pangpang_skill_fennu_rage: {
+      effect_skill_reduce_rage_cost_15_if_weizui_or_30_if_lanzui: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
@@ -192,8 +182,8 @@ export class PangpangEffects {
           }
         }) satisfies Action,
       },
-      effect_pangpang_skill_xingzhigaoang_buff: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
+      effect_skill_raise_spa_1_stage_and_spe_1_stage_if_lanzui: {
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: (ctx => {
@@ -203,19 +193,19 @@ export class PangpangEffects {
           }
         }) satisfies Action,
       },
-      effect_pangpang_skill_penxue_immunity: {
+      effect_skill_add_mark_self_mianyiyichang_for_3_turns_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: ownerPet.apply(ops.addMark(mianyiMark, { stack: 1, duration: 3 })),
       },
-      effect_pangpang_skill_quanjiu_meijiu: {
+      effect_skill_add_mark_self_meijiuyouhuo_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: ownerPet.apply(ops.addMark(meijiuMark, { stack: 1 })),
       },
-      effect_pangpang_meijiu_apply_lanzui: {
+      effect_mark_add_lanzui_to_physical_attacker_and_remove_self_on_last_turn: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(
@@ -229,7 +219,7 @@ export class PangpangEffects {
           targets.sourceMark.apply(ops.removeMark()),
         ),
       },
-      effect_pangpang_lanzui_end_hunmi: {
+      effect_mark_add_mark_self_hunmi_for_2_turns_on_duration_end: {
         triggers: [EffectTrigger.OnMarkDurationEnd],
         priority: 0,
         apply: (ctx => {

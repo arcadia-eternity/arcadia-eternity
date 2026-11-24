@@ -67,7 +67,7 @@
     - skill_id: skill_chongzhuang
       level: 1
       hidden: false
-    - skill_id: skill_chouda_hema
+    - skill_id: skill_chouda_jiangwufang
       level: 5
       hidden: false
     - skill_id: skill_miaozhun
@@ -104,7 +104,7 @@
     - skill_id: skill_chongzhuang
       level: 1
       hidden: false
-    - skill_id: skill_chouda_hema
+    - skill_id: skill_chouda_jiangwufang
       level: 5
       hidden: false
     - skill_id: skill_miaozhun

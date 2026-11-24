@@ -61,7 +61,7 @@
   ability: [mark_ability_fengzhen]
   emblem: [mark_emblem_zhenci]
   learnable_skills:
-    - skill_id: skill_chongzhuang_palading
+    - skill_id: skill_chongzhuang
       level: 1
       hidden: false
     - skill_id: skill_fuchong
@@ -96,7 +96,7 @@
   ability: [mark_ability_fengzhen]
   emblem: [mark_emblem_zhenci]
   learnable_skills:
-    - skill_id: skill_chongzhuang_palading
+    - skill_id: skill_chongzhuang
       level: 1
       hidden: false
     - skill_id: skill_fuchong

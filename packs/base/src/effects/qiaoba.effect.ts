@@ -4,6 +4,7 @@ import {
   contexts,
   defineEffects,
   EffectTrigger,
+  numberParam,
   ops,
   targets,
   type Condition,
@@ -17,6 +18,8 @@ const FEAR = 'mark_kongju'
 const BLEED = 'mark_liuxie'
 const VULNERABLE = 'mark_yishang'
 const SHY_DODGE = 'mark_haixiuduobi'
+
+const specialAttackBoostChance = numberParam({ default: 5, tags: ['skill_effect_probability'] })
 
 @effectGroup({ id: 'qiaoba' })
 export class QiaobaEffects {
@@ -50,7 +53,6 @@ export class QiaobaEffects {
     const addBleed = opponentActive.apply(ops.addMark(bleed, { stack: 50 }))
     const addVulnerable = opponentActive.apply(ops.addMark(vulnerable, { stack: 50 }))
 
-    const selfAtkUp = targets.ownerPet.apply(ops.changeStatStage('atk', 1))
     const selfSpaUp = targets.ownerPet.apply(ops.changeStatStage('spa', 1))
     const selfSpdUp = targets.ownerPet.apply(ops.changeStatStage('spd', 1))
 
@@ -68,13 +70,13 @@ export class QiaobaEffects {
     const firstThisTurn = conditions.firstSkillThisTurn
 
     return defineEffects({
-      effect_qiaoba_ability_blue_wave_on_damage: {
+      effect_ability_add_mark_self_lanbo_on_damage: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged),
         apply: addBlueWave,
       },
-      effect_qiaoba_ability_berserk_on_three_waves: {
+      effect_ability_add_mark_self_baozou_when_lanbo_reaches_3_stacks: {
         triggers: [EffectTrigger.OnStack],
         priority: 0,
         when: ctx =>
@@ -84,7 +86,7 @@ export class QiaobaEffects {
           ctx.parent.stacksAfter >= 3,
         apply: addBerserk,
       },
-      effect_qiaoba_emblem_berserk_extra_turn: {
+      effect_emblem_extend_received_baozou_1_turn: {
         triggers: [EffectTrigger.OnBeforeAddMark],
         priority: 0,
         when: conditions.all(
@@ -97,97 +99,92 @@ export class QiaobaEffects {
           ),
         ),
       },
-      effect_qiaoba_skill_chongji_atk: {
-        triggers: [EffectTrigger.OnHit],
+      effect_skill_raise_spa_1_stage_5_percent: {
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, conditions.chance(5)),
-        apply: selfAtkUp,
-      },
-      effect_qiaoba_skill_jiaopao_spa: {
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, conditions.chance(5)),
+        parameters: { chance: specialAttackBoostChance },
+        when: conditions.all(conditions.selfUsesSkill, conditions.chance(specialAttackBoostChance)),
         apply: selfSpaUp,
       },
-      effect_qiaoba_skill_qianglizhijiao_power: {
+      effect_skill_add_power_35_if_lanbo: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasBlueWave(1)),
         apply: selfSkillPower,
       },
-      effect_qiaoba_skill_maopiqianghua_spd: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
+      effect_skill_raise_spd_1_stage_if_lanbo: {
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasBlueWave(1)),
         apply: selfSpdUp,
       },
-      effect_qiaoba_skill_hongbo_heal: {
+      effect_skill_heal_self_1_4_max_hp_and_add_lanbo: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: actions.sequence(healQuarter, addBlueWave),
       },
-      effect_qiaoba_skill_zhonglitieti_bleed: {
+      effect_skill_add_mark_opponent_liuxie_50_if_lanbo_2_stacks: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasBlueWave(2)),
         apply: addBleed,
       },
-      effect_qiaoba_skill_jiaoliqianghua_free: {
+      effect_skill_set_rage_cost_0_if_lanbo_2_stacks: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasBlueWave(2)),
         apply: selfSkillFreeRage,
       },
-      effect_qiaoba_skill_tiaoyuechongzhuang_first: {
+      effect_skill_power_2x_if_first_before_sort: {
         triggers: [EffectTrigger.BeforeSort],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, firstThisTurn),
         apply: selfSkillDoublePower,
       },
-      effect_qiaoba_skill_wanliqianghua_spa: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
+      effect_skill_raise_spa_1_stage_if_lanbo: {
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasBlueWave(1)),
         apply: selfSpaUp,
       },
-      effect_qiaoba_skill_ketichongpo_surehit: {
+      effect_skill_sure_hit_if_lanbo_2_stacks: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasBlueWave(2)),
         apply: selfSkillSureHit,
       },
-      effect_qiaoba_skill_naoliqianghua_vulnerable: {
+      effect_skill_add_mark_opponent_yishang_50_if_lanbo_2_stacks: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasBlueWave(2)),
         apply: addVulnerable,
       },
-      effect_qiaoba_skill_chuixuezhiti_multihit: {
+      effect_skill_set_4_hits_if_lanbo_3_stacks: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasBlueWave(3)),
         apply: selfSkillSetMultihit4,
       },
-      effect_qiaoba_skill_shizipaoti_confusion: {
+      effect_skill_add_mark_opponent_hunmi_50_percent_if_lanbo_3_stacks: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasBlueWave(3), conditions.chance(50)),
         apply: addConfusion,
       },
-      effect_qiaoba_skill_haixiuduobi_mark: {
+      effect_skill_add_mark_self_haixiuduobi_on_hit: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(shyDodge, { stack: 1 })),
       },
-      effect_qiaoba_skill_wuxianpohuai_fear: {
+      effect_skill_add_mark_opponent_kongju_if_lanbo_3_stacks: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasBlueWave(3)),
         apply: addFear,
       },
-      effect_qiaoba_berserk_damage_out: {
+      effect_mark_amplify_outgoing_skill_damage_100_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
@@ -196,7 +193,7 @@ export class QiaobaEffects {
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 100, delta: 0 })),
       },
-      effect_qiaoba_berserk_damage_in: {
+      effect_mark_amplify_incoming_skill_damage_50_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
@@ -205,13 +202,13 @@ export class QiaobaEffects {
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
       },
-      effect_qiaoba_berserk_end_clear: {
+      effect_mark_remove_self_lanbo_on_baozou_duration_end: {
         triggers: [EffectTrigger.OnMarkDurationEnd],
         priority: 0,
         when: contexts.consumeStack.condition((_, events) => events.some(event => event.mark.baseId === BERSERK)),
         apply: targets.ownerMarks.where(mark => mark.baseId === BLUE_WAVE).apply(ops.removeMark()),
       },
-      effect_qiaoba_shy_dodge_evade: {
+      effect_mark_evade_targeted_skill_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.ownerIsSkillTarget,

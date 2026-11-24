@@ -131,6 +131,9 @@ The PostgreSQL storage cases require `TEST_DATABASE_URL` pointing to a disposabl
 
 - Use the `workspace:` protocol for internal dependencies, following the existing package conventions.
 - Use ES modules (`"type": "module"`) and strict TypeScript.
+- Reuse an existing skill ID when its name, battle parameters, and effects match. A different learner, animation, or sound alone does not require another skill definition.
+- Name base-pack effect IDs for their implemented battle behavior, following existing IDs such as `effect_skill_reduce_opponent_def_1_stage_20_percent`. Never compose an effect ID from skill and species names. Check native fields and search all effect groups before adding a definition. Reuse the same ID wherever the behavior matches.
+- Resolve ordinary hit-triggered stat-stage boosts and drops at `EffectTrigger.BeforeHit`, after confirming the hit and before resolving its damage. Use another phase only for an explicitly different trigger such as a miss or defeat.
 - Preserve the battle engine's discrete phase processing, deterministic inputs, and snapshot/restore semantics.
 - Keep installed packages immutable; authoring changes belong to editable projects and prepared environment revisions.
 - Keep transport and database details behind the shared resource/service contracts so desktop, server, and remote flows preserve the same behavior.

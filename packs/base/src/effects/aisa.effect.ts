@@ -1,5 +1,4 @@
 import {
-  actions,
   conditions,
   contexts,
   DamageType,
@@ -58,56 +57,47 @@ export class AisaEffects {
     }
 
     return defineEffects({
-      effect_aisa_ability_crit: {
+      effect_ability_add_crit_rate_5_percent_before_check: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: contexts.skillUse.apply(ops.addCritRate(5)),
       },
-      effect_aisa_emblem_accuracy: {
+      effect_emblem_add_accuracy_5_percent_if_has_mark_caixiazhixin: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasCaixiazhixin),
         apply: contexts.skillUse.apply(ops.addAccuracy(5)),
       },
-      effect_aisa_skill_caixiazhixin: {
+      effect_skill_add_mark_self_caixiazhixin_3_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(caixiazhixinMark, { stack: 3 })),
       },
-      effect_aisa_skill_xuancaiguangshu: critHeal(0.16),
-      effect_aisa_skill_xuancaibaopo: critRage(15),
-      effect_aisa_skill_xuancaishanguang: critBlind(shimingMark),
-      effect_aisa_skill_huancaiguangyun: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: actions.sequence(
-          actions.choose(conditions.chance(15), targets.ownerPet.apply(ops.changeStatStage('atk', 1))),
-          actions.choose(conditions.chance(15), targets.ownerPet.apply(ops.changeStatStage('spa', 1))),
-        ),
-      },
-      effect_aisa_skill_xuanguangqidian: {
+      effect_skill_heal_16_percent_max_hp_on_crit_damage: critHeal(0.16),
+      effect_skill_add_rage_15_on_crit_damage: critRage(15),
+      effect_skill_add_mark_opponent_shiming_50_percent_on_crit_damage: critBlind(shimingMark),
+      effect_skill_add_mark_self_xuanguangqidian_1_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(xuanguangqidianMark, { stack: 1 })),
       },
-      effect_aisa_skill_xuanguangbaopo: critRage(20),
-      effect_mark_caixiazhixin_crit: {
+      effect_skill_add_rage_20_on_crit_damage: critRage(20),
+      effect_mark_increase_crit_rate_15_percent_per_stack_before_check: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: contexts.skillUse.apply(ops.addCritRate(targets.sourceMark.select(mark => mark.stack * 15).first())),
       },
-      effect_mark_caixiazhixin_consume: {
+      effect_mark_remove_self_on_crit_damage_dealt: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, critDamage),
         apply: targets.sourceMark.apply(ops.removeMark()),
       },
-      effect_mark_xuanguangqidian_critdmg: {
+      effect_mark_increase_crit_damage_50_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(

@@ -6,7 +6,6 @@ import {
   defineEffects,
   EffectTrigger,
   ops,
-  values,
   targets,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
@@ -43,13 +42,13 @@ export class HuohualiEffects {
     const confuseOpponent = targets.opponentActive.apply(ops.addMark(confusion))
 
     return defineEffects({
-      effect_huohuali_ability_crit_damage: {
+      effect_ability_increase_crit_damage_10_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, attackDamage, critDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       },
-      effect_huohuali_emblem_mark_crit: {
+      effect_emblem_add_crit_rate_5_percent_for_huohuakeyin_and_chirekeyin: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
@@ -60,12 +59,12 @@ export class HuohualiEffects {
         ),
         apply: contexts.skillUse.apply(ops.addCritRate(5)),
       },
-      effect_huohuali_skill_huohuakeyin: {
+      effect_skill_add_mark_opponent_shaoshang_on_crit: {
         triggers: [EffectTrigger.OnHit],
         when: ctx => conditions.selfUsesSkill(ctx) && ctx.parent.crit,
         apply: burnOpponent,
       },
-      effect_huohuali_skill_huohuayinbao: {
+      effect_skill_consume_opponent_shaoshang_deal_100_fixed_damage: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentBurned),
@@ -77,55 +76,43 @@ export class HuohualiEffects {
           targets.opponentActive.apply(ops.dealDamage(100, { damageType: DamageType.Effect })),
         ),
       },
-      effect_huohuali_skill_xuanmuhuoguang: {
+      effect_skill_add_mark_opponent_hunmi_if_opponent_has_mark_shaoshang: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentBurned),
         apply: confuseOpponent,
       },
-      effect_huohuali_skill_huohuanengliang: {
+      effect_skill_add_mark_self_shanghaizengjia_90_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(damageUp, { stack: 90 })),
       },
-      effect_huohuali_skill_huohuayinji: {
+      effect_skill_add_mark_opponent_huohuayinji_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.opponentActive.apply(ops.addMark(sparkMark)),
       },
-      effect_huohuali_skill_huohuaquti: {
+      effect_skill_add_mark_self_huohuaquti_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(flameBody)),
       },
-      effect_huohuali_skill_huolongjianglin: {
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, conditions.chance(15)),
-        apply: burnOpponent,
-      },
-      effect_huohuali_skill_chirelieyan: {
+      effect_skill_power_2x_if_opponent_has_mark_shaoshang_before_check: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentBurned),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
-      effect_huohuali_skill_chireyandan: {
-        triggers: [EffectTrigger.BeforeUseSkillCheck],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: contexts.skillUse.apply(ops.setMultihit(values.randomInt(2, 3))),
-      },
-      effect_huohuali_skill_chiretuji: {
+      effect_skill_sure_hit_if_opponent_has_mark_shaoshang_before_check: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentBurned),
         apply: contexts.skillUse.apply(ops.setSureHit()),
       },
-      effect_huohuali_mark_spark_crit: {
+      effect_mark_incoming_non_status_skill_sure_crit: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(
@@ -134,7 +121,7 @@ export class HuohualiEffects {
         ),
         apply: contexts.skillUse.apply(ops.setSureCrit()),
       },
-      effect_huohuali_mark_flame_body_burn: {
+      effect_mark_add_mark_attacker_shaoshang_30_percent_on_damage: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(conditions.ownerIsActive, conditions.selfBeDamaged, conditions.chance(30)),

@@ -1,12 +1,4 @@
-import {
-  actions,
-  conditions,
-  contexts,
-  defineEffects,
-  EffectTrigger,
-  ops,
-  targets,
-} from '@arcadia-eternity/battle/authoring'
+import { conditions, contexts, defineEffects, EffectTrigger, ops, targets } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
 
 const FOCUS = 'mark_jiaodianfushi'
@@ -76,34 +68,6 @@ const bleedDrain = {
   apply: targets.ownerPet.apply(ops.heal(contexts.damageResult.select(result => result.hpLoss).first())),
 }
 
-const swarmDefBoost = {
-  triggers: [EffectTrigger.AfterUseSkillCheck] as const,
-  priority: 0,
-  when: conditions.all(conditions.selfUsesSkill, swarmActive),
-  apply: targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
-}
-
-const swarmSpaBoost = {
-  triggers: [EffectTrigger.AfterUseSkillCheck] as const,
-  priority: 0,
-  when: conditions.all(conditions.selfUsesSkill, swarmActive),
-  apply: targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
-}
-
-const defBoost = {
-  triggers: [EffectTrigger.AfterUseSkillCheck] as const,
-  priority: 0,
-  when: conditions.selfUsesSkill,
-  apply: targets.ownerPet.apply(ops.changeStatStage('def', 1)),
-}
-
-const atkBoost = {
-  triggers: [EffectTrigger.AfterUseSkillCheck] as const,
-  priority: 0,
-  when: conditions.selfUsesSkill,
-  apply: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
-}
-
 const consecutivePower = {
   triggers: [EffectTrigger.BeforeUseSkillCheck] as const,
   priority: 0,
@@ -120,21 +84,21 @@ export class DayandujiaoEffects {
     if (!focus) throw new Error('Missing focus mark')
 
     return defineEffects({
-      effect_dayandujiao_ability_focus_power: focusPowerBonus,
-      effect_dayandujiao_ability_focus_drain: focusDrain,
-      effect_dayandujiao_emblem_heal_boost: {
+      effect_ability_add_power_5_to_attack_if_owner_has_jiaodianfushi: focusPowerBonus,
+      effect_ability_heal_25_percent_damage_dealt_if_owner_has_jiaodianfushi: focusDrain,
+      effect_emblem_increase_healing_received_5_percent: {
         triggers: [EffectTrigger.OnBeforeHeal],
         priority: 0,
         when: conditions.selfBeHealed,
         apply: contexts.heal.apply(ops.modifyHeal({ percent: 5, delta: 0 })),
       },
-      effect_dayandujiao_skill_jiaodianfushi: {
+      effect_skill_add_mark_self_jiaodianfushi_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(focus, { stack: 1 })),
       },
-      effect_dayandujiao_skill_bujiuzhongji: {
+      effect_skill_double_power_if_last_missed_yingjiazhongji_before_check: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(
@@ -149,7 +113,7 @@ export class DayandujiaoEffects {
         ),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
-      effect_dayandujiao_skill_lingduzhongji: {
+      effect_skill_add_mark_self_jiaodianfushi_if_last_missed_yingjiazhongji: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(
@@ -164,13 +128,7 @@ export class DayandujiaoEffects {
         ),
         apply: targets.ownerPet.apply(ops.addMark(focus, { stack: 1 })),
       },
-      effect_dayandujiao_skill_chongqunqianfu: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: actions.sequence(defBoost.apply, actions.choose(swarmActive, swarmDefBoost.apply)),
-      },
-      effect_dayandujiao_skill_bujiuchuanci: {
+      effect_skill_double_power_if_last_missed_zhongjiachuanci_before_check: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(
@@ -185,7 +143,7 @@ export class DayandujiaoEffects {
         ),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
-      effect_dayandujiao_skill_lingduchuanci: {
+      effect_skill_add_mark_self_jiaodianfushi_if_last_missed_zhongjiachuanci: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(
@@ -200,16 +158,22 @@ export class DayandujiaoEffects {
         ),
         apply: targets.ownerPet.apply(ops.addMark(focus, { stack: 1 })),
       },
-      effect_dayandujiao_skill_chongqunexi: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
+      effect_skill_raise_spd_1_stage_if_chongqun: {
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: actions.sequence(atkBoost.apply, actions.choose(swarmActive, swarmSpaBoost.apply)),
+        when: conditions.all(conditions.selfUsesSkill, swarmActive),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
       },
-      effect_dayandujiao_skill_pojiaxuruo: lowHpDamageBoost,
-      effect_dayandujiao_skill_wuxianzhuiji: consecutivePower,
-      effect_dayandujiao_skill_duyefushi: poisonPowerQuad,
-      effect_dayandujiao_skill_xueyetunshi: bleedDrain,
+      effect_skill_raise_spa_1_stage_if_chongqun: {
+        triggers: [EffectTrigger.BeforeHit],
+        priority: 0,
+        when: conditions.all(conditions.selfUsesSkill, swarmActive),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
+      },
+      effect_skill_increase_damage_50_percent_if_opponent_hp_below_quarter: lowHpDamageBoost,
+      effect_skill_add_power_50_per_consecutive_use_max_100: consecutivePower,
+      effect_skill_increase_damage_300_percent_if_opponent_has_zhongdu: poisonPowerQuad,
+      effect_skill_heal_100_percent_damage_dealt_if_opponent_has_liuxie: bleedDrain,
     })
   }
 }

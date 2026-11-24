@@ -606,24 +606,6 @@ export class SkillPowerGeneratedEffects {
           ),
         ),
       },
-      effect_skill_add_power_by_self_max_hp_minus_500: {
-        triggers: [EffectTrigger.BeforeHit],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
-          const left = ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first())
-          const right = 500
-          return left !== undefined && right !== undefined && left > right
-        }),
-        apply: contexts.skillUse.apply(
-          ops.addPower(
-            targets.ownerPet
-              .select(pet => pet.stat.maxHp)
-              .all()
-              .map(items => items.map((n, index) => n + (index === 0 ? -500 : 0)))
-              .map(items => items.map((n, index) => Math.max(n, index === 0 ? 0 : 0))),
-          ),
-        ),
-      },
       effect_skill_consume_xinzhiyinji_power_2x: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,

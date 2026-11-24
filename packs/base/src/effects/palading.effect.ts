@@ -3,7 +3,7 @@ import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle
 // - pets.xml form 250/249 (stats, learn list, per-move SoundID/EffectID),
 // - moves.xml 11572-11586 / 10034 / 10939 (name, category, type, power, accuracy,
 //   anger and the client Tips text quoted per effect below),
-// - buffs.xml (3304 神圣, 3315 公正, 3317 征伐, 3320 庇护, 3322 救赎),
+// - buffs.xml (3314 神圣, 3315 公正, 3317 征伐, 3316 格挡, 3320 庇护, 3322 救赎),
 // - dictionary.xml form 250 (特性 1123 "自己具有神圣状态时不会受到致命一击",
 //   emblemID 300123) plus the 4399 帕拉丁解析 (community analysis used only where the
 //   client tables leave a number unspecified, e.g. the 神圣 heal rate).
@@ -33,7 +33,7 @@ const SHENSHENG = 'mark_shensheng'
 
 /** Owner currently has the named mark (source owner's mark list). */
 function hasOwnerMark(id: string): Condition {
-  return targets.ownerMarks.where(mark => mark.baseId === id).condition(checks.exists())
+  return targets.ownerMarks.where(mark => mark.baseId === id && mark.isActive).condition(checks.exists())
 }
 
 /**
@@ -59,10 +59,7 @@ const allAlliesFainted: Condition = targets.ownerPet.condition((_ctx, pets) =>
   }),
 )
 
-/**
- * 庇护之火 / 圣佑之火 grant the 庇护 state. The 庇护 emblem widens the flat
- * physical reduction of 庇护之火 to physical and special damage.
- */
+/** The 庇护 emblem extends 庇护之火's flat reduction to special damage. */
 const emblemBiHuEquipped: Condition = hasOwnerMark('mark_emblem_bihu')
 
 const damageIsPhysical: Condition = contexts.damage.condition((_ctx, events) =>
@@ -89,32 +86,29 @@ export class PaladingEffects {
     const jiushu = requireMark(marks, 'mark_jiushu')
 
     return defineEffects({
-      /** 正义之火: raise physical defence, and special defence while in the 神圣 state. */
-      effect_skill_palading_zhengyizhihuo: {
+      /** 正义之火: raise special defence while in the 神圣 state. */
+      effect_skill_raise_spd_1_stage_if_shensheng: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: actions.sequence(
-          targets.ownerPet.apply(ops.changeStatStage('def', 1)),
-          actions.choose(hasOwnerMark(SHENSHENG), targets.ownerPet.apply(ops.changeStatStage('spd', 1))),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, hasOwnerMark(SHENSHENG)),
+        apply: targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
       },
       /** 圣光之名: enter the permanent 神圣 state (its turn-end healing lives on the mark). */
-      effect_skill_palading_shengguangzhiming: {
+      effect_skill_add_mark_self_shensheng: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(shensheng)),
       },
       /** 十字光冲: +50% damage while in the 神圣 state. */
-      effect_skill_palading_shiziguangchong: {
+      effect_skill_increase_damage_50_percent_if_shensheng: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasOwnerMark(SHENSHENG)),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
       },
       /** 惩戒之光: while in the 神圣 state add 15% of the user's special attack as flat damage. */
-      effect_skill_palading_chengjiezhiguang: {
+      effect_skill_add_damage_15_percent_spa_if_shensheng: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasOwnerMark(SHENSHENG)),
@@ -125,44 +119,44 @@ export class PaladingEffects {
           }),
         ),
       },
-      /** 庇护之火: grant the 5-turn 庇护 state. */
-      effect_skill_palading_bihuzhihuo: {
+      /** 庇护之火: grant the 5-turn 格挡 state. */
+      effect_skill_add_mark_self_bihu: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(bihu)),
       },
       /** 公正光冲: the opponent cannot gain positive stat stages for 3 turns. */
-      effect_skill_palading_gongzhengguangchong: {
+      effect_skill_add_mark_opponent_gongzheng: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
-        apply: targets.opponentActive.apply(ops.addMark(gongzheng, { duration: 3 })),
+        apply: targets.opponentActive.apply(ops.addMark(gongzheng)),
       },
       /** 复仇光冲: double power when all allies have fainted. */
-      effect_skill_palading_fuchouguangchong: {
+      effect_skill_double_power_if_all_allies_fainted: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, allAlliesFainted),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       /** 征伐之火: grant the 3-turn 征伐 state. */
-      effect_skill_palading_zhengfazhihuo: {
+      effect_skill_add_mark_self_zhengfa: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(zhengfa)),
       },
-      /** 圣佑之火: grant the 5-turn 圣佑 state. */
-      effect_skill_palading_shengyouzhihuo: {
+      /** 圣佑之火: grant the 5-turn 庇护 state. */
+      effect_skill_add_mark_self_shengyou: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(shengyou)),
       },
       /** 荣耀的圣战: while in the 神圣 state raise defence or special defence (50/50, battle RNG). */
-      effect_skill_palading_rongyaodeshengzhan: {
-        triggers: [EffectTrigger.OnHit],
+      effect_skill_raise_def_or_spd_1_stage_if_shensheng: {
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasOwnerMark(SHENSHENG)),
         apply: actions.choose(
@@ -172,14 +166,14 @@ export class PaladingEffects {
         ),
       },
       /** 使命之火: grant the 5-turn 使命 state (abnormal-state immunity lives on the mark). */
-      effect_skill_palading_shimingzhihuo: {
+      effect_skill_add_mark_self_mingshi: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(mingshi)),
       },
       /** 审判光冲: while in the 神圣 state add 15% of the user's physical attack as flat damage. */
-      effect_skill_palading_shenpanguangchong: {
+      effect_skill_add_damage_15_percent_atk_if_shensheng: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasOwnerMark(SHENSHENG)),
@@ -191,7 +185,7 @@ export class PaladingEffects {
         ),
       },
       /** 拯救之火: heal the opponent for 100 and remove 35 rage from them. */
-      effect_skill_palading_zhengjiuzhihuo: {
+      effect_skill_heal_opponent_100_and_reduce_opponent_rage_35: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
@@ -201,7 +195,7 @@ export class PaladingEffects {
         ),
       },
       /** 救赎之火: grant the persistent 救赎 state (heal trigger lives on the mark). */
-      effect_skill_palading_jiushuzhihuo: {
+      effect_skill_add_mark_self_jiushu: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
@@ -214,7 +208,7 @@ export class PaladingEffects {
        * source for the rates, so treat them as community-documented, not client facts.
        * The half-HP boundary uses integer math (see hpBelowFraction) for exact rounding.
        */
-      effect_mark_shensheng_heal_turn_end: {
+      effect_mark_heal_self_sixteenth_or_eighth_below_half_turn_end: {
         triggers: [EffectTrigger.TurnEnd],
         priority: 0,
         when: conditions.ownerIsActive,
@@ -229,11 +223,11 @@ export class PaladingEffects {
         ),
       },
       /**
-       * 庇护 (mark 3320): block a flat 50 points of physical damage for the mark's 5 turns
+       * 格挡 (mark 3316): block a flat 50 points of physical damage for the mark's 5 turns
        * (move 11576 tip). The 庇护 emblem (item 300123, "使庇护之火减少物理伤害变为减少所有伤害")
        * widens it to special damage too.
        */
-      effect_mark_bihu_block_damage_50: {
+      effect_mark_reduce_physical_damage_50_or_special_with_bihu_emblem: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
@@ -243,8 +237,8 @@ export class PaladingEffects {
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: -50 })),
       },
-      /** 圣佑 (mark): 5 turns of halved special damage (move 11581 tip). */
-      effect_mark_shengyou_halve_special_damage: {
+      /** 庇护 (mark 3320): 5 turns of halved special damage (move 11581 tip). */
+      effect_mark_reduce_special_damage_50_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, damageIsSpecial),
@@ -255,14 +249,14 @@ export class PaladingEffects {
        * (move 11578 tip). Only the five battle stats are covered because the engine's
        * stat-stage marks are limited to atk/def/spa/spd/spe.
        */
-      effect_mark_gongzheng_block_positive_stage: {
+      effect_mark_block_positive_stat_stages: {
         triggers: [EffectTrigger.OnBeforeAddMark],
         priority: 0,
         when: conditions.all(conditions.ownerReceivesMark, conditions.statStageChange(undefined, 'up')),
-        apply: actions.sequence(contexts.addMark.apply(ops.disableContext())),
+        apply: contexts.addMark.apply(ops.disableContext()),
       },
       /** 征伐 (mark 3317): 35% of the damage dealt is converted back into HP (move 11580 tip). */
-      effect_mark_zhengfa_lifesteal_35: {
+      effect_mark_heal_self_35_percent_damage_dealt: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
@@ -274,14 +268,14 @@ export class PaladingEffects {
        * 救赎 (mark 3322): "自己体力低于1/8时立刻恢复100点体力 恢复后状态消失"
        * (buff description; move 11586 tip). Heal on drop, then the mark expires.
        */
-      effect_mark_jiushu_heal_at_low_hp: {
+      effect_mark_heal_self_100_below_eighth_hp_when_damaged_then_remove_self: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, conditions.ownerIsActive, hpBelowEighth),
         apply: actions.sequence(targets.ownerPet.apply(ops.heal(100)), targets.sourceMark.apply(ops.removeMark())),
       },
       /** 救赎 (mark): if it is applied while already below 1/8 HP, resolve immediately. */
-      effect_mark_jiushu_heal_on_apply_if_low: {
+      effect_mark_heal_self_100_below_eighth_hp_on_jiushu_created_then_remove_self: {
         triggers: [EffectTrigger.OnMarkCreated],
         priority: 0,
         when: conditions.all(
@@ -297,7 +291,7 @@ export class PaladingEffects {
        * critically hit while the 神圣 mark is attached. Priority 99 beats the attacker's
        * sure-crit overrides.
        */
-      effect_ability_palading_shensheng_immune_crit: {
+      effect_ability_prevent_incoming_crit_if_shensheng: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.ownerIsSkillTarget, hasOwnerMark(SHENSHENG)),
