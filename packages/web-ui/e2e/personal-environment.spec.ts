@@ -11,6 +11,7 @@ import {
   gameplayRevision,
   buildDisplayCatalog,
   buildDisplayLocales,
+  mapPresentationResources,
 } from '@arcadia-eternity/pack-loader/native'
 import { createLocalContentSessions } from '../electron/local-content-sessions.ts'
 import { createPersonalEnvironmentBundle, encodePersonalEnvironmentBundle } from '../src/services/personalEnvironment'
@@ -39,6 +40,7 @@ async function makeSharedEnvironment(directory: string, installedDirectory: stri
       gameplayRevision,
       buildDisplayCatalog,
       buildDisplayLocales,
+      mapPresentationResources,
     }),
     assetUrl: (token: string, hash: string) => `http://localhost/local-content/${token}/${hash}`,
   })
