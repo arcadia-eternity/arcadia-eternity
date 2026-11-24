@@ -1,5 +1,6 @@
 import { beforeAll, expect, it } from 'vitest'
 import {
+  UseSkillContext,
   BattleMessageType,
   SkillPhase,
   TurnContext,
@@ -19,15 +20,9 @@ beforeAll(async () => {
       if (m.type === BattleMessageType.Damage) damage += m.data.damage
     })
     const phase = new SkillPhase(
-      battle,
-      b,
-      b.activePet,
-      b.activePet.skills[0].target,
-      b.activePet.skills[0],
-      new TurnContext(battle),
+      new UseSkillContext(new TurnContext(battle), b, b.activePet, b.activePet.skills[0].target, b.activePet.skills[0]),
     )
-    battle.phaseManager.registerPhase(phase)
-    expect(battle.phaseManager.executePhase(phase.id).success).toBe(true)
+    expect(battle.phaseManager.run(phase).success).toBe(true)
     expect(battle.phaseManager.getPhasesByState(PhaseState.Failed)).toHaveLength(0)
     expect(damage).toBeGreaterThan(0)
     const gained = Math.floor((damage * 49) / a.activePet.stat.maxHp)

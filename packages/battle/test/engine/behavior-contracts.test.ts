@@ -17,15 +17,8 @@ import {
   type Battle,
   type NativeBehaviorBuildContext,
 } from '@arcadia-eternity/battle/engine'
-import {
-  compileEffect,
-  conditions,
-  defineEffect,
-  numberParam,
-  stringParam,
-  ops,
-  targets,
-} from '@arcadia-eternity/battle/authoring'
+import { compileEffect } from '../../src/engine/content/authoring'
+import { conditions, defineEffect, numberParam, stringParam, ops, targets } from '@arcadia-eternity/battle/authoring'
 import { makeScenario } from './scenario'
 
 const battles: Battle[] = []

@@ -1260,22 +1260,32 @@ export type RemoveEnvironmentPackageInput = {
   cascade?: boolean
 }
 type PackageWorkspace = Pick<ContentWorkspace, 'listDrafts' | 'listInstallations' | 'saveDraft'>
-export function addEnvironmentPackage(workspace: PackageWorkspace, input: AddEnvironmentPackageInput) {
-  return changeEnvironmentPackage(workspace, { ...input, action: 'add' })
+export type EnvironmentPackageChange =
+  | (AddEnvironmentPackageInput & { action: 'add-package' })
+  | (RemoveEnvironmentPackageInput & { action: 'remove-package' })
+
+export async function addEnvironmentPackage(workspace: PackageWorkspace, input: AddEnvironmentPackageInput) {
+  const change = await resolveEnvironmentPackageChange(workspace, { ...input, action: 'add-package' })
+  return workspace.saveDraft(change)
 }
-export function removeEnvironmentPackage(workspace: PackageWorkspace, input: RemoveEnvironmentPackageInput) {
-  return changeEnvironmentPackage(workspace, { ...input, action: 'remove' })
+export async function removeEnvironmentPackage(workspace: PackageWorkspace, input: RemoveEnvironmentPackageInput) {
+  const change = await resolveEnvironmentPackageChange(workspace, { ...input, action: 'remove-package' })
+  return workspace.saveDraft(change)
 }
-async function changeEnvironmentPackage(
-  workspace: PackageWorkspace,
-  input: (AddEnvironmentPackageInput & { action: 'add' }) | (RemoveEnvironmentPackageInput & { action: 'remove' }),
-): Promise<EnvironmentDraft> {
+
+/** Resolve a package edit against the expected draft revision for a subsequent save or prepare. */
+export async function resolveEnvironmentPackageChange(
+  workspace: Pick<ContentWorkspace, 'listDrafts' | 'listInstallations'>,
+  input: EnvironmentPackageChange,
+): Promise<{ document: EnvironmentDocument; expectedRevision: string }> {
+  if (input.action !== 'add-package' && input.action !== 'remove-package')
+    throw contentError('ENVIRONMENT_PACKAGE_INVALID')
   const { environmentId, expectedRevision, name } = input
-  const cascade = input.action === 'remove' ? (input.cascade ?? false) : false
+  const cascade = input.action === 'remove-package' ? (input.cascade ?? false) : false
   if (!EnvironmentDocumentV2Schema.shape.sources.safeParse([name]).success || typeof cascade !== 'boolean')
     throw contentError('ENVIRONMENT_PACKAGE_INVALID')
   if (
-    input.action === 'add' &&
+    input.action === 'add-package' &&
     ((input.version !== undefined && (typeof input.version !== 'string' || !input.version.trim())) ||
       (input.source !== undefined && typeof input.source !== 'boolean') ||
       (input.version !== undefined && input.source === true))
@@ -1286,7 +1296,7 @@ async function changeEnvironmentPackage(
   if (draft.revision !== expectedRevision) throw contentError('REVISION_CONFLICT')
   const document = structuredClone(draft.document)
   const active = new Set([...Object.keys(document.packages), ...document.sources])
-  if (input.action === 'add') {
+  if (input.action === 'add-package') {
     const version = input.version?.trim()
     if (version !== undefined) {
       document.packages[name] = version
@@ -1329,7 +1339,7 @@ async function changeEnvironmentPackage(
       document.sources = document.sources.filter(value => value !== key)
     }
   }
-  return workspace.saveDraft({ document: normalizeEnvironmentDocument(document), expectedRevision })
+  return { document: normalizeEnvironmentDocument(document), expectedRevision }
 }
 
 export async function synchronizeShippedEnvironments(

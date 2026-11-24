@@ -1,6 +1,7 @@
 import { StackDamageEffects } from '../../../../packs/base/src/effects/stack-damage.effect'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  dealDamage,
   SkillPhase,
   Category,
   effectAuthoring,
@@ -19,7 +20,7 @@ import {
   type baseMarkId,
   type effectId,
 } from '@arcadia-eternity/battle/engine'
-import { makeScenario } from './scenario'
+import { engineEffect, makeScenario } from './scenario'
 
 const reduction = 'effect_mark_special_damage_reduction_with_stack'
 const amplification = 'effect_skill_add_damage_30_per_niliu'
@@ -47,7 +48,7 @@ function fixture(id: typeof reduction | typeof amplification, stack = 3) {
   mark.setOwner(owner, f.battle.emitter)
   owner.marks.push(mark)
   const source = id === reduction ? mark : owner.skills[0]
-  const effect = StackDamageEffects.build()[id]
+  const effect = engineEffect(StackDamageEffects.build()[id])
   effectAuthoring.effectParameters(effect).install(f.battle.configSystem)
   source.effects.push(effect)
   const use = new UseSkillContext(
@@ -59,7 +60,7 @@ function fixture(id: typeof reduction | typeof amplification, stack = 3) {
   )
   const damage = (type = DamageType.Special) => new DamageContext(use, use.skill, f.b.activePet, 40, type)
   const apply = (event = damage()) => {
-    event.target.damage(event)
+    dealDamage(event)
     if (!event.result) throw new Error('Damage did not resolve')
     return event.result
   }
@@ -85,7 +86,7 @@ for (const id of [reduction, amplification] as const) {
   it(`${id}: real special damage settlement`, () => {
     const f = fixture(id, 1)
     const event = f.damage()
-    f.b.activePet.damage(event)
+    dealDamage(event)
     expect(event.damageResult).toBe(id === amplification ? 70 : 39)
     expect(f.b.activePet.currentHp).toBe(f.b.activePet.stat.maxHp - event.damageResult)
   })
@@ -141,21 +142,13 @@ for (const id of [reduction, amplification] as const)
     const run = (enabled: boolean) => {
       const f = fixture(id, 2)
       if (!enabled) f.source.effects.splice(0)
-      f.a.settingRage(100)
+      f.a.currentRage = 100
       f.b.activePet.attributeSystem.updateBaseValue('maxHp', 1000)
       f.b.activePet.currentHp = 1000
       f.use.category = Category.Special
       f.use.power = 20
       f.use.setSureHit()
-      const phase = new SkillPhase(
-        f.battle,
-        f.a,
-        f.a.activePet,
-        AttackTargetOpinion.opponent,
-        f.use.skill,
-        f.use.parent,
-        f.use,
-      )
+      const phase = new SkillPhase(f.use)
       phase.initialize()
       phase.execute()
       expect(f.use.hitResult).toBe(true)

@@ -1,4 +1,5 @@
 import {
+  addMark,
   AddMarkContext,
   BattleMessageType,
   EffectContext,
@@ -147,9 +148,9 @@ function stripMark(pet: Pet, baseId: string) {
 }
 
 /** Add a mark with the same public battle API used by authored effects. */
-function addMark(battle: Battle, directory: ReturnType<typeof createOfficialContent>, pet: Pet, baseId: string) {
+function addFixtureMark(battle: Battle, directory: ReturnType<typeof createOfficialContent>, pet: Pet, baseId: string) {
   const context = new EffectContext(new TurnContext(battle), EffectTrigger.TurnStart, pet.skills[0])
-  battle.addMark(new AddMarkContext(context, pet, directory.getMark(baseId as never), 1))
+  addMark(new AddMarkContext(context, pet, directory.getMark(baseId as never), 1))
 }
 
 const TEST_SKILLS = [
@@ -270,7 +271,7 @@ it.each([
   running.push(battle.startBattle().catch(() => {}))
   await ready
 
-  if (mark) addMark(battle, directory, b.activePet, mark)
+  if (mark) addFixtureMark(battle, directory, b.activePet, mark)
   const rng = vi.spyOn(battle, 'random').mockReturnValue(0.99)
   try {
     await runTurn(battle, () => {
@@ -315,8 +316,8 @@ it('红心印记 adds one self stack per hit and the 印记 ability raises damag
     const ready = prompt(run.battle)
     running.push(run.battle.startBattle().catch(() => {}))
     await ready
-    if (mark === 'hongxin') addMark(run.battle, run.directory, run.a.activePet, 'mark_hongxinyinji')
-    if (mark === 'taohong') addMark(run.battle, run.directory, run.a.activePet, 'mark_taohongyinji')
+    if (mark === 'hongxin') addFixtureMark(run.battle, run.directory, run.a.activePet, 'mark_hongxinyinji')
+    if (mark === 'taohong') addFixtureMark(run.battle, run.directory, run.a.activePet, 'mark_taohongyinji')
     await runTurn(run.battle, () => {
       use(run.battle, run.a, 'skill_test_physical_120')
       use(run.battle, run.b, 'skill_test_status')
@@ -343,11 +344,11 @@ it('红心强化 is ATK+1 without a mark, ATK+2 and consumes one real mark with 
     const ready = prompt(run.battle)
     running.push(run.battle.startBattle().catch(() => {}))
     await ready
-    if (withMark === 'hongxin') addMark(run.battle, run.directory, run.a.activePet, 'mark_hongxinyinji')
-    if (withMark === 'taohong') addMark(run.battle, run.directory, run.a.activePet, 'mark_taohongyinji')
+    if (withMark === 'hongxin') addFixtureMark(run.battle, run.directory, run.a.activePet, 'mark_hongxinyinji')
+    if (withMark === 'taohong') addFixtureMark(run.battle, run.directory, run.a.activePet, 'mark_taohongyinji')
     if (withMark === 'two-hongxin') {
-      addMark(run.battle, run.directory, run.a.activePet, 'mark_hongxinyinji')
-      addMark(run.battle, run.directory, run.a.activePet, 'mark_hongxinyinji')
+      addFixtureMark(run.battle, run.directory, run.a.activePet, 'mark_hongxinyinji')
+      addFixtureMark(run.battle, run.directory, run.a.activePet, 'mark_hongxinyinji')
     }
     await runTurn(run.battle, () => {
       use(run.battle, run.a, 'skill_hongxinqianghua')
@@ -376,8 +377,8 @@ it('红心冲撞 consumes 红心印记 for double power and 桃红印记 substit
     const ready = prompt(run.battle)
     running.push(run.battle.startBattle().catch(() => {}))
     await ready
-    if (mark === 'hongxin') addMark(run.battle, run.directory, run.a.activePet, 'mark_hongxinyinji')
-    if (mark === 'taohong') addMark(run.battle, run.directory, run.a.activePet, 'mark_taohongyinji')
+    if (mark === 'hongxin') addFixtureMark(run.battle, run.directory, run.a.activePet, 'mark_hongxinyinji')
+    if (mark === 'taohong') addFixtureMark(run.battle, run.directory, run.a.activePet, 'mark_taohongyinji')
     await runTurn(run.battle, () => {
       use(run.battle, run.a, 'skill_hongxinchongzhuang')
       use(run.battle, run.b, 'skill_test_status')

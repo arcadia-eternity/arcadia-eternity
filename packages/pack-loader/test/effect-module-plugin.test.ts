@@ -62,7 +62,7 @@ it.each(['resolve', 'load'] as const)(
         expect(artifact).toMatchObject({
           format: 'arcadia.effect-module',
           version: 1,
-          sdkApi: 2,
+          sdkApi: 4,
           packageId: '@fixture/content',
         })
         expect(artifact.source).toContain('windows-artifact')

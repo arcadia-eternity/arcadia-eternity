@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { createOfficialContent } from '@arcadia-eternity/data-pack-base/effects'
 import { loadBasePrototypeData } from './base-metadata'
 import {
+  addMark,
   type Battle,
   type Player,
   type Pet,
@@ -135,11 +136,9 @@ async function runTurn(battle: Battle, play: () => void) {
 }
 
 /** Add an owned mark through the same public API authored effects use. */
-function addMark(battle: Battle, target: Pet, baseId: string) {
+function addFixtureMark(battle: Battle, target: Pet, baseId: string) {
   const context = new EffectContext(new TurnContext(battle), EffectTrigger.TurnStart, target.skills[0])
-  battle.addMark(
-    new AddMarkContext(context, target, directory.getMark(baseId as Parameters<typeof directory.getMark>[0]), 1),
-  )
+  addMark(new AddMarkContext(context, target, directory.getMark(baseId as Parameters<typeof directory.getMark>[0]), 1))
 }
 
 test('every team member enters battle with the ability and the equipped emblem mark', async () => {
@@ -164,7 +163,7 @@ async function damageTaken(seed: string, attackerSkill: string, marks: string[])
     stripMark(battle.playerA.activePet, id('mark_ability_houjin'))
     stripMark(battle.playerA.activePet, id('mark_emblem_jianren'))
     stripMark(battle.playerB.activePet, 'mark_ability_zhongjie')
-    for (const mark of marks) addMark(battle, battle.playerA.activePet, mark)
+    for (const mark of marks) addFixtureMark(battle, battle.playerA.activePet, mark)
     const rows = collectDamage(battle)
     await runTurn(battle, () => {
       useSkill(battle, battle.playerA, 'skill_jianying')
@@ -329,7 +328,7 @@ test('急速冰锥 spends 寒冰坚韧 for +1 priority; 冰雹 spends it for +60
     const a = priorityBattle.battle.playerA.activePet
     stripMark(a, id('mark_ability_houjin'))
     stripMark(a, id('mark_emblem_jianren'))
-    addMark(priorityBattle.battle, a, id('mark_hanbingjianren'))
+    addFixtureMark(priorityBattle.battle, a, id('mark_hanbingjianren'))
     const skill = a.skills.find(entry => entry.baseId === id('skill_jisubingzhui'))
     const context = new UseSkillContext(
       new TurnContext(priorityBattle.battle),
@@ -370,7 +369,7 @@ test('急速冰锥 spends 寒冰坚韧 for +1 priority; 冰雹 spends it for +60
 
   async function hail(withMark: boolean) {
     const run = await attackDamage('hail', id('skill_bingbao'))
-    if (withMark) addMark(run.battle, run.battle.playerA.activePet, id('mark_hanbingjianren'))
+    if (withMark) addFixtureMark(run.battle, run.battle.playerA.activePet, id('mark_hanbingjianren'))
     const rows = collectDamage(run.battle)
     await runTurn(run.battle, () => {
       useSkill(run.battle, run.battle.playerA, id('skill_bingbao'))
@@ -389,7 +388,7 @@ test('急速冰锥 spends 寒冰坚韧 for +1 priority; 冰雹 spends it for +60
 
   async function fixed(withMark: boolean) {
     const run = await attackDamage('fixed', id('skill_binglengyiji'))
-    if (withMark) addMark(run.battle, run.battle.playerA.activePet, id('mark_hanbingjianren'))
+    if (withMark) addFixtureMark(run.battle, run.battle.playerA.activePet, id('mark_hanbingjianren'))
     const rows = collectDamage(run.battle)
     await runTurn(run.battle, () => {
       useSkill(run.battle, run.battle.playerA, id('skill_binglengyiji'))
@@ -434,7 +433,7 @@ test('冰河时代 is a sure hit and grants 寒冰坚韧; 寒冷之气 doubles p
     try {
       stripMark(battle.playerA.activePet, id('mark_ability_houjin'))
       stripMark(battle.playerB.activePet, 'mark_ability_zhongjie')
-      if (withFrostbite) addMark(battle, battle.playerB.activePet, 'mark_dongshang')
+      if (withFrostbite) addFixtureMark(battle, battle.playerB.activePet, 'mark_dongshang')
       const rows = collectDamage(battle)
       await runTurn(battle, () => {
         useSkill(battle, battle.playerA, id('skill_hanlengzhiqi'))

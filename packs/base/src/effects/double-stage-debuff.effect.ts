@@ -1,6 +1,12 @@
 import { effectGroup } from '@arcadia-eternity/battle/effect-loading'
-import { BaseStatLevelMark } from '@arcadia-eternity/battle/engine'
-import { EffectTrigger, compileEffect, conditions, contexts, ops } from '@arcadia-eternity/battle/authoring'
+import {
+  BaseStatLevelMark,
+  EffectTrigger,
+  compileEffect,
+  conditions,
+  contexts,
+  ops,
+} from '@arcadia-eternity/battle/authoring'
 
 /** V1 uses a signed prototype level; V2's statLevelMarkLevel is an unsigned event magnitude. */
 @effectGroup({ id: 'double-stage-debuff' })

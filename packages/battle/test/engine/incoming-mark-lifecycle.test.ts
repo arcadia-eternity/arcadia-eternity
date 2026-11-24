@@ -1,5 +1,6 @@
 import { beforeAll, expect, it } from 'vitest'
 import {
+  addMark,
   AddMarkContext,
   AttributeSystem,
   BaseMark,
@@ -48,8 +49,8 @@ it.each(['stack', 'none', 'remove', 'stage'] as const)(
     try {
       const turn = new TurnContext(battle)
       const setup = new EffectContext(turn, EffectTrigger.TurnStart, a.activePet.skills[0])
-      battle.addMark(new AddMarkContext(setup, a.activePet, base, 1))
-      battle.addMark(new AddMarkContext(setup, a.activePet, base, 1))
+      addMark(new AddMarkContext(setup, a.activePet, base, 1))
+      addMark(new AddMarkContext(setup, a.activePet, base, 1))
       if (variant === 'stack') expect(observed).toEqual([1])
       else expect(observed).toEqual([])
     } finally {

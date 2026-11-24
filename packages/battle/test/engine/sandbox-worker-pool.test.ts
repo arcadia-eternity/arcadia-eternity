@@ -69,7 +69,7 @@ function input(source = 'export function createEffects(){return []}'): SandboxBa
         {
           namespace: 'test',
           role: 'behaviors',
-          artifact: { format: 'arcadia.effect-module', version: 1, sdkApi: 2, packageId: 'test', source },
+          artifact: { format: 'arcadia.effect-module', version: 1, sdkApi: 4, packageId: 'test', source },
         },
       ],
     },
@@ -197,7 +197,7 @@ it('discards a faulted runtime without carrying its fault into the next session'
   const { host, workers } = manager()
   const spec = input(`export function createEffects({sdk,id}){
     return [sdk.defineCodeEffect({id:id('fault'),sourceKind:'skill',triggers:[sdk.EffectTrigger.OnHit],
-      apply(ctx){try{ctx.source.owner.currentHp=0}catch{}}
+      apply(ctx){try{ctx.read(sdk.targets.ownerPet.first()).currentHp=0}catch{}}
     })]
   }`)
   Object.assign(spec.environment.data, {

@@ -1,6 +1,7 @@
 import { SwitchRageProtectionEffects } from '../../../../packs/base/src/effects/switch-rage-protection.effect'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  changeRage,
   SnapshotCatalog,
   snapshotBattle,
   restoreBattle,
@@ -18,7 +19,7 @@ import {
   type baseMarkId,
   type effectId,
 } from '@arcadia-eternity/battle/engine'
-import { makeScenario } from './scenario'
+import { engineEffect, makeScenario } from './scenario'
 
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
@@ -35,7 +36,7 @@ function fixture(location: 'outgoing' | 'incoming' | 'opponent' | 'none' = 'outg
   const outgoing = f.a.activePet,
     incoming = f.a.team[1]
   const owner = location === 'incoming' ? incoming : location === 'opponent' ? f.b.activePet : outgoing
-  const mark = new BaseMark('mark_feixuanzhen' as baseMarkId, [SwitchRageProtectionEffects.build()], {
+  const mark = new BaseMark('mark_feixuanzhen' as baseMarkId, [engineEffect(SwitchRageProtectionEffects.build())], {
     ...f.debuff.config,
     persistent: true,
     duration: -1,
@@ -48,7 +49,7 @@ function fixture(location: 'outgoing' | 'incoming' | 'opponent' | 'none' = 'outg
   if (location !== 'none') owner.marks.push(mark)
   const turn = new TurnContext(f.battle)
   const switchTo = (pet = incoming) => {
-    const phase = new SwitchPetPhase(f.battle, f.a, pet, turn)
+    const phase = new SwitchPetPhase(new SwitchPetContext(turn, f.a, pet))
     phase.initialize()
     phase.execute()
   }
@@ -58,7 +59,7 @@ for (const rage of [0, 1, 4, 9, 10, 99, 100, 10.5])
   for (const protectedSwitch of [false, true])
     it(`real switch preserves ${rage} with protection=${protectedSwitch}`, () => {
       const f = fixture(protectedSwitch ? 'outgoing' : 'none')
-      f.a.settingRage(rage)
+      f.a.currentRage = rage
       f.switchTo()
       expect(f.a.activePet).toBe(f.incoming)
       expect(f.a.currentRage).toBe(protectedSwitch ? rage : Math.floor(rage * 0.8))
@@ -68,7 +69,7 @@ for (const rage of [0, 1, 4, 9, 10, 99, 100, 10.5])
 for (const location of ['incoming', 'opponent'] as const)
   it(`${location} mark cannot protect the outgoing pet`, () => {
     const f = fixture(location)
-    f.a.settingRage(100)
+    f.a.currentRage = 100
     f.switchTo()
     expect(f.a.currentRage).toBe(80)
     expect(f.mark.isActive).toBe(true)
@@ -76,7 +77,7 @@ for (const location of ['incoming', 'opponent'] as const)
 it('suppressed protection does not cancel or consume', () => {
   const f = fixture()
   f.mark.isSuppressed = true
-  f.a.settingRage(100)
+  f.a.currentRage = 100
   f.switchTo()
   expect(f.a.currentRage).toBe(80)
   expect(f.mark.isActive).toBe(true)
@@ -84,7 +85,7 @@ it('suppressed protection does not cancel or consume', () => {
 for (const invalid of ['same', 'dead'] as const)
   it(`invalid ${invalid} switch does not charge rage or consume protection`, () => {
     const f = fixture()
-    f.a.settingRage(100)
+    f.a.currentRage = 100
     if (invalid === 'dead') f.incoming.isAlive = false
     f.switchTo(invalid === 'same' ? f.outgoing : f.incoming)
     expect(f.a.activePet).toBe(f.outgoing)
@@ -93,7 +94,7 @@ for (const invalid of ['same', 'dead'] as const)
   })
 it('protection is consumed once, and the following switch pays its loss', () => {
   const f = fixture()
-  f.a.settingRage(100)
+  f.a.currentRage = 100
   f.switchTo()
   expect(f.a.currentRage).toBe(100)
   f.switchTo(f.outgoing)
@@ -102,19 +103,19 @@ it('protection is consumed once, and the following switch pays its loss', () => 
 })
 it('unrelated rage loss keeps the mark', () => {
   const f = fixture()
-  f.a.settingRage(100)
-  f.a.addRage(new RageContext(f.turn, f.a, 'skill', 'reduce', 20))
+  f.a.currentRage = 100
+  changeRage(new RageContext(f.turn, f.a, 'skill', 'reduce', 20))
   expect(f.a.currentRage).toBe(80)
   expect(f.mark.isActive).toBe(true)
 })
 it('requires actual switch ancestry and matching target', () => {
   const f = fixture()
-  f.a.settingRage(100)
-  f.a.addRage(new RageContext(f.turn, f.a, 'switch', 'reduce', 20))
+  f.a.currentRage = 100
+  changeRage(new RageContext(f.turn, f.a, 'switch', 'reduce', 20))
   expect(f.a.currentRage).toBe(80)
   const context = new SwitchPetContext(f.turn, f.a, f.incoming)
-  f.b.settingRage(100)
-  f.b.addRage(new RageContext(context, f.b, 'switch', 'reduce', 20))
+  f.b.currentRage = 100
+  changeRage(new RageContext(context, f.b, 'switch', 'reduce', 20))
   expect(f.b.currentRage).toBe(80)
   expect(f.mark.isActive).toBe(true)
 })
@@ -134,7 +135,7 @@ it('entry effects precede loss; cancellation removes the mark without emitting a
       apply: ctx => {
         expect(f.a.activePet).toBe(f.incoming)
         trace.push(ctx.trigger)
-        if (ctx.trigger === EffectTrigger.OnSwitchIn) f.a.settingRage(75)
+        if (ctx.trigger === EffectTrigger.OnSwitchIn) f.a.currentRage = 75
       },
     }),
   )
@@ -151,7 +152,7 @@ it('entry effects precede loss; cancellation removes the mark without emitting a
   f.battle.registerListener(message => {
     if (message.type === BattleMessageType.RageChange) trace.push('rage-message')
   })
-  f.a.settingRage(100)
+  f.a.currentRage = 100
   f.switchTo()
   expect(trace).toEqual([EffectTrigger.OnSwitchIn, EffectTrigger.BeforeRageLoss, EffectTrigger.OnMarkDestroy])
   expect(f.a.currentRage).toBe(75)
@@ -166,7 +167,7 @@ it('ordinary switch loss supports existing numeric rage modifiers', () => {
       apply: ctx => ctx.parent.addModified(50, 0),
     }),
   )
-  f.a.settingRage(100)
+  f.a.currentRage = 100
   f.switchTo()
   expect(f.a.currentRage).toBe(70)
 })
@@ -185,7 +186,7 @@ it('fresh-catalog checkpoint retains protection and consumes it on resumed switc
       }
     return catalog
   }
-  first.a.settingRage(99)
+  first.a.currentRage = 99
   const ready = new Promise<void>(resolve =>
     first.battle.registerListener(message => {
       if (message.type === BattleMessageType.TurnAction) resolve()
@@ -206,7 +207,9 @@ it('fresh-catalog checkpoint retains protection and consumes it on resumed switc
   battles.push(restored)
   const outgoing = restored.playerA.activePet
   const mark = outgoing.marks.find(mark => mark.baseId === 'mark_feixuanzhen')!
-  const phase = new SwitchPetPhase(restored, restored.playerA, restored.playerA.team[1], new TurnContext(restored))
+  const phase = new SwitchPetPhase(
+    new SwitchPetContext(new TurnContext(restored), restored.playerA, restored.playerA.team[1]),
+  )
   phase.initialize()
   phase.execute()
   expect(restored.playerA.currentRage).toBe(99)

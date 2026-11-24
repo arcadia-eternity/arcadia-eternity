@@ -1,6 +1,9 @@
 import { AuthoredEffects } from '../../../../packs/base/src/effects/authored/index.effect'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  addMark,
+  consumeMarkStacks,
+  SwitchPetContext,
   effectAuthoring,
   defineValue,
   values as planValues,
@@ -24,7 +27,7 @@ import {
   type Battle,
   type baseMarkId,
 } from '@arcadia-eternity/battle/engine'
-import { makeScenario } from './scenario'
+import { engineEffect, makeScenario } from './scenario'
 
 const { targets, ops, compileEffect, defineEffect, registerEffect, actions } = effectAuthoring
 const battles: Battle[] = []
@@ -87,7 +90,7 @@ function definition(mode: Mode, custom = false) {
       }),
     )
   }
-  if (mode === 'official') return AuthoredEffects.build().effect_mark_reduce_speed_ruodian
+  if (mode === 'official') return engineEffect(AuthoredEffects.build().effect_mark_reduce_speed_ruodian)
   const root = targets.ownerMarks.where(mark => mark.baseId === 'mark_ruodianjihao').first()
   const selected = mode === 'capture' ? root.capture({ key: 'mark', scope: 'binding' }) : root.follow({ key: 'mark' })
   const stack = selected.attribute('stack')
@@ -139,7 +142,7 @@ async function checkpoint(mode: Mode, missing = false, custom = false) {
     persistent: true,
     keepOnSwitchOut: true,
   })
-  if (!missing) f.battle.addMark(new AddMarkContext(setup, pet, markBase, 2))
+  if (!missing) addMark(new AddMarkContext(setup, pet, markBase, 2))
   if (mode === 'rage-capture' || mode === 'rage-follow') f.b.currentRage = 80
   const effect = definition(mode, custom)
   effectAuthoring.effectParameters(effect).install(f.battle.configSystem)
@@ -148,7 +151,7 @@ async function checkpoint(mode: Mode, missing = false, custom = false) {
     persistent: true,
     keepOnSwitchOut: true,
   })
-  f.battle.addMark(new AddMarkContext(setup, pet, sourceBase, 1))
+  addMark(new AddMarkContext(setup, pet, sourceBase, 1))
   const ready = new Promise<void>(resolve =>
     f.battle.registerListener(message => {
       if (message.type === BattleMessageType.TurnAction) resolve()
@@ -206,7 +209,7 @@ it.each(['capture', 'follow', 'entry'] as const)(
     expect(twice.playerA.activePet.stat.spe).toBe(mode === 'capture' ? 225 : 200)
     const source = twice.playerA.activePet.marks.find(m => m.baseId === 'snapshot/source')!
     const ctx = new EffectContext(new TurnContext(twice), EffectTrigger.TurnStart, twice.playerA.activePet.skills[0])
-    source.consumeStack(ctx, 1)
+    consumeMarkStacks(ctx, source, 1)
     expect(twice.playerA.activePet.stat.spe).toBe(300)
   },
 )
@@ -215,7 +218,7 @@ it('restores an initially absent follow and discovers later membership', async (
   const pet = restored.playerA.activePet
   expect(pet.stat.spe).toBe(300)
   const ctx = new EffectContext(new TurnContext(restored), EffectTrigger.TurnStart, pet.skills[0])
-  restored.addMark(new AddMarkContext(ctx, pet, markBase, 3))
+  addMark(new AddMarkContext(ctx, pet, markBase, 3))
   expect(pet.stat.spe).toBe(225)
 })
 it('supports explicit plans inside custom execute callbacks', async () => {
@@ -327,7 +330,7 @@ it('checkpoints the actual weakness-speed candidate with a fresh compiled catalo
   for (const p of [...f.a.team, ...f.b.team])
     for (const skill of p.skills) for (const effect of skill.effects) fresh.registerEffect(effect.id, effect)
   for (const effect of f.debuff.effects) fresh.registerEffect(effect.id, effect)
-  registerEffect(fresh, AuthoredEffects.build().effect_mark_reduce_speed_ruodian)
+  registerEffect(fresh, engineEffect(AuthoredEffects.build().effect_mark_reduce_speed_ruodian))
   const twice = restoreBattle(saved, fresh)
   battles.push(twice)
   expect(twice.playerA.activePet.stat.spe).toBe(225)
@@ -356,7 +359,9 @@ it.each(['parameter-capture', 'parameter-follow'] as const)(
     expect(pet.stat.spe).toBe(mode === 'parameter-capture' ? 275 : 260)
     restored.configSystem.releaseScope(source)
     expect(pet.stat.spe).toBe(275)
-    const phase = new SwitchPetPhase(restored, restored.playerB, restored.playerB.team[1], new TurnContext(restored))
+    const phase = new SwitchPetPhase(
+      new SwitchPetContext(new TurnContext(restored), restored.playerB, restored.playerB.team[1]),
+    )
     const phaseModifier = new ConfigModifier(
       ConfigDurationType.phaseType,
       'phase-amount',

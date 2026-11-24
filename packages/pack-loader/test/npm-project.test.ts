@@ -10,6 +10,7 @@ import { randomUUID } from 'node:crypto'
 import { homedir, tmpdir } from 'node:os'
 import { join, relative, sep } from 'node:path'
 import {
+  removeMark,
   AttackTargetOpinion,
   DamageContext,
   EffectContext,
@@ -145,7 +146,7 @@ beforeAll(async () => {
         namespace: 'slow',
         content: 'content.json',
         effects: 'effects.js',
-        sdkApi: 2,
+        sdkApi: 4,
       },
     },
     {
@@ -381,7 +382,7 @@ it('executes code effects in the real engine with refresh, removal, and independ
   expect(mark.stack).toBe(1)
   expect(f.b.activePet.stat.spe).toBe(speed - 25)
   expect(other.b.activePet.stat.spe).toBe(speed)
-  f.battle.removeMark(new RemoveMarkContext(f.turn(), mark))
+  removeMark(new RemoveMarkContext(f.turn(), mark))
   expect(f.b.activePet.stat.spe).toBe(speed)
 })
 it('reproduces the same environment after npm ci in a different absolute directory', async () => {
@@ -659,10 +660,10 @@ it('rejects incompatible SDKs, escaping paths, and missing referenced effects wi
   const file = join(dir, 'node_modules/@arcadia-test/slow/package.json'),
     original = await readFile(file, 'utf8')
   const manifest = JSON.parse(original)
-  manifest.arcadia.sdkApi = 999
+  manifest.arcadia.sdkApi = 3
   await writeFile(file, JSON.stringify(manifest))
   await expect(inspectNpmProject(dir)).rejects.toThrow('Effect SDK API')
-  manifest.arcadia.sdkApi = 2
+  manifest.arcadia.sdkApi = 4
   manifest.arcadia.content = '../content.json'
   await writeFile(file, JSON.stringify(manifest))
   await expect(inspectNpmProject(dir)).rejects.toThrow('package-relative')
@@ -829,7 +830,7 @@ it('loads an installed official catalog alongside ordinary npm content dependenc
         content: 'content.json',
         catalog: 'catalog.json',
         effectArtifact: 'effects.json',
-        sdkApi: 2,
+        sdkApi: 4,
       },
     },
     {
@@ -844,7 +845,7 @@ it('loads an installed official catalog alongside ordinary npm content dependenc
       'effects.json': JSON.stringify({
         format: 'arcadia.effect-module',
         version: 1,
-        sdkApi: 2,
+        sdkApi: 4,
         packageId: '@arcadia-eternity/data-pack-base',
         source: 'export function createCatalog() { return { effects: new Map(), parameters: new Map() } }',
       }),
@@ -964,7 +965,7 @@ it('prepares a community HP baseline with the official profile and restores scop
         namespace: 'frost',
         content: 'content.json',
         effects: 'effects.js',
-        sdkApi: 2,
+        sdkApi: 4,
       },
     },
     {
@@ -1101,7 +1102,7 @@ it('prepares a community HP baseline with the official profile and restores scop
     expect(bonuses(battle, 'playerA')).toEqual([24, 40])
     const pet = battle.playerA.activePet
     const mark = pet.marks.find(item => item.baseId === 'frost:threshold-mark')!
-    battle.removeMark(
+    removeMark(
       new RemoveMarkContext(new EffectContext(new TurnContext(battle), EffectTrigger.TurnEnd, pet.skills[0]), mark),
     )
     expect(bonuses(battle, 'playerA')).toEqual([24, 50])

@@ -39,7 +39,7 @@ beforeAll(async () => {
         content: 'content.json',
         effects: 'effects.js',
         effectArtifact: 'effects.artifact.json',
-        sdkApi: 2,
+        sdkApi: 4,
       },
     }),
   )

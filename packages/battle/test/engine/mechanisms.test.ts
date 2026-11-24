@@ -1,3 +1,11 @@
+import {
+  addMark,
+  dealDamage,
+  heal,
+  removeMark,
+  UseSkillContext,
+  SwitchPetContext,
+} from '@arcadia-eternity/battle/engine'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import {
   AddMarkContext,
@@ -72,7 +80,7 @@ describe('V1 inherited mechanisms', () => {
   it('uses V1 floor(rage * .8) on switch (#201 difference 01)', () => {
     const { a, battle } = fixture()
     a.currentRage = 21
-    const phase = new SwitchPetPhase(battle, a, a.team[1], new TurnContext(battle))
+    const phase = new SwitchPetPhase(new SwitchPetContext(new TurnContext(battle), a, a.team[1]))
     phase.initialize()
     expect(phase.execute().success).toBe(true)
     expect(a.currentRage).toBe(16)
@@ -95,6 +103,7 @@ describe('V1 inherited mechanisms', () => {
   it('grants turn rage even to the fainted active pet owner (#201 difference 03)', () => {
     const { a, b, battle } = fixture()
     b.activePet.currentHp = 0
+    b.activePet.isAlive = false
     a.selection = { type: 'do-nothing', player: a.id }
     b.selection = { type: 'do-nothing', player: b.id }
     executeTurnOperation(new TurnContext(battle), battle)
@@ -112,8 +121,8 @@ describe('V1 inherited mechanisms', () => {
     const { a, battle } = fixture()
     const ctx = context(battle)
     const base = mark('stack', { maxStacks: 8, stackable: true, stackStrategy: strategy })
-    battle.addMark(new AddMarkContext(ctx, a.activePet, base, 2, 3))
-    battle.addMark(new AddMarkContext(ctx, a.activePet, base, 3, 5))
+    addMark(new AddMarkContext(ctx, a.activePet, base, 2, 3))
+    addMark(new AddMarkContext(ctx, a.activePet, base, 3, 5))
     noFailedPhases(battle)
     expect(a.activePet.marks[0].stack).toBe(stack)
     expect(a.activePet.marks[0].duration).toBe(duration)
@@ -121,11 +130,11 @@ describe('V1 inherited mechanisms', () => {
   it('removes mutex marks and cleans bound modifiers on destruction', () => {
     const { a, battle } = fixture()
     const ctx = context(battle)
-    battle.addMark(new AddMarkContext(ctx, a.activePet, mark('first', { mutexGroup: 'g' })))
+    addMark(new AddMarkContext(ctx, a.activePet, mark('first', { mutexGroup: 'g' })))
     const source = a.activePet.marks[0]
     a.activePet.attributeSystem.addModifier('atk', new Modifier(DurationType.binding, 'attack', 10, 'delta', 0, source))
     expect(a.activePet.stat.atk).toBe(65)
-    battle.addMark(new AddMarkContext(ctx, a.activePet, mark('second', { mutexGroup: 'g' })))
+    addMark(new AddMarkContext(ctx, a.activePet, mark('second', { mutexGroup: 'g' })))
     noFailedPhases(battle)
     expect(a.activePet.stat.atk).toBe(55)
     expect(a.activePet.marks.map(m => m.baseId)).toEqual(['second'])
@@ -135,9 +144,9 @@ describe('V1 inherited mechanisms', () => {
   it('transfers a mark on switch while retaining marked owner references', () => {
     const { a, battle } = fixture()
     const ctx = context(battle)
-    battle.addMark(new AddMarkContext(ctx, a.activePet, mark('transfer', { transferOnSwitch: true })))
+    addMark(new AddMarkContext(ctx, a.activePet, mark('transfer', { transferOnSwitch: true })))
     const source = a.activePet.marks[0]
-    const phase = new SwitchPetPhase(battle, a, a.team[1], new TurnContext(battle))
+    const phase = new SwitchPetPhase(new SwitchPetContext(new TurnContext(battle), a, a.team[1]))
     phase.initialize()
     phase.execute()
     noFailedPhases(battle)
@@ -148,9 +157,9 @@ describe('V1 inherited mechanisms', () => {
   it('absorbs damage with a real shield and destroys depleted stacks', () => {
     const { a, b, battle } = fixture()
     const ctx = context(battle)
-    battle.addMark(new AddMarkContext(ctx, b.activePet, mark('shield', { isShield: true, maxStacks: 100 }), 20))
+    addMark(new AddMarkContext(ctx, b.activePet, mark('shield', { isShield: true, maxStacks: 100 }), 20))
     const hp = b.activePet.currentHp
-    b.activePet.damage(new DamageContext(ctx, a.activePet, b.activePet, 30, DamageType.Physical))
+    dealDamage(new DamageContext(ctx, a.activePet, b.activePet, 30, DamageType.Physical))
     noFailedPhases(battle)
     expect(b.activePet.currentHp).toBe(hp - 10)
     expect(b.activePet.marks).toHaveLength(0)
@@ -159,7 +168,7 @@ describe('V1 inherited mechanisms', () => {
     const { a, battle } = fixture()
     const ctx = context(battle)
     a.activePet.currentHp = 10
-    a.activePet.heal(new HealContext(ctx, a.activePet.skills[0], a.activePet, 500))
+    heal(new HealContext(ctx, a.activePet.skills[0], a.activePet, 500))
     noFailedPhases(battle)
     expect(a.activePet.currentHp).toBe(260)
   })
@@ -211,15 +220,9 @@ describe('V1 inherited mechanisms', () => {
       if (m.type === BattleMessageType.Damage) damage.push(m.data.damage)
     })
     const phase = new SkillPhase(
-      battle,
-      b,
-      b.activePet,
-      b.activePet.skills[0].target,
-      b.activePet.skills[0],
-      new TurnContext(battle),
+      new UseSkillContext(new TurnContext(battle), b, b.activePet, b.activePet.skills[0].target, b.activePet.skills[0]),
     )
-    battle.phaseManager.registerPhase(phase)
-    expect(battle.phaseManager.executePhase(phase.id).success).toBe(true)
+    expect(battle.phaseManager.run(phase).success).toBe(true)
     noFailedPhases(battle)
     expect(damage).toHaveLength(3)
     expect(order).toEqual([3, 2, 1, 3, 2, 1, 3, 2, 1])
@@ -228,7 +231,7 @@ describe('V1 inherited mechanisms', () => {
   it('reverts a temporary skill transformation when its mark source is destroyed', () => {
     const { a, battle } = fixture()
     const ctx = context(battle)
-    battle.addMark(new AddMarkContext(ctx, a.activePet, mark('form-source')))
+    addMark(new AddMarkContext(ctx, a.activePet, mark('form-source')))
     const source = a.activePet.marks[0],
       skill = a.activePet.skills[0],
       original = skill.base
@@ -236,7 +239,7 @@ describe('V1 inherited mechanisms', () => {
     expect(battle.transformationSystem.applyTransformation(skill, replacement, 'temporary', 3, source)).toBe(true)
     expect(skill.power).toBe(90)
     expect(skill.category).toBe(Category.Special)
-    battle.removeMark(new RemoveMarkContext(ctx, source))
+    removeMark(new RemoveMarkContext(ctx, source))
     noFailedPhases(battle)
     expect(skill.base).toBe(original)
     expect(skill.power).toBe(original.power)

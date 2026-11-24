@@ -11,6 +11,7 @@ import type {
 } from '@arcadia-eternity/content-sdk/management-workspace'
 import { ManagementAuth, managementScopeKey, type ManagementActor, type ManagementScope } from './auth'
 import { OperationService, type Operation } from './operations'
+import { ArtifactAccess } from './artifactAccess'
 
 type TransferWorkspace = Pick<
   ContentWorkspace,
@@ -77,8 +78,7 @@ export class ManagementTransfers {
   private readonly now: () => number
   private root: string
   private initializing?: Promise<void>
-  private readonly active = new Map<string, number>()
-  private readonly locks = new Map<string, Promise<void>>()
+  private readonly artifacts = new ArtifactAccess()
   private closed = false
   constructor(private readonly options: ManagementTransfersOptions) {
     this.scope = { kind: 'workspace', id: options.workspace.workspaceId }
@@ -113,36 +113,10 @@ export class ManagementTransfers {
     if (!/^(?:export|upload)-[a-f0-9]{64}\.json$/.test(name)) fail('TRANSFER_NOT_FOUND', 404)
     return join(this.root, name)
   }
-  private pin(name: string): () => void {
-    this.active.set(name, (this.active.get(name) ?? 0) + 1)
-    let released = false
-    return () => {
-      if (released) return
-      released = true
-      const count = (this.active.get(name) ?? 1) - 1
-      if (count) this.active.set(name, count)
-      else this.active.delete(name)
-    }
-  }
-  private async exclusive<T>(name: string, action: () => Promise<T>): Promise<T> {
-    const previous = this.locks.get(name) ?? Promise.resolve()
-    let release!: () => void
-    const current = new Promise<void>(done => {
-      release = done
-    })
-    this.locks.set(name, current)
-    await previous
-    try {
-      return await action()
-    } finally {
-      release()
-      if (this.locks.get(name) === current) this.locks.delete(name)
-    }
-  }
   private async write(name: string, bytes: Buffer) {
     if (bytes.length > this.maxBytes) fail('TRANSFER_TOO_LARGE', 413)
     await this.ready()
-    await this.exclusive(name, async () => {
+    await this.artifacts.exclusive(name, async () => {
       const temporary = join(this.root, `tmp-${randomUUID()}.json`)
       try {
         await writeFile(temporary, bytes, { flag: 'wx', mode: 0o600 })
@@ -155,7 +129,7 @@ export class ManagementTransfers {
 
   private async metadata(name: string) {
     await this.ready()
-    return this.exclusive(name, async () => {
+    return this.artifacts.exclusive(name, async () => {
       const file = this.file(name)
       let info
       try {
@@ -197,7 +171,7 @@ export class ManagementTransfers {
       },
       async context => {
         const name = `export-${context.operationId}.json`
-        const unpin = this.pin(name)
+        const unpin = this.artifacts.pin(name)
         let completed = false,
           commitAttempted = false
         try {
@@ -225,7 +199,8 @@ export class ManagementTransfers {
           // A database disconnect can hide a successful commit. Keep the artifact
           // once commit was attempted; only inaccessible orphan data may await expiry.
           try {
-            if (!completed && !commitAttempted) await this.exclusive(name, () => rm(this.file(name), { force: true }))
+            if (!completed && !commitAttempted)
+              await this.artifacts.exclusive(name, () => rm(this.file(name), { force: true }))
           } finally {
             unpin()
           }
@@ -269,7 +244,7 @@ export class ManagementTransfers {
     const bundleDigest = sha256Hex(bytes)
     const uploadId = sha256Hex(`${this.options.operations.ownerId}\0${managementScopeKey(this.scope)}\0${bundleDigest}`)
     const name = `upload-${uploadId}.json`
-    const unpin = this.pin(name)
+    const unpin = this.artifacts.pin(name)
     try {
       await this.write(name, bytes)
       return await this.options.operations.submit(
@@ -288,7 +263,7 @@ export class ManagementTransfers {
           },
         },
         async context => {
-          const release = this.pin(name)
+          const release = this.artifacts.pin(name)
           try {
             await context.checkCurrent()
             await this.options.auth.authorize(actor, this.scope, 'edit')
@@ -363,7 +338,7 @@ export class ManagementTransfers {
       expectedRevision: string | null
     }
     const name = `upload-${validId(input.uploadId)}.json`,
-      unpin = this.pin(name)
+      unpin = this.artifacts.pin(name)
     try {
       const { file } = await this.metadata(name)
       const bytes = await readFile(file)
@@ -391,7 +366,7 @@ export class ManagementTransfers {
     if (!result || typeof result.expiresAt !== 'number' || result.expiresAt <= this.now())
       return fail('TRANSFER_EXPIRED', 410)
     const name = `export-${id}.json`,
-      unpin = this.pin(name)
+      unpin = this.artifacts.pin(name)
     try {
       const { file, info } = await this.metadata(name)
       if (info.size !== result.bytes) fail('TRANSFER_ARTIFACT_INVALID', 409)
@@ -409,7 +384,7 @@ export class ManagementTransfers {
     }
   }
   private recoverImport(operation: Operation): Promise<Operation> {
-    return this.exclusive(`import:${operation.id}`, async () => {
+    return this.artifacts.exclusive(`import:${operation.id}`, async () => {
       const current = await this.options.operations.get(operation.id)
       if (current.status === 'succeeded') return current
       const version = await this.options.workspace.recoverImport(current.id)
@@ -446,7 +421,10 @@ export class ManagementTransfers {
         .map(operation => (operation.input as { uploadId?: string }).uploadId),
     )
     for (const name of await readdir(this.root)) {
-      if (!/^(?:export|upload)-[a-f0-9]{64}\.json$|^tmp-[a-f0-9-]{36}\.json$/.test(name) || this.active.has(name))
+      if (
+        !/^(?:export|upload)-[a-f0-9]{64}\.json$|^tmp-[a-f0-9-]{36}\.json$/.test(name) ||
+        this.artifacts.isPinned(name)
+      )
         continue
       if (name.startsWith('upload-') && activeUploads.has(name.slice(7, -5))) continue
       if (name.startsWith('export-')) {
@@ -455,12 +433,12 @@ export class ManagementTransfers {
         const expiresAt = (operation?.result as Partial<ExportResult> | undefined)?.expiresAt
         if (typeof expiresAt === 'number' && expiresAt > this.now()) continue
       }
-      await this.exclusive(name, async () => {
-        if (this.active.has(name)) return
+      await this.artifacts.exclusive(name, async () => {
+        if (this.artifacts.isPinned(name)) return
         const file = join(this.root, name)
         const info = await lstat(file).catch(() => undefined)
         if (!info || !info.isFile() || info.isSymbolicLink() || info.mtimeMs > cutoff) return
-        if (this.active.has(name)) return
+        if (this.artifacts.isPinned(name)) return
         // Acquiring metadata or replacing this artifact waits for this unlink.
         await rm(file, { force: true })
         removed++

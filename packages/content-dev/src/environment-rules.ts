@@ -3,6 +3,7 @@ import type { ContentPrototypeData } from '@arcadia-eternity/battle/engine'
 import { readSkillParameterCatalog, resolveSkillParameters, requireElementChart } from '@arcadia-eternity/const'
 import { resolveDeclaredRules } from './rule-composition.ts'
 import {
+  effectSdkApiVersion,
   allowsEnhancementRecord,
   IndependentEnvironmentRulesSchema,
   readEnvironmentRuleSets,
@@ -66,7 +67,7 @@ const capabilityFields = {
   'battle.faint-switch.v1': (rules: EnvironmentRules) => rules.mechanics?.allowFaintSwitch !== undefined,
 }
 export const environmentCapabilities = Object.freeze(['rules.composition.v1', ...Object.keys(capabilityFields)])
-const currentHost = { engine: '4', sdk: '2', capabilities: environmentCapabilities }
+const currentHost = { engine: '4', sdk: String(effectSdkApiVersion), capabilities: environmentCapabilities }
 export function assertEnvironmentRequirements(input?: unknown, host = currentHost): void {
   const parsed = EnvironmentRequirementsSchema.safeParse(input === undefined ? {} : input)
   if (!parsed.success) fail('ENVIRONMENT_REQUIREMENT_INVALID')

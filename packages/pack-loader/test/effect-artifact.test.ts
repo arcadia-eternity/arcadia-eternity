@@ -32,20 +32,15 @@ it('bundles TypeScript and SDK imports without evaluating author top-level state
   }
   expect(Reflect.get(globalThis, 'artifactMarker')).toBeUndefined()
 })
-it('selects effect factories from an ordinary module without exposing host reference helpers', async () => {
+it('rejects a host catalog import at the effect module boundary', async () => {
   const { root, entry } = await source(`
     import {createContentCatalog} from '@arcadia-eternity/battle/engine';
     export function createReferenceContent(data){return createContentCatalog(data)}
     export function createEffects(){return []}
   `)
-  const artifact = await compileEffectModule(entry, root, 'probe')
-  expect(artifact.source).not.toContain('lookup("createContentCatalog")')
-  const module = await ArenaEffectModule.prepare(artifact)
-  try {
-    expect(module.createEffects({ sdk, marks: new Map(), id: id => id })).toEqual([])
-  } finally {
-    module.dispose()
-  }
+  await expect(compileEffectModule(entry, root, 'probe')).rejects.toThrow(
+    /Unsupported effect dependency.*battle\/engine/,
+  )
 })
 it('preserves author initialization even when package metadata claims there are no side effects', async () => {
   const { root, entry } = await source("throw new Error('AUTHOR_INITIALIZATION')")

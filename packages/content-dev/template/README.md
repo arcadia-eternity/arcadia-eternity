@@ -29,4 +29,4 @@
 
 ## 发行
 
-在 Arcadia 工作台选择「检查并生成发行包」，也可以用支持发行检查的 SDK 执行 `arcadia-content workspace . release --execute`。源项目保留 `private: true`。提交版本和锁文件后创建 `v<版本>` 标签。在 GitHub Actions 手动选择该标签运行 **Release content pack**。可选的 npm Trusted Publishing 与 GitHub Release 分发同一份经测试的归档。模板的发行脚本可使用锁定的公开 SDK 4.6.0 运行。桌面启动工作流时会核对本地归档的 SHA-512。
+在 Arcadia 工作台选择「检查并生成发行包」，也可以用支持发行检查的 SDK 执行 `arcadia-content workspace . release --execute`。源项目保留 `private: true`。提交版本和锁文件后创建 `v<版本>` 标签。在 GitHub Actions 手动选择该标签运行 **Release content pack**。可选的 npm Trusted Publishing 与 GitHub Release 分发同一份经测试的归档。桌面启动工作流时会核对本地归档的 SHA-512。

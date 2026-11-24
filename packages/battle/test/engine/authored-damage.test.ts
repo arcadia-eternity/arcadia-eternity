@@ -1,18 +1,21 @@
+import { compileEffect } from '../../src/engine/content/authoring/runtime'
+import {
+  type Battle,
+  BaseMark,
+  UseSkillContext,
+  DamageContext,
+  TurnContext,
+  dealDamage,
+} from '@arcadia-eternity/battle/engine'
 import { afterEach, expect, it } from 'vitest'
 import {
   AttackTargetOpinion,
-  BaseMark,
-  DamageContext,
-  UseSkillContext,
   DamageType,
   EffectTrigger,
-  TurnContext,
-  compileEffect,
   contexts,
   ops,
   selectFrom,
   targets,
-  type Battle,
   type DamageResult,
   type baseMarkId,
 } from '@arcadia-eternity/battle/authoring'
@@ -136,7 +139,7 @@ it('releases reserved damage costs on a later authored cancellation', () => {
   )
   const parent = new UseSkillContext(new TurnContext(battle), a, a.activePet, AttackTargetOpinion.opponent, skill)
   const damage = new DamageContext(parent, skill, defender, 20, DamageType.Physical)
-  defender.damage(damage)
+  dealDamage(damage)
   expect(damage.result).toMatchObject({ status: 'cancelled', modifiedDamage: 10, hpLoss: 0, preventedDamage: 0 })
   expect(paid.stack).toBe(1)
   expect(paid.owner).toBe(defender)

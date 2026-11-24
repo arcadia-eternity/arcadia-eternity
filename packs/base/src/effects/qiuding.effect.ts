@@ -2,15 +2,18 @@ import {
   actions,
   conditions,
   contexts,
-  DamageType,
   defineEffects,
   EffectTrigger,
   numberParam,
   ops,
-  type Condition,
   targets,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { reflectedHalfHpLoss } from './damage-benefits.effect'
+import { physicalDamage, nonEffectStrikeDamage } from './damage-conditions'
+import { defensePowerBonus, defenseHitCount } from './defense-scaling'
+import { activeOwnerMarks, ruleConsumedSourceMark, requireMark } from './mark-queries'
+import { nonStatusSkillUse } from './skill-queries'
 
 const SPIKE_SHELL = 'mark_jiancijiaqiao'
 const BARB_SHELL = 'mark_daocijiaqiao'
@@ -22,51 +25,31 @@ const BLEED = 'mark_liuxie'
 
 const defenseBoostChance = numberParam({ default: 10, tags: ['skill_effect_probability'] })
 
-const physicalDamage = contexts.damage.condition((_, events) =>
-  events.some(event => event.damageType === DamageType.Physical),
-)
 const desertDamage = contexts.damage.condition((_, events) => events.some(event => event.element === 'Desert'))
 
-const incomingAttack = conditions.all(
-  conditions.selfBeDamaged,
-  contexts.damage.condition((_, events) =>
-    events.some(
-      event =>
-        event.origin.trigger !== 'effect' &&
-        (event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
-    ),
-  ),
-)
-const shellPaid: Condition<EffectTrigger.OnConsumeStack> = ctx =>
-  ctx.parent.reason === 'rule' && ctx.parent.mark === ctx.read(targets.sourceMark.first())
-const targetsMarkedPet = conditions.all(
-  conditions.ownerIsSkillTarget,
-  contexts.skillUse.condition((_, events) => events.some(event => event.category !== 'Status')),
-)
+const incomingAttack = conditions.all(conditions.selfBeDamaged, nonEffectStrikeDamage)
+const targetsMarkedPet = conditions.all(conditions.ownerIsSkillTarget, nonStatusSkillUse)
 
 @effectGroup({ id: 'qiuding' })
 export class QiudingEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const spikeShell = marks.get(SPIKE_SHELL)
-    const barbShell = marks.get(BARB_SHELL)
-    const rageShell = marks.get(RAGE_SHELL)
-    const counterWill = marks.get(COUNTER_WILL)
-    const spikeBurst = marks.get(SPIKE_BURST)
-    const sandSeverity = marks.get(SAND_SEVERITY)
-    const bleed = marks.get(BLEED)
-    if (!spikeShell || !barbShell || !rageShell || !counterWill || !spikeBurst || !sandSeverity || !bleed) {
-      throw new Error('Missing qiuding mark dependency')
-    }
+    const spikeShell = requireMark(marks, SPIKE_SHELL)
+    const barbShell = requireMark(marks, BARB_SHELL)
+    const rageShell = requireMark(marks, RAGE_SHELL)
+    const counterWill = requireMark(marks, COUNTER_WILL)
+    const spikeBurst = requireMark(marks, SPIKE_BURST)
+    const sandSeverity = requireMark(marks, SAND_SEVERITY)
+    const bleed = requireMark(marks, BLEED)
 
     const defValue = targets.ownerPet.first().attribute('def')
 
-    const spikeShellActive = targets.ownerMarks.where(mark => mark.baseId === SPIKE_SHELL && mark.isActive)
-    const barbShellActive = targets.ownerMarks.where(mark => mark.baseId === BARB_SHELL && mark.isActive)
-    const rageShellActive = targets.ownerMarks.where(mark => mark.baseId === RAGE_SHELL && mark.isActive)
+    const spikeShellActive = activeOwnerMarks(SPIKE_SHELL)
+    const barbShellActive = activeOwnerMarks(BARB_SHELL)
+    const rageShellActive = activeOwnerMarks(RAGE_SHELL)
 
-    const defBonusDamage = defValue.map(def => Math.min(100, Math.floor(def / 5)))
-    const defBonusPower = defValue.map(def => Math.min(100, Math.floor(def / 10)))
-    const defHits = defValue.map(def => Math.max(1, Math.min(6, Math.floor(def / 100))))
+    const defBonusDamage = defValue.map(def => defensePowerBonus(def, 5))
+    const defBonusPower = defValue.map(def => defensePowerBonus(def, 10))
+    const defHits = defValue.map(defenseHitCount)
 
     const addSpikeShell = targets.ownerPet.apply(ops.addMark(spikeShell, { stack: 1 }))
     const addBarbShell = targets.ownerPet.apply(ops.addMark(barbShell, { stack: 1 }))
@@ -162,16 +145,14 @@ export class QiudingEffects {
         priority: 0,
         when: incomingAttack,
         apply: actions.sequence(
-          targets.damageOriginPet.apply(
-            ops.dealDamage(contexts.damageResult.select(r => Math.min(284, Math.floor(r.hpLoss / 2))).first()),
-          ),
+          targets.damageOriginPet.apply(ops.dealDamage(reflectedHalfHpLoss(284))),
           targets.ownerPet.apply(ops.addRage(15)),
           targets.sourceMark.apply(ops.removeMark()),
         ),
       },
       effect_mark_add_attacker_liuxie_30_on_rule_stack_consumption: {
         triggers: [EffectTrigger.OnConsumeStack],
-        when: shellPaid,
+        when: ruleConsumedSourceMark,
         apply: targets.damageOriginPet.apply(ops.addMark(bleed, { stack: 30 })),
       },
       effect_mark_prevent_attack_damage_percent_equal_to_rage_consume_1_stack: {

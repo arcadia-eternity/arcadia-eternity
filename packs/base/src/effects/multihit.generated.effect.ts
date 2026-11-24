@@ -7,11 +7,11 @@ import {
   conditions,
   contexts,
   targets,
-  checks,
   ops,
   actions,
   type EffectFrame,
 } from '@arcadia-eternity/battle/authoring'
+import { ownerHasMark, opponentHasMark } from './mark-queries'
 @effectGroup({ id: 'multihit.generated' })
 export class MultihitGeneratedEffects {
   static build() {
@@ -64,12 +64,7 @@ export class MultihitGeneratedEffects {
       effect_skill_add_multihit_opponent_has_mark_kuihuazhongzi: {
         triggers: [EffectTrigger.BeforeMultiHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kuihuazhongzi')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_kuihuazhongzi')),
         apply: actions.sequence(contexts.skillUse.apply(ops.addMultihitResult(1))),
       },
       effect_skill_add_multihit_per_usetime: {
@@ -91,30 +86,19 @@ export class MultihitGeneratedEffects {
       effect_skill_multi_hit_5_times_if_has_shuiliangchongzu: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiliangchongzu').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shuiliangchongzu')),
         apply: actions.sequence(contexts.skillUse.apply(ops.setMultihit(5))),
       },
       effect_skill_multihit_3_if_has_zhaocai: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_zhaocai').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_zhaocai')),
         apply: actions.sequence(contexts.skillUse.apply(ops.setMultihit(3))),
       },
       effect_skill_multihit_3_times_if_opponent_has_tongjiling: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_tongjiling')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_tongjiling')),
         apply: actions.sequence(contexts.skillUse.apply(ops.setMultihit(3))),
       },
       effect_skill_multihit_30_percent_4_times: (() => {
@@ -186,10 +170,7 @@ export class MultihitGeneratedEffects {
       effect_skill_multihit_by_shahezhili_turns: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shahezhili').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shahezhili')),
         apply: actions.sequence(
           contexts.skillUse.apply(
             ops.setMultihit(

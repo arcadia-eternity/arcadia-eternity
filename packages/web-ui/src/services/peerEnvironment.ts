@@ -2,6 +2,7 @@ import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox'
 import type { ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
 import { digestJson } from '@arcadia-eternity/pack-loader/native'
 import {
+  effectSdkApiVersion,
   readSkillParameterCatalog,
   resolveSkillParameters,
   requireElementChart,
@@ -109,7 +110,7 @@ export async function validatePeerMaterials(
       !exact(artifact, ['format', 'version', 'sdkApi', 'packageId', 'source']) ||
       artifact.format !== 'arcadia.effect-module' ||
       artifact.version !== 1 ||
-      artifact.sdkApi !== 2 ||
+      artifact.sdkApi !== effectSdkApiVersion ||
       typeof artifact.packageId !== 'string' ||
       !artifact.packageId ||
       artifact.packageId.length > 256 ||

@@ -59,7 +59,10 @@ async function switchWait(
           [EffectTrigger.TurnEnd],
           ctx => {
             if (ctx.battle.currentTurn === 1)
-              for (const player of [ctx.battle.playerA, ctx.battle.playerB]) player.activePet.currentHp = 0
+              for (const player of [ctx.battle.playerA, ctx.battle.playerB]) {
+                player.activePet.currentHp = 0
+                player.activePet.isAlive = false
+              }
           },
           0,
         ),

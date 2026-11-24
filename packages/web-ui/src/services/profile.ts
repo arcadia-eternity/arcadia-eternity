@@ -4,6 +4,7 @@ import {
   ProfileRepository,
   ProfileError,
   defaultData,
+  defaultSettings,
   migrateEmbeddedLibrary,
   validateLibrary,
   validateData,
@@ -343,7 +344,7 @@ export function rawLegacyProfileData() {
     'player',
     'player-data',
     'petStorage',
-    ...Object.keys(defaultData().settings).map(key => `gameSetting.${key}`),
+    ...Object.keys(defaultSettings()).map(key => `gameSetting.${key}`),
   ]
   return Object.fromEntries(
     keys.flatMap(key => {

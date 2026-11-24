@@ -13,6 +13,8 @@ import {
   values,
   type EffectFrame,
 } from '@arcadia-eternity/battle/authoring'
+import { physicalDamage } from './damage-conditions'
+import { ownerHasMark, opponentHasMark } from './mark-queries'
 @effectGroup({ id: 'vital-actions.generated' })
 export class VitalActionsGeneratedEffects {
   static build() {
@@ -30,12 +32,7 @@ export class VitalActionsGeneratedEffects {
       effect_ability_add_rage_5_when_attack_opponent_has_tongjiling: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_tongjiling')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_tongjiling')),
         apply: actions.sequence(targets.ownerPet.apply(ops.addRage(5))),
       },
       effect_ability_add_rage_5_when_first_attack: {
@@ -106,22 +103,13 @@ export class VitalActionsGeneratedEffects {
       effect_ability_huafenmiman_damage_opponent_25_per_turn: {
         triggers: [EffectTrigger.TurnEnd],
         priority: 0,
-        when: conditions.all(
-          conditions.ownerIsActive,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_huafenmiman').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.ownerIsActive, ownerHasMark('mark_huafenmiman')),
         apply: actions.sequence(targets.opponentActive.apply(ops.dealDamage(25))),
       },
       effect_ability_reduce_opponent_rage_5_when_last_attack_opponent_has_kaowen: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          conditions.lastSkillThisTurn,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kaowen')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, conditions.lastSkillThisTurn, opponentHasMark('mark_kaowen')),
         apply: actions.sequence(targets.opponentActive.apply(ops.addRage(-5))),
       },
       effect_emblem_add_rage_5_when_use_feixuanzhiguang: {
@@ -136,10 +124,7 @@ export class VitalActionsGeneratedEffects {
       effect_emblem_add_rage_on_hit_if_has_shunliu: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shunliu').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shunliu')),
         apply: actions.sequence(targets.ownerPet.apply(ops.addRage(5))),
       },
       effect_emblem_yuren_dealdamage_on_physical_skill: {
@@ -154,10 +139,7 @@ export class VitalActionsGeneratedEffects {
       effect_heal_1_16_max_hp_per_stack_if_has_niliu: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_niliu').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_niliu')),
         apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
@@ -241,10 +223,7 @@ export class VitalActionsGeneratedEffects {
       effect_mark_reflect_physical_damage_30: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Physical'),
-        ),
+        when: conditions.all(conditions.selfBeDamaged, physicalDamage),
         apply: actions.sequence(targets.damageOriginPet.apply(ops.dealDamage(30))),
       },
       effect_mark_reflect_special_damage_max_with_stack: {
@@ -319,12 +298,7 @@ export class VitalActionsGeneratedEffects {
       effect_skill_add_rage_25_if_opponent_shaoshang: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_shaoshang')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_shaoshang')),
         apply: actions.sequence(targets.ownerPet.apply(ops.addRage(25))),
       },
       effect_skill_add_rage_30_if_guzhanchang: {
@@ -357,32 +331,19 @@ export class VitalActionsGeneratedEffects {
       effect_skill_add_rage_40_if_feikonglingyu: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_feikonglingyu').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_feikonglingyu')),
         apply: actions.sequence(targets.ownerPet.apply(ops.addRage(35))),
       },
       effect_skill_add_rage_opponent_45_if_opponent_has_kaowen: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kaowen')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_kaowen')),
         apply: actions.sequence(targets.opponentActive.apply(ops.addRage(45))),
       },
       effect_skill_add_self_40_rage_if_opponent_mabi: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_mabi')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_mabi')),
         apply: actions.sequence(targets.ownerPet.apply(ops.addRage(40))),
       },
       effect_skill_deal_damage_spa_sixth_on_miss: {
@@ -403,21 +364,13 @@ export class VitalActionsGeneratedEffects {
       effect_skill_heal_125_if_aideminyi: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_aideminyi').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_aideminyi')),
         apply: actions.sequence(targets.ownerPet.apply(ops.heal(125))),
       },
       effect_skill_heal_25_percent_damage_dealt_if_opponent_jingshencuoluan: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_jingshencuoluan')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_jingshencuoluan')),
         apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
@@ -544,12 +497,7 @@ export class VitalActionsGeneratedEffects {
       effect_skill_heal_self_quarter_if_opponent_has_kaowen_on_defeat_opponent: {
         triggers: [EffectTrigger.OnDefeat],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kaowen')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_kaowen')),
         apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
@@ -564,12 +512,7 @@ export class VitalActionsGeneratedEffects {
       effect_skill_reduce_opponent_rage_30_if_opponent_has_tongjiling: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_tongjiling')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_tongjiling')),
         apply: actions.sequence(targets.opponentActive.apply(ops.addRage(-20))),
       },
       effect_skill_reduce_self_hp_1_6: {

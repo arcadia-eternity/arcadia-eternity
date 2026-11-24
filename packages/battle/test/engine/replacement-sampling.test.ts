@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest'
 import {
+  dealDamage,
   AttackTargetOpinion,
   DamageContext,
   DamageType,
@@ -51,7 +52,7 @@ it.each([EffectTrigger.OnDamageReplacement, EffectTrigger.Shield] as const)(
       )
       const use = new UseSkillContext(new TurnContext(battle), a, caster, AttackTargetOpinion.opponent, skill)
       const damage = new DamageContext(use, skill, target, 20, DamageType.Physical)
-      target.damage(damage)
+      dealDamage(damage)
       expect(checks.map(check => check.target)).toContain(target.id)
       expect(checks.map(check => check.target)).toContain(caster.id)
       expect(new Set(checks.map(check => check.draw)).size).toBe(1)

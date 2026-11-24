@@ -1,4 +1,5 @@
 import {
+  removeMark,
   BattleMessageType,
   SnapshotCatalog,
   restoreBattle,
@@ -170,7 +171,7 @@ it('retains native form sources and rebuilds cross-target cleanup and reactive c
     source = pet.marks[0]
   if (!(source instanceof MarkInstanceImpl)) throw new Error('Expected original native mark implementation')
   const originalDef = battle.playerB.activePet.stat.def
-  source.addAttributeModifierCleanup(
+  source.attributeModifierCleanups.push(
     battle.playerB.activePet.attributeSystem.addModifier(
       'def',
       new Modifier(DurationType.binding, 'cross-owner', 9, 'delta', 0, source),
@@ -178,8 +179,8 @@ it('retains native form sources and rebuilds cross-target cleanup and reactive c
   )
   const max = projectValue(source.attributeSystem.getAttribute$('stack'), 'multiply', 10)
   const { modifier } = ModifierHelpers.createReactiveClamp('saved-clamp', new Signal(0), max, 0, source)
-  source.addAttributeModifierCleanup(pet.attributeSystem.addModifier('atk', modifier))
-  source.addAttributeModifierCleanup(pet.attributeSystem.addModifier('atk', modifier)) // Real duplicate registration returns a no-op.
+  source.attributeModifierCleanups.push(pet.attributeSystem.addModifier('atk', modifier))
+  source.attributeModifierCleanups.push(pet.attributeSystem.addModifier('atk', modifier)) // Real duplicate registration returns a no-op.
   battle.transformationSystem.applyTransformation(
     pet,
     { ...pet.base, id: 'saved-form' as never, ability: [] },
@@ -205,7 +206,7 @@ it('retains native form sources and rebuilds cross-target cleanup and reactive c
   restoredSource.stack = 2
   expect(restoredPet.stat.atk).toBe(20)
   expect(restored.playerB.activePet.stat.def).toBe(originalDef + 9)
-  restored.removeMark(new RemoveMarkContext(new TurnContext(restored), restoredSource))
+  removeMark(new RemoveMarkContext(new TurnContext(restored), restoredSource))
   expect(restored.transformationSystem.getTransformationState(restoredPet).isTransformed).toBe(false)
   expect(restoredPet.base).toBe(restoredPet.originalSpecies)
   expect(restoredPet.currentHp).toBe(100)

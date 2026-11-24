@@ -1,5 +1,24 @@
 # Changelog
 
+## [5.0.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.19.1...arcadia-eternity-v5.0.0) (2026-11-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **battle:** route native effect mutations through ops
+* **battle:** expose phase operations in the native effect SDK
+
+### ♻️ Code Refactoring
+
+* **base:** share pet effect logic across families ([263154e](https://github.com/arcadia-eternity/arcadia-eternity/commit/263154ef7fa0b40c97e762c1469e4e564f0d3002))
+* **battle:** expose phase operations in the native effect SDK ([43d18b0](https://github.com/arcadia-eternity/arcadia-eternity/commit/43d18b0a8d18439d037bf23bd30b258e1e6a48d9))
+* **battle:** move entity mutations into battle phases ([beb1e19](https://github.com/arcadia-eternity/arcadia-eternity/commit/beb1e198e91e926e1c782d2f22376324b0e32e95))
+* **battle:** resolve state changes in their owning phases ([4c2fa6d](https://github.com/arcadia-eternity/arcadia-eternity/commit/4c2fa6da745bc208b462a4ba41debbaf3985e1ae))
+* **battle:** route native effect mutations through ops ([f3e23d6](https://github.com/arcadia-eternity/arcadia-eternity/commit/f3e23d6ca709a9b87c9e8b0a6e90cb88f29f0f6a))
+* **battle:** simplify phase execution and remove redundant interfaces ([c375f02](https://github.com/arcadia-eternity/arcadia-eternity/commit/c375f021bcca1e01b817c0ad55c53955931fb40c))
+* **desktop:** migrate Electron runtime and tests to TypeScript ([007bc41](https://github.com/arcadia-eternity/arcadia-eternity/commit/007bc41bcf1f10f864a321c3d6cc17e41c30e703))
+* share desktop, content and transport logic ([39f478f](https://github.com/arcadia-eternity/arcadia-eternity/commit/39f478f5e499c84f0dac5c109ad8c0d5007e915b))
+
 ## [4.19.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.19.0...arcadia-eternity-v4.19.1) (2026-11-24)
 
 

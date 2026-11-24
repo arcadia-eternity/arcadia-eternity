@@ -4,7 +4,6 @@ import { readFile, realpath, stat } from 'node:fs/promises'
 import { relative, isAbsolute } from 'node:path'
 import { parse } from 'es-module-lexer/minimal/js'
 import * as sdk from '@arcadia-eternity/battle/authoring'
-import * as core from '@arcadia-eternity/battle/engine'
 import type { EffectModuleArtifact } from '@arcadia-eternity/battle/sandbox/effects'
 
 /** Fixed compiler pipeline: parse/bundle author text without evaluating modules or loading author plugins.
@@ -45,12 +44,17 @@ export async function compileEffectModule(
           if (id === '@arcadia-eternity/content-sdk' || id === contentSdk) return contentSdk
           if (id === source) return { id: source, moduleSideEffects: true }
           if (['@arcadia-eternity/battle/authoring', '@arcadia-eternity/const'].includes(id)) return shim
-          if (id === '@arcadia-eternity/battle/engine') return `${shim}-core`
+          if (
+            id === '@arcadia-eternity/battle' ||
+            id.startsWith('@arcadia-eternity/battle/') ||
+            id.startsWith('@arcadia-eternity/content-sdk/')
+          )
+            throw Error(`Unsupported effect dependency: ${id}`)
           if (/^(node:|https?:|data:|file:)/.test(id)) throw Error(`Unsupported effect dependency: ${id}`)
         },
         async load(id) {
           if (id === contentSdk)
-            return `export * from '@arcadia-eternity/battle/authoring'; export * from '@arcadia-eternity/battle/effect-loading';`
+            return `export * from '@arcadia-eternity/battle/authoring'; export { effect, on } from '@arcadia-eternity/battle/effect-loading';`
           if (id === loading)
             return readFile(fileURLToPath(import.meta.resolve('@arcadia-eternity/battle/effect-loading')), 'utf8')
           // Packages publish ordinary modules. Only the author factories enter the VM;
@@ -59,13 +63,11 @@ export async function compileEffectModule(
             // Hoisted bindings keep the emitted ESM valid even when author
             // initialization throws before the factory assignments are reached.
             return `import * as authored from ${JSON.stringify(source)};\nexport var createEffects = authored.createEffects;\nexport var createCatalog = authored.createCatalog;`
-          if (id === shim || id === `${shim}-core`) {
-            const root = id === shim ? 'sdk' : 'core'
-            // Linking accepts the module's declared exports. The VM's SDK adapter
-            // still controls access; unused host helpers disappear during bundling.
-            const names = Object.keys(root === 'core' ? core : sdk)
+          if (id === shim) {
+            // Imports and the injected namespace expose the same author API.
+            const names = Object.keys(sdk)
             return (
-              `const lookup = key => globalThis.${root}[key];\n` +
+              `const lookup = key => globalThis.sdk[key];\n` +
               names
                 .filter(name => /^[a-zA-Z_$][\w$]*$/.test(name))
                 .map(name => `export const ${name} = /* @__PURE__ */ lookup(${JSON.stringify(name)});`)
@@ -106,7 +108,13 @@ export async function compileEffectModule(
       throw Error('Effect module must have a bounded, closed dependency graph')
     if (parse(output[0].code)[0].some(entry => entry.d !== -2))
       throw Error('Runtime imports are not supported in effect artifacts')
-    return Object.freeze({ format: 'arcadia.effect-module', version: 1, sdkApi: 2, packageId, source: output[0].code })
+    return Object.freeze({
+      format: 'arcadia.effect-module',
+      version: 1,
+      sdkApi: sdk.effectSdkApiVersion,
+      packageId,
+      source: output[0].code,
+    })
   } finally {
     await build.close()
   }

@@ -37,7 +37,7 @@ test('v2 environment preserves explicit versioned rules and capabilities', () =>
       deny: { skills: ['example:unsafe'] },
       team: { minSize: 1, maxSize: 6, uniqueSpecies: true },
     },
-    requires: { engine: '4', sdk: '2', capabilities: ['effect-state-v1'] },
+    requires: { engine: '4', sdk: '4', capabilities: ['effect-state-v1'] },
   }
   assert.deepEqual(normalizeEnvironmentDocument(source), source)
 })
@@ -66,7 +66,7 @@ test('file-backed debug environments preserve v1, explicitly save v2 and reject 
     join(root, 'package.json'),
     JSON.stringify({
       name: 'example',
-      arcadia: { projectId: 'example', namespace: 'example', sdkApi: 2 },
+      arcadia: { projectId: 'example', namespace: 'example', sdkApi: 4 },
     }),
   )
   const workspace = await AuthorWorkspace.open(root, { watch: false })

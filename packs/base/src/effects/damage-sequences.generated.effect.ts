@@ -10,6 +10,7 @@ import {
   actions,
   type EffectFrame,
 } from '@arcadia-eternity/battle/authoring'
+import { physicalDamage, specialDamage } from './damage-conditions'
 @effectGroup({ id: 'damage-sequences.generated' })
 export class DamageSequencesGeneratedEffects {
   static build() {
@@ -44,10 +45,7 @@ export class DamageSequencesGeneratedEffects {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         consumesStacks: 'all',
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Physical'),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, physicalDamage),
         apply: actions.sequence(
           contexts.damage.apply(
             ops.modifyDamage({ percent: targets.sourceMark.select(mark => mark.stack).first(), delta: 0 }),
@@ -58,10 +56,7 @@ export class DamageSequencesGeneratedEffects {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         consumesStacks: 'all',
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, specialDamage),
         apply: actions.sequence(
           contexts.damage.apply(
             ops.modifyDamage({ percent: targets.sourceMark.select(mark => mark.stack).first(), delta: 0 }),
@@ -94,10 +89,7 @@ export class DamageSequencesGeneratedEffects {
       effect_mark_block_next_special_damage: {
         triggers: [EffectTrigger.OnDamageReplacement],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
-        ),
+        when: conditions.all(conditions.selfBeDamaged, specialDamage),
         apply: contexts.damage.apply(ops.preventDamage({ stacks: 'all' })),
       },
       effect_mark_heiyapao_add_damage_based_on_stack: {

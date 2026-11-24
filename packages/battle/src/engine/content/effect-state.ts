@@ -1,5 +1,5 @@
 import { EffectTrigger } from '@arcadia-eternity/const'
-import { getDamageEvaluation } from '../damageEvaluation'
+import { getDamageEvaluation } from '../phase/damage'
 import { Battle } from '../battle'
 import { EffectContext } from '../context'
 import { MarkInstanceImpl, type MarkInstance } from '../mark'
@@ -8,24 +8,27 @@ import { Player } from '../player'
 import { SkillInstance } from '../skill'
 import type { ConfigSystem, ConfigValue } from '../config'
 
-interface StateTypes {
+export interface EffectStateValues {
   number: number
   boolean: boolean
   string: string
 }
 export type EffectStateEntity = Battle | Player | Pet | SkillInstance | MarkInstance
-export interface EffectStateDefinition<K extends keyof StateTypes = keyof StateTypes> {
+export interface EffectStateDefinition<K extends keyof EffectStateValues = keyof EffectStateValues> {
   /** Package-qualified identity, normally supplied by the module factory's id(). */
   readonly id: string
   readonly type: K
-  readonly default: StateTypes[K]
+  readonly default: EffectStateValues[K]
 }
 const definitions = new WeakSet<object>()
 const valuePrefix = 'ae:state:'
 const definitionPrefix = 'ae:state-definition:'
 const validId = (id: unknown): id is string =>
   typeof id === 'string' && id.length <= 200 && /^[A-Za-z0-9@_./-]+:[A-Za-z0-9_./-]+$/.test(id)
-function validValue(type: keyof StateTypes, value: unknown): value is StateTypes[keyof StateTypes] {
+function validValue(
+  type: keyof EffectStateValues,
+  value: unknown,
+): value is EffectStateValues[keyof EffectStateValues] {
   return (
     typeof value === type &&
     (type !== 'number' || Number.isFinite(value)) &&
@@ -42,7 +45,7 @@ function assertDefinition(value: EffectStateDefinition): void {
     throw new Error('Invalid effect state definition or ID')
 }
 /** Immutable field metadata; its values belong to an entity in a particular battle. */
-export function defineEffectState<K extends keyof StateTypes>(
+export function defineEffectState<K extends keyof EffectStateValues>(
   input: EffectStateDefinition<K>,
 ): EffectStateDefinition<K> {
   assertDefinition(input)
@@ -94,21 +97,21 @@ function stateConfig(
   return { config, key }
 }
 /** Reads only this entity's value, never a parent's value or a parameter modifier. */
-export function getEffectState<K extends keyof StateTypes>(
+export function getEffectState<K extends keyof EffectStateValues>(
   context: EffectContext<EffectTrigger>,
   entity: EffectStateEntity,
   definition: EffectStateDefinition<K>,
-): StateTypes[K] {
+): EffectStateValues[K] {
   const { config, key } = stateConfig(context, entity, definition)
   const value = config.hasScopedConfig(key, entity) ? config.getOwnConfig(key, entity) : definition.default
   if (!validValue(definition.type, value)) throw new Error(`Invalid effect state value: ${definition.id}`)
-  return value as StateTypes[K]
+  return value as EffectStateValues[K]
 }
-export function setEffectState<K extends keyof StateTypes>(
+export function setEffectState<K extends keyof EffectStateValues>(
   context: EffectContext<EffectTrigger>,
   entity: EffectStateEntity,
   definition: EffectStateDefinition<K>,
-  value: StateTypes[K],
+  value: EffectStateValues[K],
 ): void {
   if (getDamageEvaluation()) throw new Error('Cannot write effect state during damage evaluation')
   if (!validValue(definition.type, value)) throw new Error(`Invalid effect state value: ${definition.id}`)

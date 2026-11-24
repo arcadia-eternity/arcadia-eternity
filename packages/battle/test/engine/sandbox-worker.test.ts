@@ -165,7 +165,7 @@ function small(source = 'export function createEffects(){return []}'): SandboxBa
         {
           namespace: 'test',
           role: 'behaviors',
-          artifact: { format: 'arcadia.effect-module', version: 1, sdkApi: 2, packageId: 'test', source },
+          artifact: { format: 'arcadia.effect-module', version: 1, sdkApi: 4, packageId: 'test', source },
         },
       ],
     },
@@ -229,8 +229,12 @@ it('restores a UGC initial checkpoint in a new Worker without a package-specific
   expect((await restored.waitForPendingDecision()).selections[0].length).toBeGreaterThan(0)
 })
 it.each([
-  { trigger: 'OnHit', code: 'ctx.source.owner.currentHp=0', expected: /Use SDK operations/ },
-  { trigger: 'OnBeforeCalculateDamage', code: 'ctx.parent.target.heal()', expected: /heal during damage evaluation/ },
+  { trigger: 'OnHit', code: 'ctx.read(sdk.targets.ownerPet.first()).currentHp=0', expected: /Use SDK operations/ },
+  {
+    trigger: 'OnBeforeCalculateDamage',
+    code: 'sdk.targets.ownerPet.apply(sdk.ops.heal(1))(ctx)',
+    expected: /heal during damage evaluation/,
+  },
 ])(
   'stops a battle after a caught SDK permission fault at $trigger',
   async ({ trigger, code, expected }) => {
@@ -302,11 +306,11 @@ it('projects damage results and preserves native healing after production minifi
     const spec = small(`export function createEffects({sdk,id}){
       new sdk.ParameterCatalog([]);
       return [sdk.defineCodeEffect({id:id('heal'),sourceKind:'skill',triggers:[sdk.EffectTrigger.OnDamage],apply(ctx){
-        const pet=ctx.source.owner;if(!(pet instanceof sdk.Pet))throw Error('domain class identity');
+        const pet=ctx.read(sdk.targets.ownerPet.first());if(!(pet instanceof sdk.Pet))throw Error('domain class identity');
         const result=ctx.parent.result;
         if (result.status!=='committed' || result.hpBefore-result.hpAfter!==result.hpLoss ||
             result.origin.skillId!=='strike' || result.intent.targetId!==result.targetId) throw Error('invalid damage receipt');
-        pet.heal(new sdk.HealContext(ctx,ctx.source,pet,ctx.battle.randomInt(1,1)));
+        sdk.ops.heal(sdk.values.randomInt(1,1))(ctx,[pet]);
       }})]
     }`)
     Object.assign(spec.environment.data, {

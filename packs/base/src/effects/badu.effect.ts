@@ -10,6 +10,10 @@ import {
   type Action,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { reflectedHalfHpLoss } from './damage-benefits.effect'
+import { specialDamage, physicalOrSpecialDamage, isPhysicalOrSpecial } from './damage-conditions'
+import { defensePowerBonus, defenseHitCount } from './defense-scaling'
+import { requireMark } from './mark-queries'
 
 const LINGGUI = 'mark_badu_shihunlinggui'
 const YOULINGGUI = 'mark_badu_youhunlinggui'
@@ -20,60 +24,38 @@ const DIZHISHANG = 'mark_badu_dizhishang'
 
 const specialDefense = targets.ownerPet.first().attribute('spd')
 
-const attackDamage = contexts.damage.condition((_, events) =>
-  events.some(
-    event => event.damageType === 'Physical' || event.damageType === 'Special' || event.damageType === 'Effect',
-  ),
-)
-
-const specialDamage = contexts.damage.condition((_, events) => events.some(event => event.damageType === 'Special'))
-
-const strikeDamage = contexts.damage.condition((_, events) =>
-  events.some(event => event.damageType === 'Physical' || event.damageType === 'Special'),
+const physicalSpecialOrEffectDamage = contexts.damage.condition((_, events) =>
+  events.some(event => isPhysicalOrSpecial(event.damageType) || event.damageType === 'Effect'),
 )
 
 const opponentActive = targets.opponentActive
 
 const spdBoostChance = numberParam({ default: 10, tags: ['skill_effect_probability'] })
 
-function spdBonusDamage(divisor: number, cap: number) {
+function spdBonusPower(divisor: number) {
   return {
     triggers: [EffectTrigger.AfterUseSkillCheck] as const,
     priority: 0,
     when: conditions.selfUsesSkill,
     apply: (ctx => {
       const spd = ctx.read(specialDefense) ?? 0
-      const bonus = Math.min(cap, Math.floor(spd / divisor))
+      const bonus = defensePowerBonus(spd, divisor)
       if (bonus > 0) contexts.skillUse.apply(ops.addPower(bonus))(ctx)
     }) satisfies Action<EffectTrigger.AfterUseSkillCheck>,
   }
 }
 
-function spdMultihit(divisor: number, cap: number) {
-  return {
-    triggers: [EffectTrigger.AfterUseSkillCheck] as const,
-    priority: 0,
-    when: conditions.selfUsesSkill,
-    apply: (ctx => {
-      const spd = ctx.read(specialDefense) ?? 0
-      const hits = Math.max(1, Math.min(cap, Math.floor(spd / divisor)))
-      contexts.skillUse.apply(ops.setMultihit(hits))(ctx)
-    }) satisfies Action<EffectTrigger.AfterUseSkillCheck>,
-  }
-}
+const reflectedDamage = reflectedHalfHpLoss(284)
 
 @effectGroup({ id: 'badu' })
 export class BaduEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const linggui = marks.get(LINGGUI)
-    const youlinggui = marks.get(YOULINGGUI)
-    const lihunlinggui = marks.get(LIHUNLINGGUI)
-    const fankang = marks.get(FANKANG)
-    const suiji = marks.get(SUIJI)
-    const dizhishang = marks.get(DIZHISHANG)
-    if (!linggui || !youlinggui || !lihunlinggui || !fankang || !suiji || !dizhishang) {
-      throw new Error('Missing Badu mark definitions')
-    }
+    const linggui = requireMark(marks, LINGGUI)
+    const youlinggui = requireMark(marks, YOULINGGUI)
+    const lihunlinggui = requireMark(marks, LIHUNLINGGUI)
+    const fankang = requireMark(marks, FANKANG)
+    const suiji = requireMark(marks, SUIJI)
+    const dizhishang = requireMark(marks, DIZHISHANG)
 
     const hasLinggui = targets.ownerMarks.where(
       mark => mark.isActive && (mark.baseId === LINGGUI || mark.baseId === YOULINGGUI || mark.baseId === LIHUNLINGGUI),
@@ -91,7 +73,7 @@ export class BaduEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
-          attackDamage,
+          physicalSpecialOrEffectDamage,
           hasLinggui.condition((_, found) => found.length > 0),
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -5, delta: 0 })),
@@ -102,14 +84,22 @@ export class BaduEffects {
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(linggui, { stack: 1 })),
       },
-      effect_skill_add_power_1_per_5_spd_max_100: spdBonusDamage(5, 100),
+      effect_skill_add_power_1_per_5_spd_max_100: spdBonusPower(5),
       effect_skill_add_mark_opponent_linghunsuiji_on_hit: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: opponentActive.apply(ops.addMark(suiji, { stack: 1 })),
       },
-      effect_skill_multihit_1_per_100_spd_max_6: spdMultihit(100, 6),
+      effect_skill_multihit_1_per_100_spd_max_6: {
+        triggers: [EffectTrigger.AfterUseSkillCheck],
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        apply: ctx => {
+          const hits = defenseHitCount(ctx.read(specialDefense) ?? 0)
+          contexts.skillUse.apply(ops.setMultihit(hits))(ctx)
+        },
+      },
       effect_skill_raise_spd_1_stage_10_percent: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
@@ -139,7 +129,7 @@ export class BaduEffects {
         when: conditions.selfUsesSkill,
         apply: opponentActive.apply(ops.addMark(dizhishang, { stack: 1 })),
       },
-      effect_skill_add_power_1_per_10_spd_max_100: spdBonusDamage(10, 100),
+      effect_skill_add_power_1_per_10_spd_max_100: spdBonusPower(10),
       effect_skill_add_mark_self_fankangyishi_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
@@ -155,10 +145,9 @@ export class BaduEffects {
       effect_mark_reflect_half_attack_hp_loss_max_284_drain_opponent_rage_10_and_consume: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, strikeDamage),
+        when: conditions.all(conditions.selfBeDamaged, physicalOrSpecialDamage),
         apply: (ctx => {
-          const lost = ctx.read(contexts.damageResult.select(result => result.hpLoss).first()) ?? 0
-          const reflected = Math.min(284, Math.floor(lost * 0.5))
+          const reflected = ctx.read(reflectedDamage) ?? 0
           if (reflected > 0) {
             targets.damageOriginPet.apply(ops.dealDamage(reflected))(ctx)
             targets.opponentPlayer.apply(ops.reduceRage(10))(ctx)
@@ -168,7 +157,7 @@ export class BaduEffects {
       },
       effect_mark_prevent_attack_damage_twice_current_rage_consume_1_stack: {
         triggers: [EffectTrigger.OnDamageReplacement],
-        when: conditions.all(conditions.selfBeDamaged, strikeDamage),
+        when: conditions.all(conditions.selfBeDamaged, physicalOrSpecialDamage),
         apply: contexts.damage.apply(
           ops.preventDamage({ amount: targets.ownerPet.first().map(pet => pet.currentRage * 2), stacks: 1 }),
         ),
@@ -190,7 +179,7 @@ export class BaduEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
-          strikeDamage,
+          physicalOrSpecialDamage,
           contexts.damageSkill.condition((_, skills) => skills.some(skill => skill.element === 'Ground')),
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),

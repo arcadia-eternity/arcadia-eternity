@@ -1,5 +1,7 @@
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  removeMark,
+  transferMarks,
   BaseMark,
   BaseSkill,
   Category,
@@ -13,6 +15,7 @@ import {
   StackStrategy,
   SwitchPetContext,
   TurnContext,
+  TransformContext,
   TransformPhase,
   restoreBattle,
   setGlobalLogger,
@@ -22,7 +25,8 @@ import {
   type baseMarkId,
   type effectId,
 } from '@arcadia-eternity/battle/engine'
-import { compileEffect, contexts, ops } from '@arcadia-eternity/battle/authoring'
+import { compileEffect } from '../../src/engine/content/authoring'
+import { contexts, ops } from '@arcadia-eternity/battle/authoring'
 import { makeDeferredScenario, advanceDeferredTurn } from './deferred-scenario'
 import { catalogFor } from './snapshot-host'
 
@@ -166,9 +170,10 @@ it('preserves the cast skill definition if the skill instance transforms before 
       .withPower(200)
       .withTag('fixture/transformed')
       .build()
-    const phase = new TransformPhase(f.battle, f.battle, f.skill, 'skill', f.skill.base, changedSkill, 'permanent', 0)
-    f.battle.phaseManager.registerPhase(phase)
-    f.battle.phaseManager.executePhase(phase.id)
+    const phase = new TransformPhase(
+      new TransformContext(f.battle, f.skill, 'skill', f.skill.base, changedSkill, 'permanent', 0),
+    )
+    f.battle.phaseManager.run(phase)
     expect(f.skill.baseId).toBe('fixture/transformed')
   })
   expect(result.damage).toBe(baseline.damage)
@@ -213,7 +218,7 @@ it('transfers one pending descriptor while preserving its original target positi
   const holder = f.battle.marks[0]
   const pending = holder.deferredDamage
   const transfer = new SwitchPetContext(new TurnContext(f.battle), f.a, f.a.activePet)
-  f.a.activePet.transferMarks(transfer, holder)
+  transferMarks(transfer, f.a.activePet, holder)
   expect(f.battle.marks).toHaveLength(0)
   expect(f.a.activePet.marks).toContain(holder)
   expect(holder.deferredDamage).toBe(pending)
@@ -228,7 +233,7 @@ it.each(['remove', 'suppress'] as const)('discards a pending strike on %s', mode
   const f = fixture()
   advanceDeferredTurn(f.battle, 'cast')
   const mark = f.battle.marks[0]
-  if (mode === 'remove') f.battle.removeMark(new RemoveMarkContext(new TurnContext(f.battle), mark))
+  if (mode === 'remove') removeMark(new RemoveMarkContext(new TurnContext(f.battle), mark))
   else mark.isSuppressed = true
   for (let i = 0; i < 4; i++) advanceDeferredTurn(f.battle)
   expect(f.damages()).toHaveLength(0)

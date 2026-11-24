@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { AuthorJobs } from '../src/jobs.ts'
 import { connectDevelopmentSdk, authorConnection } from '../src/project.ts'
-import { AuthorWorkspaces } from '../../web-ui/electron/author-workspaces.mjs'
+import { AuthorWorkspaces } from '../../web-ui/electron/author-workspaces.ts'
 import * as api from '../src/author-api.ts'
 
 test('close waits for a preparing job and prevents it from starting', async () => {

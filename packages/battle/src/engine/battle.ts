@@ -17,10 +17,9 @@ import {
 import { publicBattleMessage } from './messageVisibility'
 import { ExecutionBudget } from './execution/budget'
 import { GameRng } from './rng'
-import { ConfigSystem, PhaseType } from './config'
-import { AddMarkContext, Context, RemoveMarkContext, type TriggerContextMap } from './context'
+import { ConfigSystem } from './config'
+import { Context, type TriggerContextMap } from './context'
 import { type EffectContainer } from './effect'
-import { type MarkOwner } from './entity'
 import { type MarkInstance } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
@@ -30,10 +29,8 @@ import * as jsondiffpatch from 'jsondiffpatch'
 import { nanoid } from 'nanoid'
 import mitt from 'mitt'
 import { PhaseManager, BattleStartPhase, BattleLoopPhase, SelectionPhase, BattleSwitchPhase } from './phase'
-import { sampleBattleInteger, sampleBattleRandom } from './replacementSampling'
+import { sampleBattleInteger, sampleBattleRandom } from './phase/damage'
 import { EffectExecutionPhase } from './phase/effectExecution'
-import { RemoveMarkPhase } from './phase/RemoveMarkPhase'
-import { AddMarkPhase } from './phase/AddMarkPhase'
 import { TimerManager } from './timer'
 import { TransformationSystem } from './transformation'
 import { createChildLogger } from './logger'
@@ -51,7 +48,7 @@ export interface BattleActionRecord {
   selection: PlayerSelection
 }
 
-export class Battle extends Context implements MarkOwner {
+export class Battle extends Context {
   private lastStateMessage: BattleState = {} as BattleState
   public id: string = nanoid()
   private readonly logger = createChildLogger('Battle')
@@ -285,29 +282,6 @@ export class Battle extends Context implements MarkOwner {
     })
   }
 
-  public addMark(context: AddMarkContext) {
-    const addMarkPhase = new AddMarkPhase(
-      this,
-      context.parent,
-      context.target,
-      context.baseMark,
-      context.stack,
-      context.duration,
-      context.config,
-      undefined,
-      context,
-    )
-    this.phaseManager.registerPhase(addMarkPhase)
-    this.phaseManager.executePhase(addMarkPhase.id)
-    return context.result
-  }
-
-  public removeMark(context: RemoveMarkContext) {
-    const removeMarkPhase = new RemoveMarkPhase(this, context.parent, context.mark, undefined, context)
-    this.phaseManager.registerPhase(removeMarkPhase)
-    this.phaseManager.executePhase(removeMarkPhase.id)
-  }
-
   public getOpponent(player: Player) {
     if (player === this.playerA) return this.playerB
     return this.playerA
@@ -351,9 +325,7 @@ export class Battle extends Context implements MarkOwner {
         ]
 
       // Use EffectExecutionPhase managed by PhaseManager
-      const effectExecutionPhase = new EffectExecutionPhase(this, context, trigger, effectContainers)
-      this.phaseManager.registerPhase(effectExecutionPhase)
-      this.phaseManager.executePhase(effectExecutionPhase.id)
+      this.phaseManager.run(new EffectExecutionPhase(this, context, trigger, effectContainers))
     })
   }
 
@@ -415,14 +387,10 @@ export class Battle extends Context implements MarkOwner {
       this.timerManager.activateRestoredState(false)
       // Phase 0: Initialize battle
       this.currentPhase = BattlePhase.StartPhase
-      const startPhase = new BattleStartPhase(this)
-      this.phaseManager.registerPhase(startPhase)
-      await this.phaseManager.executePhaseAsync(startPhase.id)
+      await this.phaseManager.runAsync(new BattleStartPhase(this))
 
       // Phase 1: Main battle loop
-      const battleLoopPhase = new BattleLoopPhase(this)
-      this.phaseManager.registerPhase(battleLoopPhase)
-      await this.phaseManager.executePhaseAsync(battleLoopPhase.id)
+      await this.phaseManager.runAsync(new BattleLoopPhase(this))
     } finally {
       // 无论成功还是失败，都要清除启动标志
       this._isStarting = false
@@ -448,8 +416,7 @@ export class Battle extends Context implements MarkOwner {
         undefined,
         this.currentPhase as BattlePhase.SelectionPhase | BattlePhase.SwitchPhase,
       )
-      this.phaseManager.registerPhase(loop)
-      await this.phaseManager.executePhaseAsync(loop.id)
+      await this.phaseManager.runAsync(loop)
     } catch (error) {
       this.assertRunning()
       throw error
@@ -571,21 +538,19 @@ export class Battle extends Context implements MarkOwner {
   public setSelection(selection: PlayerSelection): boolean {
     this.assertRunning()
     const player = [this.playerA, this.playerB].find(p => p.id === selection.player)
-    if (!player) return false
-    const result = player.setSelection(selection)
-    if (result) {
-      this.actionLog.push({
-        sequence: this.actionLog.length,
-        turn: this.currentTurn,
-        phase: this.currentPhase,
-        selection: JSON.parse(JSON.stringify(selection)) as PlayerSelection,
-      })
-      this.checkWaitingResolvers()
+    if (!player || !player.canSelect(selection)) return false
+    player.selection = selection
+    this.actionLog.push({
+      sequence: this.actionLog.length,
+      turn: this.currentTurn,
+      phase: this.currentPhase,
+      selection: JSON.parse(JSON.stringify(selection)) as PlayerSelection,
+    })
+    this.checkWaitingResolvers()
 
-      // 通知TimerManager玩家选择状态变化
-      this.timerManager.handlePlayerSelectionChange(selection.player, true)
-    }
-    return result
+    // 通知TimerManager玩家选择状态变化
+    this.timerManager.handlePlayerSelectionChange(selection.player, true)
+    return true
   }
 
   /** Inputs accepted through setSelection only; runtime IDs are local to this Battle. */
@@ -696,23 +661,6 @@ export class Battle extends Context implements MarkOwner {
     // 停止所有计时器
     this.timerManager.stopAllTimers()
     this.getVictor(true)
-  }
-
-  /** Match historical Skill > Turn > current phase lifetime selection. */
-  getTemporaryEffectPhaseId(): string | undefined {
-    return (
-      this.configSystem.getCurrentPhaseOfType(PhaseType.Skill) ??
-      this.configSystem.getCurrentPhaseOfType(PhaseType.Turn) ??
-      this.phaseManager.getCurrentPhase()
-    )?.id
-  }
-
-  cleanupPhaseEffects(phaseId: string): void {
-    for (const mark of this.marks) mark.clearTemporaryEffects(phaseId)
-    for (const pet of this.petMap.values()) {
-      for (const skill of pet.skills) skill.clearTemporaryEffects(phaseId)
-      for (const mark of pet.marks) mark.clearTemporaryEffects(phaseId)
-    }
   }
 
   toMessage(viewerId?: playerId, showHidden = false): BattleState {

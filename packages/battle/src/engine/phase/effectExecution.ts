@@ -1,17 +1,21 @@
+import { consumeMarkStacks } from './consumeStack'
+import { MarkInstanceImpl } from '../mark'
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
 import { SynchronousPhase } from './base'
 import { DamageContext, EffectContext, type TriggerContextMap } from '../context'
 import type { Battle } from '../battle'
 import { Effect, type EffectContainer } from '../effect'
 
-import { damageRuleId, isReplacementTrigger, runReplacementSample } from '../replacementSampling'
-import { evaluationSavepoint, getDamageEvaluation, runDamageAuthor } from '../damageEvaluation'
+import {
+  damageRuleId,
+  isReplacementTrigger,
+  runReplacementSample,
+  evaluationSavepoint,
+  getDamageEvaluation,
+  runDamageAuthor,
+} from './damage'
 import { createChildLogger } from '../logger'
 
-/**
- * EffectExecutionPhase handles effect execution operations
- * Replaces EffectScheduler logic with proper phase-based execution
- */
 export class EffectExecutionPhase<T extends EffectTrigger> extends SynchronousPhase<TriggerContextMap[T]> {
   constructor(
     battle: Battle,
@@ -29,87 +33,53 @@ export class EffectExecutionPhase<T extends EffectTrigger> extends SynchronousPh
   }
 
   protected executeOperation(): void {
-    const context = this._context!
+    const parentContext = this._context!
+    const trigger = this.trigger
+    const effectContainers = this.effectContainers
+    const battle = this.battle
 
-    // Execute the effect execution operation logic
-    executeEffectExecutionOperation(context, this.trigger, this.effectContainers, this.battle)
-  }
-}
+    const logger = createChildLogger('EffectExecution')
 
-/**
- * Extracted effect execution operation logic
- * This function contains the core effect execution logic, replacing EffectScheduler.flushEffects
- */
-function executeEffectExecutionOperation<T extends EffectTrigger>(
-  parentContext: TriggerContextMap[T],
-  trigger: T,
-  effectContainers: EffectContainer[],
-  battle: Battle,
-): void {
-  const logger = createChildLogger('EffectExecution')
+    const effectQueue = collectEffectsFromContainers(trigger, parentContext, effectContainers)
+    effectQueue.sort((a, b) => b.effect.priority - a.effect.priority)
 
-  // Effect queue for this execution
-  const effectQueue: Array<{
-    effect: Effect<EffectTrigger>
-    context: EffectContext<EffectTrigger>
-  }> = []
+    for (const { effect, context } of effectQueue) {
+      // Apply BeforeEffect effects
+      runReplacementSample(context, 'before', () => battle.applyEffects(context, EffectTrigger.BeforeEffect))
 
-  // Track added effects to prevent duplicates
-  const addedEffects = new Set<string>()
+      if (!context.available) {
+        battle.emitMessage(BattleMessageType.EffectApplyFail, {
+          source: context.source.id,
+          effect: effect.id,
+          reason: 'disabled',
+        })
+        continue
+      }
 
-  // Phase 1: Collect all effects to be triggered directly from containers
-  const collectedEffects = collectEffectsFromContainers(trigger, parentContext, effectContainers)
-  collectedEffects.forEach(({ effect, context }) => {
-    const effectKey = `${(context.source as any).id || 'unknown'}_${effect.id}_${context.source.constructor.name}`
-
-    if (!addedEffects.has(effectKey)) {
-      addedEffects.add(effectKey)
-      effectQueue.push({ effect, context })
-    }
-  })
-
-  // Sort effects by priority (higher priority first)
-  effectQueue.sort((a, b) => b.effect.priority - a.effect.priority)
-
-  // Phase 3: Execute all effects in priority order
-  while (effectQueue.length > 0) {
-    const { effect, context } = effectQueue.shift()!
-
-    // Apply BeforeEffect effects
-    runReplacementSample(context, 'before', () => battle.applyEffects(context, EffectTrigger.BeforeEffect))
-
-    if (!context.available) {
-      battle.emitMessage(BattleMessageType.EffectApplyFail, {
+      // Emit effect apply message
+      battle.emitMessage(BattleMessageType.EffectApply, {
         source: context.source.id,
         effect: effect.id,
-        reason: 'disabled',
       })
-      continue
-    }
 
-    // Emit effect apply message
-    battle.emitMessage(BattleMessageType.EffectApply, {
-      source: context.source.id,
-      effect: effect.id,
-    })
+      try {
+        // Execute the effect
+        applyEffect(effect, context)
+        context.success = true
 
-    try {
-      // Execute the effect
-      effect.innerApply(context)
-      context.success = true
+        // Apply AfterEffect effects
+        runReplacementSample(context, 'after', () => battle.applyEffects(context, EffectTrigger.AfterEffect))
+      } catch (error) {
+        battle.executionBudget.assertActive()
+        logger.error(`Effect Error ${effect.id}:`, error)
+        context.success = false
 
-      // Apply AfterEffect effects
-      runReplacementSample(context, 'after', () => battle.applyEffects(context, EffectTrigger.AfterEffect))
-    } catch (error) {
-      battle.executionBudget.assertActive()
-      logger.error(`Effect Error ${effect.id}:`, error)
-      context.success = false
-
-      battle.emitMessage(BattleMessageType.EffectApplyFail, {
-        source: context.source.id,
-        effect: effect.id,
-        reason: 'disabled',
-      })
+        battle.emitMessage(BattleMessageType.EffectApplyFail, {
+          source: context.source.id,
+          effect: effect.id,
+          reason: 'disabled',
+        })
+      }
     }
   }
 }
@@ -147,7 +117,7 @@ function collectEffectsFromContainers<T extends EffectTrigger>(
           if (
             isReplacementTrigger(trigger) &&
             parentContext instanceof DamageContext &&
-            parentContext.resolution.applied.has(damageRuleId(effectContext))
+            parentContext.proposal.applied.has(damageRuleId(effectContext))
           )
             return
 
@@ -182,5 +152,34 @@ function matchesCondition(
     return runDamageAuthor(undefined, () => runReplacementSample(context, 'when', () => predicate(context)))
   } finally {
     rollback()
+  }
+}
+
+export function applyEffect<T extends EffectTrigger>(effect: Effect<T>, context: EffectContext<T>): void {
+  const mark = context.source instanceof MarkInstanceImpl ? context.source : undefined
+  if (mark && (!mark.isActive || mark.isSuppressed)) return
+  const evaluation = getDamageEvaluation()
+  const rollback = evaluation && evaluationSavepoint(evaluation, context.parent)
+  try {
+    if (mark && effect.consumesStacks) {
+      const amount = effect.consumesStacks === 'all' ? mark.stack : effect.consumesStacks
+      if (!evaluation) consumeMarkStacks(context, mark, amount)
+      else if (context.trigger !== EffectTrigger.OnDamageReplacement && context.trigger !== EffectTrigger.Shield) {
+        const modifiesProposal = context.parent === evaluation || context.trigger === EffectTrigger.OnBeforeHeal
+        if (!modifiesProposal || !evaluation.reserveModifierCost(mark, effect.consumesStacks))
+          throw new Error('Cannot pay damage modifier cost')
+      }
+      // Replacement costs travel with the rule and are reserved only if selected.
+    }
+
+    const apply = () => {
+      if (Array.isArray(effect.apply)) effect.apply.forEach(a => a.call(effect, context))
+      else effect.apply.call(effect, context)
+    }
+    if (evaluation) runDamageAuthor(context, () => runReplacementSample(context, 'apply', apply))
+    else apply()
+  } catch (error) {
+    rollback?.()
+    throw error
   }
 }

@@ -1,6 +1,7 @@
 import { RageAssignmentGeneratedEffects } from '../../../../packs/base/src/effects/rage-assignment.generated.effect'
 import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import {
+  changeRage,
   BattleMessageType,
   EffectTrigger,
   RageContext,
@@ -10,7 +11,7 @@ import {
   type Battle,
   type effectId,
 } from '@arcadia-eternity/battle/engine'
-import { makeScenario } from './scenario'
+import { engineEffect, makeScenario } from './scenario'
 
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
@@ -24,7 +25,7 @@ function fixture() {
     p.marks.splice(0)
     for (const s of p.skills) s.effects.splice(0)
   }
-  f.a.settingRage(40)
+  f.a.currentRage = 40
   return f
 }
 for (const kind of ['add', 'reduce'] as const)
@@ -51,7 +52,7 @@ for (const kind of ['add', 'reduce'] as const)
         if (m.type === BattleMessageType.RageChange) trace.push(['message', m.data.before, m.data.after])
       })
       const rage = new RageContext(new TurnContext(battle), a, 'effect', kind, 10)
-      a.addRage(rage)
+      changeRage(rage)
       const final = kind === 'add' ? 55 : 25
       expect(trace).toEqual(
         cancel
@@ -78,7 +79,7 @@ it('before hooks can re-enable a context initially marked unavailable, as in lat
   )
   const rage = new RageContext(new TurnContext(battle), a, 'effect', 'add', 10)
   rage.available = false
-  a.addRage(rage)
+  changeRage(rage)
   expect(a.currentRage).toBe(50)
 })
 it('setting bypasses gain/loss hooks and retains its message even for unavailable contexts', () => {
@@ -102,19 +103,21 @@ it('setting bypasses gain/loss hooks and retains its message even for unavailabl
   })
   const rage = new RageContext(new TurnContext(battle), a, 'effect', 'setting', 17)
   rage.available = false
-  a.addRage(rage)
+  changeRage(rage)
   expect(a.currentRage).toBe(17)
   expect(observeHook).not.toHaveBeenCalled()
   expect(changes).toEqual([[40, 17]])
 })
 it('minimum rage observes the settled loss and emits the nested assignment before the outer loss message', () => {
   const { battle, a } = fixture()
-  a.activePet.skills[0].effects.push(RageAssignmentGeneratedEffects.build().effect_ability_keep_rage_at_least_25)
+  a.activePet.skills[0].effects.push(
+    engineEffect(RageAssignmentGeneratedEffects.build().effect_ability_keep_rage_at_least_25),
+  )
   const changes: unknown[] = []
   battle.registerListener(m => {
     if (m.type === BattleMessageType.RageChange) changes.push([m.data.before, m.data.after])
   })
-  a.addRage(new RageContext(new TurnContext(battle), a, 'effect', 'reduce', 30))
+  changeRage(new RageContext(new TurnContext(battle), a, 'effect', 'reduce', 30))
   expect(a.currentRage).toBe(25)
   expect(changes).toEqual([
     [10, 25],

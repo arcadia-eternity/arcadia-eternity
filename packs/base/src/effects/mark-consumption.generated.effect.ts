@@ -1,14 +1,7 @@
 import { effectGroup } from '@arcadia-eternity/battle/effect-loading'
 // Reviewed native behavior; edit this TypeScript source directly.
-import {
-  defineEffects,
-  EffectTrigger,
-  conditions,
-  targets,
-  checks,
-  ops,
-  actions,
-} from '@arcadia-eternity/battle/authoring'
+import { defineEffects, EffectTrigger, conditions, targets, ops, actions } from '@arcadia-eternity/battle/authoring'
+import { ownerHasMark, opponentHasMark } from './mark-queries'
 @effectGroup({ id: 'mark-consumption.generated' })
 export class MarkConsumptionGeneratedEffects {
   static build() {
@@ -16,10 +9,7 @@ export class MarkConsumptionGeneratedEffects {
       effect_skill_consume_all_kongqichuliang: {
         triggers: [EffectTrigger.OnHit],
         priority: -50,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_kongqichuliang').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_kongqichuliang')),
         apply: actions.sequence(
           targets.ownerMarks.where(mark => mark.baseId === 'mark_kongqichuliang').apply(ops.consumeStacks(100)),
         ),
@@ -59,10 +49,7 @@ export class MarkConsumptionGeneratedEffects {
       effect_skill_consume_shuiwenzhenji: {
         triggers: [EffectTrigger.OnHit],
         priority: -50,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiwenzhenji').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shuiwenzhenji')),
         apply: actions.sequence(
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiwenzhenji').apply(ops.consumeStacks(1)),
         ),
@@ -70,12 +57,7 @@ export class MarkConsumptionGeneratedEffects {
       effect_skill_consume_xinzhiyinji_multihit_consume: {
         triggers: [EffectTrigger.OnHit],
         priority: -50,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_xinzhiyinji')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_xinzhiyinji')),
         apply: actions.sequence(
           targets.opponentMarks.where(mark => mark.baseId === 'mark_xinzhiyinji').apply(ops.consumeStacks(1)),
         ),

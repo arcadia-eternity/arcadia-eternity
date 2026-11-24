@@ -1,6 +1,8 @@
 import { after, before, test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  removeMark,
+  transferMarks,
   AttackTargetOpinion,
   EffectContext,
   EffectTrigger,
@@ -135,13 +137,13 @@ test('the installed package handles miss, hit, refresh, parameter updates, trans
   assert.equal(b.stat.spe, speed)
   const context = new EffectContext(attack(battle), EffectTrigger.OnHit, a.skills[0])
   const aSpeed = a.stat.spe
-  a.transferMarks(context, mark)
+  transferMarks(context, a, mark)
   assert.equal(b.stat.spe, speed)
   assert.equal(mark.owner, a)
   assert.equal(a.stat.spe, aSpeed)
   mark.isSuppressed = false
   assert.equal(a.stat.spe, aSpeed - 40)
-  battle.removeMark(new RemoveMarkContext(context, mark))
+  removeMark(new RemoveMarkContext(context, mark))
   assert.equal(a.stat.spe, aSpeed)
 })
 

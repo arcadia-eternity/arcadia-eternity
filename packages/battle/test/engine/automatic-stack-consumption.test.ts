@@ -49,8 +49,7 @@ it('dispatches skill completion after mark cleanup and before the completion mes
   const use = new UseSkillContext(new TurnContext(battle), a, a.activePet, AttackTargetOpinion.opponent, skill)
   use.hitOverrides.push({ willHit: false, priority: 1000 })
   a.currentRage = a.maxRage
-  const phase = new SkillPhase(battle, a, a.activePet, AttackTargetOpinion.opponent, skill, use.parent, use)
-  battle.phaseManager.registerPhase(phase)
-  battle.phaseManager.executePhase(phase.id)
+  const phase = new SkillPhase(use)
+  battle.phaseManager.run(phase)
   expect(order).toEqual(['effect', 'message'])
 })

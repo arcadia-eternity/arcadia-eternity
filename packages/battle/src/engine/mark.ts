@@ -1,8 +1,6 @@
-import type { DeferredDamage } from './deferredDamage'
-import { ConsumeStackPhase } from './phase/consumeStack'
-import { getCleanupBinding } from './snapshotBindings'
+import type { DeferredDamage } from './phase/skill'
 import { initializeOwnerRelations } from './values/relations'
-import { normalizeMarkInstanceParams, markParameterContract, type MarkInstanceParams } from './content/mark-parameters'
+import { normalizeMarkInstanceParams, type MarkInstanceParams } from './content/mark-parameters'
 import {
   EffectTrigger,
   type MarkMessage,
@@ -15,20 +13,12 @@ import {
 } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 
-import { Battle } from './battle'
-import { AddMarkContext, DamageContext, EffectContext, SwitchPetContext } from './context'
+import type { Battle } from './battle'
 import { Effect, type EffectContainer, type TemporaryEffect } from './effect'
-import { type Instance, type MarkOwner, type OwnedEntity, type Prototype } from './entity'
+import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
 import type { Emitter } from 'mitt'
-import {
-  Modifier,
-  DurationType,
-  MarkAttributeSystem,
-  createStatLevelMarkAttributeSystem,
-  type BaseMarkAccessors,
-  type LevelAccessors,
-} from './attributeSystem'
+import { AttributeSystem, type MarkAttributes, type LevelAttributes } from './attributeSystem'
 import { Signal, projectValue, type ReactiveValue } from './reactiveValue'
 
 export interface IBaseMark extends Prototype {
@@ -81,10 +71,8 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   deferredDamage?: DeferredDamage
   readonly instanceParams: MarkInstanceParams | undefined
   readonly base: BaseMark
-  readonly attributeSystem: MarkAttributeSystem
+  readonly attributeSystem: AttributeSystem<MarkAttributes>
 
-  // Compatibility properties
-  _stack: number
   duration: number
   isActive: boolean
 
@@ -92,33 +80,14 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   set stack(value: number)
   get baseId(): baseMarkId
   registerBattle(battle: Battle): void
-  setOwner(owner: MarkOwner, emitter: Emitter<Events>): void
-  attachTo(target: MarkOwner): void
-  detach(): void
-  addStack(value: number): void
-  consumeStack(context: EffectContext<EffectTrigger> | DamageContext, amount: number): number
-  get isStackable(): boolean
-
-  addTemporaryEffect(effect: Effect<EffectTrigger>, phaseId: string): void
-  clearTemporaryEffects(phaseId: string): void
+  temporaryEffects: TemporaryEffect[]
+  attributeModifierCleanups: (() => void)[]
   getEffects(trigger: EffectTrigger): Effect<EffectTrigger>[]
-  cleanupAttributeModifiers(): void
-  cleanupOwnerContributions(): void
-  addAttributeModifierCleanup(cleanup: () => void): void
-  transfer(context: EffectContext<EffectTrigger> | SwitchPetContext, target: Battle | Pet): void
   toMessage(): MarkMessage
 }
 
 export class MarkInstanceImpl implements MarkInstance {
-  private temporaryEffects: TemporaryEffect[] = []
-
-  addTemporaryEffect(effect: Effect<EffectTrigger>, phaseId: string): void {
-    this.temporaryEffects.push({ effect, phaseId })
-  }
-
-  clearTemporaryEffects(phaseId: string): void {
-    this.temporaryEffects = this.temporaryEffects.filter(entry => entry.phaseId !== phaseId)
-  }
+  temporaryEffects: TemporaryEffect[] = []
 
   getEffects(trigger: EffectTrigger): Effect<EffectTrigger>[] {
     return [...this.effects, ...this.temporaryEffects.map(entry => entry.effect)].filter(effect =>
@@ -145,10 +114,10 @@ export class MarkInstanceImpl implements MarkInstance {
   public emitter?: Emitter<Events>
 
   // Attribute system for managing mark parameters
-  public readonly attributeSystem: MarkAttributeSystem
+  public readonly attributeSystem: AttributeSystem<MarkAttributes>
 
   // Store cleanup functions for attribute modifiers
-  private attributeModifierCleanups: (() => void)[] = []
+  attributeModifierCleanups: (() => void)[] = []
 
   constructor(
     public readonly base: BaseMark,
@@ -173,14 +142,16 @@ export class MarkInstanceImpl implements MarkInstance {
     }
 
     // Initialize attribute system with mark ID (battleId will be set later in setOwner)
-    this.attributeSystem = new MarkAttributeSystem()
+    this.attributeSystem = new AttributeSystem<MarkAttributes>()
 
     // Initialize attribute system with mark parameters
     const duration = overrides?.duration ?? mergedConfig.duration ?? base.config.duration ?? 3
     const finalDuration = mergedConfig.persistent ? -1 : duration
     const stack = overrides?.stack ?? base.config.maxStacks ?? 1
 
-    this.attributeSystem.initializeMarkAttributes(finalDuration, stack, true)
+    this.attributeSystem.registerBaseAttribute('duration', finalDuration)
+    this.attributeSystem.registerBaseAttribute('stack', stack)
+    this.attributeSystem.registerBaseAttribute('isActive', true)
 
     this.config = mergedConfig
     this.tags = [...base.tags, ...(overrides?.tags || [])]
@@ -189,58 +160,32 @@ export class MarkInstanceImpl implements MarkInstance {
     this.config.isShield = mergedConfig.isShield ?? false
   }
 
-  // Compatibility properties using AttributeSystem
-  get _stack(): number {
-    return this.attributeSystem.getStack()
-  }
-
-  set _stack(value: number) {
-    this.attributeSystem.setStack(value)
-  }
-
   get stack(): number {
-    return this.attributeSystem.getStack()
+    return this.attributeSystem.getCurrentValue('stack') as number
   }
 
   set stack(value: number) {
-    this.attributeSystem.setStack(value)
+    this.attributeSystem.updateBaseValue('stack', Math.max(0, value))
   }
 
   get duration(): number {
-    return this.attributeSystem.getDuration()
+    return this.attributeSystem.getCurrentValue('duration') as number
   }
 
   set duration(value: number) {
-    this.attributeSystem.setDuration(value)
+    this.attributeSystem.updateBaseValue('duration', value)
   }
 
   get isActive(): boolean {
-    return this.attributeSystem.getIsActive()
+    return this.attributeSystem.getCurrentValue('isActive') as boolean
   }
 
   set isActive(value: boolean) {
-    this.attributeSystem.setIsActive(value)
+    this.attributeSystem.updateBaseValue('isActive', value)
   }
 
   get baseId(): baseMarkId {
     return this.base.id
-  }
-
-  OnMarkCreated(target: Battle | Pet, context: AddMarkContext) {
-    this.setOwner(target, target.emitter!)
-    const parameters = markParameterContract(this.base)
-    try {
-      parameters?.installScope(context.battle.configSystem, this)
-      context.battle.applyEffects(context, EffectTrigger.OnMarkCreated, this)
-      context.battle.applyEffects(context, EffectTrigger.OnAnyMarkAdded)
-    } catch (error) {
-      context.battle.configSystem.releaseScope(this)
-      throw error
-    }
-
-    this.attachTo(target)
-    target.marks.push(this)
-    // Note: dirty flag removed, attribute system handles recalculation automatically
   }
 
   setOwner(owner: Battle | Pet, emitter: Emitter<Events>): void {
@@ -255,75 +200,6 @@ export class MarkInstanceImpl implements MarkInstance {
   /** Track lifetime without assigning an owner to an incoming stacking operand. */
   registerBattle(battle: Battle): void {
     this.attributeSystem.setBattleId(battle.id)
-  }
-
-  attachTo(target: Battle | Pet) {
-    this.owner = target
-  }
-
-  detach() {
-    if (this.owner) {
-      this.owner.marks = this.owner.marks.filter(m => m !== this)
-    }
-    this.owner = null
-  }
-
-  addStack(value: number) {
-    this.stack = Math.min(this.config.maxStacks ?? Infinity, this.stack + value)
-
-    // Note: dirty flag removed, attribute system handles recalculation automatically
-  }
-
-  consumeStack(context: EffectContext<EffectTrigger> | DamageContext, amount: number): number {
-    // Use ConsumeStackPhase for unified stack consumption
-    const consumePhase = new ConsumeStackPhase(context.battle, context, this, amount)
-    context.battle.phaseManager.registerPhase(consumePhase)
-    const result = context.battle.phaseManager.executePhase(consumePhase.id)
-
-    if (result.success && consumePhase.context) {
-      return consumePhase.context.actualAmount
-    }
-    return 0
-  }
-
-  get isStackable() {
-    if (this.config.stackable !== undefined) return this.config.stackable
-    return false
-  }
-
-  // Add an attribute modifier cleanup function
-  addAttributeModifierCleanup(cleanup: () => void) {
-    this.attributeModifierCleanups.push(cleanup)
-  }
-
-  // Clean up all attribute modifiers
-  public cleanupAttributeModifiers() {
-    // Use individual cleanup functions first
-    this.attributeModifierCleanups.forEach(cleanup => cleanup())
-    this.attributeModifierCleanups = []
-
-    // Also use the bulk removal method as a safety net
-    if (this.owner instanceof Pet) {
-      this.owner.attributeSystem.removeModifiersFromSource(this.id)
-    }
-  }
-
-  /** Only explicitly owner-bound contributions move; legacy target-bound effects keep their existing semantics. */
-  public cleanupOwnerContributions() {
-    this.attributeModifierCleanups = this.attributeModifierCleanups.filter(cleanup => {
-      const binding = getCleanupBinding(cleanup)
-      const modifier = binding && Reflect.get(binding, 'modifier')
-      if (!(modifier instanceof Modifier) || !modifier.followsMarkOwner) return true
-      cleanup()
-      return false
-    })
-  }
-
-  public transfer(_context: EffectContext<EffectTrigger> | SwitchPetContext, target: Battle | Pet) {
-    this.attachTo(target)
-    target.marks.push(this)
-    // Mark cleanup will be handled by the phase system at appropriate times
-    // No immediate cleanup needed here as the mark is just being transferred
   }
 
   toMessage(): MarkMessage {
@@ -364,23 +240,20 @@ export class BaseStatLevelMark extends BaseMark {
   }
 
   createInstance(overrides?: { id?: markId }): StatLevelMarkInstanceImpl {
-    const instance = new StatLevelMarkInstanceImpl(this, overrides?.id)
-    instance.level = this.initialLevel
-    return instance
+    return new StatLevelMarkInstanceImpl(this, overrides?.id)
   }
 }
 
 export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkInstance {
   //一般是Pet，我知道你们可能会尝试加到奇怪的地方。
   declare public owner: Pet | null
-  private modifierCleanupFn?: () => void
+  modifierCleanupFn?: () => void
 
   // 使用组合的方式管理attributeSystem，专门用于StatLevel相关的属性
-  private statLevelAttributeSystem: ReturnType<typeof createStatLevelMarkAttributeSystem>
-  private levelAccessors: BaseMarkAccessors & LevelAccessors
+  private readonly statLevelAttributeSystem = new AttributeSystem<LevelAttributes>()
 
   // 使用computed创建自动计算的stage multiplier，基于attributeSystem的level
-  private stageMultiplier$: ReactiveValue<number>
+  readonly stageMultiplier$: ReactiveValue<number>
 
   constructor(
     public readonly base: BaseStatLevelMark,
@@ -388,18 +261,7 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
   ) {
     super(base, { id })
 
-    // 创建专门的attributeSystem实例用于管理StatLevel属性
-    // 使用父类的属性值，避免循环依赖
-    this.statLevelAttributeSystem = createStatLevelMarkAttributeSystem(
-      super.duration, // 使用父类的duration
-      super.stack, // 使用父类的stack
-      super.isActive, // 使用父类的isActive
-      base.initialLevel,
-    )
-
-    // Cache the accessors for type safety
-    this.levelAccessors = this.statLevelAttributeSystem.getAccessors() as BaseMarkAccessors & LevelAccessors
-
+    this.statLevelAttributeSystem.registerBaseAttribute('level', base.initialLevel)
     // 创建基于attributeSystem level的computed Observable
     this.stageMultiplier$ = projectValue(this.statLevelAttributeSystem.getAttribute$('level'), 'stage')
   }
@@ -411,11 +273,11 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
 
   // level的getter和setter，操作attributeSystem
   get level(): number {
-    return this.levelAccessors.getLevel()
+    return this.statLevelAttributeSystem.getCurrentValue('level') as number
   }
 
   set level(value: number) {
-    this.levelAccessors.setLevel(value)
+    this.statLevelAttributeSystem.updateBaseValue('level', value)
   }
 
   get statType() {
@@ -424,52 +286,6 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
 
   get stack() {
     return Math.abs(this.level)
-  }
-
-  override OnMarkCreated(target: Battle | Pet, context: AddMarkContext): void {
-    super.OnMarkCreated(target, context)
-    if (!(target instanceof Pet)) return
-    this.addStatStageModifier(target)
-  }
-
-  private addStatStageModifier(pet: Pet) {
-    // Remove existing modifier if any
-    this.cleanupStatStageModifier()
-
-    // Create stage modifier using the computed Observable for automatic updates
-    const modifier = new Modifier(
-      DurationType.binding,
-      `stat_stage_${this.statType}_${this.id}`,
-      this.stageMultiplier$, // 传入computed Observable，会自动响应level变化
-      'percent',
-      1000, // High priority for stage modifiers
-      this,
-    )
-
-    // Add modifier to attribute system
-    this.modifierCleanupFn = pet.attributeSystem.addModifier(this.statType, modifier)
-  }
-
-  attachTo(target: Pet | Battle) {
-    super.attachTo(target)
-    if (target instanceof Pet) {
-      this.addStatStageModifier(target)
-    }
-  }
-
-  detach(): void {
-    super.detach()
-    this.cleanupStatStageModifier()
-  }
-
-  /**
-   * Clean up the stat stage modifier
-   */
-  public cleanupStatStageModifier(): void {
-    if (this.modifierCleanupFn) {
-      this.modifierCleanupFn()
-      this.modifierCleanupFn = undefined
-    }
   }
 
   public isOppositeMark(other: StatLevelMarkInstanceImpl): boolean {

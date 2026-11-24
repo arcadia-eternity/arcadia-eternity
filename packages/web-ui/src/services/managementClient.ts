@@ -1,3 +1,17 @@
+import type {
+  ManagementIpcBridge,
+  ManagementIpcRequest,
+  ManagementIpcResponse,
+  ManagementMethod,
+} from '@/types/managementIpc'
+
+export type {
+  ManagementIpcBridge,
+  ManagementIpcRequest,
+  ManagementIpcResponse,
+  ManagementMethod,
+} from '@/types/managementIpc'
+
 /** Management context is captured per client, independently of the current play connection. */
 export interface ManagementContext {
   readonly transport: 'http' | 'ipc'
@@ -7,8 +21,6 @@ export interface ManagementContext {
   readonly workspaceId?: string
 }
 
-export type ManagementMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE'
-
 export interface ManagementRequestOptions {
   body?: unknown
   revision?: string | number
@@ -17,21 +29,6 @@ export interface ManagementRequestOptions {
   /** One-call proof exchange for an already authenticated, explicitly granted player account. */
   accountProof?: string
 }
-
-export interface ManagementIpcRequest {
-  method: ManagementMethod
-  path: string
-  body?: unknown
-  headers?: Record<string, string>
-}
-
-export interface ManagementIpcResponse {
-  status: number
-  body?: unknown
-  headers?: Record<string, string>
-}
-
-export type ManagementIpcBridge = (request: ManagementIpcRequest) => Promise<ManagementIpcResponse>
 
 export class ManagementError extends Error {
   constructor(

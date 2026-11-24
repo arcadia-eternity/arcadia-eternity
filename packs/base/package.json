@@ -1,6 +1,6 @@
 {
   "name": "@arcadia-eternity/data-pack-base",
-  "version": "4.14.2",
+  "version": "5.0.0",
   "license": "MIT",
   "type": "module",
   "description": "Arcadia Eternity base content and effects",
@@ -13,7 +13,7 @@
     "presentation": "dist/presentation.json",
     "effectArtifact": "dist/arcadia-effects.json",
     "catalog": "dist/catalog.json",
-    "sdkApi": 2
+    "sdkApi": 4
   },
   "scripts": {
     "generate:lockfile": "pnpm --filter @arcadia-eternity/pack-loader run generate:lockfile -- ../../packs/base/pack.json ../../packs/base/pack-lock.yaml --workspace @arcadia-eternity/data-pack-base#pack.json",

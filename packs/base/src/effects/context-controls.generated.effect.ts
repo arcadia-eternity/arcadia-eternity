@@ -10,6 +10,7 @@ import {
   actions,
   type EffectFrame,
 } from '@arcadia-eternity/battle/authoring'
+import { opponentHasMark } from './mark-queries'
 @effectGroup({ id: 'context-controls.generated' })
 export class ContextControlsGeneratedEffects {
   static build() {
@@ -54,12 +55,7 @@ export class ContextControlsGeneratedEffects {
       effect_skill_ignore_stat_opponent_has_mark_kuihuazhongzi: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kuihuazhongzi')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_kuihuazhongzi')),
         apply: actions.sequence(contexts.skillUse.apply(ops.setIgnoreStageStrategy('positive'))),
       },
     })

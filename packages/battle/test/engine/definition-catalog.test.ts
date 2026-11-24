@@ -1,3 +1,4 @@
+import { heal } from '@arcadia-eternity/battle/engine'
 import { Type } from '@sinclair/typebox'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
@@ -98,7 +99,7 @@ const native: TrustedEffectFactory = marks => {
     apply(ctx) {
       const source = ctx.source as MarkInstanceImpl
       const owner = source.owner as Pet
-      owner.heal(
+      heal(
         new HealContext(
           ctx,
           source,

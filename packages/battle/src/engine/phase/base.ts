@@ -1,4 +1,8 @@
-import { Context } from '../context'
+import type { EffectTrigger } from '@arcadia-eternity/const'
+import type { Effect } from '../effect'
+import type { SkillInstance } from '../skill'
+import type { MarkInstance } from '../mark'
+import type { Context } from '../context'
 import type { Battle } from '../battle'
 import { ConfigModifier, ConfigDurationType, ConfigModifierType, type ConfigValue } from '../config'
 
@@ -41,6 +45,7 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
   public phaseType?: import('../config').PhaseType
   public result?: PhaseResult
   protected _context?: TContext
+  private temporaryEffectTargets?: Set<SkillInstance | MarkInstance>
   protected configModifierCleanups: (() => void)[] = []
 
   constructor(
@@ -216,8 +221,7 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
    * Cleanup phase resources
    */
   public cleanup(): void {
-    // Cleanup all config modifiers
-    this.cleanupConfigModifiers()
+    this.releaseEffects()
 
     this.onCleanup()
     this._context = undefined
@@ -278,10 +282,19 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
     this.configModifierCleanups.push(cleanup)
   }
 
-  /**
-   * Cleanup all config modifiers associated with this phase
-   */
-  public cleanupConfigModifiers(): void {
+  public addTemporaryEffect(target: SkillInstance | MarkInstance, effect: Effect<EffectTrigger>): void {
+    target.temporaryEffects.push({ effect, phaseId: this.id })
+    this.temporaryEffectTargets ??= new Set()
+    this.temporaryEffectTargets.add(target)
+  }
+
+  public releaseEffects(): void {
+    if (this.temporaryEffectTargets) {
+      for (const target of this.temporaryEffectTargets) {
+        target.temporaryEffects = target.temporaryEffects.filter(entry => entry.phaseId !== this.id)
+      }
+      this.temporaryEffectTargets = undefined
+    }
     this.configModifierCleanups.forEach(cleanup => cleanup())
     this.configModifierCleanups.length = 0
   }
@@ -366,15 +379,25 @@ export abstract class SynchronousPhase<TContext extends Context = Context> exten
   }
 }
 
+/** A synchronous phase operating on the event supplied by its caller. */
+export abstract class ContextPhase<T extends Context & { readonly battle: Battle }> extends SynchronousPhase<T> {
+  constructor(
+    protected readonly event: T,
+    id?: string,
+  ) {
+    super(event.battle, id)
+  }
+
+  protected createContext(): T {
+    return this.event
+  }
+}
+
 /**
  * Base class for phases that need to wait for external input (like player selections)
  * These phases override the base class methods to support asynchronous operations
  */
 export abstract class InteractivePhase<TContext extends Context = Context> extends BattlePhaseBase<TContext> {
-  protected waitingForInput: boolean = false
-  protected inputResolver?: (value: any) => void
-  protected inputRejecter?: (reason: any) => void
-
   /**
    * Abstract method to execute the core operation logic asynchronously
    */
@@ -460,10 +483,6 @@ export abstract class InteractivePhase<TContext extends Context = Context> exten
       state: this.state,
     }
 
-    if (this.waitingForInput) {
-      this.rejectInput(new Error('Phase cancelled'))
-    }
-
     await this.onCancelAsync()
   }
 
@@ -471,46 +490,9 @@ export abstract class InteractivePhase<TContext extends Context = Context> exten
    * Cleanup phase resources asynchronously
    */
   public async cleanupAsync(): Promise<void> {
-    // Cleanup all config modifiers
-    this.configModifierCleanups.forEach(cleanup => cleanup())
-    this.configModifierCleanups.length = 0
+    this.releaseEffects()
 
     await this.onCleanupAsync()
     this._context = undefined
-  }
-
-  /**
-   * Wait for external input
-   */
-  protected async waitForInput<T = any>(): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      this.waitingForInput = true
-      this.inputResolver = resolve
-      this.inputRejecter = reject
-    })
-  }
-
-  /**
-   * Provide input to resolve waiting
-   */
-  public provideInput<T = any>(input: T): void {
-    if (this.waitingForInput && this.inputResolver) {
-      this.waitingForInput = false
-      this.inputResolver(input)
-      this.inputResolver = undefined
-      this.inputRejecter = undefined
-    }
-  }
-
-  /**
-   * Reject waiting input
-   */
-  public rejectInput(reason: any): void {
-    if (this.waitingForInput && this.inputRejecter) {
-      this.waitingForInput = false
-      this.inputRejecter(reason)
-      this.inputResolver = undefined
-      this.inputRejecter = undefined
-    }
   }
 }

@@ -49,9 +49,9 @@
 
 - 前端组件与缺失引用：`pnpm --filter @arcadia-eternity/web-ui test:run`
 - 前端类型：`pnpm --filter @arcadia-eternity/web-ui type-check`
-- 桌面管理与 IPC 边界：`node --test packages/web-ui/electron/test/*.test.mjs`
-- 真实产物与服务：`ARCADIA_DESKTOP_REAL_HOST=1 node --test packages/web-ui/electron/test/content-library-real.test.mjs packages/web-ui/electron/test/local-battle-real.test.mjs`
-- 真实桌面窗口：先构建 CLI 并启动前端开发服务，再执行 `ARCADIA_DESKTOP_GUI_TEST=1 node --test packages/web-ui/electron/test/content-library-electron.test.mjs`；默认使用 `http://127.0.0.1:4173`，可用 `ARCADIA_DESKTOP_GUI_URL` 指定。测试隔离应用数据，仅替代原生文件选择器的返回值，其余使用真实 preload、IPC、npm 和服务进程。
+- 桌面管理与 IPC 边界：`pnpm test:prepare` 后运行 `pnpm test:desktop`
+- 真实产物与服务：`ARCADIA_DESKTOP_REAL_HOST=1 node --test packages/web-ui/electron/test/content-library-real.test.ts packages/web-ui/electron/test/local-battle-real.test.ts`
+- 真实桌面窗口：先构建 CLI 并启动前端开发服务，再执行 `ARCADIA_DESKTOP_GUI_TEST=1 node --test packages/web-ui/electron/test/content-library-electron.test.ts`；默认使用 `http://127.0.0.1:4173`，可用 `ARCADIA_DESKTOP_GUI_URL` 指定。测试隔离应用数据，仅替代原生文件选择器的返回值，其余使用真实 preload、IPC、npm 和服务进程。
 - 浏览器交互与移动端：`PLAYWRIGHT_CHROME_CHANNEL=chrome pnpm --filter @arcadia-eternity/web-ui exec playwright test e2e/content-manager.spec.ts e2e/team-builder.spec.ts`
 
 个人组队按队伍的查看偏好定位来源和具名环境；普通桌面本地对战按本次所选环境取得已准备版本。沙箱与展示使用同一版本。同一来源、同一环境更新失败时，可继续使用标明版本的上次成功结果。切到从未准备成功或已失联的目标时，保留草稿并显示无法验证。新局捕获材料并持有租约；从房间打开组队时直接使用房间锁定的版本。作者调试使用独立预览窗口，见 [本地试战生命周期](./local-trial-lifecycle.md)。
@@ -62,7 +62,7 @@
 
 真实包库测试使用 `examples/ugc/slow` 的实际 npm tgz，覆盖安装、环境准备、校验、启动、公开内容读取，以及卸载资源库中的包后服务器独立材料仍可用；高级项目测试另覆盖导出、重装及本地代码编辑。它们不代替签名安装包的跨平台验收。
 
-普通桌面组合的静态捕获、资源租约、并发准备与真实 Worker UGC 效果回归可单独运行：`pnpm --filter @arcadia-eternity/web-ui test:desktop-local-content`。库与宿主回收边界使用 `node --test packages/web-ui/electron/test/content-library.test.mjs packages/web-ui/electron/test/local-battle-host.test.mjs packages/web-ui/electron/test/local-content-owner.test.mjs`。真实宿主回归需先构建 server 与 CLI，再运行 `ARCADIA_DESKTOP_REAL_HOST=1 node --test packages/web-ui/electron/test/content-library-real.test.mjs`。
+普通桌面组合的静态捕获、资源租约、并发准备与真实 Worker UGC 效果回归可单独运行：`pnpm --filter @arcadia-eternity/web-ui test:desktop-local-content`。库与宿主回收边界使用 `node --test packages/web-ui/electron/test/content-library.test.ts packages/web-ui/electron/test/local-battle-host.test.ts packages/web-ui/electron/test/local-content-owner.test.ts`。真实宿主回归需先构建 server 与 CLI，再运行 `ARCADIA_DESKTOP_REAL_HOST=1 node --test packages/web-ui/electron/test/content-library-real.test.ts`。
 
 ## 从 npm 使用官方环境
 

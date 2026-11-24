@@ -1,5 +1,8 @@
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  addMark,
+  removeMark,
+  SwitchPetContext,
   AddMarkContext,
   BaseMark,
   Effect,
@@ -35,11 +38,11 @@ function fixture() {
     destroyable: true,
     keepOnSwitchOut: true,
   })
-  f.battle.addMark(new AddMarkContext(ctx, f.a.activePet, base))
+  addMark(new AddMarkContext(ctx, f.a.activePet, base))
   return { ...f, source: f.a.activePet.marks[0] }
 }
 function switchTo(battle: Battle, player: Player, index: number) {
-  const phase = new SwitchPetPhase(battle, player, player.team[index], new TurnContext(battle))
+  const phase = new SwitchPetPhase(new SwitchPetContext(new TurnContext(battle), player, player.team[index]))
   phase.initialize()
   expect(phase.execute().success).toBe(true)
 }
@@ -160,7 +163,7 @@ it('replaces one target contribution, preserves it on preparation failure, and c
   installValueModifier({ ...options, target: a.team[1], args: new Signal(3) })
   expect(a.team[1].stat.atk).toBe(58)
   const { RemoveMarkContext } = await import('@arcadia-eternity/battle/engine')
-  battle.removeMark(new RemoveMarkContext(new TurnContext(battle), source))
+  removeMark(new RemoveMarkContext(new TurnContext(battle), source))
   expect(a.team[0].stat.atk).toBe(55)
   expect(a.team[1].stat.atk).toBe(55)
   ratio.next(100)
@@ -273,7 +276,7 @@ it('restores captures and structural tracking before any read, without replaying
   switchTo(third, third.playerB, 1)
   expect(third.playerA.activePet.stat.atk).toBe(90)
   const restoredSource = third.playerA.activePet.marks.find(mark => mark.id === source.id)!
-  third.removeMark(new RemoveMarkContext(new TurnContext(third), restoredSource))
+  removeMark(new RemoveMarkContext(new TurnContext(third), restoredSource))
   expect(third.playerA.activePet.stat.atk).toBe(55)
 })
 

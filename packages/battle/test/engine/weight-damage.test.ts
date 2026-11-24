@@ -1,6 +1,7 @@
 import { WeightDamageEffects } from '../../../../packs/base/src/effects/weight-damage.effect'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  dealDamage,
   Modifier,
   DurationType,
   BaseMark,
@@ -13,7 +14,7 @@ import {
   type Battle,
   type baseMarkId,
 } from '@arcadia-eternity/battle/engine'
-import { makeScenario } from './scenario'
+import { engineEffect, makeScenario } from './scenario'
 
 const effects = WeightDamageEffects.build()
 const ids = Object.keys(effects) as (keyof typeof effects)[]
@@ -42,7 +43,7 @@ function setup(id: keyof typeof effects, stacks = 3) {
   mark.setOwner(owner, f.battle.emitter)
   owner.marks.push(mark)
   const source = defensive ? mark : owner.skills[0]
-  source.effects.push(effects[id])
+  source.effects.push(engineEffect(effects[id]))
   const use = new UseSkillContext(
     new TurnContext(f.battle),
     f.a,
@@ -52,7 +53,7 @@ function setup(id: keyof typeof effects, stacks = 3) {
   )
   const damage = () => new DamageContext(use, use.skill, f.b.activePet, 83, DamageType.Physical)
   const apply = (event = damage()) => {
-    event.target.damage(event)
+    dealDamage(event)
     if (!event.result) throw new Error('Damage did not resolve')
     return event.result
   }
@@ -84,7 +85,7 @@ for (const id of ids) {
     f.queried.attributeSystem.updateBaseValue('weight', 12)
     const event = f.damage()
     const before = f.b.activePet.currentHp
-    f.b.activePet.damage(event)
+    dealDamage(event)
     expect(event.result?.modifiedDamage).toBe(83 + 12 * f.sign)
     expect(event.damageResult).toBe(83 + 12 * f.sign)
     expect(f.b.activePet.currentHp).toBe(Math.max(0, before - event.damageResult))

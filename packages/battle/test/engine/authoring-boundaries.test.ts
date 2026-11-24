@@ -1,5 +1,7 @@
+import { applyEffect } from '../../src/engine/phase/effectExecution'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  addMark,
   effectAuthoring,
   AddMarkContext,
   BaseMark,
@@ -71,7 +73,7 @@ it.each(['heal', 'stage', 'assign', 'consume', 'add-stacks'] as const)(
     const source = f.a.activePet.skills[0]
     const base = new BaseMark('foreign-mark' as baseMarkId, [], { ...other.debuff.config, maxStacks: 3 })
     const setup = new EffectContext(new TurnContext(other.battle), EffectTrigger.TurnStart, target.skills[0])
-    other.battle.addMark(new AddMarkContext(setup, target, base, 2))
+    addMark(new AddMarkContext(setup, target, base, 2))
     const mark = target.marks.find(m => m.base === base)!
     const selected = targets.ownerPet.select(() => target)
     const action =
@@ -87,7 +89,7 @@ it.each(['heal', 'stage', 'assign', 'consume', 'add-stacks'] as const)(
     )
     const context = new EffectContext(new TurnContext(f.battle), EffectTrigger.TurnStart, source, effect)
     const before = target.stat.def
-    expect(() => f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(context))).toThrow(
+    expect(() => f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, context))).toThrow(
       'Cross-battle',
     )
     expect(target.currentHp).toBe(10)
@@ -123,7 +125,7 @@ it('snapshots binding operation and per-step capture options', () => {
   step.key = 'mutated'
   const base = new BaseMark('binding-source' as baseMarkId, [effect], f.debuff.config)
   const context = new EffectContext(new TurnContext(f.battle), EffectTrigger.TurnStart, pet.skills[0])
-  f.battle.addMark(new AddMarkContext(context, pet, base))
+  addMark(new AddMarkContext(context, pet, base))
   expect(pet.stat.spe).toBe(340)
   f.b.team[1].attributeSystem.updateBaseValue('def', 80)
   f.b.activePet = f.b.team[1]

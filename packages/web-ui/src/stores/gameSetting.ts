@@ -1,25 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
+import { Value } from '@sinclair/typebox/value'
+import { defaultSettings, SettingsSchema } from '@arcadia-eternity/local-profile'
 import { BattleMessageType } from '@arcadia-eternity/const'
 import { readLocalData, writeLocalData } from '@/services/localStorage'
 
 const STORAGE_PREFIX = 'gameSetting.'
-
-// 默认显示的日志类型
-const DEFAULT_VISIBLE_LOG_TYPES: Set<BattleMessageType> = new Set([
-  BattleMessageType.SkillUse,
-  BattleMessageType.Damage,
-  BattleMessageType.Heal,
-  BattleMessageType.SkillMiss,
-  BattleMessageType.PetSwitch,
-  BattleMessageType.BattleStart,
-  BattleMessageType.BattleEnd,
-  BattleMessageType.ForcedSwitch,
-  BattleMessageType.FaintSwitch,
-  BattleMessageType.PetDefeated,
-  BattleMessageType.MarkApply,
-  BattleMessageType.MarkDestroy,
-])
 
 function loadFromStorage<T>(key: string, defaultValue: T): T {
   try {
@@ -43,27 +29,23 @@ const saveAllSettings = (settings: Record<string, unknown>) => {
 }
 
 export const useGameSettingStore = defineStore('gameSetting', () => {
-  const battleRenderer = ref<'swf' | 'image'>(
-    loadFromStorage<string>('battleRenderer', 'swf') === 'image' ? 'image' : 'swf',
+  const defaults = defaultSettings()
+  const storedRenderer = loadFromStorage('battleRenderer', defaults.battleRenderer)
+  const battleRenderer = ref(
+    Value.Check(SettingsSchema.properties.battleRenderer, storedRenderer) ? storedRenderer : defaults.battleRenderer,
   )
-  const storedMotion = loadFromStorage<string>('battleMotion', 'standard')
-  const battleMotion = ref<'standard' | 'simple' | 'reduced'>(
-    ['standard', 'simple', 'reduced'].includes(storedMotion)
-      ? (storedMotion as 'standard' | 'simple' | 'reduced')
-      : 'standard',
+  const storedMotion = loadFromStorage('battleMotion', defaults.battleMotion)
+  const battleMotion = ref(
+    Value.Check(SettingsSchema.properties.battleMotion, storedMotion) ? storedMotion : defaults.battleMotion,
   )
-  const mute = ref<boolean>(loadFromStorage('mute', false))
-  const musicVolume = ref<number>(loadFromStorage('musicVolume', 50))
-  const musicMute = ref<boolean>(loadFromStorage('musicMute', false))
-  const soundVolume = ref<number>(loadFromStorage('soundVolume', 50))
-  const soundMute = ref<boolean>(loadFromStorage('soundMute', false))
-  const background = ref<string | 'random'>(loadFromStorage('background', 'random'))
-  const battleMusic = ref<string | 'random'>(loadFromStorage('battleMusic', 'random'))
-
-  // 战斗日志过滤设置
-  const visibleLogTypes = ref<Set<BattleMessageType>>(
-    new Set(loadFromStorage('visibleLogTypes', Array.from(DEFAULT_VISIBLE_LOG_TYPES))),
-  )
+  const mute = ref(loadFromStorage('mute', defaults.mute))
+  const musicVolume = ref(loadFromStorage('musicVolume', defaults.musicVolume))
+  const musicMute = ref(loadFromStorage('musicMute', defaults.musicMute))
+  const soundVolume = ref(loadFromStorage('soundVolume', defaults.soundVolume))
+  const soundMute = ref(loadFromStorage('soundMute', defaults.soundMute))
+  const background = ref(loadFromStorage('background', defaults.background))
+  const battleMusic = ref(loadFromStorage('battleMusic', defaults.battleMusic))
+  const visibleLogTypes = ref(new Set(loadFromStorage('visibleLogTypes', defaults.visibleLogTypes)))
 
   watch(
     () => ({
@@ -107,7 +89,7 @@ export const useGameSettingStore = defineStore('gameSetting', () => {
   }
 
   const resetLogTypesToDefault = () => {
-    visibleLogTypes.value = new Set(DEFAULT_VISIBLE_LOG_TYPES)
+    visibleLogTypes.value = new Set(defaults.visibleLogTypes)
   }
 
   const showAllLogTypes = () => {

@@ -2,7 +2,6 @@ import { effectGroup } from '@arcadia-eternity/battle/effect-loading'
 import {
   defineEffects,
   EffectTrigger,
-  checks,
   conditions,
   numberParam,
   ops,
@@ -10,6 +9,7 @@ import {
   values,
   type Trigger,
 } from '@arcadia-eternity/battle/authoring'
+import { ownerHasMark } from './mark-queries'
 
 function healing(on: Trigger, divisor: number, needsField = false) {
   const parameters = { divisor: numberParam({ default: divisor }) }
@@ -21,10 +21,7 @@ function healing(on: Trigger, divisor: number, needsField = false) {
     priority: 0,
     parameters,
     when: needsField
-      ? conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_guanghuilingyu').condition(checks.exists()),
-        )
+      ? conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_guanghuilingyu'))
       : conditions.selfUsesSkill,
     apply: targets.ownerPet.apply(ops.heal(amount)),
   }

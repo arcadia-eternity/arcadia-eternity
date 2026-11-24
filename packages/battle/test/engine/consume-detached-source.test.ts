@@ -1,3 +1,4 @@
+import { applyEffect } from '../../src/engine/phase/effectExecution'
 import {
   BaseMark,
   EffectContext,
@@ -94,7 +95,7 @@ for (const variant of [
       }),
     )
     const context = new EffectContext(new TurnContext(battle), EffectTrigger.TurnEnd, a.activePet.skills[0], effect)
-    const apply = () => battle.executionBudget.run(battle.currentTurn, () => effect.innerApply(context))
+    const apply = () => battle.executionBudget.run(battle.currentTurn, () => applyEffect(effect, context))
     if (['removed-after-read', 'reuse'].includes(variant)) {
       apply()
       // Later V1 ignores inactive marks, including a mark removed during the amount read.

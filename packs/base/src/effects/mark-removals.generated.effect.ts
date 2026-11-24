@@ -6,11 +6,11 @@ import {
   conditions,
   contexts,
   targets,
-  checks,
   ops,
   actions,
   type EffectFrame,
 } from '@arcadia-eternity/battle/authoring'
+import { ownerHasMark } from './mark-queries'
 @effectGroup({ id: 'mark-removals.generated' })
 export class MarkRemovalsGeneratedEffects {
   static build() {
@@ -18,9 +18,7 @@ export class MarkRemovalsGeneratedEffects {
       effect_emblem_destroy_meihuo_onturnend: {
         triggers: [EffectTrigger.TurnEnd],
         priority: 0,
-        when: conditions.all(
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_meihuo').condition(checks.exists()),
-        ),
+        when: conditions.all(ownerHasMark('mark_meihuo')),
         apply: actions.sequence(
           targets.ownerMarks.where(mark => mark.baseId === 'mark_meihuo').apply(ops.removeMark()),
         ),
@@ -74,10 +72,7 @@ export class MarkRemovalsGeneratedEffects {
       effect_skill_clear_status_if_has_niliu: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_niliu').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_niliu')),
         apply: actions.sequence(targets.ownerMarks.where(mark => mark.tags.includes('status')).apply(ops.removeMark())),
       },
       effect_skill_consume_mark_huohuanzhixin: {
@@ -91,10 +86,7 @@ export class MarkRemovalsGeneratedEffects {
       effect_skill_consume_mark_shuiliangbaohe: {
         triggers: [EffectTrigger.OnHit],
         priority: -1,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiliangbaohe').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shuiliangbaohe')),
         apply: actions.sequence(
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiliangbaohe').apply(ops.removeMark()),
         ),
@@ -102,10 +94,7 @@ export class MarkRemovalsGeneratedEffects {
       effect_skill_consume_mark_shuiliangchongzu: {
         triggers: [EffectTrigger.OnHit],
         priority: -1,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiliangchongzu').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shuiliangchongzu')),
         apply: actions.sequence(
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiliangchongzu').apply(ops.removeMark()),
         ),

@@ -1,14 +1,16 @@
 import {
   actions,
+  checks,
   conditions,
   contexts,
-  DamageType,
   defineEffects,
   EffectTrigger,
   ops,
   targets,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { physicalOrSpecialDamage } from './damage-conditions'
+import { activeOpponentMarks, sourceMarkOnLastTurn, requireMark } from './mark-queries'
 
 const TERROR = 'mark_kongju'
 const SILENCE = 'mark_chenmo'
@@ -22,14 +24,7 @@ const YOUPAN = 'mark_youpan'
 const ZHANQIAN = 'mark_zhanqian'
 const YANGHOU = 'mark_yanghou'
 
-const attackDamage = contexts.damage.condition((_, events) =>
-  events.some(event => event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
-)
-
-const isNextTurn = targets.sourceMark.condition((_, marks) => marks.some(mark => mark.duration === 1))
-const opponentHasTerror = targets.opponentActive.condition((_, pets) =>
-  pets.some(pet => pet.marks.some(mark => mark.baseId === TERROR && mark.isActive)),
-)
+const opponentHasTerror = activeOpponentMarks(TERROR).condition(checks.exists())
 
 const ownerLevelHigherThanTarget = contexts.skillUse.condition((_, events) => {
   const event = events[0]
@@ -51,35 +46,28 @@ const ownerMovedFirst = contexts.skillUse.condition((_, events) => {
   return turn.contexts.indexOf(event) === 0
 })
 
+function ownerUsesSkillOnLastTurn(skillId: string) {
+  return conditions.all(
+    conditions.ownerUsesSkill,
+    sourceMarkOnLastTurn,
+    ctx => contexts.nearestSkillUse(ctx)?.skill.baseId === skillId,
+  )
+}
+
 @effectGroup({ id: 'feide' })
 export class FeideEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const terror = marks.get(TERROR)
-    const silence = marks.get(SILENCE)
-    const damageDown = marks.get(DAMAGE_DOWN)
-    const evasionUp = marks.get(EVASION_UP)
-    const rageRefill = marks.get(RAGE_REFILL)
-    const madStraw = marks.get(MAD_STRAW)
-    const carnival = marks.get(CARNIVAL)
-    const zuogu = marks.get(ZUOGU)
-    const youpan = marks.get(YOUPAN)
-    const zhanqian = marks.get(ZHANQIAN)
-    const yanghou = marks.get(YANGHOU)
-    if (
-      !terror ||
-      !silence ||
-      !damageDown ||
-      !evasionUp ||
-      !rageRefill ||
-      !madStraw ||
-      !carnival ||
-      !zuogu ||
-      !youpan ||
-      !zhanqian ||
-      !yanghou
-    ) {
-      throw new Error('Missing Feide mark dependency')
-    }
+    const terror = requireMark(marks, TERROR)
+    const silence = requireMark(marks, SILENCE)
+    const damageDown = requireMark(marks, DAMAGE_DOWN)
+    const evasionUp = requireMark(marks, EVASION_UP)
+    const rageRefill = requireMark(marks, RAGE_REFILL)
+    const madStraw = requireMark(marks, MAD_STRAW)
+    const carnival = requireMark(marks, CARNIVAL)
+    const zuogu = requireMark(marks, ZUOGU)
+    const youpan = requireMark(marks, YOUPAN)
+    const zhanqian = requireMark(marks, ZHANQIAN)
+    const yanghou = requireMark(marks, YANGHOU)
 
     const opponentActive = targets.opponentActive
     const ownerPet = targets.ownerPet
@@ -105,7 +93,7 @@ export class FeideEffects {
       effect_ability_increase_attack_damage_5_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, attackDamage),
+        when: conditions.all(conditions.selfUsesSkill, physicalOrSpecialDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 5, delta: 0 })),
       },
       effect_ability_reduce_rage_gain_5: {
@@ -226,47 +214,31 @@ export class FeideEffects {
       effect_mark_add_power_35_to_youpan_next_turn: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.ownerUsesSkill,
-          isNextTurn,
-          contexts.skillUse.condition((_, events) => events.some(event => event.skill.baseId === 'skill_youpan')),
-        ),
+        when: ownerUsesSkillOnLastTurn('skill_youpan'),
         apply: contexts.skillUse.apply(ops.addPower(35)),
       },
       effect_mark_add_power_35_to_zuogu_next_turn: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.ownerUsesSkill,
-          isNextTurn,
-          contexts.skillUse.condition((_, events) => events.some(event => event.skill.baseId === 'skill_zuogu')),
-        ),
+        when: ownerUsesSkillOnLastTurn('skill_zuogu'),
         apply: contexts.skillUse.apply(ops.addPower(35)),
       },
       effect_mark_sure_hit_for_yanghou_next_turn: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.ownerUsesSkill,
-          isNextTurn,
-          contexts.skillUse.condition((_, events) => events.some(event => event.skill.baseId === 'skill_yanghou')),
-        ),
+        when: ownerUsesSkillOnLastTurn('skill_yanghou'),
         apply: contexts.skillUse.apply(ops.setSureHit()),
       },
       effect_mark_sure_hit_for_zhanqian_next_turn: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.ownerUsesSkill,
-          isNextTurn,
-          contexts.skillUse.condition((_, events) => events.some(event => event.skill.baseId === 'skill_zhanqian')),
-        ),
+        when: ownerUsesSkillOnLastTurn('skill_zhanqian'),
         apply: contexts.skillUse.apply(ops.setSureHit()),
       },
       effect_mark_increase_attack_damage_received_75_percent_next_turn: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, attackDamage, isNextTurn),
+        when: conditions.all(conditions.selfBeDamaged, physicalOrSpecialDamage, sourceMarkOnLastTurn),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 75, delta: 0 })),
       },
       effect_mark_remove_self_on_owner_switch_out: {

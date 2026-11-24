@@ -1,5 +1,7 @@
-import { afterEach, expect, it } from 'vitest'
 import {
+  codeEffectDefinition,
+  addMark,
+  removeMark,
   AddMarkContext,
   AttackTargetOpinion,
   BaseMark,
@@ -13,7 +15,8 @@ import {
   type Battle,
   type baseMarkId,
 } from '@arcadia-eternity/battle/engine'
-import { codeEffectDefinition, defineCodeEffect, numberParam, ops, targets } from '@arcadia-eternity/battle/authoring'
+import { afterEach, expect, it } from 'vitest'
+import { defineCodeEffect, numberParam, ops, targets } from '@arcadia-eternity/battle/authoring'
 import { makeScenario } from './scenario'
 
 const battles: Battle[] = []
@@ -94,7 +97,7 @@ it('keeps runtime parameters modifiable by other effects without an editor form 
     )
   }
   const trigger = new EffectContext(new TurnContext(first.battle), EffectTrigger.TurnStart, first.a.activePet.skills[0])
-  first.battle.addMark(new AddMarkContext(trigger, first.a.activePet, booster))
+  addMark(new AddMarkContext(trigger, first.a.activePet, booster))
   apply(first)
   apply(second)
   expect(first.a.activePet.currentHp).toBe(31) // two independent uses, each (5 + 10)
@@ -105,7 +108,7 @@ it('keeps runtime parameters modifiable by other effects without an editor form 
   apply(first)
   expect(first.a.activePet.currentHp).toBe(33) // only the first use has a changed base
   const mark = first.a.activePet.marks.find(mark => mark.baseId === booster.id)!
-  first.battle.removeMark(new RemoveMarkContext(trigger, mark))
+  removeMark(new RemoveMarkContext(trigger, mark))
   first.a.activePet.currentHp = 1
   apply(first)
   expect(first.a.activePet.currentHp).toBe(13) // source cleanup removes both +10 modifiers

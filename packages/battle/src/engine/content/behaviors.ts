@@ -278,7 +278,7 @@ export function behaviorEffectId(owner: BehaviorOwner, useId: string): string {
 export interface NativeBehaviorBuildContext {
   readonly effectId: string
   readonly params: Readonly<Record<string, string | number | boolean>>
-  readonly sourceMark?: BaseMark
+  readonly sourceMark?: import('./authoring/domain').BaseMark
 }
 export interface NativeBehaviorExport {
   readonly id: string
@@ -286,6 +286,7 @@ export interface NativeBehaviorExport {
   readonly parameters: Readonly<Record<string, BehaviorParameter>>
 }
 interface NativeCompilationContext extends NativeBehaviorBuildContext {
+  readonly sourceMark?: BaseMark
   readonly owner: BehaviorOwner
   readonly parameterSchemas: Readonly<Record<string, TSchema>>
 }

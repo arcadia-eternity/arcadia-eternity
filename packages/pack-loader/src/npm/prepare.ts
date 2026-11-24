@@ -1,7 +1,7 @@
+import { codeEffectDefinition } from '@arcadia-eternity/battle/engine'
 import { readFileSync } from 'node:fs'
 import { readFile, realpath } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import * as sdk from '@arcadia-eternity/battle/authoring'
 import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox/effects'
 import { createContentIndex, normalizeBehaviorDefinitions, type ContentIndex } from '@arcadia-eternity/battle/engine'
 import { nativeBuildIdentity } from '@arcadia-eternity/battle/build'
@@ -205,7 +205,7 @@ async function compileInstallation(
       manifest = pkg.manifest!
     for (const [id, sourceKind] of codeUses.get(pkg.location)!) {
       draft.data.behaviors.push({
-        ...sdk.codeEffectDefinition({ id: runtimeId(manifest.namespace, id), sourceKind }),
+        ...codeEffectDefinition({ id: runtimeId(manifest.namespace, id), sourceKind }),
         id,
       })
       draft.requirements.push({

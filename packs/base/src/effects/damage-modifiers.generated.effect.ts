@@ -12,6 +12,8 @@ import {
   values,
   type EffectFrame,
 } from '@arcadia-eternity/battle/authoring'
+import { physicalDamage, specialDamage, nonEffectStrikeDamage } from './damage-conditions'
+import { ownerHasMark, opponentHasMark } from './mark-queries'
 @effectGroup({ id: 'damage-modifiers.generated' })
 export class DamageModifiersGeneratedEffects {
   static build() {
@@ -34,63 +36,37 @@ export class DamageModifiersGeneratedEffects {
       effect_ability_damage_amplify_10_percent_has_aideminyi: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_aideminyi').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_aideminyi')),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       },
       effect_ability_damage_amplify_10_percent_has_kongqichuliang: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_kongqichuliang').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfBeDamaged, ownerHasMark('mark_kongqichuliang')),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       },
       effect_ability_damage_amplify_10_percent_opponent_has_manxingduyao: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_manxingduyao')),
-          ),
-        ),
+        when: conditions.all(conditions.selfBeDamaged, opponentHasMark('mark_manxingduyao')),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       },
       effect_ability_damage_amplify_10_percent_opponent_has_pofang: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_pofang')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_pofang')),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       },
       effect_ability_damage_amplify_15_percent_opponent_has_shaoshang: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_shaoshang')),
-          ),
-        ),
+        when: conditions.all(conditions.selfBeDamaged, opponentHasMark('mark_shaoshang')),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 15, delta: 0 })),
       },
       effect_ability_damage_amplify_15_percent_opponent_has_xuanyun: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_xuanyun')),
-          ),
-        ),
+        when: conditions.all(conditions.selfBeDamaged, opponentHasMark('mark_xuanyun')),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 15, delta: 0 })),
       },
       effect_ability_damage_boost_10_percent_when_first: {
@@ -157,10 +133,7 @@ export class DamageModifiersGeneratedEffects {
       effect_ability_increase_special_damage_taken_15_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
-        ),
+        when: conditions.all(conditions.selfBeDamaged, specialDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 15, delta: 0 })),
       },
       effect_ability_physical_damage_reduction_below_25_percent: {
@@ -178,17 +151,14 @@ export class DamageModifiersGeneratedEffects {
             )
             return left !== undefined && right !== undefined && left < right
           },
-          contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Physical'),
+          physicalDamage,
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -30, delta: 0 })),
       },
       effect_ability_reduce_damage_10_if_has_mark_huanxiang: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfBeDamaged, ownerHasMark('mark_huanxiang')),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
       },
       effect_ability_reduce_damage_10_percent: {
@@ -200,21 +170,13 @@ export class DamageModifiersGeneratedEffects {
       effect_ability_reduce_damage_10_percent_has_shazhidanke: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shazhidanke').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfBeDamaged, ownerHasMark('mark_shazhidanke')),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
       },
       effect_ability_reduce_damage_10_percent_when_opponent_has_cuimian: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.skillActorDiffersFromOwner,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_cuimian')),
-          ),
-        ),
+        when: conditions.all(conditions.skillActorDiffersFromOwner, opponentHasMark('mark_cuimian')),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
       },
       effect_ability_reduce_damage_when_max_hp_over_500: {
@@ -230,46 +192,31 @@ export class DamageModifiersGeneratedEffects {
       effect_ability_reduce_physical_damage_30_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Physical'),
-        ),
+        when: conditions.all(conditions.selfBeDamaged, physicalDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -30, delta: 0 })),
       },
       effect_ability_reduce_special_damage_10_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
-        ),
+        when: conditions.all(conditions.selfBeDamaged, specialDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
       },
       effect_ability_shuiliangbaohe_increase_damage_10_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiliangbaohe').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shuiliangbaohe')),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       },
       effect_ability_shuiliangchongzu_increase_damage_5_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiliangchongzu').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shuiliangchongzu')),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 5, delta: 0 })),
       },
       effect_emblem_add_damage_if_has_niliu: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_niliu').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_niliu')),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       },
       effect_emblem_climax_damage_boost_10_percent: {
@@ -320,10 +267,7 @@ export class DamageModifiersGeneratedEffects {
       effect_mark_double_special_damage_taken: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
-        ),
+        when: conditions.all(conditions.selfBeDamaged, specialDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 100, delta: 0 })),
       },
       effect_mark_fixed_damage_20: {
@@ -548,10 +492,7 @@ export class DamageModifiersGeneratedEffects {
       effect_mark_reduce_atk_damage_25_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Physical'),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, physicalDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -25, delta: 0 })),
       },
       effect_mark_reduce_damage_15_percent_per_stack: (() => {
@@ -666,34 +607,19 @@ export class DamageModifiersGeneratedEffects {
       effect_mark_reduce_next_skill_damage_50_percent: {
         triggers: [EffectTrigger.OnDamageReplacement],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          contexts.damage.condition((_ctx, events) =>
-            events.some(
-              event =>
-                event.origin.trigger !== 'effect' &&
-                (event.damageType === 'Physical' || event.damageType === 'Special'),
-            ),
-          ),
-        ),
+        when: conditions.all(conditions.selfBeDamaged, nonEffectStrikeDamage),
         apply: contexts.damage.apply(ops.preventDamage({ fraction: 0.5, stacks: 1 })),
       },
       effect_mark_reduce_opponent_spa_damage_20_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, specialDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -20, delta: 0 })),
       },
       effect_mark_reduce_physical_damage_with_stack: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Physical'),
-        ),
+        when: conditions.all(conditions.selfBeDamaged, physicalDamage),
         apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: targets.sourceMark
@@ -707,19 +633,13 @@ export class DamageModifiersGeneratedEffects {
       effect_mark_reduce_special_damage_30: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
-        ),
+        when: conditions.all(conditions.selfBeDamaged, specialDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: -30 })),
       },
       effect_mark_reduce_special_damage_with_stack: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
-        ),
+        when: conditions.all(conditions.selfBeDamaged, specialDamage),
         apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: targets.sourceMark
@@ -737,11 +657,7 @@ export class DamageModifiersGeneratedEffects {
         apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: 0,
-            delta: values.choose(
-              targets.ownerMarks.where(mark => mark.baseId === 'mark_shijianfaze').condition(checks.exists()),
-              -150,
-              -75,
-            ),
+            delta: values.choose(ownerHasMark('mark_shijianfaze'), -150, -75),
           }),
         ),
       },
@@ -759,11 +675,7 @@ export class DamageModifiersGeneratedEffects {
         apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: 0,
-            delta: values.choose(
-              targets.ownerMarks.where(mark => mark.baseId === 'mark_xukongganying').condition(checks.exists()),
-              80,
-              40,
-            ),
+            delta: values.choose(ownerHasMark('mark_xukongganying'), 80, 40),
           }),
         ),
       },
@@ -774,11 +686,7 @@ export class DamageModifiersGeneratedEffects {
         apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: 0,
-            delta: values.choose(
-              targets.ownerMarks.where(mark => mark.baseId === 'mark_xukongganying').condition(checks.exists()),
-              100,
-              50,
-            ),
+            delta: values.choose(ownerHasMark('mark_xukongganying'), 100, 50),
           }),
         ),
       },
@@ -810,12 +718,7 @@ export class DamageModifiersGeneratedEffects {
           triggers: [EffectTrigger.OnBeforeCalculateDamage] as const,
           priority: 0,
           parameters,
-          when: conditions.all(
-            conditions.selfUsesSkill,
-            targets.opponentActive.condition((_ctx, pets) =>
-              pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_zhongdu')),
-            ),
-          ),
+          when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_zhongdu')),
           apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: parameters.delta })),
         }
       })(),
@@ -869,10 +772,7 @@ export class DamageModifiersGeneratedEffects {
       effect_skill_add_fixed_damage_100_if_has_jinbao: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_jinbao').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_jinbao')),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 100 })),
       },
       effect_skill_add_fixed_damage_25_if_3_hits: {
@@ -949,37 +849,25 @@ export class DamageModifiersGeneratedEffects {
       effect_skill_damage_increase_50_if_has_jinbao: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_jinbao').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_jinbao')),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
       },
       effect_skill_damage_increase_50_if_has_zhaocai: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_zhaocai').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_zhaocai')),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
       },
       effect_skill_damage_reduce_50_if_has_jinbao: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_jinbao').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_jinbao')),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
       },
       effect_skill_damage_reduce_50_if_has_zhaocai: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_zhaocai').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_zhaocai')),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
       },
       effect_skill_fixed_damage_30_70: {
@@ -991,12 +879,7 @@ export class DamageModifiersGeneratedEffects {
       effect_skill_fixed_damage_30_70_if_opponent_has_cuimian: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_cuimian')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_cuimian')),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: values.randomInt(30, 70) })),
       },
       effect_skill_fixed_damage_40: {
@@ -1069,7 +952,7 @@ export class DamageModifiersGeneratedEffects {
             const right = 500
             return left !== undefined && right !== undefined && left > right
           },
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_qianggong').condition(checks.exists()),
+          ownerHasMark('mark_qianggong'),
         ),
         apply: contexts.damage.apply(
           ops.modifyDamage({

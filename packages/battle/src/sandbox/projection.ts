@@ -1,7 +1,9 @@
 /** Public instance projection used by the effect VM and the creator reference. */
 export const domainFields = [
   'battle',
-  'configSystem',
+  'contexts',
+  'individualValueMax',
+  'originalSpecies',
   'id',
   'baseId',
   'tags',
@@ -93,19 +95,4 @@ export const domainFields = [
   'selectTarget',
   'defeated',
 ] as const
-export const projectedMethods = {
-  Pet: ['addMark', 'removeMark', 'damage', 'heal', 'addRage', 'transferMarks'],
-  Player: ['addRage'],
-  Battle: ['random', 'randomInt', 'shuffle', 'removeMark'],
-  MarkInstanceImpl: ['consumeStack'],
-  ConfigSystem: ['get'],
-  Context: ['addModified'],
-  BaseMark: [],
-  BaseSkill: [],
-  SkillInstance: [],
-  Effect: [],
-} as const
-export const parameterMethods = ['read', 'get', 'install', 'register', 'snapshot', 'restore', 'addressOf'] as const
-
-/** Domain reads also available while a damage proposal is being evaluated. */
-export const evaluationReads: readonly string[] = ['get', 'random', 'randomInt', 'shuffle']
+export const parameterMethods = ['addressOf'] as const

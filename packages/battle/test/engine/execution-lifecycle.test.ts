@@ -6,6 +6,7 @@ import {
   UseSkillContext,
   TurnContext,
   executeTurnOperation,
+  TransformContext,
   TransformPhase,
   type Battle,
   type effectId,
@@ -59,6 +60,25 @@ it('finishes a Battle abandoned while waiting for a player action', async () => 
   )
   expect(battle.victor).toBe(b)
 })
+it('runs a shared effect once per source when containers are repeated', () => {
+  const { a, b, battle } = fixture()
+  const first = a.activePet.skills[0]
+  const second = b.activePet.skills[0]
+  const sources: string[] = []
+  const shared = new Effect<EffectTrigger>(
+    'shared-turn-start' as effectId,
+    [EffectTrigger.TurnStart],
+    ctx => {
+      sources.push(ctx.source.id)
+    },
+    0,
+  )
+  first.effects.push(shared)
+  second.effects.push(shared)
+  battle.applyEffects(new TurnContext(battle), EffectTrigger.TurnStart, second, first, second, first)
+  expect(sources).toEqual([second.id, first.id])
+})
+
 it('honors BeforeSort context priority in the actual TurnPhase ordering', () => {
   const { a, b, battle } = fixture(),
     order: string[] = []
@@ -106,17 +126,9 @@ it('dispatches transformation lifecycle once in order through the public Transfo
       ),
     )
   const phase = new TransformPhase(
-    battle,
-    battle,
-    a.activePet,
-    'pet',
-    a.activePet.base,
-    { ...a.activePet.base },
-    'temporary',
-    0,
+    new TransformContext(battle, a.activePet, 'pet', a.activePet.base, { ...a.activePet.base }, 'temporary', 0),
   )
-  battle.phaseManager.registerPhase(phase)
-  battle.phaseManager.executePhase(phase.id)
+  battle.phaseManager.run(phase)
   expect(order).toEqual(triggers)
 })
 

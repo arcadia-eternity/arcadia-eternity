@@ -10,6 +10,7 @@ import {
   ops,
   actions,
 } from '@arcadia-eternity/battle/authoring'
+import { opponentHasMark } from './mark-queries'
 @effectGroup({ id: 'stat-stage-clears.generated' })
 export class StatStageClearsGeneratedEffects {
   static build() {
@@ -33,12 +34,7 @@ export class StatStageClearsGeneratedEffects {
       effect_skill_clear_opponent_def_stage_if_has_mark_yinghua: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_yinghua')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_yinghua')),
         apply: actions.sequence(
           targets.opponentActive.apply(ops.clearStatStages({ stats: ['def'], strategy: 'positive' })),
         ),
@@ -46,12 +42,7 @@ export class StatStageClearsGeneratedEffects {
       effect_skill_clear_opponent_spd_stage_if_has_mark_yinghua: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_yinghua')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_yinghua')),
         apply: actions.sequence(
           targets.opponentActive.apply(ops.clearStatStages({ stats: ['spd'], strategy: 'positive' })),
         ),

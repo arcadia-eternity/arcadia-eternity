@@ -1,21 +1,17 @@
 import { conditions, contexts, defineEffects, EffectTrigger, ops, targets } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { activeOwnerMarks, activeOpponentMarks, requireMark } from './mark-queries'
+import { nonStatusSkillUse } from './skill-queries'
 
 const FOCUS = 'mark_jiaodianfushi'
 const POISON = 'mark_zhongdu'
 const BLEED = 'mark_liuxie'
 const SWARM = 'mark_global_chongqun'
 
-const focusMarks = targets.ownerMarks.where(mark => mark.baseId === FOCUS && mark.isActive)
+const focusMarks = activeOwnerMarks(FOCUS)
 const hasFocus = focusMarks.condition((_, marks) => marks.some(mark => mark.stack > 0))
-const opponentHasPoison = targets.opponentActive
-  .flatMap(pet => pet.marks)
-  .where(mark => mark.baseId === POISON && mark.isActive)
-  .condition((_, marks) => marks.some(mark => mark.stack > 0))
-const opponentHasBleed = targets.opponentActive
-  .flatMap(pet => pet.marks)
-  .where(mark => mark.baseId === BLEED && mark.isActive)
-  .condition((_, marks) => marks.some(mark => mark.stack > 0))
+const opponentHasPoison = activeOpponentMarks(POISON).condition((_, marks) => marks.some(mark => mark.stack > 0))
+const opponentHasBleed = activeOpponentMarks(BLEED).condition((_, marks) => marks.some(mark => mark.stack > 0))
 const swarmActive = contexts.battle
   .flatMap(battle => battle.marks)
   .where(mark => mark.baseId === SWARM && mark.isActive)
@@ -30,11 +26,7 @@ const opponentLowHp = targets.opponentActive.condition((_, pets) => {
 const focusPowerBonus = {
   triggers: [EffectTrigger.AfterUseSkillCheck] as const,
   priority: 0,
-  when: conditions.all(
-    conditions.ownerUsesSkill,
-    hasFocus,
-    contexts.skillUse.condition((_, casts) => casts.some(cast => cast.category !== 'Status')),
-  ),
+  when: conditions.all(conditions.ownerUsesSkill, hasFocus, nonStatusSkillUse),
   apply: contexts.skillUse.apply(ops.addPower(5)),
 }
 
@@ -77,11 +69,17 @@ const consecutivePower = {
   ),
 }
 
+function lastMissed(skillId: string) {
+  return conditions.all(
+    conditions.selfUsesSkill,
+    ctx => contexts.nearestSkillUse(ctx)?.pet.lastMissedSkillId === skillId,
+  )
+}
+
 @effectGroup({ id: 'dayandujiao' })
 export class DayandujiaoEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const focus = marks.get(FOCUS)
-    if (!focus) throw new Error('Missing focus mark')
+    const focus = requireMark(marks, FOCUS)
 
     return defineEffects({
       effect_ability_add_power_5_to_attack_if_owner_has_jiaodianfushi: focusPowerBonus,
@@ -101,61 +99,25 @@ export class DayandujiaoEffects {
       effect_skill_double_power_if_last_missed_yingjiazhongji_before_check: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          contexts.skillUse.condition((_, skills) => {
-            const skill = skills[0]
-            if (!skill) return false
-            const pet = skill.pet
-            if (!pet) return false
-            return pet.lastMissedSkillId === 'skill_yingjiazhongji'
-          }),
-        ),
+        when: lastMissed('skill_yingjiazhongji'),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_add_mark_self_jiaodianfushi_if_last_missed_yingjiazhongji: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          contexts.skillUse.condition((_, skills) => {
-            const skill = skills[0]
-            if (!skill) return false
-            const pet = skill.pet
-            if (!pet) return false
-            return pet.lastMissedSkillId === 'skill_yingjiazhongji'
-          }),
-        ),
+        when: lastMissed('skill_yingjiazhongji'),
         apply: targets.ownerPet.apply(ops.addMark(focus, { stack: 1 })),
       },
       effect_skill_double_power_if_last_missed_zhongjiachuanci_before_check: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          contexts.skillUse.condition((_, skills) => {
-            const skill = skills[0]
-            if (!skill) return false
-            const pet = skill.pet
-            if (!pet) return false
-            return pet.lastMissedSkillId === 'skill_zhongjiachuanci'
-          }),
-        ),
+        when: lastMissed('skill_zhongjiachuanci'),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_add_mark_self_jiaodianfushi_if_last_missed_zhongjiachuanci: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          contexts.skillUse.condition((_, skills) => {
-            const skill = skills[0]
-            if (!skill) return false
-            const pet = skill.pet
-            if (!pet) return false
-            return pet.lastMissedSkillId === 'skill_zhongjiachuanci'
-          }),
-        ),
+        when: lastMissed('skill_zhongjiachuanci'),
         apply: targets.ownerPet.apply(ops.addMark(focus, { stack: 1 })),
       },
       effect_skill_raise_spd_1_stage_if_chongqun: {

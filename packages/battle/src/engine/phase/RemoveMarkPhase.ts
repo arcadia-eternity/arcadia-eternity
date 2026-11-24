@@ -1,84 +1,81 @@
-import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
-import type { Battle } from '../battle'
-import { RemoveMarkContext } from '../context'
-import { type MarkInstance, StatLevelMarkInstanceImpl } from '../mark'
+import { addStatStage } from './AddMarkPhase'
+import {
+  EffectTrigger,
+  BattleMessageType,
+  type CleanStageStrategy,
+  type StatTypeWithoutHp,
+} from '@arcadia-eternity/const'
+import { RemoveMarkContext, type EffectContext } from '../context'
+import { StatLevelMarkInstanceImpl } from '../mark'
 import { Pet } from '../pet'
-import { SynchronousPhase } from './base'
+import { ContextPhase } from './base'
 
-/**
- * RemoveMarkPhase handles mark removal operations
- * Corresponds to RemoveMarkContext and replaces mark removal logic
- */
+export function removeMark(context: RemoveMarkContext): void {
+  context.battle.phaseManager.run(new RemoveMarkPhase(context))
+}
 
-export class RemoveMarkPhase extends SynchronousPhase<RemoveMarkContext> {
-  constructor(
-    battle: Battle,
-    private readonly parentContext: any, // EffectContext, DamageContext, AddMarkContext, or TurnContext
-    private readonly mark: MarkInstance,
-    id?: string,
-    private readonly existingContext?: RemoveMarkContext,
-  ) {
-    super(battle, id)
-  }
-
-  protected createContext(): RemoveMarkContext {
-    return this.existingContext ?? new RemoveMarkContext(this.parentContext, this.mark)
-  }
-
+class RemoveMarkPhase extends ContextPhase<RemoveMarkContext> {
   protected executeOperation(): void {
-    const context = this._context!
+    const context = this.event
+    const battle = this.battle
 
-    // Execute the remove mark operation logic
-    executeRemoveMarkOperation(context, this.battle)
+    const mark = context.mark
+
+    // Check if mark can be destroyed
+    if (!mark.isActive || !mark.config.destroyable) return
+
+    // Store owner info before clearing it
+    const owner = mark.owner
+
+    // Apply effects before destroying the mark
+    battle.applyEffects(context, EffectTrigger.OnMarkDestroy, mark)
+    battle.applyEffects(context, EffectTrigger.OnRemoveMark)
+
+    // Mark as inactive
+    mark.isActive = false
+    mark.deferredDamage = undefined
+
+    mark.attributeModifierCleanups.forEach(cleanup => cleanup())
+    mark.attributeModifierCleanups.length = 0
+    if (mark.owner instanceof Pet) mark.owner.attributeSystem.removeModifiersFromSource(mark.id)
+    if (mark instanceof StatLevelMarkInstanceImpl) {
+      unbindStatStage(mark)
+    }
+
+    // Clean up any transformations caused by this mark
+    battle.transformationSystem.cleanupMarkTransformations(mark)
+
+    // Remove mark from owner's marks array
+    if (owner) {
+      owner.marks = owner.marks.filter(m => m !== mark)
+      mark.owner = null
+    }
+
+    battle.configSystem.releaseScope(mark)
+
+    // Emit mark destroy message
+    battle.emitMessage(BattleMessageType.MarkDestroy, {
+      mark: mark.id,
+      baseMarkId: mark.baseId,
+      target: owner instanceof Pet ? owner.id : 'battle',
+    })
   }
 }
-/**
- * Extracted remove mark operation logic
- * This function contains the core mark removal logic, replacing MarkSystem.removeMark
- * and MarkInstance.destroy logic
- */
 
-export function executeRemoveMarkOperation(context: RemoveMarkContext, battle: Battle): void {
-  const mark = context.mark
+export function unbindStatStage(mark: StatLevelMarkInstanceImpl): void {
+  mark.modifierCleanupFn?.()
+  mark.modifierCleanupFn = undefined
+}
 
-  // Check if mark can be destroyed
-  if (!mark.isActive || !mark.config.destroyable) return
-
-  // Store owner info before clearing it
-  const owner = mark.owner
-
-  // Apply effects before destroying the mark
-  battle.applyEffects(context, EffectTrigger.OnMarkDestroy, mark)
-  battle.applyEffects(context, EffectTrigger.OnRemoveMark)
-
-  // Mark as inactive
-  mark.isActive = false
-  mark.deferredDamage = undefined
-
-  // Clean up attribute modifiers before destroying the mark
-  mark.cleanupAttributeModifiers()
-
-  // Special cleanup for StatLevelMarkInstanceImpl
-  if (mark instanceof StatLevelMarkInstanceImpl) {
-    // Clean up the stat stage modifier
-    mark.cleanupStatStageModifier()
+export function reverseStatStages(
+  context: EffectContext<EffectTrigger>,
+  target: Pet,
+  strategy: CleanStageStrategy,
+  stats: StatTypeWithoutHp[],
+): void {
+  for (const mark of target.getClearableStatStageMarks(strategy, ...stats)) {
+    const level = mark.level
+    removeMark(new RemoveMarkContext(context, mark))
+    addStatStage(context, target, mark.statType, -level)
   }
-
-  // Clean up any transformations caused by this mark
-  battle.transformationSystem.cleanupMarkTransformations(mark)
-
-  // Remove mark from owner's marks array
-  if (owner) {
-    owner.marks = owner.marks.filter(m => m !== mark)
-    mark.owner = null
-  }
-
-  battle.configSystem.releaseScope(mark)
-
-  // Emit mark destroy message
-  battle.emitMessage(BattleMessageType.MarkDestroy, {
-    mark: mark.id,
-    baseMarkId: mark.baseId,
-    target: owner instanceof Pet ? owner.id : 'battle',
-  })
 }

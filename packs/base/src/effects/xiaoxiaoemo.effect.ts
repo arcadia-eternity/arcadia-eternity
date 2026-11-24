@@ -1,5 +1,6 @@
 import {
   actions,
+  checks,
   conditions,
   contexts,
   defineEffects,
@@ -10,13 +11,13 @@ import {
   type Condition,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { criticalDamage } from './damage-conditions'
+import { activeOpponentMarks, requireMark } from './mark-queries'
 
 const CONTRACT = 'mark_emoqiyue'
 const FEAR = 'mark_kongju'
 
-const opponentHasContract = targets.opponentActive.condition((_, pets) =>
-  pets.some(pet => pet.marks.some(mark => mark.baseId === CONTRACT && mark.isActive)),
-)
+const opponentHasContract = activeOpponentMarks(CONTRACT).condition(checks.exists())
 
 const ownerHpBelowOpponent: Condition = ctx => {
   const owner = ctx.read(targets.ownerPet.first())
@@ -30,8 +31,6 @@ const ownerHpBelowFraction = (fraction: number) =>
     return owner ? owner.currentHp < owner.stat.maxHp * fraction : false
   })
 
-const critDamage = contexts.damage.condition((_, events) => events.some(event => event.crit))
-
 const opponentActive = targets.opponentActive
 const ownerActive = targets.ownerPet
 
@@ -42,21 +41,20 @@ function contractConditional(action: Action) {
 @effectGroup({ id: 'xiaoxiaoemo' })
 export class XiaoxiaoemoEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const contract = marks.get(CONTRACT)
-    const fear = marks.get(FEAR)
-    if (!contract || !fear) throw new Error('Missing contract or fear mark')
+    const contract = requireMark(marks, CONTRACT)
+    const fear = requireMark(marks, FEAR)
 
     return defineEffects({
       effect_mark_heal_self_30_on_non_crit_damage_taken: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, conditions.not(critDamage)),
+        when: conditions.all(conditions.selfBeDamaged, conditions.not(criticalDamage)),
         apply: ownerActive.apply(ops.heal(30)),
       },
       effect_ability_heal_self_60_on_crit_damage_if_opponent_has_mark_emoqiyue: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, critDamage, opponentHasContract),
+        when: conditions.all(conditions.selfUsesSkill, criticalDamage, opponentHasContract),
         apply: ownerActive.apply(ops.heal(60)),
       },
       effect_emblem_reduce_incoming_crit_damage_20_percent_if_last_ally_alive: {
@@ -64,7 +62,7 @@ export class XiaoxiaoemoEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
-          critDamage,
+          criticalDamage,
           targets.ownerPet.condition((_, pets) =>
             pets.some(pet => pet.owner?.team.every(ally => ally === pet || !ally.isAlive)),
           ),

@@ -1,93 +1,60 @@
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
-import { SynchronousPhase } from './base'
+import { ContextPhase } from './base'
 import { RageContext } from '../context'
-import type { Battle } from '../battle'
-import type { Player } from '../player'
 
-/**
- * RagePhase handles rage modification operations
- * Corresponds to RageContext and replaces rage modification logic
- */
-export class RagePhase extends SynchronousPhase<RageContext> {
-  constructor(
-    battle: Battle,
-    private readonly parentContext: RageContext['parent'],
-    private readonly target: Player,
-    private readonly reason: 'turn' | 'damage' | 'skill' | 'skillHit' | 'switch' | 'effect',
-    private readonly modifiedType: 'setting' | 'add' | 'reduce',
-    private readonly value: number,
-    private readonly ignoreRageObtainEfficiency: boolean = false,
-    private readonly modified: [number, number] = [0, 0],
-    id?: string,
-    private readonly existingContext?: RageContext,
-  ) {
-    super(battle, id)
-  }
+export function changeRage(context: RageContext): void {
+  context.battle.phaseManager.run(new RagePhase(context))
+}
 
-  protected createContext(): RageContext {
-    return (
-      this.existingContext ??
-      new RageContext(
-        this.parentContext,
-        this.target,
-        this.reason,
-        this.modifiedType,
-        this.value,
-        this.ignoreRageObtainEfficiency,
-        this.modified,
-      )
-    )
-  }
-
+class RagePhase extends ContextPhase<RageContext> {
   protected executeOperation(): void {
-    const context = this._context!
+    const context = this.event
+    const battle = this.battle
 
-    // Execute the rage operation logic (extracted from Player.addRage)
-    executeRageOperation(context, this.battle)
+    const before = context.target.currentRage
+
+    switch (context.modifiedType) {
+      case 'setting':
+        context.target.currentRage = context.value
+        break
+      case 'add':
+        battle.applyEffects(context, EffectTrigger.BeforeRageGain)
+        if (!context.available) {
+          context.rageChangeResult = 0
+          return
+        }
+        context.rageChangeResult = calculateRageChange(context)
+        context.target.currentRage += context.rageChangeResult
+        battle.applyEffects(context, EffectTrigger.OnRageGain)
+        break
+      case 'reduce': {
+        battle.applyEffects(context, EffectTrigger.BeforeRageLoss)
+        if (!context.available) {
+          context.rageChangeResult = 0
+          return
+        }
+        context.rageChangeResult = calculateRageChange(context)
+        const rageBeforePayment = context.target.currentRage
+        context.target.currentRage = rageBeforePayment - context.rageChangeResult
+        context.rageSpent = Math.max(0, rageBeforePayment - context.target.currentRage)
+        battle.applyEffects(context, EffectTrigger.OnRageLoss)
+        break
+      }
+    }
+
+    battle.emitMessage(BattleMessageType.RageChange, {
+      player: context.target.id,
+      pet: context.target.activePet.id,
+      before: before,
+      after: context.target.currentRage,
+      reason: context.reason,
+    })
   }
 }
 
-/**
- * Extracted rage operation logic from Player.addRage
- * This function contains the core rage modification logic
- */
-export function executeRageOperation(context: RageContext, battle: Battle): void {
-  const before = context.target.currentRage
-
-  switch (context.modifiedType) {
-    case 'setting':
-      context.target.settingRage(context.value)
-      break
-    case 'add':
-      battle.applyEffects(context, EffectTrigger.BeforeRageGain)
-      if (!context.available) {
-        context.rageChangeResult = 0
-        return
-      }
-      context.updateRageChangeResult()
-      context.target.settingRage(context.target.currentRage + context.rageChangeResult)
-      battle.applyEffects(context, EffectTrigger.OnRageGain)
-      break
-    case 'reduce': {
-      battle.applyEffects(context, EffectTrigger.BeforeRageLoss)
-      if (!context.available) {
-        context.rageChangeResult = 0
-        return
-      }
-      context.updateRageChangeResult()
-      const rageBeforePayment = context.target.currentRage
-      context.target.settingRage(rageBeforePayment - context.rageChangeResult)
-      context.rageSpent = Math.max(0, rageBeforePayment - context.target.currentRage)
-      battle.applyEffects(context, EffectTrigger.OnRageLoss)
-      break
-    }
-  }
-
-  battle.emitMessage(BattleMessageType.RageChange, {
-    player: context.target.id,
-    pet: context.target.activePet.id,
-    before: before,
-    after: context.target.currentRage,
-    reason: context.reason,
-  })
+function calculateRageChange(context: RageContext): number {
+  const [percent, delta] = context.modified
+  const amount = context.value * (1 + percent / 100) + delta
+  const limited = context.modifiedType === 'add' ? Math.min(amount, context.gainLimit) : amount
+  return context.rounding === 'floor' ? Math.floor(limited) : limited
 }

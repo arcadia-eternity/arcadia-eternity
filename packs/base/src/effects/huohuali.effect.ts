@@ -1,6 +1,7 @@
 import {
   DamageType,
   actions,
+  checks,
   conditions,
   contexts,
   defineEffects,
@@ -9,6 +10,8 @@ import {
   targets,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { physicalOrSpecialDamage, criticalDamage } from './damage-conditions'
+import { activeOpponentMarks, requireMark } from './mark-queries'
 
 const BURN = 'mark_shaoshang'
 const CONFUSION = 'mark_hunmi'
@@ -16,27 +19,16 @@ const DAMAGE_UP = 'mark_shanghaizengjia'
 const SPARK_MARK = 'mark_huohuayinji'
 const FLAME_BODY = 'mark_huohuaquti'
 
-const attackDamage = contexts.damage.condition((_, events) =>
-  events.some(event => event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
-)
-
-const opponentBurned = targets.opponentActive.condition((_, pets) =>
-  pets.some(pet => pet.marks.some(mark => mark.baseId === BURN && mark.isActive)),
-)
-
-const critDamage = contexts.damage.condition((_, events) => events.some(event => event.crit))
+const opponentBurned = activeOpponentMarks(BURN).condition(checks.exists())
 
 @effectGroup({ id: 'huohuali' })
 export class HuohualiEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const burn = marks.get(BURN)
-    const confusion = marks.get(CONFUSION)
-    const damageUp = marks.get(DAMAGE_UP)
-    const sparkMark = marks.get(SPARK_MARK)
-    const flameBody = marks.get(FLAME_BODY)
-    if (!burn || !confusion || !damageUp || !sparkMark || !flameBody) {
-      throw new Error('Missing required marks for huohuali family')
-    }
+    const burn = requireMark(marks, BURN)
+    const confusion = requireMark(marks, CONFUSION)
+    const damageUp = requireMark(marks, DAMAGE_UP)
+    const sparkMark = requireMark(marks, SPARK_MARK)
+    const flameBody = requireMark(marks, FLAME_BODY)
 
     const burnOpponent = targets.opponentActive.apply(ops.addMark(burn))
     const confuseOpponent = targets.opponentActive.apply(ops.addMark(confusion))
@@ -45,7 +37,7 @@ export class HuohualiEffects {
       effect_ability_increase_crit_damage_10_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, attackDamage, critDamage),
+        when: conditions.all(conditions.selfUsesSkill, physicalOrSpecialDamage, criticalDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       },
       effect_emblem_add_crit_rate_5_percent_for_huohuakeyin_and_chirekeyin: {
@@ -69,10 +61,7 @@ export class HuohualiEffects {
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentBurned),
         apply: actions.sequence(
-          targets.opponentActive
-            .flatMap(pet => pet.marks)
-            .where(mark => mark.baseId === BURN && mark.isActive)
-            .apply(ops.removeMark()),
+          activeOpponentMarks(BURN).apply(ops.removeMark()),
           targets.opponentActive.apply(ops.dealDamage(100, { damageType: DamageType.Effect })),
         ),
       },

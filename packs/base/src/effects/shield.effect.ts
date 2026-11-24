@@ -1,7 +1,7 @@
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
 import { Type } from '@sinclair/typebox'
-import { BaseMark } from '@arcadia-eternity/battle/engine'
 import {
+  BaseMark,
   EffectTrigger,
   compileEffect,
   conditions,
@@ -9,9 +9,11 @@ import {
   values,
   ops,
   numberParam,
+  ConfigModifierType,
+  defineParameter,
+  parameterAddress,
+  ParameterCatalog,
 } from '@arcadia-eternity/battle/authoring'
-import { ConfigModifierType } from '@arcadia-eternity/battle/engine'
-import { defineParameter, parameterAddress, ParameterCatalog } from '@arcadia-eternity/battle/engine'
 
 const id = 'effect_skill_add_mark_shuiwenpingzhang'
 /** Dependency supplied by the trusted catalog; this factory never substitutes a missing mark. */
@@ -46,6 +48,6 @@ export class ShieldEffects {
       when: conditions.selfUsesSkill,
       apply: targets.ownerPet.apply(ops.addMark(mark, { stack })),
     })
-    return Object.freeze({ effect, effects: { [effect.id]: effect }, parameters, multiplier, mark })
+    return Object.freeze({ effect, effects: { [effect.id]: effect }, parameters, multiplier })
   }
 }

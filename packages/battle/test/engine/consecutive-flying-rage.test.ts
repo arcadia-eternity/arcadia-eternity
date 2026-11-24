@@ -24,7 +24,7 @@ import {
   type baseSkillId,
   type effectId,
 } from '@arcadia-eternity/battle/engine'
-import { makeScenario } from './scenario'
+import { engineEffect, makeScenario } from './scenario'
 
 const id = 'effect_ability_add_20_rage_when_use_fly_skill_twice'
 const battles: Battle[] = []
@@ -39,7 +39,7 @@ function fixture() {
     pet.marks.splice(0)
     for (const skill of pet.skills) skill.effects.splice(0)
   }
-  const effect = ConsecutiveFlyingRageEffects.build()
+  const effect = engineEffect(ConsecutiveFlyingRageEffects.build())
   effectAuthoring.effectParameters(effect).install(f.battle.configSystem)
   const mark = new BaseMark('mark_ability_feixiang' as baseMarkId, [effect], {
     ...f.debuff.config,
@@ -72,19 +72,11 @@ function fixture() {
   const fly = skill('one', Element.Flying),
     otherFly = skill('two', Element.Flying),
     normal = skill('normal', Element.Normal)
-  f.a.settingRage(0)
+  f.a.currentRage = 0
   const context = (skill = fly) =>
     new UseSkillContext(new TurnContext(f.battle), f.a, f.a.activePet, AttackTargetOpinion.opponent, skill)
   const run = (event = context()) => {
-    const phase = new SkillPhase(
-      f.battle,
-      event.origin,
-      event.pet,
-      event.selectTarget,
-      event.skill,
-      event.parent,
-      event,
-    )
+    const phase = new SkillPhase(event)
     phase.initialize()
     phase.execute()
     return event
@@ -239,7 +231,9 @@ for (const oldFormat of [false, true])
       pet = player.activePet
     expect(pet.lastUsedSkillElement).toBe(oldFormat ? undefined : Element.Flying)
     const next = pet.skills.find(skill => skill.baseId === 'fixture/flying-two')!
-    const phase = new SkillPhase(restored, player, pet, AttackTargetOpinion.opponent, next, new TurnContext(restored))
+    const phase = new SkillPhase(
+      new UseSkillContext(new TurnContext(restored), player, pet, AttackTargetOpinion.opponent, next),
+    )
     phase.initialize()
     phase.execute()
     expect(player.currentRage).toBe(oldFormat ? 0 : 20)

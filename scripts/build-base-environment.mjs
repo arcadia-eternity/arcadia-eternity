@@ -167,7 +167,7 @@ export async function buildBaseEnvironmentArtifact() {
       writeFile(
         resolve(dir, 'arcadia-effects.json'),
         JSON.stringify(
-          await compileEffectModule(resolve(dir, 'effects.js'), root, '@arcadia-eternity/data-pack-base'),
+          await compileEffectModule(resolve(dir, 'effect-factories.js'), root, '@arcadia-eternity/data-pack-base'),
         ) + '\n',
       ),
     ])

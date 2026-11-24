@@ -27,8 +27,7 @@ it('reuses nearest mark queries independently while admission keeps the direct-e
       triggers: [EffectTrigger.TurnStart],
       apply(ctx) {
         observed.push(ctx.read(query), conditions.ownerAddsMark(ctx))
-        const event = ctx.read(contexts.addMark.first())
-        if (event) event.stack = 5
+        contexts.addMark.apply(effectAuthoring.ops.setMarkStack(5))(ctx)
         observed.push(ctx.read(query))
       },
     }),

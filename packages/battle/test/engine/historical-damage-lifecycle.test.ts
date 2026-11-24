@@ -1,5 +1,6 @@
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  dealDamage,
   BaseMark,
   EffectTrigger,
   TurnContext,
@@ -80,7 +81,7 @@ for (const kind of ['pet', 'skill', 'mark'] as const)
             trace.push(message.type)
           }
         })
-        b.activePet.damage(context)
+        dealDamage(context)
         if (damageType === DamageType.Effect) {
           expect(trace).toEqual([BattleMessageType.Damage, EffectTrigger.OnDamage])
           expect(b.activePet.currentHp).toBe(hp - 20)
@@ -130,9 +131,8 @@ for (const variant of ['normal', 'cancel', 'zero'] as const)
         },
       }),
     )
-    const phase = new SkillPhase(battle, a, a.activePet, AttackTargetOpinion.opponent, skill, use.parent, use)
-    battle.phaseManager.registerPhase(phase)
-    battle.phaseManager.executePhase(phase.id)
+    const phase = new SkillPhase(use)
+    battle.phaseManager.run(phase)
     expect(damages).toHaveLength(1)
     expect(damages[0].source).toBe(skill)
     expect(rage).toHaveLength(variant === 'normal' ? 1 : 0)

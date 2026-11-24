@@ -1,13 +1,7 @@
-import {
-  conditions,
-  contexts,
-  DamageType,
-  defineEffects,
-  EffectTrigger,
-  ops,
-  targets,
-} from '@arcadia-eternity/battle/authoring'
+import { conditions, contexts, defineEffects, EffectTrigger, ops, targets } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { physicalOrSpecialDamage } from './damage-conditions'
+import { activeOpponentMarks, requireMark } from './mark-queries'
 
 const ANFU = 'mark_anfu'
 const DONGSHANG = 'mark_dongshang'
@@ -17,36 +11,27 @@ const XUEZHIWAIYI = 'mark_xuezhiwaiyi'
 const BINGFENG = 'mark_bingfengjiyi'
 const BAOFENGXUE = 'mark_global_baofengxue'
 
-const anfuOnOpponent = targets.opponentActive
-  .flatMap(pet => pet.marks)
-  .where(mark => mark.baseId === ANFU && mark.isActive)
+const anfuOnOpponent = activeOpponentMarks(ANFU)
 const opponentHasAnfu = anfuOnOpponent.first().map(mark => mark !== undefined)
-
-const normalDamage = contexts.damage.condition((_, events) =>
-  events.some(event => event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
-)
 
 const normalSkill = contexts.damageSkill.condition((_, skills) => skills.some(skill => skill.element === 'Normal'))
 
 @effectGroup({ id: 'niya' })
 export class NiyaEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const anfu = marks.get(ANFU)
-    const dongshang = marks.get(DONGSHANG)
-    const xinling = marks.get(XINLING)
-    const shanghai = marks.get(SHANGHAI)
-    const xuezhiwaiyi = marks.get(XUEZHIWAIYI)
-    const bingfeng = marks.get(BINGFENG)
-    const baofengxue = marks.get(BAOFENGXUE)
-    if (!anfu || !dongshang || !xinling || !shanghai || !xuezhiwaiyi || !bingfeng || !baofengxue) {
-      throw new Error('Missing Niya mark dependencies')
-    }
+    const anfu = requireMark(marks, ANFU)
+    const dongshang = requireMark(marks, DONGSHANG)
+    const xinling = requireMark(marks, XINLING)
+    const shanghai = requireMark(marks, SHANGHAI)
+    const xuezhiwaiyi = requireMark(marks, XUEZHIWAIYI)
+    const bingfeng = requireMark(marks, BINGFENG)
+    const baofengxue = requireMark(marks, BAOFENGXUE)
 
     return defineEffects({
       effect_ability_increase_normal_attack_damage_dealt_25_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, normalDamage, normalSkill),
+        when: conditions.all(conditions.selfUsesSkill, physicalOrSpecialDamage, normalSkill),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 25, delta: 0 })),
       },
       effect_emblem_add_power_10_if_opponent_has_anfu: {

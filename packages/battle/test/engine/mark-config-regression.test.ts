@@ -1,4 +1,5 @@
 import {
+  SwitchPetPhase,
   executeTurnOperation,
   UseSkillContext,
   SwitchPetContext,
@@ -138,7 +139,7 @@ it('潜地弹随换场转移给上场精灵并造成 150 点固定伤害', () =>
   expect(hasMark(opponent, 'mark_qiandidan')).toBe(true)
   const incoming = opponent.team[1]!
   const before = incoming.currentHp
-  opponent.performSwitchPet(new SwitchPetContext(new TurnContext(battle), opponent, incoming))
+  battle.phaseManager.run(new SwitchPetPhase(new SwitchPetContext(new TurnContext(battle), opponent, incoming)))
   expect(opponent.activePet).toBe(incoming)
   expect(hasMark(opponent, 'mark_qiandidan')).toBe(true)
   expect(incoming.currentHp).toBe(before - 150)
@@ -219,7 +220,8 @@ it('狂欢曲仅在下一回合结束时结算，施放者换场会取消', () =
     waitTurn(battle)
     expect(opponent.activePet.currentHp).toBe(hp)
     expect(hasMark(opponent, 'mark_kuanghuanqu')).toBe(true)
-    if (switchCaster) owner.performSwitchPet(new SwitchPetContext(new TurnContext(battle), owner, owner.team[1]!))
+    if (switchCaster)
+      battle.phaseManager.run(new SwitchPetPhase(new SwitchPetContext(new TurnContext(battle), owner, owner.team[1]!)))
     waitTurn(battle)
     expect(opponent.activePet.currentHp).toBe(Math.max(0, hp - (switchCaster ? 0 : damage)))
     expect(hasMark(opponent, 'mark_kuanghuanqu')).toBe(false)

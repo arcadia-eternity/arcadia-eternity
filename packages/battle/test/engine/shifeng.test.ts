@@ -1,4 +1,6 @@
 import {
+  addMark,
+  SwitchPetContext,
   AddMarkContext,
   AttackTargetOpinion,
   BattleStartPhase,
@@ -52,8 +54,7 @@ function setup(skills: string[], gender: 'Male' | 'Female' = 'Male', emblem?: st
   const battle = catalog.createBattle(a, b, { rngSeed: 'shifeng', timerConfig: { enabled: false } })
   battles.push(battle)
   const start = new BattleStartPhase(battle)
-  battle.phaseManager.registerPhase(start)
-  expect(battle.phaseManager.executePhase(start.id).success).toBe(true)
+  expect(battle.phaseManager.run(start).success).toBe(true)
   return { battle, a, b }
 }
 
@@ -61,11 +62,11 @@ function mark(pet: Player['activePet'], id: string) {
   return pet.marks.find(entry => entry.baseId === id)
 }
 
-function addMark(battle: Battle, source: Player, target: Player, id: string, stacks = 1) {
+function addFixtureMark(battle: Battle, source: Player, target: Player, id: string, stacks = 1) {
   const effect = new EffectContext(new TurnContext(battle), EffectTrigger.TurnStart, source.activePet.skills[0])
   const base = catalog.getMark(id as Parameters<typeof catalog.getMark>[0])
   const add = new AddMarkContext(effect, target.activePet, base, stacks)
-  battle.addMark(add)
+  addMark(add)
   return add
 }
 
@@ -82,24 +83,15 @@ function attack(battle: Battle, player: Player, id: string, willHit: boolean) {
   player.currentRage = player.maxRage
   const use = skillUse(battle, player, id)
   use.hitOverrides.push({ willHit, priority: 1000 })
-  const phase = new SkillPhase(
-    battle,
-    player,
-    player.activePet,
-    AttackTargetOpinion.opponent,
-    use.skill,
-    use.parent,
-    use,
-  )
-  battle.phaseManager.registerPhase(phase)
-  expect(battle.phaseManager.executePhase(phase.id).success).toBe(true)
+  const phase = new SkillPhase(use)
+  expect(battle.phaseManager.run(phase).success).toBe(true)
 }
 
 it('spends three independent charges on hits, then blocks both classes of abnormal status through switching', () => {
   const { battle, a, b } = setup([poisonSkill, paralysisSkill, slowSkill])
   vi.spyOn(battle, 'random').mockReturnValue(0.99)
   expect(a.team.map(pet => mark(pet, needles)?.stack)).toEqual([3, 3])
-  expect(addMark(battle, b, a, poison).available).toBe(true)
+  expect(addFixtureMark(battle, b, a, poison).available).toBe(true)
 
   attack(battle, a, poisonSkill, false)
   expect(mark(a.activePet, needles)?.stack).toBe(3)
@@ -127,14 +119,13 @@ it('spends three independent charges on hits, then blocks both classes of abnorm
   expect(observeDamage).toHaveReturnedWith(1)
 
   for (const pet of [a.team[1], a.team[0]]) {
-    const phase = new SwitchPetPhase(battle, a, pet, new TurnContext(battle))
-    battle.phaseManager.registerPhase(phase)
-    expect(battle.phaseManager.executePhase(phase.id).success).toBe(true)
+    const phase = new SwitchPetPhase(new SwitchPetContext(new TurnContext(battle), a, pet))
+    expect(battle.phaseManager.run(phase).success).toBe(true)
     expect(a.activePet).toBe(pet)
   }
   expect(a.team.map(pet => mark(pet, needles)?.stack)).toEqual([0, 3])
-  expect(addMark(battle, b, a, poison).available).toBe(false)
-  expect(addMark(battle, b, a, paralysis).available).toBe(false)
+  expect(addFixtureMark(battle, b, a, poison).available).toBe(false)
+  expect(addFixtureMark(battle, b, a, paralysis).available).toBe(false)
 })
 
 it.each([
@@ -143,7 +134,7 @@ it.each([
 ])('uses the 40%% secondary chance after its third charge, with random draw %s', (random, expected) => {
   const { battle, a, b } = setup([slowSkill, poisonSkill])
   // Keep the target alive through the three setup hits and the fourth chance check.
-  addMark(battle, b, b, 'mark_hanbinghujia', 1000)
+  addFixtureMark(battle, b, b, 'mark_hanbinghujia', 1000)
   const rng = vi.spyOn(battle, 'random').mockReturnValue(0.99)
   for (let i = 0; i < 3; i++) attack(battle, a, slowSkill, true)
   expect(b.activePet.isAlive).toBe(true)
@@ -164,7 +155,7 @@ it.each([
     attackerEmblem ? 'mark_emblem_malui' : undefined,
     defenderEmblem,
   )
-  addMark(battle, b, b, 'mark_hanbinghujia', 1000)
+  addFixtureMark(battle, b, b, 'mark_hanbinghujia', 1000)
   const rng = vi.spyOn(battle, 'random').mockReturnValue(0.99)
   for (let i = 0; i < 3; i++) attack(battle, a, slowSkill, true)
   expect(mark(a.activePet, needles)?.stack).toBe(0)
@@ -220,7 +211,7 @@ it.each([
     const { battle, a, b } = setup([matching, other], gender)
     vi.spyOn(battle, 'random').mockReturnValue(0.99)
     const shield = 'mark_hanbinghujia'
-    addMark(battle, b, b, shield, 1000)
+    addFixtureMark(battle, b, b, shield, 1000)
     a.activePet.currentHp -= 100
     const ownHp = a.activePet.currentHp
     const targetHp = b.activePet.currentHp
@@ -246,7 +237,7 @@ it('drains the committed HP loss even if the victim heals in its own damage reac
   const { battle, a, b } = setup(['skill_xiongfengzhici'])
   vi.spyOn(battle, 'random').mockReturnValue(0.99)
   const target = b.activePet
-  addMark(battle, b, b, 'mark_hanbinghujia', 1000)
+  addFixtureMark(battle, b, b, 'mark_hanbinghujia', 1000)
   target.currentHp -= 20
   a.activePet.currentHp -= 100
   const attackerHp = a.activePet.currentHp

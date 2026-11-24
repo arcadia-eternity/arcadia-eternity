@@ -1,5 +1,9 @@
+import { applyEffect } from '../../src/engine/phase/effectExecution'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  addMark,
+  consumeMarkStacks,
+  dealDamage,
   AddMarkContext,
   BaseMark,
   DamageContext,
@@ -70,7 +74,7 @@ function fixture() {
       stackable: true,
       keepOnSwitchOut: true,
     })
-    f.battle.addMark(new AddMarkContext(ctx, owner, base, stack))
+    addMark(new AddMarkContext(ctx, owner, base, stack))
     const mark = owner.marks.find(mark => mark.baseId === id)
     if (!mark) throw new Error(`Mark creation failed: ${id}`)
     return mark
@@ -115,7 +119,7 @@ it('dispatches authored trigger arrays with the matching parent and leaves nativ
   ] as const) {
     const context = new EffectContext(parent, trigger, f.skill, effect)
     expect(effect.condition!(context)).toBe(true)
-    effect.innerApply(context)
+    applyEffect(effect, context)
     expect(context).not.toHaveProperty('read')
     expect(context).not.toHaveProperty('ops')
   }
@@ -195,7 +199,7 @@ it('rebirth assigns current HP from execution-time max HP without heal hooks', (
     }),
   ])
   f.owner.currentHp = 50
-  f.owner.damage(new DamageContext(f.use, f.b.activePet, f.owner, 100))
+  dealDamage(new DamageContext(f.use, f.b.activePet, f.owner, 100))
   expect(f.owner.currentHp).toBe(100)
   expect(healing).toBe(0)
 })
@@ -227,7 +231,7 @@ it('runs the weakness example on creation, follows stack, changes spe only, and 
   expect(f.owner.stat.spd).toBe(spd)
   mark.stack = 3
   expect(f.owner.stat.spe).toBe(225)
-  source.consumeStack(f.ctx, 1)
+  consumeMarkStacks(f.ctx, source, 1)
   expect(f.owner.stat.spe).toBe(300)
   mark.stack = 4
   expect(f.owner.stat.spe).toBe(300)
@@ -271,7 +275,7 @@ it.each(['capture', 'follow'] as const)('%s handles real removal and subsequent 
   f.owner.attributeSystem.updateBaseValue('spe', 300)
   const mark = f.add('mark_ruodianjihao', [], 2)
   f.add('speed-source', [penalty(mode === 'capture' ? capturedInstancePenalty : followingInstancePenalty)])
-  mark.consumeStack(f.ctx, 2)
+  consumeMarkStacks(f.ctx, mark, 2)
   expect(f.owner.stat.spe).toBe(300)
   f.add('mark_ruodianjihao', [], 3)
   expect(f.owner.stat.spe).toBe(mode === 'capture' ? 300 : 225)
@@ -294,7 +298,7 @@ it.each(['capture', 'follow'] as const)('%s opponent selection across real switc
   const initial = f.owner.stat.spe
   f.b.team[0].attributeSystem.updateBaseValue('def', 50)
   expect(f.owner.stat.spe).toBe(initial - 10)
-  const phase = new SwitchPetPhase(f.battle, f.b, f.b.team[1], new TurnContext(f.battle))
+  const phase = new SwitchPetPhase(new SwitchPetContext(new TurnContext(f.battle), f.b, f.b.team[1]))
   phase.initialize()
   expect(phase.execute().success).toBe(true)
   expect(f.owner.stat.spe).toBe(initial - (mode === 'capture' ? 10 : 40))
@@ -364,7 +368,7 @@ it('duplicate temporal keys and self-dependent attributes are rejected, not trea
       source,
       effect,
     )
-    expect(() => f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(context))).toThrow()
+    expect(() => f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, context))).toThrow()
   }
   expect(f.owner.stat.spe).toBe(initial)
 })
@@ -425,7 +429,7 @@ it('re-queries the nearest damage context between actions and reads percent then
     }),
   )
   f.battle.executionBudget.run(f.battle.currentTurn, () =>
-    effect.innerApply(new EffectContext(nested, EffectTrigger.BeforeEffect, f.skill, effect)),
+    applyEffect(effect, new EffectContext(nested, EffectTrigger.BeforeEffect, f.skill, effect)),
   )
   expect(first.modified).toEqual([10, 3])
   expect(second.modified).toEqual([10, 3])
@@ -452,7 +456,7 @@ it('skips missing damage inputs and rejects foreign contexts before writing', ()
     }),
   )
   f.battle.executionBudget.run(f.battle.currentTurn, () =>
-    effect.innerApply(new EffectContext(damage, EffectTrigger.OnBeforeCalculateDamage, f.skill, effect)),
+    applyEffect(effect, new EffectContext(damage, EffectTrigger.OnBeforeCalculateDamage, f.skill, effect)),
   )
   expect(damage.modified).toEqual([0, 0])
   expect(deltaReads).toBe(1)
@@ -466,7 +470,7 @@ it('skips missing damage inputs and rejects foreign contexts before writing', ()
   )
   expect(() =>
     f.battle.executionBudget.run(f.battle.currentTurn, () =>
-      cross.innerApply(new EffectContext(damage, EffectTrigger.OnBeforeCalculateDamage, f.skill, cross)),
+      applyEffect(cross, new EffectContext(damage, EffectTrigger.OnBeforeCalculateDamage, f.skill, cross)),
     ),
   ).toThrow('Cross-battle')
   expect(foreign.modified).toEqual([0, 0])
@@ -516,7 +520,7 @@ it('reads declared parameters from the current source scope on each action', () 
   catalog.install(f.battle.configSystem)
   const run = (source = f.skill) =>
     f.battle.executionBudget.run(f.battle.currentTurn, () =>
-      effect.innerApply(new EffectContext(f.use, EffectTrigger.BeforeHit, source, effect)),
+      applyEffect(effect, new EffectContext(f.use, EffectTrigger.BeforeHit, source, effect)),
     )
   run()
   const amountSignal = new Signal(7)
@@ -560,7 +564,7 @@ it('rejects missing installation, undeclared references and ambiguous parameter 
     },
   })
   const effect = compileEffect(definition)
-  const run = () => f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  const run = () => f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, f.ctx))
   expect(run).toThrow('Invalid effective parameter')
   effectParameters(effect).install(f.battle.configSystem)
   expect(run).not.toThrow()
@@ -573,7 +577,7 @@ it('rejects missing installation, undeclared references and ambiguous parameter 
       },
     }),
   )
-  expect(() => f.battle.executionBudget.run(f.battle.currentTurn, () => undeclared.innerApply(f.ctx))).toThrow(
+  expect(() => f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(undeclared, f.ctx))).toThrow(
     'not declared',
   )
   expect(() =>
@@ -617,9 +621,9 @@ it('owns parameter metadata and isolates a shared declaration between effects an
     'original.alias',
     new ConfigModifier(ConfigDurationType.binding, 'change', 2, ConfigModifierType.delta, 0),
   )
-  f.battle.executionBudget.run(f.battle.currentTurn, () => first.innerApply(f.ctx))
-  other.battle.executionBudget.run(other.battle.currentTurn, () => second.innerApply(other.ctx))
-  f.battle.executionBudget.run(f.battle.currentTurn, () => second.innerApply(f.ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(first, f.ctx))
+  other.battle.executionBudget.run(other.battle.currentTurn, () => applyEffect(second, other.ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(second, f.ctx))
   expect(observed).toEqual([6, 4, 4])
   expect(() =>
     effectParameters(first).modify(
@@ -660,9 +664,9 @@ it('combines values left-to-right once and reads the right input even when the l
       },
     }),
   )
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, f.ctx))
   missing = true
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, f.ctx))
   expect(results).toEqual([7, undefined])
   expect(trace).toEqual(['left', 'right', 'project', 'left', 'right'])
 })
@@ -728,9 +732,9 @@ it('queries nested heal contexts per action and reads both modifier inputs even 
     }),
   )
   const ctx = new EffectContext(nested, EffectTrigger.BeforeEffect, f.skill)
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, ctx))
   missing = true
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, ctx))
   expect(heal.modified).toEqual([20, 3])
   expect(trace).toEqual(['percent', 'delta', 'percent', 'delta'])
 })
@@ -749,7 +753,7 @@ it('probability conditions use one ordered battle draw, including certain outcom
       },
     }),
   )
-  effect.innerApply(f.ctx)
+  applyEffect(effect, f.ctx)
   control.battle.random()
   control.battle.random()
   expect(f.battle.random()).toBe(control.battle.random())
@@ -792,7 +796,7 @@ it('rechecks damage and healing ownership after value callbacks mutate the selec
       },
     }),
   )
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, f.ctx))
   expect(ownDamage.modified).toEqual([25, 0])
   expect(ownHeal.modified).toEqual([25, 0])
   expect(otherDamage.modified).toEqual([0, 0])
@@ -824,7 +828,7 @@ it('power operations read complete lists again for each target and preserve frac
       },
     }),
   )
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, f.ctx))
   expect(reads).toBe(2)
   expect(f.use.power).toBeCloseTo((10 + 2.1 + 3.1) * 1.25)
   expect(other.power).toBeCloseTo((20 + 2.2 + 3.2) * 1.25)
@@ -845,7 +849,7 @@ it('skill context queries resolve ancestry afresh while owner admission stays di
   )
   const ctx = new EffectContext(nested, EffectTrigger.BeforeEffect, f.skill)
   const initial = f.use.power
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, ctx))
   expect(results).toEqual([false, true])
   expect(f.use.power).toBe(initial + 4)
 })
@@ -873,11 +877,11 @@ it('opponent mark queries follow the direct skill target and requery after targe
     }),
   )
   f.use.actualTarget = f.owner
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, f.ctx))
   expect(results).toEqual([[1], [5]])
   const nested = new EffectContext(f.ctx, EffectTrigger.BeforeEffect, f.skill)
   results.length = 0
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(nested))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, nested))
   expect(results).toEqual([[2], [2]])
 })
 
@@ -896,7 +900,7 @@ it('skill-order searches ancestry while periodic conditions retain direct event 
       },
     }),
   )
-  const read = (ctx = f.ctx) => f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(ctx))
+  const read = (ctx = f.ctx) => f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, ctx))
   f.owner.lastSkillUsedTimes = 2
   read()
   turn.appledContexts.push(f.use, other)
@@ -907,7 +911,7 @@ it('skill-order searches ancestry while periodic conditions retain direct event 
   f.owner.lastSkillUsedTimes = 3
   read()
   f.battle.executionBudget.run(f.battle.currentTurn, () =>
-    effect.innerApply(new EffectContext(f.ctx, EffectTrigger.BeforeEffect, f.skill)),
+    applyEffect(effect, new EffectContext(f.ctx, EffectTrigger.BeforeEffect, f.skill)),
   )
   f.owner.lastSkillUsedTimes = 0
   read()
@@ -939,12 +943,12 @@ it('player queries use the direct skill actor, requery ownership, then fall back
       },
     }),
   )
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, f.ctx))
   expect(seen).toEqual([f.a.id, 0, f.b.id, 7])
   seen.length = 0
   f.owner.owner = f.a
   f.battle.executionBudget.run(f.battle.currentTurn, () =>
-    effect.innerApply(new EffectContext(f.ctx, EffectTrigger.BeforeEffect, f.skill)),
+    applyEffect(effect, new EffectContext(f.ctx, EffectTrigger.BeforeEffect, f.skill)),
   )
   expect(seen).toEqual([f.b.id, 7, f.b.id, 7])
 })
@@ -995,7 +999,7 @@ it('conditional power lists distinguish no branch from zero and read only the se
     }),
   )
   f.use.power = 83
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, f.ctx))
   expect(reads).toEqual(['high', 'low-condition', 'low', 'low-condition'])
   expect(writes).toEqual([150, 50, 0])
   expect(f.use.power).toBe(283)
@@ -1027,7 +1031,7 @@ it('parameterized probability rereads at admission and keeps one draw for zero a
     }),
   )
   effectParameters(effect).install(f.battle.configSystem)
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, f.ctx))
   expect(outcomes).toEqual([false, true, false])
   expect(draws).toBe(3)
 })
@@ -1072,7 +1076,7 @@ it('mark application reads ordered inputs once per action and shares them across
       },
     }),
   )
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, f.ctx))
   expect(reads).toEqual(['mark', 'stack', 'duration', 'mark', 'stack', 'duration'])
   expect(
     [f.owner, f.b.activePet, f.a.team[1]].map(pet => {
@@ -1093,11 +1097,12 @@ it('missing marks skip option reads; missing options use base defaults while exp
   const missingMark = absent.select(mark => mark.base).first()
   const missingNumber = absent.select(mark => mark.stack).first()
   const inputs: number[][] = []
-  const add = f.owner.addMark.bind(f.owner)
-  f.owner.addMark = context => {
-    inputs.push([context.stack, context.duration])
-    return add(context)
-  }
+  f.add('test/observe-mark-defaults', [
+    hook('test/observe-mark-application', EffectTrigger.OnBeforeAddMark, ({ parent }) => {
+      if (parent instanceof AddMarkContext && parent.target === f.owner && parent.baseMark === base)
+        inputs.push([parent.stack, parent.duration])
+    }),
+  ])
   const effect = compileEffect(
     defineEffect({
       id: 'test/mark-defaults',
@@ -1118,7 +1123,7 @@ it('missing marks skip option reads; missing options use base defaults while exp
       },
     }),
   )
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, f.ctx))
   expect(inputs).toEqual([
     [5, 7],
     [0, 0],
@@ -1159,7 +1164,7 @@ it('mark application rejects foreign targets before writes and rechecks ownershi
       },
     }),
   )
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, f.ctx))
   expect(f.owner.marks.some(mark => mark.base === base)).toBe(false)
   expect(foreign.owner.marks.some(mark => mark.base === base)).toBe(false)
 })
@@ -1194,7 +1199,7 @@ it('later mark actions requery owner and numeric sources after a creation hook m
       ),
     }),
   )
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, f.ctx))
   expect(f.owner.marks.find(mark => mark.base === first)?.stack).toBe(3)
   expect(f.owner.marks.some(mark => mark.base === second)).toBe(false)
   expect(f.a.team[1].marks.find(mark => mark.base === second)?.stack).toBe(5)
@@ -1231,7 +1236,7 @@ it('mark creation hooks cannot move a later selected target into another battle 
       },
     }),
   )
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, f.ctx))
   expect(f.owner.marks.some(mark => mark.base === base)).toBe(true)
   expect(later.marks.some(mark => mark.base === base)).toBe(false)
 })
@@ -1263,7 +1268,7 @@ it('flatMap requeries membership and preserves ordered snapshots through later o
       },
     }),
   )
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, f.ctx))
   expect(results).toEqual([[2, 3, 7, 8], [11, 12], []])
 })
 
@@ -1359,7 +1364,7 @@ it('random selectors fully shuffle on every use and preserve fixed membership an
       },
     }),
   )
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, f.ctx))
   expect(results).toEqual([
     expected.shuffle([1, 2, 3, 4]),
     expected.shuffle([1, 2, 3, 4]).find(n => n > 2),
@@ -1390,7 +1395,7 @@ it('random selectors requery dynamic membership before shuffling', () => {
       },
     }),
   )
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, f.ctx))
   expect(results).toEqual([[first.baseId], expected.shuffle(['test/random-first', 'test/random-second'])])
   expect(f.battle.random()).toBe(expected.next())
 })
@@ -1406,7 +1411,7 @@ it.each(['capture', 'follow'] as const)(
       mode === 'capture' ? query.capture({ key: 'random', scope: 'binding' }) : query.follow({ key: 'random' })
     const effect = penalty(plan, `test/random-${mode}`)
     const ctx = new EffectContext(new AddMarkContext(f.ctx, f.owner, mark.base), EffectTrigger.OnMarkCreated, mark)
-    expect(() => f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(ctx))).toThrow(
+    expect(() => f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, ctx))).toThrow(
       'Persistent queries',
     )
     expect(f.owner.stat.spe).toBe(speed)
@@ -1444,7 +1449,7 @@ it('switch queries requery nearest context while the outgoing predicate requires
       },
     }),
   )
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(nested))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, nested))
   expect(results).toEqual(['A/reserve', 'A/lead'])
 })
 
@@ -1466,12 +1471,12 @@ it('opponent player requery uses the direct target and source fallback in nested
       },
     }),
   )
-  f.battle.executionBudget.run(0, () => effect.innerApply(f.ctx))
+  f.battle.executionBudget.run(0, () => applyEffect(effect, f.ctx))
   expect(seen).toEqual([f.b.id, f.a.id, f.a.id])
   seen.length = 0
   f.use.actualTarget = f.b.activePet
   f.battle.executionBudget.run(0, () =>
-    effect.innerApply(new EffectContext(f.ctx, EffectTrigger.BeforeEffect, f.skill)),
+    applyEffect(effect, new EffectContext(f.ctx, EffectTrigger.BeforeEffect, f.skill)),
   )
   expect(seen).toEqual([f.a.id, f.a.id, f.a.id])
 })
@@ -1519,7 +1524,7 @@ it('persistent self-player and opponent-mark queries use source identity without
     ),
   ])
   const base = new BaseMark('test/opponent-support' as baseMarkId, [], f.debuff.config)
-  f.battle.addMark(new AddMarkContext(f.ctx, f.b.activePet, base))
+  addMark(new AddMarkContext(f.ctx, f.b.activePet, base))
   expect(f.owner.stat.spe).toBe(before - 1)
 })
 
@@ -1545,7 +1550,7 @@ it.each([false, true])('conditional checkSelf uses the direct event subject, nes
           f.skill,
         )
       : new EffectContext(damage, EffectTrigger.PostDamage, f.skill)
-    f.battle.executionBudget.run(0, () => effect.innerApply(event))
+    f.battle.executionBudget.run(0, () => applyEffect(effect, event))
   }
   expect(answers).toEqual([20, 10])
 })
@@ -1565,7 +1570,7 @@ it('inclusive random values read afresh, include both endpoints and consume one 
       },
     }),
   )
-  f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(f.ctx))
+  f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, f.ctx))
   const independent = Array.from({ length: 400 }, () => Math.floor(expected.next() * 41) + 30)
   expected.next()
   expect(samples).toEqual([...independent, 7])
@@ -1592,7 +1597,7 @@ it.each(['capture', 'follow'] as const)('random integer values reject persistent
     mode === 'capture' ? query.capture({ key: 'random-int', scope: 'binding' }) : query.follow({ key: 'random-int' })
   const effect = penalty(plan, `test/random-int-${mode}`)
   const ctx = new EffectContext(new AddMarkContext(f.ctx, f.owner, mark.base), EffectTrigger.OnMarkCreated, mark)
-  expect(() => f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(ctx))).toThrow(
+  expect(() => f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, ctx))).toThrow(
     'Persistent queries',
   )
   expect(f.owner.stat.spe).toBe(speed)
@@ -1626,9 +1631,9 @@ it('rage modifiers query ancestry afresh and read both inputs in order even when
     }),
   )
   const ctx = new EffectContext(nested, EffectTrigger.BeforeEffect, f.skill)
-  f.battle.executionBudget.run(0, () => effect.innerApply(ctx))
+  f.battle.executionBudget.run(0, () => applyEffect(effect, ctx))
   missing = true
-  f.battle.executionBudget.run(0, () => effect.innerApply(ctx))
+  f.battle.executionBudget.run(0, () => applyEffect(effect, ctx))
   expect(rage.modified).toEqual([20, 3])
   expect(trace).toEqual(['percent', 'delta', 'percent', 'delta'])
 })
@@ -1650,7 +1655,7 @@ it('rage modifiers reject foreign contexts before reading either amount', () => 
       apply: selectFrom([foreign]).apply(ops.modifyRage({ percent: amount, delta: amount })),
     }),
   )
-  expect(() => f.battle.executionBudget.run(0, () => effect.innerApply(f.ctx))).toThrow('Cross-battle rage context')
+  expect(() => f.battle.executionBudget.run(0, () => applyEffect(effect, f.ctx))).toThrow('Cross-battle rage context')
   expect(reads).toBe(0)
   expect(foreign.modified).toEqual([0, 0])
 })
@@ -1673,7 +1678,7 @@ it('skill instance flags read once per application, can clear, and skip missing 
       apply: targets.selfSkills.apply(ops.setSkillSureHit(input)),
     }),
   )
-  const apply = () => f.battle.executionBudget.run(0, () => effect.innerApply(f.ctx))
+  const apply = () => f.battle.executionBudget.run(0, () => applyEffect(effect, f.ctx))
   apply()
   expect(reads).toBe(1)
   expect(f.owner.skills.every(s => s.sureHit)).toBe(true)
@@ -1706,9 +1711,9 @@ it('skill instance assignments reject foreign targets before reads and recheck a
         apply: selectFrom([skill]).apply(ops.setSkillSureHit(input)),
       }),
     )
-  expect(() => f.battle.executionBudget.run(0, () => make(other.skill).innerApply(f.ctx))).toThrow()
+  expect(() => f.battle.executionBudget.run(0, () => applyEffect(make(other.skill), f.ctx))).toThrow()
   expect(reads).toBe(0)
-  expect(() => f.battle.executionBudget.run(0, () => make(f.skill).innerApply(f.ctx))).toThrow()
+  expect(() => f.battle.executionBudget.run(0, () => applyEffect(make(f.skill), f.ctx))).toThrow()
   expect(reads).toBe(1)
   expect(f.skill.sureHit).toBe(false)
 })

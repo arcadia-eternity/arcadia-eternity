@@ -189,6 +189,34 @@ export function parseBackup(input: string | Uint8Array): ProfileBackup {
   if (!Number.isFinite(Date.parse(backup.exportedAt))) throw new ProfileError('INVALID_BACKUP', '导出时间无效')
   return { ...backup, data: validateData(backup.data) }
 }
+export function defaultSettings(): ProfileData['settings'] {
+  return {
+    battleRenderer: 'swf',
+    battleMotion: 'standard',
+    mute: false,
+    musicMute: false,
+    soundMute: false,
+    musicVolume: 50,
+    soundVolume: 50,
+    background: 'random',
+    battleMusic: 'random',
+    visibleLogTypes: [
+      BattleMessageType.SkillUse,
+      BattleMessageType.Damage,
+      BattleMessageType.Heal,
+      BattleMessageType.SkillMiss,
+      BattleMessageType.PetSwitch,
+      BattleMessageType.BattleStart,
+      BattleMessageType.BattleEnd,
+      BattleMessageType.ForcedSwitch,
+      BattleMessageType.FaintSwitch,
+      BattleMessageType.PetDefeated,
+      BattleMessageType.MarkApply,
+      BattleMessageType.MarkDestroy,
+    ],
+  }
+}
+
 export function defaultData(name?: string): ProfileData {
   const id = nanoid()
   return {
@@ -199,31 +227,7 @@ export function defaultData(name?: string): ProfileData {
       teams: [newPersonalTeam('默认队伍', 'casual_standard_ruleset')],
       currentTeamIndex: 0,
     },
-    settings: {
-      battleRenderer: 'swf',
-      battleMotion: 'standard',
-      mute: false,
-      musicMute: false,
-      soundMute: false,
-      musicVolume: 50,
-      soundVolume: 50,
-      background: 'random',
-      battleMusic: 'random',
-      visibleLogTypes: [
-        BattleMessageType.SkillUse,
-        BattleMessageType.Damage,
-        BattleMessageType.Heal,
-        BattleMessageType.SkillMiss,
-        BattleMessageType.PetSwitch,
-        BattleMessageType.BattleStart,
-        BattleMessageType.BattleEnd,
-        BattleMessageType.ForcedSwitch,
-        BattleMessageType.FaintSwitch,
-        BattleMessageType.PetDefeated,
-        BattleMessageType.MarkApply,
-        BattleMessageType.MarkDestroy,
-      ],
-    },
+    settings: defaultSettings(),
   }
 }
 export function canonical(value: unknown): string {

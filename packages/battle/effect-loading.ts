@@ -1,4 +1,6 @@
 /** Pure author-side loading SDK. This module is bundled into the admitted VM, never a global host registry. */
+import type { Effect as EngineEffectType } from './src/engine/effect'
+import type { ParameterCatalog as EngineParameters } from './src/engine/content/parameters'
 import {
   Effect,
   BaseMark,
@@ -14,6 +16,7 @@ import {
 } from '@arcadia-eternity/battle/authoring'
 
 type Compiled = Effect<EffectTrigger>
+type EngineEffect = EngineEffectType<EffectTrigger>
 export type EffectGroupResult =
   | Compiled
   | Readonly<Record<string, Compiled>>
@@ -77,8 +80,7 @@ export function effect(options: EffectOptions) {
   return <T extends abstract new (...args: never[]) => object>(value: T, _context: ClassDecoratorContext) => {
     if (!options.id || definitions.has(value)) throw new Error('Invalid or repeated effect decorator')
     const custom = Reflect.get(value, 'create') as
-      | ((context: CodeEffectModuleContext) => NativeBehaviorExport)
-      | undefined
+      ((context: CodeEffectModuleContext) => NativeBehaviorExport) | undefined
     if (typeof custom === 'function') {
       definitions.set(value, context => {
         const definition = custom(context)
@@ -114,7 +116,10 @@ export interface EffectSource {
   readonly exports: Readonly<Record<string, unknown>>
 }
 /** All exports may be inspected; only decorated classes participate. Importing helpers registers nothing. */
-export function loadEffectGroups(sources: readonly EffectSource[], marks: ReadonlyMap<string, BaseMark>) {
+export function loadEffectGroups(
+  sources: readonly EffectSource[],
+  marks: ReadonlyMap<string, BaseMark>,
+): { effects: Map<string, EngineEffect>; parameters: Map<string, EngineParameters>; families: Map<string, string> } {
   const providers = new Map<string, { group: Group; file: string }>()
   const seen = new Set<object>()
   for (const source of sources)
@@ -127,8 +132,8 @@ export function loadEffectGroups(sources: readonly EffectSource[], marks: Readon
       if (previous) throw new Error(`Duplicate effect group ${group.id}: ${previous.file}, ${source.file}`)
       providers.set(group.id, { group, file: source.file })
     }
-  const effects = new Map<string, Compiled>(),
-    parameters = new Map<string, ParameterCatalog>(),
+  const effects = new Map<string, EngineEffect>(),
+    parameters = new Map<string, EngineParameters>(),
     families = new Map<string, string>()
   const complete = new Set<string>(),
     chain: string[] = []
@@ -156,11 +161,11 @@ export function loadEffectGroups(sources: readonly EffectSource[], marks: Readon
       for (const [key, effect] of Object.entries(table)) {
         if (!(effect instanceof Effect) || effect.id !== key) throw new Error(`Invalid effect: ${key}`)
         if (effects.has(key)) throw new Error(`Duplicate effect ${key}: ${families.get(key)}, ${id}`)
-        effects.set(key, effect)
+        effects.set(key, effect as EngineEffect)
         families.set(key, id)
-        if (hasAuthoredParameters(effect)) parameters.set(key, effectParameters(effect))
+        if (hasAuthoredParameters(effect)) parameters.set(key, effectParameters(effect) as EngineParameters)
         if (grouped && (result.parameterMode !== 'fallback' || !hasAuthoredParameters(effect)))
-          parameters.set(key, result.parameters as ParameterCatalog)
+          parameters.set(key, result.parameters as EngineParameters)
       }
       complete.add(id)
     } catch (error) {

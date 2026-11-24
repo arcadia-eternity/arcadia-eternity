@@ -1,4 +1,5 @@
 import {
+  conditions,
   effect,
   on,
   defineCodeEffect,
@@ -6,7 +7,6 @@ import {
   targets,
   ops,
   EffectTrigger,
-  AddMarkContext,
   type EffectModuleContext,
   type NativeEffectContext,
 } from '@arcadia-eternity/content-sdk'
@@ -16,11 +16,11 @@ import {
 export class ApplySlow {
   @on(EffectTrigger.OnHit)
   static apply(context: NativeEffectContext<EffectTrigger.OnHit>, content: EffectModuleContext) {
-    if (context.source !== context.parent.skill) return
+    if (!conditions.selfUsesSkill(context)) return
     const slow = content.marks.get(content.id('slow'))
     if (!slow) throw new Error('Missing slow mark')
     const target = context.parent.actualTarget
-    if (target) target.addMark(new AddMarkContext(context, target, slow))
+    if (target) ops.addMark(slow)(context, [target])
   }
 }
 

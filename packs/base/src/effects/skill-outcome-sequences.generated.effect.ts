@@ -6,11 +6,11 @@ import {
   conditions,
   contexts,
   targets,
-  checks,
   ops,
   actions,
   type EffectFrame,
 } from '@arcadia-eternity/battle/authoring'
+import { ownerHasMark, opponentHasMark } from './mark-queries'
 @effectGroup({ id: 'skill-outcome-sequences.generated' })
 export class SkillOutcomeSequencesGeneratedEffects {
   static build() {
@@ -18,10 +18,7 @@ export class SkillOutcomeSequencesGeneratedEffects {
       effect_emblem_add_crit_rate_5_percent_if_has_shuiwenzhenji: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.sourceOwnsEvent,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiwenzhenji').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.sourceOwnsEvent, ownerHasMark('mark_shuiwenzhenji')),
         apply: actions.sequence(contexts.skillUse.apply(ops.addCritRate(5))),
       },
       effect_mark_amplify_next_damage_skill_power_with_stack: {
@@ -91,10 +88,7 @@ export class SkillOutcomeSequencesGeneratedEffects {
       effect_skill_add_power_10_consume_shazhidanke: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shazhidanke').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shazhidanke')),
         apply: actions.sequence(
           contexts.skillUse.apply(ops.addPower(10)),
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shazhidanke').apply(ops.consumeStacks(1)),
@@ -121,10 +115,7 @@ export class SkillOutcomeSequencesGeneratedEffects {
       effect_skill_consume_dongqifuti_sure_crit: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_dongqifuti').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_dongqifuti')),
         apply: actions.sequence(
           contexts.skillUse.apply(ops.setSureCrit(0)),
           targets.opponentMarks.where(mark => mark.baseId === 'mark_dongqifuti').apply(ops.removeMark()),
@@ -133,22 +124,16 @@ export class SkillOutcomeSequencesGeneratedEffects {
       effect_skill_consume_heimowuzhi_2_sure_crit: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_heianwuzhi')),
-          ),
-          (ctx: EffectFrame) => {
-            const left = ctx.read(
-              targets.opponentMarks
-                .where(mark => mark.baseId === 'mark_heianwuzhi')
-                .select(mark => mark.stack)
-                .all(),
-            )
-            const right = 1
-            return right !== undefined && left.some(value => value > right)
-          },
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_heianwuzhi'), (ctx: EffectFrame) => {
+          const left = ctx.read(
+            targets.opponentMarks
+              .where(mark => mark.baseId === 'mark_heianwuzhi')
+              .select(mark => mark.stack)
+              .all(),
+          )
+          const right = 1
+          return right !== undefined && left.some(value => value > right)
+        }),
         apply: actions.sequence(
           targets.opponentMarks.where(mark => mark.baseId === 'mark_heianwuzhi').apply(ops.consumeStacks(2)),
           contexts.skillUse.apply(ops.setSureCrit(1)),
@@ -157,10 +142,7 @@ export class SkillOutcomeSequencesGeneratedEffects {
       effect_skill_consume_huanxiang_set_sure_hit: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_huanxiang')),
         apply: actions.sequence(
           targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').apply(ops.consumeStacks(1)),
           contexts.skillUse.apply(ops.setSureHit(99)),
@@ -169,10 +151,7 @@ export class SkillOutcomeSequencesGeneratedEffects {
       effect_skill_sure_hit_consume_shazhidanke: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shazhidanke').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shazhidanke')),
         apply: actions.sequence(
           contexts.skillUse.apply(ops.setSureHit(2)),
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shazhidanke').apply(ops.consumeStacks(1)),

@@ -1,6 +1,13 @@
 import { BattleMessageType, DamageType, EffectTrigger, individualValueSpread } from '@arcadia-eternity/const'
-import { DamageContext, SwitchPetContext, TurnContext, UseSkillContext } from '@arcadia-eternity/battle/engine'
-import { expect, it, vi } from 'vitest'
+import {
+  dealDamage,
+  SwitchPetPhase,
+  DamageContext,
+  SwitchPetContext,
+  TurnContext,
+  UseSkillContext,
+} from '@arcadia-eternity/battle/engine'
+import { describe, expect, it, vi } from 'vitest'
 import { petBattle } from './original-pet-battle'
 
 it('蹦蹦鼠使用以守转攻时结算自身的印记', () => {
@@ -309,7 +316,7 @@ it.each([1, 80])('万事俱备消耗东风后仅为下一只己方诺基博回�
   ])
   const [donor, other, recipient] = owner.team
   const switchTo = (pet: typeof donor) =>
-    owner.performSwitchPet(new SwitchPetContext(new TurnContext(battle), owner, pet))
+    battle.phaseManager.run(new SwitchPetPhase(new SwitchPetContext(new TurnContext(battle), owner, pet)))
   const endTurn = () => battle.applyEffects(new TurnContext(battle), EffectTrigger.TurnEnd)
   recipient.currentHp = Math.floor((recipient.stat.maxHp * percent) / 100)
   const before = recipient.currentHp
@@ -398,7 +405,7 @@ it('威朗普受到暴击后为自身获得会心', () => {
   const attacker = opponent.activePet
   const skill = attacker.skills[0]!
   const cast = new UseSkillContext(new TurnContext(battle), opponent, attacker, skill.target, skill)
-  owner.activePet.damage(new DamageContext(cast, skill, owner.activePet, 20, DamageType.Physical, true))
+  dealDamage(new DamageContext(cast, skill, owner.activePet, 20, DamageType.Physical, true))
   expect(owner.activePet.marks.some(mark => mark.baseId === 'mark_huixin')).toBe(true)
   expect(attacker.marks.some(mark => mark.baseId === 'mark_haipa')).toBe(false)
 })
@@ -418,7 +425,7 @@ it('米奇林在累计损失第 200 点体力时崩坏，并停止积累弹力',
   const target = owner.activePet
   const skill = attacker.skills[0]!
   const cast = new UseSkillContext(new TurnContext(battle), opponent, attacker, skill.target, skill)
-  const strike = (damage: number) => target.damage(new DamageContext(cast, skill, target, damage, DamageType.Physical))
+  const strike = (damage: number) => dealDamage(new DamageContext(cast, skill, target, damage, DamageType.Physical))
   const mark = (id: string) => target.marks.find(entry => entry.baseId === id && entry.isActive)
   strike(199)
   expect(mark('mark_tanli')?.stack).toBe(199)
@@ -573,4 +580,78 @@ it('砂瀑送葬在命中判定前消耗两个砂分身，一层时照常判定'
   use('skill_shafenshen')
   expect(use('skill_shapusongzang', owner, null).hitResult).toBe(true)
   expect(stacks()).toBe(0)
+})
+
+describe.each([
+  {
+    species: 'pet_baduo',
+    stat: 'spd',
+    power5: 'skill_linghunzhifa',
+    power10: 'skill_lihunsuiji',
+    multi: 'skill_linghunlianda',
+  },
+  {
+    species: 'pet_qiuji',
+    stat: 'def',
+    power5: 'skill_jiancichongzhuang',
+    power10: 'skill_licitujin',
+    multi: 'skill_jiancifangun',
+  },
+] as const)('$species 防御属性换算', ({ species, stat, power5, power10, multi }) => {
+  it.each([
+    ['power5', 4, 75, 123, 131],
+    ['power5', 499, 174, 280, 131],
+    ['power5', 500, 175, 280, 131],
+    ['power5', 505, 175, 280, 131],
+    ['power10', 999, 169, 277, 123],
+    ['power10', 1000, 170, 278, 123],
+    ['power10', 1010, 170, 278, 123],
+  ] as const)('%s 属性 %i 时威力为 %i', (formula, value, expectedPower, baduDamage, qiudingDamage) => {
+    const move = formula === 'power5' ? power5 : power10
+    const { owner, opponent, battle, use } = petBattle(species, [move])
+    owner.activePet.attributeSystem.updateBaseValue(stat, value)
+    vi.spyOn(battle, 'random').mockReturnValue(0.5)
+    const hp = opponent.activePet.currentHp
+    expect(use(move).power).toBe(expectedPower)
+    expect(hp - opponent.activePet.currentHp).toBe(stat === 'spd' ? baduDamage : qiudingDamage)
+  })
+
+  it.each([
+    [99, 1],
+    [199, 1],
+    [200, 2],
+    [599, 5],
+    [600, 6],
+    [700, 6],
+  ])('属性 %i 时实际造成 %i 次伤害', (value, hits) => {
+    const { owner, opponent, battle, use } = petBattle(species, [multi])
+    owner.activePet.attributeSystem.updateBaseValue(stat, value)
+    opponent.activePet.attributeSystem.updateBaseValue('maxHp', 5000)
+    opponent.activePet.currentHp = 5000
+    let landed = 0
+    battle.registerListener(message => {
+      if (message.type === BattleMessageType.Damage && message.data.target === opponent.activePet.id) landed++
+    })
+    expect(use(multi).multihitResult).toBe(hits)
+    expect(landed).toBe(hits)
+  })
+})
+
+it.each([
+  ['skill_yingjiazhongji', 'skill_bujiuzhongji', 'skill_lingduzhongji', 80],
+  ['skill_zhongjiachuanci', 'skill_bujiuchuanci', 'skill_lingduchuanci', 90],
+] as const)('只有上次落空的是 %s 才加倍威力或获得焦点腐蚀', (miss, power, focus, base) => {
+  const { owner, opponent, use } = petBattle('pet_zhongjiadujiao', [miss, power, focus])
+  opponent.activePet.attributeSystem.updateBaseValue('maxHp', 5000)
+  opponent.activePet.currentHp = 5000
+  const focused = () => owner.activePet.marks.some(mark => mark.baseId === 'mark_jiaodianfushi')
+  use(focus, owner, false)
+  expect(use(power).power).toBe(base)
+  expect(focused()).toBe(false)
+  use(miss, owner, false)
+  expect(use(power).power).toBe(base * 2)
+  expect(focused()).toBe(false)
+  use(miss, owner, false)
+  use(focus)
+  expect(focused()).toBe(true)
 })

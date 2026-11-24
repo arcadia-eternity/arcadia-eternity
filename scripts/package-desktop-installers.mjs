@@ -26,9 +26,9 @@ export async function packageDesktopInstallers({ webDist, runtime, output }) {
     const staged = resolve(runtime ?? fileURLToPath(new URL('../packages/web-ui/dist/arcadia-server', import.meta.url)))
     const digestFile = async file => sha256Hex(await readFile(file))
     const sourceProof = {
-      mainSha256: await digestFile(fileURLToPath(new URL('../packages/web-ui/electron/main.mjs', import.meta.url))),
+      mainSha256: await digestFile(fileURLToPath(new URL('../packages/web-ui/electron/main.ts', import.meta.url))),
       contentLibrarySha256: await digestFile(
-        fileURLToPath(new URL('../packages/web-ui/electron/content-library.mjs', import.meta.url)),
+        fileURLToPath(new URL('../packages/web-ui/electron/content-library.ts', import.meta.url)),
       ),
       rendererIndexSha256: await digestFile(join(web, 'index.html')),
       cliSha256: await digestFile(join(staged, 'cli.js')),

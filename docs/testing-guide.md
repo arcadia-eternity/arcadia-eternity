@@ -66,11 +66,14 @@ pnpm --filter @arcadia-eternity/web-ui test:e2e:static
 
 在线服务端房间和普通匹配分别使用网页包的 `test:e2e:online:server`、`test:e2e:online:matchmaking`。保留的非 UGC P2P 使用 `test:e2e:online:relay`／`test:e2e:online:webrtc`，已有服务可用对应的 `:external` 入口。UGC 房间由服务端执行，见[客户端与服务器](guides/client-server-boundaries.md)。
 
-Electron 基础 IPC 检查：
+使用 Node.js 24 运行 CI 使用的 Electron Node 测试入口。
 
 ```sh
-node --test packages/web-ui/electron/test/*.test.mjs
+pnpm test:prepare
+pnpm test:desktop
 ```
+
+官方内容包升级的集成测试在 Battle Baseline 的服务端任务中单独串行运行。
 
 真实桌面进程、窗口与本地试战另有环境开关和服务前提，见[内容管理验证](guides/content-management.md#验证)与[试战生命周期](guides/local-trial-lifecycle.md#验证范围)。默认跳过的真实宿主测试不计作已验收；正式安装、签名、升级和平台矩阵由 #209／#221 继续跟踪。
 

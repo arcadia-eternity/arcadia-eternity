@@ -1,9 +1,20 @@
-import { damageRuleId } from '../../replacementSampling'
-import { assertEvaluationOperation, getDamageEvaluation } from '../../damageEvaluation'
-import { deferSkillDamage } from '../../deferredDamage'
+import { transferMarks } from '../../phase/MarkTransferPhase'
+import { heal } from '../../phase/heal'
+import { consumeMarkStacks } from '../../phase/consumeStack'
+import { addMarkStacks } from '../../phase/MarkStackPhase'
+import { removeMark, reverseStatStages } from '../../phase/RemoveMarkPhase'
+import { addMark, addStatStage } from '../../phase/AddMarkPhase'
+import {
+  dealDamage,
+  setEffectHp,
+  assertEvaluationOperation,
+  damageRuleId,
+  getDamageEvaluation,
+} from '../../phase/damage'
+import { deferSkillDamage } from '../../phase/skill'
 import { nanoid } from 'nanoid'
 import type { TSchema } from '@sinclair/typebox'
-import { ConfigModifier, ConfigDurationType, ConfigModifierType } from '../../config'
+import { ConfigModifier, ConfigDurationType, ConfigModifierType, PhaseType } from '../../config'
 import { Modifier, DurationType } from '../../attributeSystem'
 import {
   DamageType,
@@ -29,9 +40,8 @@ import {
   RemoveMarkContext,
 } from '../../context'
 import { Pet } from '../../pet'
-import { setEffectHp } from '../../damageState'
 import { Player } from '../../player'
-import { RagePhase } from '../../phase/rage'
+import { changeRage } from '../../phase/rage'
 import { BaseSkill, SkillInstance } from '../../skill'
 import { BaseMark, BaseStatLevelMark, MarkInstanceImpl, type MarkInstance } from '../../mark'
 import { defineNativeEffect } from '../../content/native-effect'
@@ -45,6 +55,16 @@ import type * as C from './contracts'
 import { AuthoringParameters, declareParameter } from './parameters'
 import { isOwnerContribution, registerOwnerContribution } from '../owner-contributions'
 
+import { getEffectState, setEffectState } from '../effect-state'
+
+import type { EngineValue } from './domain'
+
+type HostArgument<T> = T extends C.Value<infer V, infer P> ? C.Value<EngineValue<V>, P> : EngineValue<T>
+type OperatorFactories = {
+  [K in keyof typeof C.ops]: (typeof C.ops)[K] extends (...args: infer A) => C.Operator<infer V, infer F>
+    ? (...args: { [I in keyof A]: HostArgument<A[I]> }) => C.Operator<EngineValue<V>, F>
+    : never
+}
 type Frame = C.EffectFrame
 type Reader = (ctx: Frame) => unknown
 type BoundReader = (ctx: Frame, evaluation: Evaluation) => { value: unknown; anchor: string }
@@ -66,7 +86,7 @@ const actionBindings = new WeakMap<object, readonly BindingDeclaration[]>()
 const frameBindings = new WeakMap<Frame, ReadonlyMap<string, CompiledBinding>>()
 const effectBindings = new WeakMap<Effect<EffectTrigger>, readonly CompiledBinding[]>()
 const frameParameters = new WeakMap<Frame, AuthoringParameters>()
-const compiledParameters = new WeakMap<Effect<EffectTrigger>, AuthoringParameters>()
+const compiledParameters = new WeakMap<object, AuthoringParameters>()
 function scope(ctx: Frame) {
   const result = scopes.get(ctx)
   if (!result) throw new Error('Foreign authoring scope')
@@ -88,7 +108,8 @@ function bindingFrame(source: MarkInstanceImpl, parameters: AuthoringParameters)
       return unavailable()
     },
     read: (input: unknown) => read(frame as Frame, input),
-    ops: { modifyDamage: unavailable },
+    getEffectState: unavailable,
+    ops: { modifyDamage: unavailable, setEffectState: unavailable },
   } as Frame
   scopes.set(frame, { source, battle })
   frameParameters.set(frame, parameters)
@@ -137,11 +158,11 @@ export function registerEffect(catalog: SnapshotCatalog, effect: Effect<EffectTr
   )
 }
 /** Identify compiled metadata without treating unrecognized effects as authored. */
-export function hasAuthoredParameters(effect: Effect<EffectTrigger>): boolean {
+export function hasAuthoredParameters(effect: object): boolean {
   return compiledParameters.has(effect)
 }
 /** Install in each new battle; restored configuration already contains the saved parameter state. */
-export function effectParameters(effect: Effect<EffectTrigger>) {
+export function effectParameters(effect: object) {
   const parameters = compiledParameters.get(effect)
   if (!parameters) throw new Error('Expected an authored effect')
   return parameters.catalog
@@ -151,10 +172,6 @@ function engine(ctx: Frame) {
   const result = engines.get(ctx)
   if (!result) throw new Error('Persistent queries cannot access a trigger event or perform actions')
   return result
-}
-/** Internal bridge for native code exports; callbacks receive the original engine context. */
-export function nativeEffectContext(ctx: Frame): EffectContext<EffectTrigger> {
-  return engine(ctx)
 }
 /** Keep nested SDK calls in the same root, including calls from custom TS callbacks. */
 function runAction<T extends C.Trigger>(ctx: C.EffectFrame<T>, operation: () => void): void {
@@ -276,9 +293,7 @@ function selector<T>(query: (ctx: Frame) => readonly T[]): C.Selector<T> {
             writes.set(ref, {
               target,
               get: () => target.currentHp,
-              set: value => {
-                setEffectHp(engine(ctx), target, value)
-              },
+              set: value => setEffectHp(engine(ctx), target, value),
             })
           } else if (target instanceof UseSkillContext && (key === 'rage' || key === 'evasion' || key === 'priority')) {
             const property: 'rage' | 'evasion' | 'priority' = key
@@ -918,7 +933,7 @@ function addAttributeModifier<T extends Pet | SkillInstance>(
       )
       const cleanup = target.attributeSystem.addModifier(attribute, modifier)
       modifier.followsMarkOwner = isOwnerContribution(engine(ctx).effect)
-      if (source instanceof MarkInstanceImpl) source.addAttributeModifierCleanup(cleanup)
+      if (source instanceof MarkInstanceImpl) source.attributeModifierCleanups.push(cleanup)
     }
   }
 }
@@ -939,11 +954,11 @@ function parameterModifier(
       assertWriteTarget(ctx, target)
       const source = engine(ctx)
       const cleanup = install(source, target, value, rank)
-      if (source.source instanceof MarkInstanceImpl) source.source.addAttributeModifierCleanup(cleanup)
+      if (source.source instanceof MarkInstanceImpl) source.source.attributeModifierCleanups.push(cleanup)
     }
   }
 }
-const operatorFactories: typeof C.ops = {
+const operatorFactories: OperatorFactories = {
   deferSkillDamage: (holder, options) => (ctx, selected) => {
     for (const cast of selected) deferSkillDamage(engine(ctx), cast, holder, options)
   },
@@ -969,27 +984,23 @@ const operatorFactories: typeof C.ops = {
     }
   },
   addTemporaryEffect: input => (ctx, selected) => {
-    const phaseId = engine(ctx).battle.getTemporaryEffectPhaseId()
-    if (!phaseId) return
+    const { battle } = engine(ctx)
+    const phase =
+      battle.configSystem.getCurrentPhaseOfType(PhaseType.Skill) ??
+      battle.configSystem.getCurrentPhaseOfType(PhaseType.Turn) ??
+      battle.phaseManager.getCurrentPhase()
+    if (!phase) return
     for (const target of selected) assertWriteTarget(ctx, target)
     const effect = input instanceof Effect ? input : read(ctx, input)
     if (effect === undefined) return
     if (!(effect instanceof Effect)) throw new Error('Expected effect input')
-    for (const target of selected) target.addTemporaryEffect(effect, phaseId)
+    for (const target of selected) phase.addTemporaryEffect(target, effect)
   },
   setRage: amount =>
     numeric(amount, (ctx, target, n) => {
       const source = engine(ctx)
-      const phase = new RagePhase(
-        source.battle,
-        source,
-        target instanceof Player ? target : target.owner!,
-        'effect',
-        'setting',
-        n,
-      )
-      source.battle.phaseManager.registerPhase(phase)
-      source.battle.phaseManager.executePhase(phase.id)
+      const player = target instanceof Player ? target : target.owner
+      if (player) changeRage(new RageContext(source, player, 'effect', 'setting', n))
     }),
   setIgnoreShield: () => (ctx, selected) => {
     for (const event of selected) if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle skill context')
@@ -1034,9 +1045,7 @@ const operatorFactories: typeof C.ops = {
           throw new Error('Expected finite numeric input')
       for (const target of selected) {
         validate(target)
-        target.addMark(
-          new AddMarkContext(source, target, base, count as number | undefined, turns as number | undefined),
-        )
+        addMark(new AddMarkContext(source, target, base, count as number | undefined, turns as number | undefined))
       }
     }
   },
@@ -1153,12 +1162,12 @@ const operatorFactories: typeof C.ops = {
       throw new Error('Hit payment requires the current PreDamage context')
     const factor = readDamageAmount(ctx, coefficient)
     if (factor === undefined) return
-    const cast = ctx.parent
+    const cast = selected[0]
     const player = cast.origin
     if (player.currentRage <= 0) return
     if (!Number.isFinite(player.maxRage * factor)) throw new Error('Rage damage bonus must be finite')
     const payment = new RageContext(frame, player, 'effect', 'reduce', player.currentRage)
-    player.addRage(payment)
+    changeRage(payment)
     if (payment.rageSpent > 0) {
       cast.paidDamageBonuses.push({ sourceId: damageRuleId(frame), delta: Math.floor(payment.rageSpent * factor) })
     }
@@ -1203,7 +1212,7 @@ const operatorFactories: typeof C.ops = {
   heal: amount =>
     numeric(amount, (ctx, pet, n) => {
       const source = engine(ctx)
-      pet.heal(new HealContext(source, source.source, pet, n))
+      heal(new HealContext(source, source.source, pet, n))
     }),
   dealDamage: (amount, options = {}) => {
     const { damageType = DamageType.Effect, element, policy = {} } = options
@@ -1214,17 +1223,22 @@ const operatorFactories: typeof C.ops = {
         throw new Error('Invalid effect damage policy')
     }
     const proposal = { damageType, element, policy: { ...policy } }
-    return numeric(amount, (ctx, pet, n) => pet.damage(DamageContext.fromEffect(engine(ctx), pet, n, proposal)))
+    return numeric(amount, (ctx, pet, n) => {
+      const source = engine(ctx)
+      dealDamage(DamageContext.fromEffect(source, pet, n, proposal))
+    })
   },
   addRage: amount =>
     numeric(amount, (ctx, target, n) => {
       const source = engine(ctx)
-      target.addRage(new RageContext(source, target instanceof Player ? target : target.owner!, 'effect', 'add', n))
+      const player = target instanceof Player ? target : target.owner
+      if (player) changeRage(new RageContext(source, player, 'effect', 'add', n))
     }),
   reduceRage: amount =>
     numeric(amount, (ctx, target, n) => {
       const source = engine(ctx)
-      target.addRage(new RageContext(source, target instanceof Player ? target : target.owner!, 'effect', 'reduce', n))
+      const player = target instanceof Player ? target : target.owner
+      if (player) changeRage(new RageContext(source, player, 'effect', 'reduce', n))
     }),
   removeMark: () => (ctx, selected) => {
     for (const mark of selected) if (mark.isActive) assertMarkLifecycleTarget(ctx, mark)
@@ -1232,24 +1246,24 @@ const operatorFactories: typeof C.ops = {
       if (!mark.isActive) continue
       assertMarkLifecycleTarget(ctx, mark)
       const source = engine(ctx)
-      source.battle.removeMark(new RemoveMarkContext(source, mark))
+      removeMark(new RemoveMarkContext(source, mark))
     }
   },
   refreshMarkDuration: () => (ctx, marks) => {
     for (const mark of marks) assertMarkLifecycleTarget(ctx, mark)
     for (const mark of marks) {
       const duration = mark.config.duration
-      if (!mark.config.persistent && duration !== undefined) mark.attributeSystem.setDuration(duration)
+      if (!mark.config.persistent && duration !== undefined) mark.duration = duration
     }
   },
-  addStacks: amount => numeric(amount, (_ctx, mark, n) => mark.addStack(n), assertMarkLifecycleTarget),
+  addStacks: amount => numeric(amount, (_ctx, mark, n) => addMarkStacks(mark, n), assertMarkLifecycleTarget),
   consumeStacks: amount => (ctx, selected) => {
     // A removal callback may detach a later member of this operation's selected collection.
     // Keep that identity valid only for this invocation, after initial ownership validation.
     const validated = new Set<MarkInstance>()
     numeric<MarkInstance>(
       amount,
-      (frame, mark, n) => mark.consumeStack(engine(frame), n),
+      (frame, mark, n) => consumeMarkStacks(engine(frame), mark, n),
       (frame, mark) => {
         if (validated.has(mark) && !mark.isActive && mark.owner === null) return
         assertMarkLifecycleTarget(frame, mark)
@@ -1264,7 +1278,7 @@ const operatorFactories: typeof C.ops = {
       for (const pet of selected) assertWriteTarget(ctx, pet)
       for (const pet of selected) {
         assertWriteTarget(ctx, pet)
-        pet.reverseStatStage(engine(ctx), strategy, ...stats)
+        reverseStatStages(engine(ctx), pet, strategy, stats)
       }
     }
   },
@@ -1289,7 +1303,7 @@ const operatorFactories: typeof C.ops = {
     const marks = read(ctx, input) as readonly MarkInstance[]
     if (!Array.isArray(marks)) throw new Error('Expected a mark list')
     for (const mark of marks) assertMarkLifecycleTarget(ctx, mark)
-    target.transferMarks(engine(ctx), ...marks)
+    transferMarks(engine(ctx), target, ...marks)
   },
   transferStatStages: (input, options = {}) => {
     const stats = [...(options.stats ?? [])] as StatTypeWithoutHp[]
@@ -1303,13 +1317,13 @@ const operatorFactories: typeof C.ops = {
       for (const mark of source.getClearableStatStageMarks(strategy, ...stats)) {
         assertWriteTarget(ctx, source)
         assertWriteTarget(ctx, target)
-        target.addStatStage(engine(ctx), mark.statType, mark.level)
+        addStatStage(engine(ctx), target, mark.statType, mark.level)
         ops.removeMark()(ctx, [mark])
       }
     }
   },
   changeStatStage: (stat, amount) =>
-    numeric(amount, (ctx, pet, n) => pet.addStatStage(engine(ctx), stat as StatTypeWithoutHp, n)),
+    numeric(amount, (ctx, pet, n) => addStatStage(engine(ctx), pet, stat as StatTypeWithoutHp, n)),
   add: amount => (ctx, selected) => {
     for (const ref of selected) assertWriteTarget(ctx, ref)
     const delta = read(ctx, amount)
@@ -1401,7 +1415,7 @@ const operatorFactories: typeof C.ops = {
             source.source,
           )
           try {
-            source.source.addAttributeModifierCleanup(config.addScopedConfigModifier(parameter, modifier, target))
+            source.source.attributeModifierCleanups.push(config.addScopedConfigModifier(parameter, modifier, target))
           } catch (error) {
             value.complete()
             throw error
@@ -1522,11 +1536,17 @@ export function compileEffect<
       trigger: source.trigger,
       parent: source.parent,
       read: (input: unknown) => read(result as Frame, input),
+      getEffectState: (entity, definition) => getEffectState(source, entity as EngineValue<typeof entity>, definition),
       ops: {
+        setEffectState: (entity, definition, value) =>
+          runAction(result as Frame, () =>
+            setEffectState(source, entity as EngineValue<typeof entity>, definition, value),
+          ),
         modifyDamage: (event: DamageContext, change: { delta: number; percent: number }) => {
           runAction(result as Frame, () => {
             assertEvaluationOperation('modifyDamage', [event], source)
             if (event.battle !== source.battle) throw new Error('Cross-battle damage context')
+            if (!(event instanceof DamageContext)) throw new Error('Expected damage context')
             event.addModified(change.percent, change.delta, damageRuleId(source))
           })
         },

@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  changeRage,
+  dealDamage,
   AttackTargetOpinion,
   BaseMark,
   BattleMessageType,
@@ -18,7 +20,8 @@ import {
   type baseMarkId,
   type effectId,
 } from '@arcadia-eternity/battle/engine'
-import { compileEffect, ops, targets } from '@arcadia-eternity/battle/authoring'
+import { compileEffect } from '../../src/engine/content/authoring'
+import { ops, targets } from '@arcadia-eternity/battle/authoring'
 import { timeRebirth } from '../../../../packs/base/src/effects/authored/time-rebirth'
 import { generatedContextControls } from '../../../../packs/base/src/effects/context-controls.generated.effect'
 import { officialDamageBenefitEffects } from '../../../../packs/base/src/effects/damage-benefits.effect'
@@ -29,7 +32,7 @@ import { LastStandEffects } from '../../../../packs/base/src/effects/last-stand.
 import { generatedVitalActions } from '../../../../packs/base/src/effects/vital-actions.generated.effect'
 import { generatedVitalSequences } from '../../../../packs/base/src/effects/vital-sequences.generated.effect'
 import { advanceDeferredTurn, makeDeferredScenario } from './deferred-scenario'
-import { makeScenario } from './scenario'
+import { engineEffect, makeScenario } from './scenario'
 
 const battles: Battle[] = []
 
@@ -48,9 +51,9 @@ function fixture() {
   const defender = b.activePet
   const skill = attacker.skills[0]
   const use = new UseSkillContext(new TurnContext(battle), a, attacker, AttackTargetOpinion.opponent, skill)
-  function mark(owner: Pet, id: string, effects: BaseMark['effects'], stack = 1, isShield = false) {
+  function mark(owner: Pet, id: string, effects: Parameters<typeof engineEffect>[0][], stack = 1, isShield = false) {
     for (const effect of effects) effectAuthoring.effectParameters(effect).install(battle.configSystem)
-    const definition = new BaseMark(id as baseMarkId, effects, {
+    const definition = new BaseMark(id as baseMarkId, effects.map(engineEffect), {
       ...debuff.config,
       maxStacks: Math.max(5, stack),
       stackable: true,
@@ -63,7 +66,7 @@ function fixture() {
   }
   function damage(amount: number, type = DamageType.Physical) {
     const event = new DamageContext(use, skill, defender, amount, type)
-    defender.damage(event)
+    dealDamage(event)
     return event
   }
   return { battle, attacker, defender, skill, use, mark, damage }
@@ -208,7 +211,7 @@ describe('official damage rules', () => {
 
   it('spares a target with 1 HP when the attacking skill specifies a nonlethal hit', () => {
     const { defender, skill, damage } = fixture()
-    skill.effects.push(generatedDamageThresholds.effect_skill_save_hp_to_1)
+    skill.effects.push(engineEffect(generatedDamageThresholds.effect_skill_save_hp_to_1))
     defender.currentHp = 15
     damage(100)
     expect(defender.currentHp).toBe(1)
@@ -250,7 +253,7 @@ describe('official damage rules', () => {
 
   it('lifesteal reads the 12 HP actually lost on a 100 damage hit', () => {
     const { attacker, defender, skill, damage } = fixture()
-    skill.effects.push(officialDamageBenefitEffects.effect_skill_heal_25_percent_damage_dealt)
+    skill.effects.push(engineEffect(officialDamageBenefitEffects.effect_skill_heal_25_percent_damage_dealt))
     attacker.currentHp = 30
     defender.currentHp = 12
     damage(100)
@@ -260,7 +263,7 @@ describe('official damage rules', () => {
 
   it('attributes lifesteal to the outgoing hit while the opposing mark reflects damage', () => {
     const { attacker, defender, skill, mark, damage } = fixture()
-    skill.effects.push(officialDamageBenefitEffects.effect_skill_heal_25_percent_damage_dealt)
+    skill.effects.push(engineEffect(officialDamageBenefitEffects.effect_skill_heal_25_percent_damage_dealt))
     mark(defender, 'fixture/reflect', [generatedVitalSequences.effect_mark_reflect_damage_1_4])
     attacker.currentHp = 30
     const hp = defender.currentHp
@@ -277,7 +280,7 @@ describe('official damage rules', () => {
     const target = b.activePet
     const reflect = new BaseMark(
       'fixture/reflect' as baseMarkId,
-      [generatedVitalSequences.effect_mark_reflect_damage_1_4],
+      [engineEffect(generatedVitalSequences.effect_mark_reflect_damage_1_4)],
       {
         ...debuff.config,
         persistent: true,
@@ -342,9 +345,9 @@ describe('official damage rules', () => {
 
 function rageSkillFixture(hits = 1) {
   const fixtureState = fixture()
-  const { battle, attacker, defender, skill, use } = fixtureState
+  const { battle, defender, skill, use } = fixtureState
   const player = battle.playerA
-  const effect = generatedVitalSequences.effect_skill_clear_rage_add_fixed_damage
+  const effect = engineEffect(generatedVitalSequences.effect_skill_clear_rage_add_fixed_damage)
   effectAuthoring.effectParameters(effect).install(battle.configSystem)
   skill.effects.push(effect)
   player.currentRage = skill.rage + 40
@@ -365,9 +368,8 @@ function rageSkillFixture(hits = 1) {
     }
   })
   function execute() {
-    const phase = new SkillPhase(battle, player, attacker, AttackTargetOpinion.opponent, skill, use.parent, use)
-    battle.phaseManager.registerPhase(phase)
-    battle.phaseManager.executePhase(phase.id)
+    const phase = new SkillPhase(use)
+    battle.phaseManager.run(phase)
   }
   return { ...fixtureState, player, execute, results }
 }
@@ -393,7 +395,7 @@ describe('斗战之魂 rage payment', () => {
             ctx.parent.addModified(-50, 0)
           } else {
             debits.push(ctx.parent.rageSpent)
-            player.addRage(new RageContext(ctx, player, 'effect', 'add', 7))
+            changeRage(new RageContext(ctx, player, 'effect', 'add', 7))
           }
         },
       }),

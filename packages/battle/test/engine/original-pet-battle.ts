@@ -1,4 +1,5 @@
 import {
+  dealDamage,
   BattleStartPhase,
   DamageContext,
   executeTurnOperation,
@@ -29,7 +30,7 @@ export function strike(battle: Battle, attacker: Pet, target: Pet, amount: numbe
   const skill = attacker.skills[0]!
   const cast = new UseSkillContext(new TurnContext(battle), attacker.owner!, attacker, skill.target, skill)
   const damage = new DamageContext(cast, skill, target, amount, type)
-  target.damage(damage)
+  dealDamage(damage)
   return damage.result!
 }
 
@@ -63,8 +64,7 @@ export function petBattle(
   })
   battles.push(battle)
   const start = new BattleStartPhase(battle)
-  battle.phaseManager.registerPhase(start)
-  expect(battle.phaseManager.executePhase(start.id).success).toBe(true)
+  expect(battle.phaseManager.run(start).success).toBe(true)
 
   function use(id: string, actor: Player = owner, willHit: boolean | null = true) {
     const skill = actor.activePet.skills.find(candidate => candidate.baseId === id)
@@ -73,9 +73,8 @@ export function petBattle(
     const turn = new TurnContext(battle)
     const context = new UseSkillContext(turn, actor, actor.activePet, skill.target, skill)
     if (willHit !== null) context.hitOverrides.push({ willHit, priority: 1000 })
-    const phase = new SkillPhase(battle, actor, actor.activePet, skill.target, skill, turn, context)
-    battle.phaseManager.registerPhase(phase)
-    expect(battle.phaseManager.executePhase(phase.id).success).toBe(true)
+    const phase = new SkillPhase(context)
+    expect(battle.phaseManager.run(phase).success).toBe(true)
     return context
   }
 

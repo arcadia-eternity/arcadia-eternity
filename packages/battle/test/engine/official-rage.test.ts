@@ -1,5 +1,6 @@
 import { officialRageCandidate } from '../../../../packs/base/src/effects/rage.effect'
 import {
+  ParameterCatalog,
   ConfigDurationType,
   ConfigModifier,
   ConfigModifierType,
@@ -26,19 +27,19 @@ it('isolates the new parameter by battle and source, with reversible alias-based
   const first = makeScenario(233),
     second = makeScenario(234)
   battles.push(first.battle, second.battle)
-  for (const f of [first, second]) officialRageCandidate.parameters.install(f.battle.configSystem)
+  const parameters = officialRageCandidate.parameters
+  if (!(parameters instanceof ParameterCatalog)) throw new Error('Expected the host parameter catalog')
+  for (const f of [first, second]) parameters.install(f.battle.configSystem)
   const source = first.a.activePet.skills[0]
-  const remove = officialRageCandidate.parameters.modify(
+  const remove = parameters.modify(
     first.battle.configSystem,
     alias,
     new ConfigModifier(ConfigDurationType.binding, 'only-first-source', 7, ConfigModifierType.delta, 0),
     source,
   )
-  expect(officialRageCandidate.parameters.read(first.battle.configSystem, alias, source)).toBe(27)
-  expect(officialRageCandidate.parameters.read(first.battle.configSystem, alias, first.b.activePet.skills[0])).toBe(20)
-  expect(officialRageCandidate.parameters.read(second.battle.configSystem, alias, second.a.activePet.skills[0])).toBe(
-    20,
-  )
+  expect(parameters.read(first.battle.configSystem, alias, source)).toBe(27)
+  expect(parameters.read(first.battle.configSystem, alias, first.b.activePet.skills[0])).toBe(20)
+  expect(parameters.read(second.battle.configSystem, alias, second.a.activePet.skills[0])).toBe(20)
   remove()
-  expect(officialRageCandidate.parameters.read(first.battle.configSystem, alias, source)).toBe(20)
+  expect(parameters.read(first.battle.configSystem, alias, source)).toBe(20)
 })

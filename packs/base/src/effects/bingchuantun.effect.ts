@@ -10,7 +10,8 @@ import {
   ops,
   EffectTrigger,
 } from '@arcadia-eternity/battle/authoring'
-import { DamageType } from '@arcadia-eternity/const'
+import { physicalDamage, specialDamage, physicalOrSpecialDamage } from './damage-conditions'
+import { requireMark, opponentHasMark } from './mark-queries'
 
 const HANBINGJIANREN = 'mark_hanbingjianren'
 const DONGSHANG = 'mark_dongshang'
@@ -20,10 +21,8 @@ export class BingchuantunEffects {
   static build(context: Pick<EffectLoadingContext, 'marks'>) {
     const marks = context.marks
 
-    const hanbingjianren = marks.get(HANBINGJIANREN)
-    if (!hanbingjianren) throw new Error('Missing base mark: ' + HANBINGJIANREN)
-    const dongshang = marks.get(DONGSHANG)
-    if (!dongshang) throw new Error('Missing base mark: ' + DONGSHANG)
+    const hanbingjianren = requireMark(marks, HANBINGJIANREN)
+    const dongshang = requireMark(marks, DONGSHANG)
 
     const ownerHasHanbingjianren = targets.ownerMarks
       .where(mark => mark.baseId === hanbingjianren.id)
@@ -31,38 +30,28 @@ export class BingchuantunEffects {
     const consumeHanbingjianren = targets.ownerMarks
       .where(mark => mark.baseId === hanbingjianren.id)
       .apply(ops.removeMark())
-    const opponentHasDongshang = targets.opponentActive.condition((_ctx, pets) =>
-      pets.some(pet => pet.marks.some(mark => mark.baseId === DONGSHANG)),
-    )
+    const opponentHasDongshang = opponentHasMark(DONGSHANG)
     const opponentIsNotIce = targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Ice')
-
-    const damageIsPhysical = contexts.damage.condition((_ctx, events) =>
-      events.some(event => event.damageType === DamageType.Physical),
-    )
-    const damageIsSpecial = contexts.damage.condition((_ctx, events) =>
-      events.some(event => event.damageType === DamageType.Special),
-    )
-    const damageIsPhysicalOrSpecial = conditions.any(damageIsPhysical, damageIsSpecial)
 
     return defineEffects({
       /** 寒冰坚韧 (buff 3115): physical damage taken -25%, special damage taken -15%. */
       effect_mark_reduce_incoming_physical_damage_25_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, conditions.ownerIsActive, damageIsPhysical),
+        when: conditions.all(conditions.selfBeDamaged, conditions.ownerIsActive, physicalDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -25, delta: 0 })),
       },
       effect_mark_reduce_incoming_special_damage_15_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, conditions.ownerIsActive, damageIsSpecial),
+        when: conditions.all(conditions.selfBeDamaged, conditions.ownerIsActive, specialDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -15, delta: 0 })),
       },
       /** 特性 后劲 (dictionary Features): +10% damage when acting last this turn. */
       effect_ability_amplify_outgoing_attack_damage_10_percent_if_last: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, conditions.lastSkillThisTurn, damageIsPhysicalOrSpecial),
+        when: conditions.all(conditions.selfUsesSkill, conditions.lastSkillThisTurn, physicalOrSpecialDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
       },
       /**
@@ -75,7 +64,7 @@ export class BingchuantunEffects {
         when: conditions.all(
           conditions.selfBeDamaged,
           conditions.ownerIsActive,
-          damageIsPhysicalOrSpecial,
+          physicalOrSpecialDamage,
           ownerHasHanbingjianren,
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: -20 })),
@@ -133,7 +122,7 @@ export class BingchuantunEffects {
       effect_skill_add_fixed_damage_60_if_hanbingjianren: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, damageIsPhysicalOrSpecial, ownerHasHanbingjianren),
+        when: conditions.all(conditions.selfUsesSkill, physicalOrSpecialDamage, ownerHasHanbingjianren),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: 60 })),
       },
       /** 寒冷之气 (move 10634): double power against a 冻伤 opponent. */

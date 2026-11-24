@@ -11,8 +11,9 @@ import {
   gameplayRevision,
   buildDisplayCatalog,
   buildDisplayLocales,
+  mapPresentationResources,
 } from '@arcadia-eternity/pack-loader/native'
-import { createLocalContentSessions } from '../electron/local-content-sessions.mjs'
+import { createLocalContentSessions } from '../electron/local-content-sessions.ts'
 import { createPersonalEnvironmentBundle, encodePersonalEnvironmentBundle } from '../src/services/personalEnvironment'
 
 // Production distribution only: no Vite, request interception, injected browser state, or debug-store access.
@@ -39,6 +40,7 @@ async function makeSharedEnvironment(directory: string, installedDirectory: stri
       gameplayRevision,
       buildDisplayCatalog,
       buildDisplayLocales,
+      mapPresentationResources,
     }),
     assetUrl: (token: string, hash: string) => `http://localhost/local-content/${token}/${hash}`,
   })

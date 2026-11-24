@@ -1,7 +1,6 @@
 import {
   conditions,
   contexts,
-  DamageType,
   defineEffects,
   EffectTrigger,
   ops,
@@ -10,6 +9,8 @@ import {
   type Action,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { physicalDamage, specialDamage, physicalOrSpecialDamage } from './damage-conditions'
+import { activeOwnerMarks, sourceMarkOnLastTurn, requireMark } from './mark-queries'
 
 const SHIQIESHI = 'mark_shiqieshi'
 const CHENSHOUSHI = 'mark_chenshoushi'
@@ -17,16 +18,6 @@ const DUNJUSHI = 'mark_dunjushi'
 const WUSHUANGSHI = 'mark_wushuangshi'
 const WUSHUANGLI = 'mark_wushuangli'
 const SHANGHAIZENGJIA = 'mark_shanghaizengjia'
-
-const physicalDamage = contexts.damage.condition((_, events) =>
-  events.some(event => event.damageType === DamageType.Physical),
-)
-const specialDamage = contexts.damage.condition((_, events) =>
-  events.some(event => event.damageType === DamageType.Special),
-)
-const attackDamage = contexts.damage.condition((_, events) =>
-  events.some(event => event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
-)
 
 function weightPower(base: number): Action {
   return contexts.skillUse.apply(
@@ -43,15 +34,12 @@ function weightPower(base: number): Action {
 @effectGroup({ id: 'xiaojie' })
 export class XiaojieEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const shiqieshi = marks.get(SHIQIESHI)
-    const chenshoushi = marks.get(CHENSHOUSHI)
-    const dunjushi = marks.get(DUNJUSHI)
-    const wushuangshi = marks.get(WUSHUANGSHI)
-    const wushuangli = marks.get(WUSHUANGLI)
-    const shanghaizengjia = marks.get(SHANGHAIZENGJIA)
-    if (!shiqieshi || !chenshoushi || !dunjushi || !wushuangshi || !wushuangli || !shanghaizengjia) {
-      throw new Error('Missing xiaojie mark definitions')
-    }
+    const shiqieshi = requireMark(marks, SHIQIESHI)
+    const chenshoushi = requireMark(marks, CHENSHOUSHI)
+    const dunjushi = requireMark(marks, DUNJUSHI)
+    const wushuangshi = requireMark(marks, WUSHUANGSHI)
+    const wushuangli = requireMark(marks, WUSHUANGLI)
+    const shanghaizengjia = requireMark(marks, SHANGHAIZENGJIA)
 
     return defineEffects({
       effect_ability_raise_atk_1_stage_before_receiving_spe_drop: {
@@ -124,11 +112,7 @@ export class XiaojieEffects {
       effect_mark_amplify_outgoing_attack_damage_40_percent_on_last_turn: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          attackDamage,
-          ctx => ctx.read(targets.sourceMark.first())?.duration === 1,
-        ),
+        when: conditions.all(conditions.selfUsesSkill, physicalOrSpecialDamage, sourceMarkOnLastTurn),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 40, delta: 0 })),
       },
       effect_mark_prevent_physical_damage_50_percent_consume_1_stack: {
@@ -146,12 +130,12 @@ export class XiaojieEffects {
       effect_mark_add_mark_self_wushuangli_by_half_attack_hp_loss_and_remove_wushuangshi: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, attackDamage),
+        when: conditions.all(conditions.selfBeDamaged, physicalOrSpecialDamage),
         apply: (ctx => {
           const lost = ctx.read(contexts.damageResult.select(result => result.hpLoss).first()) ?? 0
           const stacks = Math.floor(lost / 2)
           if (stacks > 0) targets.ownerPet.apply(ops.addMark(wushuangli, { stack: stacks }))(ctx)
-          targets.ownerMarks.where(mark => mark.baseId === WUSHUANGSHI && mark.isActive).apply(ops.removeMark())(ctx)
+          activeOwnerMarks(WUSHUANGSHI).apply(ops.removeMark())(ctx)
         }) satisfies Action<EffectTrigger.OnDamage>,
       },
       effect_mark_remove_self_after_attack_check: {

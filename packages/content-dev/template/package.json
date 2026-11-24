@@ -21,7 +21,7 @@
   "devDependencies": {
     "@types/node": "26.6.6",
     "typescript": "6.0.3",
-    "@arcadia-eternity/content-sdk": "4.19.1",
+    "@arcadia-eternity/content-sdk": "5.0.0",
     "fflate": "0.8.3"
   },
   "arcadia": {
@@ -29,7 +29,7 @@
     "projectId": "example-content-pack",
     "namespace": "example-pack",
     "content": "dist/content.json",
-    "sdkApi": 2,
+    "sdkApi": 4,
     "presentation": "dist/presentation.json",
     "effectSources": "src/effects",
     "effectArtifact": "dist/arcadia-effects.json"

@@ -6,7 +6,7 @@
 
 <<< src/effects/slow.effect.ts#apply-slow
 
-命中回调先比较效果来源与本次使用的技能，再取实际目标。目标存在时，`addMark` 把本包的 `slow` 印记加到对手身上。[查看 OnHit 的触发时机](/sdk/triggers/OnHit) · [查看 Pet.addMark 的参数](/sdk/objects/Pet#member-addMark)
+命中回调先比较效果来源与本次使用的技能，再取实际目标。目标存在时，`ops.addMark` 把本包的 `slow` 印记加到对手身上。[查看 OnHit 的触发时机](/sdk/triggers/OnHit) · [查看 addMark 的参数](/sdk/values/ops/addMark)
 
 ## 找到控制持续时间的文件
 

@@ -229,28 +229,3 @@ export class MarkTransformationStrategy implements TransformationStrategy<MarkEn
     return entity.base
   }
 }
-
-/**
- * 默认变身策略工厂
- */
-export class DefaultTransformationStrategies {
-  static createPetStrategy(): PetTransformationStrategy {
-    return new PetTransformationStrategy()
-  }
-
-  static createSkillStrategy(): SkillTransformationStrategy {
-    return new SkillTransformationStrategy()
-  }
-
-  static createMarkStrategy(): MarkTransformationStrategy {
-    return new MarkTransformationStrategy()
-  }
-
-  static getAllStrategies(): Array<{ type: string; strategy: any }> {
-    return [
-      { type: 'pet', strategy: this.createPetStrategy() },
-      { type: 'skill', strategy: this.createSkillStrategy() },
-      { type: 'mark', strategy: this.createMarkStrategy() },
-    ]
-  }
-}

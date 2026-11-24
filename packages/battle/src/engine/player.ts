@@ -13,14 +13,10 @@ import {
   type UseSkillSelection,
   type playerId,
 } from '@arcadia-eternity/const'
-import { Battle } from './battle'
+import type { Battle } from './battle'
 import { publicBattleMessage } from './messageVisibility'
-import { RageContext, SwitchPetContext, UseSkillContext } from './context'
 import { Pet } from './pet'
 import { PlayerAttributeSystem } from './attributeSystem'
-import { SkillPhase } from './phase/skill'
-import { SwitchPetPhase } from './phase/switch'
-import { RagePhase } from './phase/rage'
 import * as jsondiffpatch from 'jsondiffpatch'
 import type { Emitter } from 'mitt'
 import { initializePlayerRelations } from './values/relations'
@@ -225,72 +221,19 @@ export class Player {
     return selection.pet !== this.activePet.id && selectionPet.isAlive && this.team.some(v => v.id === selection.pet)
   }
 
-  public setSelection(selection: PlayerSelection): boolean {
+  public canSelect(selection: PlayerSelection): boolean {
     switch (selection.type) {
       case 'use-skill':
-        if (!this.checkSkillsActionAvailable(selection)) return false
-        break
+        return this.checkSkillsActionAvailable(selection)
       case 'switch-pet':
-        if (!this.checkSwitchAvailable(selection)) return false
-        break
+        return this.checkSwitchAvailable(selection)
       case 'do-nothing':
-        if (!this.checkDoNothingActionAvailable()) return false
-        break
+        return this.checkDoNothingActionAvailable()
       case 'surrender':
-        break
+        return true
       default:
         throw '未实现的selection类型'
     }
-    this.selection = selection
-    return true
-  }
-
-  public performSwitchPet(context: SwitchPetContext) {
-    // Switch logic has been moved to SwitchPetPhase
-    // This method now delegates to the phase system
-    const switchPhase = new SwitchPetPhase(this.battle!, context.origin, context.switchInPet, context.parent)
-    switchPhase.initialize()
-    switchPhase.execute()
-  }
-
-  public performAttack(context: UseSkillContext): boolean {
-    // Attack logic has been moved to SkillPhase
-    // This method now delegates to the phase system
-    const skillPhase = new SkillPhase(
-      this.battle!,
-      context.origin,
-      context.pet,
-      context.selectTarget,
-      context.skill,
-      context.parent,
-    )
-    this.battle!.phaseManager.registerPhase(skillPhase)
-    this.battle!.phaseManager.executePhase(skillPhase.id)
-    return context.defeated
-  }
-
-  public settingRage(value: number) {
-    //TODO:触发设定怒气相关事件
-    this.currentRage = Math.max(Math.min(value, this.maxRage), 0)
-  }
-
-  public addRage(context: RageContext) {
-    // Rage logic has been moved to RagePhase
-    // This method now delegates to the phase system
-    const ragePhase = new RagePhase(
-      context.battle,
-      context.parent,
-      context.target,
-      context.reason,
-      context.modifiedType,
-      context.value,
-      context.ignoreRageObtainEfficiency,
-      context.modified,
-      undefined,
-      context,
-    )
-    context.battle.phaseManager.registerPhase(ragePhase)
-    context.battle.phaseManager.executePhase(ragePhase.id)
   }
 
   public toMessage(viewerId?: string, showHidden = false): PlayerMessage {

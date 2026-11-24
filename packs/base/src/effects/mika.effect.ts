@@ -8,6 +8,8 @@ import {
   targets,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { requireMark } from './mark-queries'
+import { actualSkillTarget, nonStatusSkillUse } from './skill-queries'
 
 const BLIND = 'mark_shiming'
 const LIGHT_SHIELD = 'mark_guangzhidun'
@@ -17,13 +19,10 @@ const LIGHT_LOCK = 'mark_guangxiansuoding'
 @effectGroup({ id: 'mika' })
 export class MikaEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const blind = marks.get(BLIND)
-    const lightShield = marks.get(LIGHT_SHIELD)
-    const spinBlade = marks.get(SPIN_BLADE)
-    const lightLock = marks.get(LIGHT_LOCK)
-    if (!blind || !lightShield || !spinBlade || !lightLock) {
-      throw new Error('Missing mika mark dependency')
-    }
+    const blind = requireMark(marks, BLIND)
+    const lightShield = requireMark(marks, LIGHT_SHIELD)
+    const spinBlade = requireMark(marks, SPIN_BLADE)
+    const lightLock = requireMark(marks, LIGHT_LOCK)
 
     const opponentActive = targets.opponentActive
     const ownerPet = targets.ownerPet
@@ -47,24 +46,19 @@ export class MikaEffects {
       effect_ability_deal_damage_based_on_iv_after_non_status_hit: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          selfSkillHit,
-          contexts.skillUse.condition((_, casts) => casts.some(cast => cast.category !== 'Status')),
-        ),
-        apply: contexts.skillUse
-          .flatMap(event => (event.actualTarget ? [event.actualTarget] : []))
-          .apply(
-            ops.dealDamage(
-              ownerPet
-                .select(pet => {
-                  const ivs = Object.values(pet.ivs)
-                  const total = ivs.reduce((sum, iv) => sum + iv, 0)
-                  // Classic teams can specify split IVs even though the original used one shared value.
-                  return Math.floor(pet.owner?.battle?.individualValueMax === 31 ? total / ivs.length : total / 20)
-                })
-                .first(),
-            ),
+        when: conditions.all(selfSkillHit, nonStatusSkillUse),
+        apply: actualSkillTarget.apply(
+          ops.dealDamage(
+            ownerPet
+              .select(pet => {
+                const ivs = Object.values(pet.ivs)
+                const total = ivs.reduce((sum, iv) => sum + iv, 0)
+                // Classic teams can specify split IVs even though the original used one shared value.
+                return Math.floor(pet.owner?.battle?.individualValueMax === 31 ? total / ivs.length : total / 20)
+              })
+              .first(),
           ),
+        ),
       },
       effect_emblem_set_climax_min_type_multiplier_1: {
         triggers: [EffectTrigger.AfterUseSkillCheck],

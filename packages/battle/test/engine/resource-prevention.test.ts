@@ -13,7 +13,7 @@ import {
 } from '@arcadia-eternity/battle/engine'
 
 import { afterEach, beforeAll, expect, it } from 'vitest'
-import { makeScenario } from './scenario'
+import { engineEffect, makeScenario } from './scenario'
 
 const candidates = ResourcePreventionEffects.build()
 const battles: Battle[] = []
@@ -30,7 +30,7 @@ it('preventing automatic consumption does not cancel the effect body, and remova
   }
   const protector = new BaseMark(
     'fixture/protector' as baseMarkId,
-    [candidates.effect_mark_zhenshihuanxiang_prevent_consume],
+    [engineEffect(candidates.effect_mark_zhenshihuanxiang_prevent_consume)],
     debuff.config,
   ).createInstance()
   const fantasy = new BaseMark('mark_huanxiang' as baseMarkId, [], { ...debuff.config, maxStacks: 20 }).createInstance()

@@ -18,7 +18,7 @@
 
 创作端新建内容包时，“Arcadia 兼容范围”默认为 `^当前发布版本`。创建后可在项目设置里修改或清空，再点“保存兼容范围”。下次构建会采用保存的 `engines.arcadia`。例如 `"engines": { "arcadia": "^4.6.0" }` 接受接收端的 `4.6.3`，拒绝 `4.5.9`。客户端和服务端准备环境时检查每个已安装包，包括间接依赖。发布新内容包时必须填写有效的 `engines.arcadia`。历史包未声明时沿用已有兼容检查，自动查找新版只选择明确兼容的稳定版本。此字段也可用于不含基础包的环境；需要基础包内容时另行声明包依赖。
 
-SDK API 兼容版本由 `arcadia.sdkApi` 声明，当前为 `2`。API 版本表示兼容合同；核心、SDK、内容元数据和依赖图仍参与环境身份，但不再逐文件摘要用户安装的代码。用户自行管理本地改动；相同环境元数据不能证明代码文件未变，恢复和回放仍需用户提供匹配的代码。
+SDK API 兼容版本由 `arcadia.sdkApi` 声明，当前为 `4`。API 版本表示兼容合同；核心、SDK、内容元数据和依赖图仍参与环境身份，但不再逐文件摘要用户安装的代码。用户自行管理本地改动；相同环境元数据不能证明代码文件未变，恢复和回放仍需用户提供匹配的代码。
 
 随机数使用 `sdk.values.randomInt`、`conditions.chance` 或本局 RNG。生命周期、捕获／跟随、操作和预算合同见[效果编写](effect-authoring.md)。快照范围仍为现有等待点，见[快照](snapshots.md)。
 
@@ -38,7 +38,7 @@ SDK API 兼容版本由 `arcadia.sdkApi` 声明，当前为 `2`。API 版本表�
     "presentation": "dist/presentation.json",
     "effectSources": "src/effects",
     "effectArtifact": "dist/arcadia-effects.json",
-    "sdkApi": 2
+    "sdkApi": 4
   }
 }
 ```

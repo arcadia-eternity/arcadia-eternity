@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
-import { AuthorWorkspaces } from '../../web-ui/electron/author-workspaces.mjs'
+import { AuthorWorkspaces } from '../../web-ui/electron/author-workspaces.ts'
 import * as api from '../src/author-api.ts'
 
 test('MCP reads live focus and unsaved drafts without a selection, and rejects stale or foreign context', async t => {

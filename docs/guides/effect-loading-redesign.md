@@ -7,14 +7,21 @@
 普通内容包使用 `@arcadia-eternity/content-sdk`，在 `src/effects` 中创建 `*.effect.ts`，无需编辑入口或注册表：
 
 ```ts
-import { effect, on, EffectTrigger, type NativeEffectContext } from '@arcadia-eternity/content-sdk'
+import {
+  conditions,
+  ops,
+  targets,
+  effect,
+  on,
+  EffectTrigger,
+  type NativeEffectContext,
+} from '@arcadia-eternity/content-sdk'
 
 @effect({ id: 'example', sourceKind: 'skill' })
 export class Example {
   @on(EffectTrigger.OnHit)
   static apply(context: NativeEffectContext<EffectTrigger.OnHit>) {
-    if (context.source !== context.parent.skill) return
-    // 使用原生战斗上下文实现机制。
+    if (conditions.selfUsesSkill(context)) targets.ownerPet.apply(ops.heal(20))(context)
   }
 }
 ```
@@ -34,7 +41,7 @@ export class Example {
   "arcadia": {
     "effectSources": "src/effects",
     "effectArtifact": "dist/arcadia-effects.json",
-    "sdkApi": 2
+    "sdkApi": 4
   }
 }
 ```

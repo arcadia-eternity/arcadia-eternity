@@ -155,3 +155,23 @@ it('仕切势在下一回合增伤40%，随后到期', () => {
     waitTurn(battle)
   }
 })
+
+it('巴度纹章减免崩坏重拳的自身效果伤害，噬魂灵柜保留到受到攻击', () => {
+  const { owner, opponent, use } = petBattle(
+    'pet_baduo',
+    ['skill_shihunlinggui', 'skill_benghuaizhongquan'],
+    'mark_emblem_badu',
+  )
+  const caster = owner.activePet
+  const fullHp = caster.currentHp
+  use('skill_benghuaizhongquan', owner, false)
+  expect(fullHp - caster.currentHp).toBe(50)
+
+  use('skill_shihunlinggui')
+  const before = caster.currentHp
+  use('skill_benghuaizhongquan', owner, false)
+  expect(before - caster.currentHp).toBe(47)
+  expect(activeMark(caster, 'mark_badu_shihunlinggui')).toBeDefined()
+  use('skill_paida', opponent)
+  expect(activeMark(caster, 'mark_badu_shihunlinggui')).toBeUndefined()
+})

@@ -8,6 +8,8 @@ import {
   ops,
   type EffectFrame,
 } from '@arcadia-eternity/battle/authoring'
+import { ruleConsumedSourceMark } from './mark-queries'
+import { nonStatusSkillUse } from './skill-queries'
 
 /** Count only prevention committed by this mark, even when several defenses cover one hit. */
 export function preventedBySourceMark(ctx: EffectFrame<EffectTrigger.OnConsumeStack>): number {
@@ -21,23 +23,24 @@ export function preventedBySourceMark(ctx: EffectFrame<EffectTrigger.OnConsumeSt
   )
 }
 
+export function reflectedHalfHpLoss(cap: number) {
+  return contexts.damageResult.select(result => Math.min(cap, Math.floor(result.hpLoss / 2))).first()
+}
+
 export const officialDamageBenefitEffects = defineEffects({
   effect_mark_reflect_prevented_attack_damage: {
     triggers: [EffectTrigger.OnConsumeStack],
-    when: ctx => ctx.parent.reason === 'rule' && ctx.parent.mark === ctx.read(targets.sourceMark.first()),
+    when: ruleConsumedSourceMark,
     apply: ctx => targets.damageOriginPet.apply(ops.dealDamage(preventedBySourceMark(ctx)))(ctx),
   },
   effect_mark_consume_on_incoming_attack_hit: {
     triggers: [EffectTrigger.BeforeHit],
-    when: conditions.all(
-      conditions.ownerIsSkillTarget,
-      contexts.skillUse.condition((_, uses) => uses.some(use => use.category !== 'Status')),
-    ),
+    when: conditions.all(conditions.ownerIsSkillTarget, nonStatusSkillUse),
     apply: targets.sourceMark.apply(ops.removeMark()),
   },
   effect_mark_spend_half_rage_on_damage_prevention: {
     triggers: [EffectTrigger.OnConsumeStack],
-    when: ctx => ctx.parent.reason === 'rule' && ctx.parent.mark === ctx.read(targets.sourceMark.first()),
+    when: ruleConsumedSourceMark,
     apply: targets.ownerPet.apply(ops.reduceRage(targets.ownerPet.first().map(pet => Math.floor(pet.currentRage / 2)))),
   },
   effect_skill_heal_25_percent_damage_dealt: {

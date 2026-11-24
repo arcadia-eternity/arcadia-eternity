@@ -239,7 +239,7 @@ async function verifyPackagedRuntime(context) {
   if (process.env.ARCADIA_DESKTOP_MANAGED_HOST_TEST === '1') {
     await verifyPackagedAuthoring(launcher)
     const test = fileURLToPath(
-      new URL('../packages/web-ui/electron/test/desktop-managed-host-real.test.mjs', import.meta.url),
+      new URL('../packages/web-ui/electron/test/desktop-managed-host-real.test.ts', import.meta.url),
     )
     const result = await exec(process.execPath, ['--test', test], {
       cwd: fileURLToPath(new URL('../', import.meta.url)),

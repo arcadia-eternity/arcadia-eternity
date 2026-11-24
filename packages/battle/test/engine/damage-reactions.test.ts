@@ -1,5 +1,6 @@
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  dealDamage,
   AttackTargetOpinion,
   BaseMark,
   BattleMessageType,
@@ -18,7 +19,7 @@ import {
 } from '@arcadia-eternity/battle/engine'
 import { officialDamageBenefitEffects } from '../../../../packs/base/src/effects/damage-benefits.effect'
 import { VitalSequencesGeneratedEffects } from '../../../../packs/base/src/effects/vital-sequences.generated.effect'
-import { makeScenario } from './scenario'
+import { engineEffect, makeScenario } from './scenario'
 
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
@@ -57,12 +58,12 @@ it('reflects a committed hit and awards the skill drain only for HP lost by its 
   const defender = b.activePet
   const reflector = new BaseMark(
     'fixture/reflect' as baseMarkId,
-    [VitalSequencesGeneratedEffects.build().effect_mark_reflect_damage_1_4],
+    [engineEffect(VitalSequencesGeneratedEffects.build().effect_mark_reflect_damage_1_4)],
     debuff.config,
   ).createInstance()
   reflector.setOwner(defender, battle.emitter)
   defender.marks.push(reflector)
-  skill.effects.push(officialDamageBenefitEffects.effect_skill_heal_25_percent_damage_dealt)
+  skill.effects.push(engineEffect(officialDamageBenefitEffects.effect_skill_heal_25_percent_damage_dealt))
 
   attacker.currentHp = 70
   defender.currentHp = 32
@@ -73,7 +74,7 @@ it('reflects a committed hit and awards the skill drain only for HP lost by its 
     if (message.type === BattleMessageType.Heal) healing.push(message.data.amount)
   })
   const damage = new DamageContext(use, skill, defender, 100, DamageType.Special)
-  defender.damage(damage)
+  dealDamage(damage)
 
   expect(messages.map(hit => [hit.target, hit.damage])).toEqual([
     [defender.id, 100],
@@ -97,7 +98,7 @@ it('reflects a committed hit and awards the skill drain only for HP lost by its 
 })
 
 it('each hit commits its own result before the next hit reads current HP', () => {
-  const { battle, a, b, use, skill, turn, committed } = setup()
+  const { battle, a, b, use, skill, committed } = setup()
   use.category = Category.Physical
   use.hitOverrides.push({ willHit: true, priority: 1000 })
   use.multihit = 3
@@ -113,9 +114,8 @@ it('each hit commits its own result before the next hit reads current HP', () =>
     }),
   )
   const hp = b.activePet.currentHp
-  const phase = new SkillPhase(battle, a, a.activePet, AttackTargetOpinion.opponent, skill, turn, use)
-  battle.phaseManager.registerPhase(phase)
-  battle.phaseManager.executePhase(phase.id)
+  const phase = new SkillPhase(use)
+  battle.phaseManager.run(phase)
   expect(committed.map(hit => [hit.hpBefore, hit.hpAfter])).toEqual([
     [hp, hp - 9],
     [hp - 9, hp - 18],
@@ -130,7 +130,7 @@ it('two reflecting marks may each react once on the same damage chain', () => {
   // The same printed effect on two distinct instances can respond independently.
   const mirror = new BaseMark(
     'fixture/mirror' as baseMarkId,
-    [VitalSequencesGeneratedEffects.build().effect_mark_reflect_damage_1_4],
+    [engineEffect(VitalSequencesGeneratedEffects.build().effect_mark_reflect_damage_1_4)],
     debuff.config,
   )
   for (const pet of [a.activePet, b.activePet]) {
@@ -139,7 +139,7 @@ it('two reflecting marks may each react once on the same damage chain', () => {
     pet.marks.push(mark)
   }
   const damage = new DamageContext(use, skill, b.activePet, 64, DamageType.Physical)
-  b.activePet.damage(damage)
+  dealDamage(damage)
   expect(committed.map(hit => hit.hpLoss)).toEqual([64, 16, 4])
   expect(committed[1].causeId).toBe(committed[0].id)
   expect(committed[2].causeId).toBe(committed[1].id)
@@ -147,7 +147,7 @@ it('two reflecting marks may each react once on the same damage chain', () => {
 
   // The next independent event starts a fresh chain.
   const next = new DamageContext(use, skill, b.activePet, 8, DamageType.Physical)
-  b.activePet.damage(next)
+  dealDamage(next)
   expect(committed.slice(3).map(hit => hit.hpLoss)).toEqual([8, 2])
 })
 
@@ -182,7 +182,7 @@ it('a mark cannot spend its modifier payment again to prevent the same damage', 
   mark.setOwner(defender, battle.emitter)
   defender.marks.push(mark)
   const event = new DamageContext(use, skill, defender, 25, DamageType.Physical)
-  defender.damage(event)
+  dealDamage(event)
   expect(event.result).toMatchObject({ status: 'committed', modifiedDamage: 20, hpLoss: 20, preventedDamage: 0 })
   expect(mark.stack).toBe(1)
 })
@@ -192,12 +192,12 @@ it('retains the reflecting pet after its final mark stack pays the reaction cost
   const defender = b.activePet
   const reflector = new BaseMark(
     'fixture/consumed-mirror' as baseMarkId,
-    [VitalSequencesGeneratedEffects.build().effect_mark_reflect_damage],
+    [engineEffect(VitalSequencesGeneratedEffects.build().effect_mark_reflect_damage)],
     debuff.config,
   ).createInstance({ stack: 1 })
   reflector.setOwner(defender, battle.emitter)
   defender.marks.push(reflector)
-  defender.damage(new DamageContext(use, skill, defender, 12, DamageType.Special))
+  dealDamage(new DamageContext(use, skill, defender, 12, DamageType.Special))
   expect(committed.map(hit => hit.hpLoss)).toEqual([12, 18])
   expect(reflector.owner).toBeNull()
   expect(committed[1]).toMatchObject({

@@ -1,5 +1,20 @@
 # Changelog
 
+## [5.0.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v4.14.2...data-pack-base-v5.0.0) (2026-11-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **battle:** route native effect mutations through ops
+* **battle:** expose phase operations in the native effect SDK
+
+### ♻️ Code Refactoring
+
+* **base:** share pet effect logic across families ([263154e](https://github.com/arcadia-eternity/arcadia-eternity/commit/263154ef7fa0b40c97e762c1469e4e564f0d3002))
+* **battle:** expose phase operations in the native effect SDK ([43d18b0](https://github.com/arcadia-eternity/arcadia-eternity/commit/43d18b0a8d18439d037bf23bd30b258e1e6a48d9))
+* **battle:** move entity mutations into battle phases ([beb1e19](https://github.com/arcadia-eternity/arcadia-eternity/commit/beb1e198e91e926e1c782d2f22376324b0e32e95))
+* **battle:** route native effect mutations through ops ([f3e23d6](https://github.com/arcadia-eternity/arcadia-eternity/commit/f3e23d6ca709a9b87c9e8b0a6e90cb88f29f0f6a))
+
 ## [4.14.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v4.14.1...data-pack-base-v4.14.2) (2026-11-24)
 
 

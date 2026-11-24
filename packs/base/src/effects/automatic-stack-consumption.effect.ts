@@ -2,7 +2,7 @@ import { effectGroup } from '@arcadia-eternity/battle/effect-loading'
 import { Category } from '@arcadia-eternity/const'
 import { defineEffects, EffectTrigger, actions, conditions, contexts } from '@arcadia-eternity/battle/authoring'
 
-/** Consumption belongs to Effect.innerApply; the original TODO body intentionally does nothing. */
+/** The effect execution phase pays consumesStacks when the condition matches. */
 @effectGroup({ id: 'automatic-stack-consumption' })
 export class AutomaticStackConsumptionEffects {
   static build() {

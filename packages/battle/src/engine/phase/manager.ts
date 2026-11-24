@@ -1,16 +1,7 @@
-import { getDamageEvaluation } from '../damageEvaluation'
+import { getDamageEvaluation } from './damage'
 import { EffectExecutionPhase } from './effectExecution'
 import { type BattlePhaseBase, PhaseState, type PhaseResult, InteractivePhase } from './base'
 import type { Battle } from '../battle'
-
-/**
- * Phase execution options
- */
-export interface PhaseExecutionOptions {
-  timeout?: number
-  retryCount?: number
-  skipOnError?: boolean
-}
 
 function assertPermittedPhase(phase: BattlePhaseBase): void {
   if (getDamageEvaluation() && !(phase instanceof EffectExecutionPhase))
@@ -23,120 +14,50 @@ export class PhaseManager {
 
   constructor(private readonly battle: Battle) {}
 
-  /**
-   * Register a phase for management
-   */
-  public registerPhase(phase: BattlePhaseBase): void {
-    assertPermittedPhase(phase)
-    if (this.phases.has(phase.id)) {
-      throw new Error(`Phase with id ${phase.id} already registered`)
+  public run(phase: BattlePhaseBase): PhaseResult {
+    if (phase instanceof InteractivePhase) throw new Error('Interactive phases require runAsync()')
+    const previous = this.enter(phase)
+    try {
+      if (!phase.context) phase.initialize()
+      return phase.execute()
+    } catch (error) {
+      this.battle.executionBudget.assertActive()
+      throw error instanceof Error ? error : new Error(String(error))
+    } finally {
+      this.leave(phase, previous)
     }
+  }
 
+  public async runAsync(phase: BattlePhaseBase): Promise<PhaseResult> {
+    if (!(phase instanceof InteractivePhase)) return this.run(phase)
+    const previous = this.enter(phase)
+    try {
+      if (!phase.context) await phase.initializeAsync()
+      return await phase.executeAsync()
+    } catch (error) {
+      this.battle.executionBudget.assertActive()
+      throw error instanceof Error ? error : new Error(String(error))
+    } finally {
+      this.leave(phase, previous)
+    }
+  }
+
+  private enter(phase: BattlePhaseBase): BattlePhaseBase | undefined {
+    this.battle.assertRunning()
+    assertPermittedPhase(phase)
+    if (phase.battle !== this.battle) throw new Error('Phase belongs to another battle')
+    if (this.phases.has(phase.id)) throw new Error(`Phase ${phase.id} already registered`)
+    const previous = this.currentPhase
     this.phases.set(phase.id, phase)
+    this.currentPhase = phase
+    this.battle.configSystem.pushPhase(phase)
+    return previous
   }
 
-  /**
-   * Execute a specific phase synchronously (for regular phases only)
-   */
-  public executePhase(phaseId: string, options: PhaseExecutionOptions = {}): PhaseResult {
-    this.battle.assertRunning()
-    const phase = this.phases.get(phaseId)
-    if (!phase) {
-      throw new Error(`Phase ${phaseId} not found`)
-    }
-    assertPermittedPhase(phase)
-
-    // Check if this is an interactive phase - these must use executePhaseAsync
-    if (phase instanceof InteractivePhase) {
-      throw new Error(`Interactive phase ${phaseId} must be executed with executePhaseAsync()`)
-    }
-
-    if (options.retryCount) throw new Error('Automatic phase retry requires a rollback boundary')
-    if (options.timeout) throw new Error('Phase timeout requires a cooperative cancellation boundary')
-
-    const previousPhase = this.currentPhase
-    this.currentPhase = phase
-
-    // Push phase to config system stack for level tracking
-    const configSystem = this.battle.configSystem
-    configSystem.pushPhase(phase)
-
-    try {
-      // Initialize phase if needed
-      if (phase.state === PhaseState.Pending && !phase.context) {
-        phase.initialize()
-      }
-
-      return phase.execute()
-    } catch (error) {
-      this.battle.executionBudget.assertActive()
-      const errorResult: PhaseResult = {
-        success: false,
-        state: PhaseState.Failed,
-        error: error instanceof Error ? error : new Error(String(error)),
-      }
-
-      if (!options.skipOnError) throw errorResult.error
-      return errorResult
-    } finally {
-      // Always pop phase from stack when execution completes (success or failure)
-      configSystem.popPhase(phase)
-      this.battle.cleanupPhaseEffects(phase.id)
-      if (phase.isFinished()) phase.cleanupConfigModifiers()
-      this.currentPhase = previousPhase
-    }
-  }
-
-  /**
-   * Execute a specific phase asynchronously (supports both sync and async phases)
-   */
-  public async executePhaseAsync(phaseId: string, options: PhaseExecutionOptions = {}): Promise<PhaseResult> {
-    this.battle.assertRunning()
-    const phase = this.phases.get(phaseId)
-    if (!phase) {
-      throw new Error(`Phase ${phaseId} not found`)
-    }
-    assertPermittedPhase(phase)
-
-    if (options.retryCount) throw new Error('Automatic phase retry requires a rollback boundary')
-    if (options.timeout) throw new Error('Phase timeout requires a cooperative cancellation boundary')
-
-    const previousPhase = this.currentPhase
-    this.currentPhase = phase
-
-    // Push phase to config system stack for level tracking
-    const configSystem = this.battle.configSystem
-    configSystem.pushPhase(phase)
-
-    try {
-      // Initialize phase if needed
-      if (phase.state === PhaseState.Pending && !phase.context) {
-        if (phase instanceof InteractivePhase) {
-          await phase.initializeAsync()
-        } else {
-          phase.initialize()
-        }
-      }
-
-      if (phase instanceof InteractivePhase) return await phase.executeAsync()
-      return phase.execute()
-    } catch (error) {
-      this.battle.executionBudget.assertActive()
-      const errorResult: PhaseResult = {
-        success: false,
-        state: PhaseState.Failed,
-        error: error instanceof Error ? error : new Error(String(error)),
-      }
-
-      if (!options.skipOnError) throw errorResult.error
-      return errorResult
-    } finally {
-      // Always pop phase from stack when execution completes (success or failure)
-      configSystem.popPhase(phase)
-      this.battle.cleanupPhaseEffects(phase.id)
-      if (phase.isFinished()) phase.cleanupConfigModifiers()
-      this.currentPhase = previousPhase
-    }
+  private leave(phase: BattlePhaseBase, previous: BattlePhaseBase | undefined): void {
+    this.battle.configSystem.popPhase(phase)
+    if (phase.isFinished()) phase.releaseEffects()
+    this.currentPhase = previous
   }
 
   /**
@@ -186,29 +107,6 @@ export class PhaseManager {
    */
   public getCurrentPhase(): BattlePhaseBase | undefined {
     return this.currentPhase
-  }
-
-  /**
-   * Get phase by id
-   */
-  public getPhase(phaseId: string): BattlePhaseBase | undefined {
-    return this.phases.get(phaseId)
-  }
-
-  /**
-   * Check if a phase is registered
-   */
-  public hasPhase(phaseId: string): boolean {
-    return this.phases.has(phaseId)
-  }
-
-  /**
-   * Provide input to current interactive phase
-   */
-  public provideInput<T = any>(input: T): void {
-    if (this.currentPhase instanceof InteractivePhase) {
-      this.currentPhase.provideInput(input)
-    }
   }
 
   /**

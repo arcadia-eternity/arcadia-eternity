@@ -1,9 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-unused-expressions -- Compile-only positive and negative type assertions intentionally do not execute. */
 /** Compile only. @ts-expect-error must fail if its misuse ever becomes accepted. */
 import { EffectTrigger } from '../../engine'
-import type { DamageContext, UseSkillContext } from '../../src/engine/context'
-import type { Pet } from '../../src/engine/pet'
-import type { MarkInstance } from '../../src/engine/mark'
+import type { DamageContext, UseSkillContext, Pet, MarkInstance } from '@arcadia-eternity/battle/authoring'
 import * as sdk from '@arcadia-eternity/battle/authoring'
 import {
   actions,
@@ -106,7 +104,7 @@ const group = defineEffects({
   },
 })
 exact<Equal<keyof typeof group, 'type-test/hit' | 'type-test/union'>>(true)
-exact<Equal<sdk.EffectSdk['defineEffects'], typeof defineEffects>>(true)
+exact<Equal<sdk.EffectSdk['defineEffects'], typeof sdk.defineEffects>>(true)
 defineEffects({
   invalid: {
     triggers: [EffectTrigger.OnHit],
@@ -369,7 +367,7 @@ export const consumptionEvent = defineEffect({
   id: 'type-test/consumption-context',
   triggers: [EffectTrigger.OnBeforeConsumeStack],
   apply(ctx) {
-    exact<Equal<typeof ctx.parent, import('../../src/engine/context').ConsumeStackContext>>(true)
+    exact<Equal<typeof ctx.parent, sdk.ConsumeStackContext>>(true)
     contexts.consumeStack.apply(ops.disableContext())(ctx)
   },
 })
@@ -413,7 +411,7 @@ ops.setMarkTransferOnSwitch(1)
 // @ts-expect-error Configuration is set on a pending application, not a live mark.
 targets.sourceMark.apply(ops.setMarkTransferOnSwitch(true))
 
-// Native SDK callbacks retain the actual engine context, including union narrowing.
+// Native SDK callbacks receive the read-only event, including union narrowing.
 sdk.defineCodeEffect({
   id: 'type-test/native',
   sourceKind: 'skill',
@@ -422,8 +420,13 @@ sdk.defineCodeEffect({
     exact<Equal<typeof context.parent, UseSkillContext>>(true)
     // @ts-expect-error OnHit is not a damage event.
     context.parent.damageResult
-    const owner = context.source.owner
-    if (owner instanceof sdk.Pet) owner.heal(new sdk.HealContext(context, context.source, owner, 20))
+    // @ts-expect-error Effects submit healing through ops.
+    sdk.heal(context)
+    // @ts-expect-error Phase execution belongs to the host.
+    context.parent.battle.applyEffects(context.parent, context.trigger)
+    // @ts-expect-error Domain fields are read-only.
+    context.parent.pet.currentHp = 0
+    sdk.targets.ownerPet.apply(sdk.ops.heal(20))(context)
   },
 })
 sdk.defineCodeEffect({
