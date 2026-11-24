@@ -1,12 +1,11 @@
 import assert from 'node:assert/strict'
-import { execFile } from 'node:child_process'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { promisify } from 'node:util'
 import { rolldown } from 'rolldown'
+import { readChromeProbe } from './read-chrome-probe.mjs'
 
 const directory = await mkdtemp(join(tmpdir(), 'arcadia-waiting-checkpoints-'))
 let server, browserProbes
@@ -51,8 +50,8 @@ try {
   assert.deepEqual(await minified.resumeWaitingCheckpointProbes(JSON.parse(JSON.stringify(probes))), expected)
   if (process.argv.includes('--browser')) {
     const html = `<!doctype html><meta charset="utf-8"><pre id="result">Running</pre><script type="module">
-import { createWaitingCheckpointProbes, resumeWaitingCheckpointProbes } from './browser.mjs';
 try {
+  const { createWaitingCheckpointProbes, resumeWaitingCheckpointProbes } = await import('./browser.mjs');
   const fromNode = await (await fetch('./checkpoints.json')).json();
   const resumedNode = await resumeWaitingCheckpointProbes(fromNode);
   const fresh = await createWaitingCheckpointProbes();
@@ -83,27 +82,11 @@ try {
       }
     })
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
-    const chrome =
-      process.env.BATTLE_CHROME ??
-      (process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : 'google-chrome')
-    const { stdout } = await promisify(execFile)(
-      chrome,
-      [
-        '--headless=new',
-        '--disable-gpu',
-        ...(process.platform === 'linux' ? ['--no-sandbox', '--disable-dev-shm-usage'] : []),
-        '--no-first-run',
-        `--user-data-dir=${join(directory, 'profile')}`,
-        '--dump-dom',
-        '--virtual-time-budget=15000',
-        `http://127.0.0.1:${server.address().port}/`,
-      ],
-      { timeout: 30000, maxBuffer: 4 * 1024 * 1024 },
-    )
-    await writeFile(join(directory, 'browser-dom.html'), stdout)
-    assert.ok(
-      stdout.includes(`<pre id="result">${JSON.stringify({ resumedNode: expected, resumedBrowser: expected })}</pre>`),
-      `Browser checkpoint mismatch: ${stdout.slice(-6000)}`,
+    const browserResult = await readChromeProbe(`http://127.0.0.1:${server.address().port}/`)
+    assert.equal(
+      browserResult,
+      JSON.stringify({ resumedNode: expected, resumedBrowser: expected }),
+      'Browser checkpoint mismatch',
     )
     assert.ok(browserProbes, 'Browser did not export checkpoints')
     assert.deepEqual(await node.resumeWaitingCheckpointProbes(browserProbes), expected)

@@ -4,11 +4,10 @@ import { tmpdir } from 'node:os'
 import { resolve, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { createServer } from 'node:http'
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
 import { rolldown } from 'rolldown'
 import { effectDiscoveryPlugin } from '@arcadia-eternity/pack-loader/node'
 import { identifyEnvironmentArtifact } from './build-battle-environment.mjs'
+import { readChromeProbe } from './read-chrome-probe.mjs'
 
 const directory = await mkdtemp(join(tmpdir(), 'arcadia-native-pack-'))
 const modules = [],
@@ -60,12 +59,12 @@ try {
   await writeFile(output, code)
   const input = JSON.parse(await readFile('packages/battle/test/fixtures/official-switch.input.json', 'utf8'))
   const html = `<!doctype html><meta charset="utf-8"><pre id="result">Running</pre><script type="module">
-import { verifyNativePackHost } from './browser.mjs';
 try {
+const { verifyNativePackHost } = await import('./browser.mjs');
 const run = options => verifyNativePackHost(location.origin + '/pack/', ${JSON.stringify(identity)}, ${JSON.stringify(input)}, options);
 document.querySelector('#result').textContent = JSON.stringify({ untimed: await run({}), timed: await run({timed:true}) });
 }
-catch (error) { document.querySelector('#result').textContent = String(error); }
+catch (error) { document.querySelector('#result').textContent = String(error.stack ?? error); }
 </script>`
   server = createServer(async (request, response) => {
     try {
@@ -105,27 +104,8 @@ catch (error) { document.querySelector('#result').textContent = String(error); }
     timed: await verifyNativePackHost(`${url}/pack/`, identity, input, { timed: true }),
   }
   if (process.argv.includes('--browser')) {
-    const chrome =
-      process.env.BATTLE_CHROME ??
-      (process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : 'google-chrome')
-    const { stdout } = await promisify(execFile)(
-      chrome,
-      [
-        '--headless=new',
-        '--disable-gpu',
-        ...(process.platform === 'linux' ? ['--no-sandbox', '--disable-dev-shm-usage'] : []),
-        '--no-first-run',
-        `--user-data-dir=${join(directory, 'profile')}`,
-        '--dump-dom',
-        '--virtual-time-budget=15000',
-        url,
-      ],
-      { timeout: 30000, maxBuffer: 1024 * 1024 },
-    )
-    assert.ok(
-      stdout.includes(`<pre id="result">${JSON.stringify(expected)}</pre>`),
-      `Native browser differs from Node: ${stdout.slice(-4000)}`,
-    )
+    const browserResult = await readChromeProbe(url)
+    assert.equal(browserResult, JSON.stringify(expected), 'Native browser differs from Node')
   }
   assert.deepEqual(forbiddenRequests, [])
   console.log(

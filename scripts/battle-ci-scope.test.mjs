@@ -50,6 +50,14 @@ test('server lint configuration runs server checks', () => {
   assert.deepEqual(affectedBattleJobs(['eslint.config.server.js'], packages), { ...none, server: true })
 })
 
+test('shared Chrome probe runs headless and server checks', () => {
+  assert.deepEqual(affectedBattleJobs(['scripts/read-chrome-probe.mjs'], packages), {
+    ...none,
+    headless: true,
+    server: true,
+  })
+})
+
 test('battle lint configuration and host verification run headless checks', () => {
   for (const path of ['eslint.config.battle.js', 'scripts/verify-battle-hosts.mjs']) {
     assert.deepEqual(affectedBattleJobs([path], packages), { ...none, headless: true })

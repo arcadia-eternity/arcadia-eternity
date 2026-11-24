@@ -375,7 +375,10 @@ test('keeps the active environment through warehouse visits and releases a super
   const choose = async (name: string) => {
     await page.locator('.el-select').filter({ has: environment }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
-    await page.getByRole('option', { name, exact: true }).click()
+    await page
+      .getByRole('option')
+      .filter({ has: page.getByText(name, { exact: true }) })
+      .click()
   }
   await expect(page.locator('.el-card__header').filter({ hasText: '当前队伍' }).getByRole('combobox')).toBeVisible()
   await page.getByRole('button', { name: '添加精灵', exact: true }).click()
