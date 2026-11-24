@@ -63,6 +63,8 @@ export class LocalBattleSession {
       try {
         this.#restoreDisplay = data.useLocalBattleContent(content.content, {
           environmentId: content.environmentId,
+          environmentVersion: content.environmentVersion,
+          pinned: true,
           rules,
           effectMarkRelations,
         })

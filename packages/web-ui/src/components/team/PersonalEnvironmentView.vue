@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useBattleClientStore } from '@/stores/battleClient'
 import { useGameDataStore } from '@/stores/gameData'
 import { usePetStorageStore } from '@/stores/petStorage'
+import { environmentGroupKey } from '@/features/content/environmentGroups'
 import { acquireLocalContent } from '@/services/localContent'
 import { hasPreparedWebEnvironment, readPreparedWebCatalog } from '@/services/preparedWebEnvironment'
 import { listServerEnvironments, prepareServerEnvironment } from '@/services/serverEnvironment'
@@ -34,27 +35,40 @@ type Choice = {
 const local = shallowRef<Choice[]>([])
 const published = shallowRef<Choice[]>([])
 const choices = computed(() => [...local.value, ...published.value])
+const groupKey = (pref: EnvironmentPreference) =>
+  environmentGroupKey({ key: key(pref), environmentVersion: pref.environmentVersion })
 watch([choices, preference], ([available, saved]) => {
-  if (!saved || available.some(choice => key(choice.preference) === key(saved))) return
-  const migrated = available.find(
-    choice => choice.preference.source === saved.source && choice.previousEnvironmentIds?.includes(saved.environmentId),
-  )
-  if (migrated) storage.setEnvironmentPreference(storage.currentTeamIndex, migrated.preference)
+  if (!saved || saved.environmentVersion) return
+  const original =
+    available.find(choice => key(choice.preference) === key(saved)) ??
+    available.find(
+      choice =>
+        choice.preference.source === saved.source && choice.previousEnvironmentIds?.includes(saved.environmentId),
+    )
+  if (original && (original.preference.environmentVersion || key(original.preference) !== key(saved)))
+    storage.setEnvironmentPreference(storage.currentTeamIndex, original.preference)
 })
 const choiceKey = (choice: Choice) =>
-  JSON.stringify([key(choice.preference), choice.revision, choice.server && client.serverUrl])
+  JSON.stringify([
+    key(choice.preference),
+    groupKey(choice.preference),
+    choice.revision,
+    choice.server && client.serverUrl,
+  ])
 const candidates = computed(() => {
-  const matching = choices.value.filter(choice => choice.preference.environmentId === preference.value?.environmentId)
-  return matching.sort(
-    (a, b) =>
-      Number(b.preference.source === preference.value?.source) -
-      Number(a.preference.source === preference.value?.source),
+  const saved = preference.value
+  if (!saved) return []
+  const matching = choices.value.filter(choice =>
+    saved.environmentVersion
+      ? choice.preference.environmentVersion === saved.environmentVersion
+      : key(choice.preference) === key(saved),
   )
+  return matching.sort((a, b) => Number(key(b.preference) === key(saved)) - Number(key(a.preference) === key(saved)))
 })
 const failures = ref(new Map<string, string>())
 const selected = computed(() => candidates.value.find(choice => !failures.value.has(choiceKey(choice))))
 watch(
-  () => key(preference.value),
+  () => preference.value && groupKey(preference.value),
   () => failures.value.clear(),
   { flush: 'sync' },
 )
@@ -109,7 +123,11 @@ watch(
                       .filter(([, id]) => id === item.environmentId)
                       .map(([oldId]) => oldId),
                     revision: JSON.stringify([item.draftRevision, item.contentRevision]),
-                    preference: { source: 'desktop:' + snapshot.workspaceId, environmentId: item.environmentId },
+                    preference: {
+                      source: 'desktop:' + snapshot.workspaceId,
+                      environmentId: item.environmentId,
+                      environmentVersion: item.environmentVersion,
+                    },
                   },
                 ]
               : [],
@@ -126,7 +144,7 @@ watch(
           local.value = definitions.map(doc => ({
             name: doc.name,
             revision: doc.gameplayRevision,
-            preference: { source: 'web', environmentId: doc.id },
+            preference: { source: 'web', environmentId: doc.id, environmentVersion: doc.environmentVersion },
           }))
         }),
       )
@@ -138,8 +156,15 @@ watch(
           published.value = items.map(server => ({
             name: server.environmentName ?? (server.packages.map(pkg => pkg.name).join('、') || server.id.slice(0, 12)),
             revision: server.id,
-            previousEnvironmentIds: server.previousEnvironmentIds,
-            preference: { source, environmentId: server.environmentId ?? server.id },
+            previousEnvironmentIds: [
+              ...(server.previousEnvironmentIds ?? []),
+              ...(server.environmentId ? [server.environmentId] : []),
+            ],
+            preference: {
+              source,
+              environmentId: server.environmentVersion ? (server.environmentId ?? server.id) : server.id,
+              environmentVersion: server.environmentVersion,
+            },
             server,
           }))
         }),
@@ -170,7 +195,7 @@ const target = computed(() => {
 })
 
 watch(
-  [target, () => key(preference.value), refresh],
+  [target, () => preference.value && groupKey(preference.value), refresh],
   async ([targetKey, , request], previous, cleanup) => {
     const forceRefresh = previous?.[2] !== undefined && request !== previous[2]
     const controller = new AbortController()
@@ -189,11 +214,12 @@ watch(
         const previousDisplay = disposeDisplay
         disposeDisplay = data.useLocalBattleContent(prepared.content, {
           environmentId: choice.preference.environmentId,
+          environmentVersion: choice.server.environmentVersion,
           rules: choice.server.rules,
           remote: true,
         })
         previousDisplay?.()
-        version.value = choice.server.gameplayRevision ?? choice.server.id
+        version.value = choice.server.environmentVersion ?? choice.server.gameplayRevision ?? choice.server.id
       } else {
         if (!choice) {
           disposeDisplay?.()
@@ -204,8 +230,14 @@ watch(
           if (!captured) throw new Error('本地环境不可用')
           try {
             controller.signal.throwIfAborted()
+            if (
+              choice?.preference.environmentVersion &&
+              captured.environmentVersion !== choice.preference.environmentVersion
+            )
+              throw new Error('本地环境版本已变更，请刷新环境')
             const restore = data.useLocalBattleContent(captured.content, {
               environmentId: captured.environmentId,
+              environmentVersion: captured.environmentVersion,
               rules: captured.rules,
               effectMarkRelations: captured.effectMarkRelations,
             })
@@ -215,7 +247,7 @@ watch(
               void captured.release().catch(console.error)
             }
             name ??= captured.environmentName ?? captured.environmentId
-            version.value = captured.gameplayRevision ?? ''
+            version.value = captured.environmentVersion ?? captured.gameplayRevision ?? ''
           } catch (cause) {
             await captured.release()
             throw cause
@@ -225,18 +257,19 @@ watch(
           controller.signal.throwIfAborted()
           disposeDisplay = data.useLocalBattleContent(catalog.content, {
             environmentId: catalog.defaultEnvironment,
+            environmentVersion: catalog.environmentVersion,
             rules: catalog.rules,
             effectMarkRelations: catalog.effectMarkRelations,
           })
           name =
             catalog.builtins?.find(doc => doc.id === catalog.defaultEnvironment)?.name ?? catalog.defaultEnvironment
-          version.value = catalog.gameplayRevision
+          version.value = catalog.environmentVersion ?? catalog.gameplayRevision
         } else {
           if (forceRefresh || data.serverFallback) await data.reload()
           else if (!data.loaded) await data.whenReady()
           controller.signal.throwIfAborted()
           name = data.defaultEnvironmentName
-          version.value = data.defaultGameplayRevision ?? ''
+          version.value = data.environmentVersion ?? data.defaultGameplayRevision ?? ''
         }
       }
       creationOrigin.value = name && version.value ? { name, version: version.value } : undefined
@@ -259,17 +292,27 @@ watch(
   { immediate: true },
 )
 
-const currentGroup = computed(() => currentId.value ?? '@current')
-const groupId = computed(() => preference.value?.environmentId ?? currentGroup.value)
+const currentGroup = computed(() => {
+  const current = local.value.find(choice => choice.preference.environmentId === currentId.value)
+  return current ? groupKey(current.preference) : '@current'
+})
+const groupId = computed(() => (preference.value ? groupKey(preference.value) : currentGroup.value))
 const options = computed(() => {
   const names = new Map([[currentGroup.value, defaultName.value]])
   for (const choice of choices.value) {
-    const id = choice.preference.environmentId
+    const id = groupKey(choice.preference)
     if (!names.has(id)) names.set(id, choice.name)
   }
   if (selected.value) names.set(groupId.value, selected.value.name)
-  else if (preference.value && !names.has(groupId.value)) names.set(groupId.value, groupId.value)
-  return names
+  else if (preference.value && !names.has(groupId.value)) names.set(groupId.value, preference.value.environmentId)
+  const labels = new Map(names)
+  for (const [id, name] of names) {
+    if ([...names.values()].filter(label => label === name).length > 1) {
+      const pref = choices.value.find(choice => groupKey(choice.preference) === id)?.preference ?? preference.value
+      if (pref) labels.set(id, name + ' · ' + (pref.environmentVersion?.slice(0, 8) ?? pref.source))
+    }
+  }
+  return labels
 })
 function selectGroup(id: string) {
   const previousMax =
@@ -279,7 +322,7 @@ function selectGroup(id: string) {
   if (id === currentGroup.value)
     storage.setEnvironmentPreference(storage.currentTeamIndex, undefined, previousMax, props.warehouse)
   else {
-    const choice = choices.value.find(item => item.preference.environmentId === id)
+    const choice = choices.value.find(item => groupKey(item.preference) === id)
     if (choice)
       storage.setEnvironmentPreference(storage.currentTeamIndex, choice.preference, previousMax, props.warehouse)
   }

@@ -358,6 +358,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       preparedPeerEnvironment = personal.environment
       gameDataStore.applyServerEnvironment(personal.content, {
         environmentId: descriptor.environmentId ?? descriptor.id,
+        environmentVersion: descriptor.environmentVersion,
         rules: personal.reference.rules,
       })
       roomCatalog.value = { id: descriptor.id, content: personal.content }
@@ -396,6 +397,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     preparedPeerEnvironment = 'environment' in prepared ? prepared.environment : undefined
     gameDataStore.applyServerEnvironment(prepared.content, {
       environmentId: descriptor.environmentId ?? descriptor.id,
+      environmentVersion: descriptor.environmentVersion,
       rules: descriptor.rules,
     })
     roomCatalog.value = { id: descriptor.id, content: prepared.content }
@@ -430,6 +432,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       throw new DOMException('Room preview closed', 'AbortError')
     gameDataStore.applyServerEnvironment(catalog.content, {
       environmentId: room.environment.environmentId ?? room.environment.id,
+      environmentVersion: room.environment.environmentVersion,
       rules: room.environment.rules,
     })
     roomCatalog.value = { id: room.environment.id, content: catalog.content }

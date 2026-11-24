@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { resolve } from 'node:path'
 import {
@@ -17,7 +18,7 @@ export interface PreparedPresentation {
   projectId: string
   namespace: string
   manifest: PresentationManifest
-  resources: (Extract<PresentationResource, { kind: 'file' }> & { file: string })[]
+  resources: (Extract<PresentationResource, { kind: 'file' }> & { file: string; capturedSha256?: string })[]
 }
 
 /** Validate package files in place. HTTP references stay URLs; no remote request or resource cache is created. */
@@ -108,13 +109,15 @@ export async function preparePresentation(
     for (const resource of pkg.presentation.resources) {
       if (resource.kind === 'http') continue
       const file = packageFile(resolve(root, pkg.location), resource.source)
+      const digest = createHash('sha256')
       let bytes = 0
       for await (const chunk of createReadStream(file)) {
+        digest.update(chunk)
         bytes += chunk.length
         if (bytes > resource.bytes) throw new Error(`RESOURCE_INTEGRITY: ${resource.id} exceeds declared size`)
       }
       if (bytes !== resource.bytes) throw new Error(`RESOURCE_INTEGRITY: ${resource.id}`)
-      resources.push({ ...resource, file })
+      resources.push({ ...resource, file, capturedSha256: digest.digest('hex') })
     }
     output.push({
       projectId: pkg.manifest.projectId,

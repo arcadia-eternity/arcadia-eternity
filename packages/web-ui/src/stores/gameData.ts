@@ -15,11 +15,15 @@ import { defineStore } from 'pinia'
 import { PackMetadataLoader, presentationIndex } from '@arcadia-eternity/pack-loader/native'
 import { SpeciesSchema, SkillSchema, MarkSchema, parseWithErrors } from '@arcadia-eternity/schema'
 import type { SpeciesSchemaType, SkillSchemaType, MarkSchemaType } from '@arcadia-eternity/schema'
-import type { EnvironmentRules, ServerEnvironmentContent } from '@arcadia-eternity/protocol'
+import type {
+  EnvironmentRules,
+  ManagedEnvironmentInstallation,
+  ServerEnvironmentContent,
+} from '@arcadia-eternity/protocol'
 import { getServerContentText, isRemoteContentActive, setServerContentText } from '@/i18n/serverContent'
 import { applyRuntimeAssetBase, resolveRuntimePackRef } from '@/utils/packRef'
 import { localMediaScope, setPackMedia } from '@/services/mediaLoader'
-import { acquireLocalContent } from '@/services/localContent'
+import { acquireLocalContent, acquireLocalContentVersion } from '@/services/localContent'
 import { getDesktopApi } from '@/utils/env'
 import { hasPreparedWebEnvironment, readPreparedWebCatalog } from '@/services/preparedWebEnvironment'
 
@@ -31,6 +35,7 @@ function createMetadataLoader() {
 
 interface GameDataState {
   environmentId?: string
+  environmentVersion?: string
   defaultEnvironmentName?: string
   defaultGameplayRevision?: string
   rules?: EnvironmentRules
@@ -64,6 +69,7 @@ type DisplayCatalog = Omit<GameDataState, 'serverFallback' | 'defaultEnvironment
 }
 interface DisplayOptions {
   environmentId?: string
+  environmentVersion?: string
   rules?: EnvironmentRules
   remote?: boolean
   effectMarkRelations?: EffectMarkRelations
@@ -72,6 +78,7 @@ type ServerDisplay = 'room' | 'matchmaking'
 interface DisplaySource {
   owner: ServerDisplay | 'view' | 'installed'
   catalog: DisplayCatalog
+  pinned?: boolean
   release?: () => Promise<void>
   handover?: Promise<void>
 }
@@ -93,6 +100,7 @@ function attachDisplay(state: GameDataState, source: DisplaySource) {
   if (!sources) {
     const base: DisplayCatalog = {
       environmentId: state.environmentId,
+      environmentVersion: state.environmentVersion,
       rules: state.rules,
       skillParameterCatalog: state.skillParameterCatalog,
       elementCatalog: state.elementCatalog,
@@ -127,8 +135,8 @@ function attachDisplay(state: GameDataState, source: DisplaySource) {
     active?.owner === 'view' &&
     !active.catalog.remoteText &&
     source.owner !== 'view' &&
-    active.catalog.environmentId &&
-    active.catalog.environmentId === source.catalog.environmentId
+    (active.pinned ||
+      (!!active.catalog.environmentVersion && active.catalog.environmentVersion === source.catalog.environmentVersion))
   )
     return
   sources.active = source
@@ -142,9 +150,11 @@ function detachDisplay(state: GameDataState, source: DisplaySource) {
   if (index === -1) return
   sources.entries.splice(index, 1)
   if (sources.active === source) {
-    const id = source.catalog.environmentId
-    const sameId = id && [...sources.entries].reverse().find(entry => entry.catalog.environmentId === id)
-    sources.active = sameId || (id && sources.base.environmentId === id ? undefined : sources.entries.at(-1))
+    const version = source.catalog.environmentVersion
+    const matching =
+      version && [...sources.entries].reverse().find(entry => entry.catalog.environmentVersion === version)
+    sources.active =
+      matching || (version && sources.base.environmentVersion === version ? undefined : sources.entries.at(-1))
     showCatalog(state, sources.active?.catalog ?? sources.base)
   }
   if (!sources.entries.length) {
@@ -180,6 +190,7 @@ function invalidateMetadata(store: object) {
 export const useGameDataStore = defineStore('gameData', {
   state: (): GameDataState => ({
     environmentId: undefined,
+    environmentVersion: undefined,
     defaultEnvironmentName: undefined,
     defaultGameplayRevision: undefined,
     rules: undefined,
@@ -231,8 +242,15 @@ export const useGameDataStore = defineStore('gameData', {
   },
 
   actions: {
-    useLocalBattleContent(content: ServerEnvironmentContent, options: DisplayOptions = {}): () => void {
-      const source: DisplaySource = { owner: 'view', catalog: this.buildDisplayCatalog(content, options) }
+    useLocalBattleContent(
+      content: ServerEnvironmentContent,
+      options: DisplayOptions & { pinned?: boolean } = {},
+    ): () => void {
+      const source: DisplaySource = {
+        owner: 'view',
+        pinned: options.pinned,
+        catalog: this.buildDisplayCatalog(content, options),
+      }
       invalidateMetadata(this)
       attachDisplay(this, source)
       return () => detachDisplay(this, source)
@@ -243,6 +261,7 @@ export const useGameDataStore = defineStore('gameData', {
       displays.delete(this)
       for (const entry of sources?.entries ?? []) void entry.release?.().catch(console.error)
       this.environmentId = undefined
+      this.environmentVersion = undefined
       this.defaultEnvironmentName = undefined
       this.defaultGameplayRevision = undefined
       void localMetadataReleases
@@ -270,6 +289,7 @@ export const useGameDataStore = defineStore('gameData', {
     buildDisplayCatalog(content: ServerEnvironmentContent, options: DisplayOptions): DisplayCatalog {
       return {
         environmentId: options.environmentId,
+        environmentVersion: options.environmentVersion,
         rules: options.rules,
         species: this.normalizeData(content.species.map(raw => parseWithErrors(SpeciesSchema, raw))),
         skills: this.normalizeData(content.skills.map(raw => parseWithErrors(SkillSchema, raw))),
@@ -297,9 +317,14 @@ export const useGameDataStore = defineStore('gameData', {
       attachDisplay(this, { owner: options.owner ?? 'room', catalog })
     },
 
-    reconcileLocalInstallations(readyIds: string[]) {
+    reconcileLocalInstallations(installations: ManagedEnvironmentInstallation[]) {
       const installed = displays.get(this)?.entries.find(entry => entry.owner === 'installed')
-      if (installed?.catalog.environmentId && !readyIds.includes(installed.catalog.environmentId))
+      if (
+        installed &&
+        !installations.some(
+          item => item.status === 'ready' && item.environmentVersion === installed.catalog.environmentVersion,
+        )
+      )
         detachDisplay(this, installed)
     },
 
@@ -308,41 +333,41 @@ export const useGameDataStore = defineStore('gameData', {
       const source = sources?.entries.find(entry => entry.owner === owner)
       if (!sources || !source) return
       if (source.handover) return source.handover
-      const id = source.catalog.environmentId
+      const version = source.catalog.environmentVersion
       if (
         sources.active !== source ||
-        !id ||
-        sources.base.environmentId === id ||
-        sources.entries.some(entry => entry !== source && entry.catalog.environmentId === id) ||
+        !version ||
+        sources.base.environmentVersion === version ||
+        sources.entries.some(entry => entry !== source && entry.catalog.environmentVersion === version) ||
         (!getDesktopApi() && !hasPreparedWebEnvironment())
       ) {
         detachDisplay(this, source)
         return
       }
 
-      // Keep the selected ID visible while resolving a non-default installation.
+      // Keep the selected version visible while resolving a non-default installation.
       // A new selection, socket publication or reset supersedes this read.
       source.handover = (async () => {
         let local: Awaited<ReturnType<typeof acquireLocalContent>>
         try {
-          local = await acquireLocalContent(id)
+          local = await acquireLocalContentVersion(version, source.catalog.environmentId)
           if (
             !local ||
-            local.environmentId !== id ||
             displays.get(this) !== sources ||
             sources.active !== source ||
             !sources.entries.includes(source)
           )
             return
           const catalog = this.buildDisplayCatalog(local.content, {
-            environmentId: id,
+            environmentId: local.environmentId,
+            environmentVersion: version,
             rules: local.rules,
             effectMarkRelations: local.effectMarkRelations,
           })
           attachDisplay(this, { owner: 'installed', catalog, release: local.release })
           local = undefined
         } catch {
-          // The server may have been the only readable source for this ID.
+          // This version may only have been available on the server.
         } finally {
           detachDisplay(this, source)
           await local?.release().catch(console.error)
@@ -383,6 +408,7 @@ export const useGameDataStore = defineStore('gameData', {
             this.loaded = this.gameDataLoaded = true
             this.error = null
             this.environmentId = captured.environmentId
+            this.environmentVersion = captured.environmentVersion
             this.defaultEnvironmentName = captured.environmentName ?? captured.environmentId
             this.defaultGameplayRevision = captured.gameplayRevision
             const previous = localMetadataReleases.get(this)
@@ -392,8 +418,15 @@ export const useGameDataStore = defineStore('gameData', {
             return
           }
           if (hasPreparedWebEnvironment()) {
-            const { content, rules, effectMarkRelations, gameplayRevision, builtins, defaultEnvironment } =
-              await readPreparedWebCatalog(forceReload)
+            const {
+              content,
+              rules,
+              effectMarkRelations,
+              gameplayRevision,
+              environmentVersion,
+              builtins,
+              defaultEnvironment,
+            } = await readPreparedWebCatalog(forceReload)
             if (!isCurrent()) return
             this.species = this.normalizeData(content.species.map(raw => parseWithErrors(SpeciesSchema, raw)))
             this.skills = this.normalizeData(content.skills.map(raw => parseWithErrors(SkillSchema, raw)))
@@ -404,6 +437,7 @@ export const useGameDataStore = defineStore('gameData', {
             this.natures = readNatureCatalog(content.natures)
             this.rules = rules
             this.environmentId = defaultEnvironment
+            this.environmentVersion = environmentVersion
             this.defaultEnvironmentName =
               builtins?.find(doc => doc.id === defaultEnvironment)?.name ?? defaultEnvironment
             this.defaultGameplayRevision = gameplayRevision

@@ -14,7 +14,7 @@ import LocalEnvironmentPage from './LocalEnvironmentPage.vue'
 import ServerEnvironmentPanel from './ServerEnvironmentPanel.vue'
 import { useEnvironmentDrafts, discardEnvironmentChanges } from './unsavedEnvironment'
 import EnvironmentDirectory from './EnvironmentDirectory.vue'
-import { resolveEnvironmentEntry, type EnvironmentLocation } from './environmentGroups'
+import { environmentGroupKey, resolveEnvironmentEntry, type EnvironmentLocation } from './environmentGroups'
 
 type Location = 'local' | 'web' | 'server' | 'room'
 const { dirty: hasDraft, open: editorOpen } = useEnvironmentDrafts()
@@ -40,6 +40,7 @@ const roomRows = computed<EnvironmentLocation[]>(() => {
         {
           id: descriptor.environmentId ?? descriptor.id,
           key: descriptor.id,
+          environmentVersion: descriptor.environmentVersion,
           name: descriptor.environmentName ?? '房间环境',
           source: '当前房间',
         },
@@ -63,11 +64,11 @@ const preferredLocation: Location =
   target === 'server' && !isStaticMode ? 'server' : target === 'room' && rooms.currentRoom ? 'room' : defaultLocation
 let userSelected = false
 type CatalogEntry = (typeof entries.value)[number]
-const chosen = ref<{ id: string; location: Location; key: string }>()
+const chosen = ref<{ id: string; location: Location; key: string; environmentVersion?: string }>()
 const localEdit = ref(false)
 const serverEdit = ref(false)
 function choose(row: CatalogEntry, startEdit = false) {
-  chosen.value = { id: row.id, location: row.location, key: row.sourceKey }
+  chosen.value = { id: row.id, environmentVersion: row.environmentVersion, location: row.location, key: row.sourceKey }
   localEdit.value = startEdit && row.location === 'local'
   serverEdit.value = startEdit && row.location === 'server'
 }
@@ -77,7 +78,9 @@ const selected = computed(() => activeLocation.value + '/' + activeKey.value)
 const relatedServerEnvironment = computed(() => {
   if (activeLocation.value === 'server' || editorOpen()) return undefined
   const active = entries.value.find(row => row.key === selected.value)
-  const remote = active && catalogs.value.server.find(row => row.id === active.id && row.serverId)
+  const remote =
+    active?.environmentVersion &&
+    catalogs.value.server.find(row => row.environmentVersion === active.environmentVersion && row.serverId)
   return remote && remote.serverId !== active?.serverId ? remote.id : undefined
 })
 const localBusy = ref(false)
@@ -88,12 +91,18 @@ const directoryBusy = computed(() =>
 watch([entries, editorOpen, directoryBusy], ([rows, editing, busy]) => {
   if (editing || busy || localEdit.value || serverEdit.value) return
   const first = rows.find(row => row.location === preferredLocation) ?? rows[0]
-  const next = userSelected
-    ? (resolveEnvironmentEntry(rows, chosen.value?.id, selected.value) ?? first)
-    : first?.location === target
-      ? first
-      : resolveEnvironmentEntry(rows, first?.id, first?.key)
-  if (next && next.key !== selected.value) choose(next)
+  const current = rows.find(row => row.key === selected.value)
+  const previous = chosen.value && environmentGroupKey({ ...chosen.value, key: selected.value })
+  const previousMatch = userSelected && resolveEnvironmentEntry(rows, previous, selected.value)
+  const preferred = current && userSelected ? current : first
+  const next =
+    previousMatch ||
+    (preferred &&
+      (preferred.location === target
+        ? preferred
+        : resolveEnvironmentEntry(rows, environmentGroupKey(preferred), preferred.key)))
+  if (next && (next.key !== selected.value || next.environmentVersion !== chosen.value?.environmentVersion))
+    choose(next)
   else if (!next) chosen.value = undefined
 })
 async function select(key: string, startEdit = false) {
@@ -121,7 +130,11 @@ function selection(location: Location) {
         <ElIcon><Grid /></ElIcon>
         <h1>环境</h1>
       </div>
-      <EnvironmentMediaCache v-if="chosen" :key="selected" :selection="chosen" />
+      <EnvironmentMediaCache
+        v-if="chosen"
+        :key="JSON.stringify([selected, chosen.environmentVersion])"
+        :selection="chosen"
+      />
     </header>
     <div class="hub-body">
       <EnvironmentLayout class="hub-layout">

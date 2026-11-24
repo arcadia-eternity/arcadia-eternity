@@ -13,6 +13,7 @@ import {
   buildDisplayCatalog,
   buildDisplayLocales,
   gameplayRevision,
+  environmentVersion,
   mapPresentationResources,
   PackMetadataLoader,
 } from '@arcadia-eternity/pack-loader/native'
@@ -130,6 +131,7 @@ export async function buildWebContent(root = basePackageRoot, projectDirectory) 
         packages,
         rules,
         gameplayRevision: revision,
+        environmentVersion: environmentVersion(revision, prepared.presentationRevision),
       })
     }
     writeJson(material + '/catalog.json', {
@@ -139,6 +141,8 @@ export async function buildWebContent(root = basePackageRoot, projectDirectory) 
       resources,
       runtimeRevision: sandbox.revision,
       runtimeIdentity,
+      presentationRevision: prepared.presentationRevision,
+      environmentVersion: entries[0].environmentVersion,
       gameplayRevision: entries[0].gameplayRevision,
       effectMarkRelations: prepared.authoring?.effectMarkRelations ?? {},
     })

@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import { gameplayRevision } from '@arcadia-eternity/pack-loader/native'
+import { environmentVersion, gameplayRevision } from '@arcadia-eternity/pack-loader/native'
 import { readEnvironmentJson } from '../serverEnvironment'
 import { readBuiltinWebEnvironment, readPreparedWebCatalog } from '../preparedWebEnvironment'
 
@@ -29,6 +29,18 @@ it('rejects a stale gameplay revision on the current catalog format', async () =
     gameplayRevision: '0'.repeat(64),
   })
   await expect(readPreparedWebCatalog(true)).rejects.toThrow('玩法版本不符')
+})
+
+it('rejects a presentation from a different version with unchanged gameplay', async () => {
+  const gameplay = await gameplayRevision(identity, material, rules)
+  vi.mocked(readEnvironmentJson).mockResolvedValueOnce({
+    ...catalog,
+    runtimeIdentity: identity,
+    gameplayRevision: gameplay,
+    presentationRevision: 'new-media',
+    environmentVersion: environmentVersion(gameplay, 'old-media'),
+  })
+  await expect(readPreparedWebCatalog(true)).rejects.toThrow('展示材料与版本不符')
 })
 
 it('uses the selected definition’s own material and verifies its rules against that material', async () => {

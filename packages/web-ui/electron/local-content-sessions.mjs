@@ -151,6 +151,8 @@ export function createLocalContentSessions({ library, load, assetUrl }) {
         registryBuildId: prepared.build.registryBuildId,
       }
       result.gameplayRevision = await runtime.gameplayRevision(runtimeIdentity, prepared.sandbox.revision, rules)
+      if (prepared.presentationRevision)
+        result.environmentVersion = runtime.environmentVersion(result.gameplayRevision, prepared.presentationRevision)
       const members = prepared.installation.members
       const packages = members.map(({ name, version, projectId, namespace }) => ({
         name,

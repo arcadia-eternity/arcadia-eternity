@@ -7,7 +7,9 @@ import EnvironmentManagerPage from '../EnvironmentManagerPage.vue'
 vi.mock('@/bootstrap/deployment', () => ({ getBackendOrigin: () => 'https://paired.example' }))
 const { roomStore } = vi.hoisted(() => ({
   roomStore: {
-    currentRoom: null as { environment: { id: string; environmentId: string; environmentName: string } } | null,
+    currentRoom: null as {
+      environment: { id: string; environmentId: string; environmentName: string; environmentVersion?: string }
+    } | null,
   },
 }))
 vi.mock('@/stores/privateRoom', () => ({ usePrivateRoomStore: () => roomStore }))
@@ -17,7 +19,16 @@ const Local = defineComponent({
   setup(_, { emit }) {
     const draft = ref('')
     drafts.registerEnvironmentDraft(() => !!draft.value)
-    emit('catalog', [{ id: 'friends', key: 'local/friends', name: '好友环境', source: '本机', editable: true }])
+    emit('catalog', [
+      {
+        id: 'friends',
+        environmentVersion: 'shared-version',
+        key: 'local/friends',
+        name: '好友环境',
+        source: '本机',
+        editable: true,
+      },
+    ])
     return { draft }
   },
   template: '<input v-if="selection !== null" v-model="draft" aria-label="本机草稿" />',
@@ -27,7 +38,7 @@ const Remote = defineComponent({
   emits: ['catalog'],
   setup(_, { emit }) {
     emit('catalog', [
-      { id: 'friends', key: 'publication', name: '联机好友', source: '服务器' },
+      { id: 'friends', environmentVersion: 'shared-version', key: 'publication', name: '联机好友', source: '服务器' },
       { id: 'another', key: 'other-publication', name: '好友环境', source: '服务器' },
     ])
   },
@@ -77,7 +88,7 @@ it.each(['local', 'host'])('keeps a %s bookmark unprivileged in a browser', asyn
   expect(page.find('option[value=local]').exists()).toBe(false)
 })
 
-it('lists a logical ID once across locations and opens an editable detail directly and guards navigation while editing', async () => {
+it('lists an applied version once across locations and opens an editable detail directly and guards navigation while editing', async () => {
   vi.stubGlobal('arcadiaDesktop', { localEnvironment: vi.fn() })
   const { page } = await open('/environments')
   await flushPromises()
@@ -105,12 +116,18 @@ it('lists a logical ID once across locations and opens an editable detail direct
 it('keeps every distinct origin on the same row, including a shared host workspace and a room publication', async () => {
   vi.stubGlobal('arcadiaDesktop', { localEnvironment: vi.fn() })
   roomStore.currentRoom = {
-    environment: { id: 'room-revision', environmentId: 'friends', environmentName: '房间好友环境' },
+    environment: {
+      id: 'room-revision',
+      environmentId: 'friends',
+      environmentName: '房间好友环境',
+      environmentVersion: 'shared-version',
+    },
   }
   const { page } = await open('/environments')
   page.getComponent(Local).vm.$emit('catalog', [
     {
       id: 'friends',
+      environmentVersion: 'shared-version',
       key: 'local/friends',
       name: '好友环境',
       source: '本机',
@@ -121,11 +138,11 @@ it('keeps every distinct origin on the same row, including a shared host workspa
   await flushPromises()
   const rows = page.get('nav[aria-label="选择环境"]').findAll('button')
   expect(rows.map(row => row.get('strong').text())).toEqual(['好友环境', '好友环境'])
-  expect(rows[0]!.get('small').text()).toBe('本机 · 本机服务器 · 服务器 · 当前房间')
+  expect(rows[0]!.text()).toContain('本机 · 本机服务器 · 服务器 · 当前房间')
   expect(rows[1]!.get('small').text()).toBe('服务器')
 })
 
-it('automatically uses a remaining same-ID location when the viewed catalog entry disappears', async () => {
+it('automatically uses a remaining same-version location when the viewed catalog entry disappears', async () => {
   vi.stubGlobal('arcadiaDesktop', { localEnvironment: vi.fn() })
   const { page } = await open('/environments')
   await flushPromises()
@@ -137,4 +154,27 @@ it('automatically uses a remaining same-ID location when the viewed catalog entr
   await flushPromises()
   expect(page.get('[data-remote]').attributes('data-selection')).toBe('publication')
   expect(page.find('[aria-label="环境来源"]').exists()).toBe(false)
+})
+
+it('separates same-ID revisions, including an unknown revision, and selects each independently', async () => {
+  vi.stubGlobal('arcadiaDesktop', { localEnvironment: vi.fn() })
+  const { page } = await open('/environments')
+  page.getComponent(Remote).vm.$emit('catalog', [
+    { id: 'alias', environmentVersion: 'shared-version', key: 'copy', name: '相同副本', source: '服务器' },
+    { id: 'friends', environmentVersion: 'new-version', key: 'new', name: '更新版本', source: '服务器' },
+    { id: 'friends', key: 'legacy', name: '旧版来源', source: '服务器' },
+  ])
+  await flushPromises()
+  const rows = page.get('nav').findAll('button')
+  expect(rows).toHaveLength(3)
+  expect(rows[0]!.text()).toContain('本机 · 服务器')
+  for (const [index, key] of [
+    [1, 'new'],
+    [2, 'legacy'],
+  ] as const) {
+    await rows[index]!.trigger('click')
+    await flushPromises()
+    expect(page.get('[data-remote]').attributes('data-selection')).toBe(key)
+    expect(page.get('nav').findAll('[aria-current=true]')).toHaveLength(1)
+  }
 })

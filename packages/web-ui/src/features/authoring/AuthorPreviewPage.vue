@@ -292,6 +292,7 @@ async function launch(reconfigure = false) {
     ownedSystem = prepared.system
     const restore = data.useLocalBattleContent(prepared.content, {
       environmentId: prepared.environmentId,
+      pinned: true,
       rules: prepared.rules,
     })
     const stop = prepared.system.cleanup.bind(prepared.system)

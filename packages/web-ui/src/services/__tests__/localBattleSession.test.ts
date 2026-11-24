@@ -135,6 +135,11 @@ it('pins desktop content from configuration through retries and battle cleanup',
   expect(releaseLocalContent).not.toHaveBeenCalled()
   const pinned = target.data.species
   const running = target.battle.battleInterface
+  target.data.applyServerEnvironment(
+    { species: [], skills: [], marks: [] },
+    { environmentId: 'training-120', environmentVersion: 'different-version' },
+  )
+  expect(target.data.species).toBe(pinned)
   await target.data.clearServerEnvironment()
   expect(target.data.species).toBe(pinned)
   expect(target.data.environmentId).toBe('training-120')

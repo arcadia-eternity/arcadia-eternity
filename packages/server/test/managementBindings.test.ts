@@ -224,6 +224,9 @@ it('continues publishing the loaded rules until a replacement runtime loads succ
     expect(second.rules?.mechanics?.secondGenerationNatures).toBe('species')
     expect(second.rules).not.toHaveProperty('include')
     expect(second.gameplayRevision).not.toBe(first.gameplayRevision)
+    expect(second.environmentVersion).toMatch(/^[a-f0-9]{64}$/)
+    expect(second.environmentVersion).toBe(installed.environmentVersion)
+    expect(second.environmentVersion).not.toBe(first.environmentVersion)
     expect(waiting.descriptor).toMatchObject({ id: first.id, gameplayRevision: first.gameplayRevision })
     expect(waiting.rules).toEqual(first.rules)
   } finally {

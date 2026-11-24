@@ -30,7 +30,7 @@ const managed = computed(() => initialized.value && isAdministrator.value && !lo
 const publicRows = ref<EnvironmentLocation[]>([])
 const managedEntries = computed(() =>
   controller.environments.value.map(environment => ({
-    ...managedLocation(environment, 'server', '服务器'),
+    ...managedLocation(environment, 'server', '服务器', controller.installations.value),
     workspaceId: state.workspaceId.value,
     serverId: controller.server.value?.id,
   })),

@@ -147,6 +147,7 @@ async function prepareEnvironment() {
     if (attempt === generation) {
       gameData.applyServerEnvironment(content, {
         environmentId: descriptor.environmentId ?? descriptor.id,
+        environmentVersion: descriptor.environmentVersion,
         rules: descriptor.rules,
         owner: 'matchmaking',
       })

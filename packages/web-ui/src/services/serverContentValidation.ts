@@ -67,6 +67,11 @@ export function validateEnvironmentDescriptor(value: unknown): asserts value is 
   )
     invalid()
   if (descriptor.environmentName !== undefined && !identifier(descriptor.environmentName)) invalid()
+  if (
+    descriptor.environmentVersion !== undefined &&
+    (typeof descriptor.environmentVersion !== 'string' || !HASH.test(descriptor.environmentVersion))
+  )
+    invalid()
   if (descriptor.gameplayRevision !== undefined && !HASH.test(descriptor.gameplayRevision)) invalid()
   if (descriptor.rules !== undefined) validateEnvironmentRules(toRaw(descriptor.rules))
   if (descriptor.matchmakingEnabled !== undefined && typeof descriptor.matchmakingEnabled !== 'boolean') invalid()

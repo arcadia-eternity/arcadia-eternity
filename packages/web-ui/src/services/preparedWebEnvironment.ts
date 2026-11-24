@@ -1,6 +1,11 @@
 import { localMediaScope, registerMediaEnvironment } from './mediaLoader'
 import type { SandboxEnvironment } from '@arcadia-eternity/battle/sandbox'
-import { digestJson, gameplayRevision, mapPresentationResources } from '@arcadia-eternity/pack-loader/native'
+import {
+  digestJson,
+  environmentVersion,
+  gameplayRevision,
+  mapPresentationResources,
+} from '@arcadia-eternity/pack-loader/native'
 import { validateEnvironmentRules } from '@arcadia-eternity/content-sdk/environment-rules'
 import type { EnvironmentRules, NativeRuntimeIdentity, ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 import type { PresentationManifest } from '@arcadia-eternity/schema'
@@ -16,16 +21,19 @@ type BuiltinWebEnvironment = {
   material: string
   packages: { name: string; version: string }[]
   rules: EnvironmentRules
+  environmentVersion?: string
   gameplayRevision: string
 }
 
 type PreparedCatalog = {
+  presentationRevision?: string
   packages?: { name: string; version: string }[]
   defaultEnvironment?: string
   builtins?: BuiltinWebEnvironment[]
   rules?: EnvironmentRules
   content: ServerEnvironmentContent
   resources: PresentationManifest['resources']
+  environmentVersion?: string
   gameplayRevision: string
   runtimeIdentity?: NativeRuntimeIdentity
   runtimeRevision: string
@@ -93,6 +101,12 @@ function readMaterialCatalog(material: string, refresh = false): Promise<Prepare
           ((!legacy || value.gameplayRevision !== undefined) && value.gameplayRevision !== revision)
         )
           throw new Error('网页环境的规则或材料与玩法版本不符')
+        if (
+          value.environmentVersion !== undefined &&
+          (!value.presentationRevision ||
+            environmentVersion(revision, value.presentationRevision) !== value.environmentVersion)
+        )
+          throw new Error('网页环境的展示材料与版本不符')
         value.gameplayRevision = revision
       } else {
         value.gameplayRevision = 'legacy:' + (await digestJson({ material: value.runtimeRevision, rules }))
@@ -123,7 +137,11 @@ function readMaterialCatalog(material: string, refresh = false): Promise<Prepare
         material,
         registerMediaEnvironment(
           value.content,
-          localMediaScope([root.href, material, value.gameplayRevision], value.packages, value.resources),
+          localMediaScope(
+            [root.href, material, value.environmentVersion ?? value.gameplayRevision],
+            value.packages,
+            value.resources,
+          ),
           value.resources,
           true,
         ),
@@ -148,7 +166,12 @@ export async function readBuiltinWebEnvironment(id: string, refresh = false) {
   const rules = validateEnvironmentRules(definition.rules)
   if (
     !material.runtimeIdentity ||
-    (await gameplayRevision(material.runtimeIdentity, material.runtimeRevision, rules)) !== definition.gameplayRevision
+    (await gameplayRevision(material.runtimeIdentity, material.runtimeRevision, rules)) !==
+      definition.gameplayRevision ||
+    (definition.environmentVersion !== undefined &&
+      (!material.presentationRevision ||
+        environmentVersion(definition.gameplayRevision, material.presentationRevision) !==
+          definition.environmentVersion))
   )
     throw new Error('网页环境的规则或材料与玩法版本不符')
   return {
@@ -156,6 +179,7 @@ export async function readBuiltinWebEnvironment(id: string, refresh = false) {
     rules,
     environmentName: definition.name,
     gameplayRevision: definition.gameplayRevision,
+    environmentVersion: definition.environmentVersion,
     material: definition.material,
   }
 }

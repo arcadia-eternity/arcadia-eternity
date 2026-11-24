@@ -41,6 +41,7 @@ export type PreparedNpmEnvironment = Awaited<ReturnType<typeof prepareWorkEnviro
   readonly installation: NpmProjectInspection
   readonly sandbox: SandboxEnvironment
   readonly authoring?: Awaited<ReturnType<typeof installedOfficialHost>>['authoring']
+  presentationRevision: string
   presentation: PreparedPresentation[]
   assetFile(hash: string): string | undefined
   readAsset(hash: string): Uint8Array | undefined
@@ -82,10 +83,19 @@ export async function prepareNpmProject(
     // Relocation only changes private npm source paths. Audit the administrator's original lockfile.
     const installation = Object.freeze({ ...inspected, lockfileDigest: original.lockfileDigest })
     const selected = await installedOfficialHost(captured.root, installation, host)
+    const presentation = await preparePresentation(captured.root, selected.presentationPackages)
     return Object.freeze({
       ...(await compileInstallation(captured.root, selected.host, installation, approval.policy, preparation)),
       authoring: selected.authoring,
-      presentation: await preparePresentation(captured.root, selected.presentationPackages),
+      presentation,
+      presentationRevision: await digestJson(
+        presentation.map(({ projectId, namespace, manifest, resources }) => ({
+          projectId,
+          namespace,
+          manifest,
+          files: resources.map(resource => resource.capturedSha256),
+        })),
+      ),
       dispose,
     })
   } catch (error) {

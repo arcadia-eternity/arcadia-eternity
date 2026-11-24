@@ -51,15 +51,17 @@ it('aborts obsolete public requests on refresh and unmount', async () => {
   expect(signals[1]!.aborted).toBe(true)
 })
 
-it('keeps the selected logical environment across a server publication change', async () => {
+it('does not substitute a new publication for a pinned selection', async () => {
   const entry = { environmentId: 'friends', environmentName: '好友环境', packages: [] }
   list.mockResolvedValueOnce([{ ...entry, id: 'a'.repeat(64) }])
-  page = mount(PublicEnvironments, { props: { selection: 'server/friends' } })
+  page = mount(PublicEnvironments, { props: { selection: 'publication/' + 'a'.repeat(64) } })
   await flushPromises()
   expect(page.get('article code').text()).toBe('a'.repeat(64))
   list.mockResolvedValueOnce([{ ...entry, id: 'b'.repeat(64), environmentName: '更新后的好友环境' }])
   await page.get('button').trigger('click')
   await flushPromises()
+  expect(page.find('article').exists()).toBe(false)
+  await page.setProps({ selection: 'publication/' + 'b'.repeat(64) })
   expect(page.get('article code').text()).toBe('b'.repeat(64))
   expect(page.get('article h3').text()).toBe('更新后的好友环境')
 })

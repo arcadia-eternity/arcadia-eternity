@@ -5,13 +5,21 @@ async function useStaticRules(page: Page, rules: import('@arcadia-eternity/proto
   await page.route('**/environment/catalog.json', async route => {
     const response = await route.fetch()
     const catalog = await response.json()
-    const { digestJson } = await import('@arcadia-eternity/pack-loader/native')
+    const { digestJson, environmentVersion } = await import('@arcadia-eternity/pack-loader/native')
     const gameplayRevision = await digestJson({
       runtime: catalog.runtimeIdentity,
       material: catalog.runtimeRevision,
       rules,
     })
-    await route.fulfill({ response, json: { ...catalog, rules, gameplayRevision } })
+    await route.fulfill({
+      response,
+      json: {
+        ...catalog,
+        rules,
+        gameplayRevision,
+        environmentVersion: environmentVersion(gameplayRevision, catalog.presentationRevision),
+      },
+    })
   })
 }
 

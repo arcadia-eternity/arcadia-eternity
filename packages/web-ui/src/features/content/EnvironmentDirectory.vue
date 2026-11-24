@@ -2,7 +2,12 @@
 import { computed, ref } from 'vue'
 import { ElButton, ElCard, ElIcon, ElInput } from 'element-plus'
 import { Collection, Search } from '@element-plus/icons-vue'
-import { groupEnvironments, resolveEnvironmentEntry, type EnvironmentLocation } from './environmentGroups'
+import {
+  environmentGroupKey,
+  groupEnvironments,
+  resolveEnvironmentEntry,
+  type EnvironmentLocation,
+} from './environmentGroups'
 const props = defineProps<{
   entries: EnvironmentLocation[]
   selected?: string
@@ -11,7 +16,7 @@ const props = defineProps<{
   showSources?: boolean
 }>()
 const emit = defineEmits<{ select: [key: string, edit?: boolean] }>()
-const groups = computed(() => groupEnvironments(props.entries, entry => entry.id))
+const groups = computed(() => groupEnvironments(props.entries))
 const query = ref('')
 const visibleGroups = computed(() => {
   const term = query.value.trim().toLowerCase()
@@ -21,14 +26,27 @@ const visibleGroups = computed(() => {
     ),
   )
 })
+const ambiguousNames = computed(() => {
+  const seen = new Set<string>()
+  const duplicates = new Set<string>()
+  for (const rows of groups.value.values()) {
+    for (const name of new Set(rows.map(row => row.name))) {
+      if (seen.has(name)) duplicates.add(name)
+      seen.add(name)
+    }
+  }
+  return duplicates
+})
 const active = computed(() => props.entries.find(entry => entry.key === props.selected))
+const activeGroup = computed(() => active.value && environmentGroupKey(active.value))
 const otherEditors = computed(() => {
   const current = active.value
   if (!current) return []
-  const owners = new Set([current.workspaceId ?? current.key])
+  const ownerKey = (row: EnvironmentLocation) => (row.workspaceId ? JSON.stringify([row.workspaceId, row.id]) : row.key)
+  const owners = new Set([ownerKey(current)])
   return (
-    groups.value.get(current.id)?.filter(entry => {
-      const owner = entry.workspaceId ?? entry.key
+    groups.value.get(environmentGroupKey(current))?.filter(entry => {
+      const owner = ownerKey(entry)
       if (!entry.editable || owners.has(owner)) return false
       owners.add(owner)
       return true
@@ -36,8 +54,8 @@ const otherEditors = computed(() => {
   )
 })
 function selectGroup(group: [EnvironmentLocation, ...EnvironmentLocation[]]) {
-  if (active.value?.id === group[0].id) return
-  const entry = resolveEnvironmentEntry(group, group[0].id) ?? group[0]
+  if (activeGroup.value === environmentGroupKey(group[0])) return
+  const entry = resolveEnvironmentEntry(group, environmentGroupKey(group[0])) ?? group[0]
   emit('select', entry.key)
 }
 </script>
@@ -63,12 +81,15 @@ function selectGroup(group: [EnvironmentLocation, ...EnvironmentLocation[]]) {
         :key="id"
         text
         :disabled="busy"
-        :aria-current="active?.id === id ? 'true' : undefined"
+        :aria-current="activeGroup === id ? 'true' : undefined"
         @click="selectGroup(group)"
       >
         <ElIcon><Collection /></ElIcon>
         <span class="row-text"
-          ><strong>{{ active?.id === id ? active.name : group[0].name }}</strong>
+          ><strong>{{ activeGroup === id ? active?.name : group[0].name }}</strong>
+          <small v-if="group[0].environmentVersion && group.some(row => ambiguousNames.has(row.name))">{{
+            group[0].environmentVersion.slice(0, 8)
+          }}</small>
           <small v-if="showSources">{{
             [...new Set(group.flatMap(entry => entry.sources ?? [entry.source]))].join(' · ')
           }}</small>
@@ -85,7 +106,7 @@ function selectGroup(group: [EnvironmentLocation, ...EnvironmentLocation[]]) {
         type="primary"
         :disabled="busy"
         @click="emit('select', entry.key, true)"
-        >编辑{{ entry.source }}副本</ElButton
+        >编辑{{ entry.source }}副本{{ entry.source === active?.source ? ' · ' + entry.name : '' }}</ElButton
       >
     </div>
   </ElCard>
