@@ -1,7 +1,7 @@
 {
   "name": "@arcadia-eternity/web-ui",
   "license": "MIT",
-  "version": "5.0.2",
+  "version": "5.0.3",
   "private": true,
   "type": "module",
   "repository": {

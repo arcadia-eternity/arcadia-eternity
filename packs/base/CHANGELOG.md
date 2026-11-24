@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.0.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v5.0.2...data-pack-base-v5.0.3) (2026-11-24)
+
+
+### 🐛 Bug Fixes
+
+* **base:** apply fengwen to poison damage ([426b60a](https://github.com/arcadia-eternity/arcadia-eternity/commit/426b60a43729d16b47f7f6aaa7a45cfff1061d95))
+* **base:** correct restored pet and emblem effects ([eeb7dd0](https://github.com/arcadia-eternity/arcadia-eternity/commit/eeb7dd0d4db748e52bd1b89a12f078796833f5f0))
+
 ## [5.0.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v5.0.1...data-pack-base-v5.0.2) (2026-11-24)
 
 
