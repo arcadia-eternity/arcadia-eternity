@@ -11,11 +11,11 @@ pnpm test:battle test/engine/port.test.ts
 
 ## CI 的选择规则
 
-工作流始终创建原有检查，通过轻量 `changes` job 按改动范围决定是否运行。这样无关改动会跳过测试，原检查名称仍存在，不使用会让必需检查一直等待的工作流级 `paths` 过滤。
+工作流通过轻量 `changes` job 按改动范围决定运行哪些检查。无关改动会跳过测试，检查名称仍会出现在 PR 上。
 
 | 改动                                            | 运行范围                           |
 | ----------------------------------------------- | ---------------------------------- |
-| 普通文档、其他工作流、监控配置                  | 跳过四个战斗 job                   |
+| 普通文档、其他工作流、监控配置                  | 跳过战斗回归检查                   |
 | server                                          | 服务端检查                         |
 | console、packages/cli、bin                      | 服务端和离线 CLI 检查              |
 | 根 rolldown.config.js                           | 离线 CLI 检查                      |
@@ -25,7 +25,7 @@ pnpm test:battle test/engine/port.test.ts
 | content-dev、SDK 打包脚本与 UGC 示例            | 按消费依赖覆盖服务端、浏览器和 CLI |
 | 锁文件、共享根配置、运行时构建脚本或本工作流    | 全部战斗检查                       |
 
-`headless-battle`、`native-server-entry`、`native-browser-entry`、`offline-cli` 四个 job 分别使用 `headless`、`server`、`browser`、`cli` 输出。服务端 job 的根 CLI 类型检查包含 `packages/cli` 源码，所以该包和 console 的改动会覆盖服务端与离线 CLI；server 本身不属于离线 CLI 依赖，不会触发离线测试。离线测试会构建根 CLI bundle，所以 `bin` 和根 `rolldown.config.js` 也纳入其范围。
+`headless-battle` 和 `native-server-entry` 分别使用 `headless` 和 `server` 输出。本地浏览器、联网对战和静态站验收使用 `browser` 输出，并行运行。`offline-cli` 和 `content-tooling` 使用 `cli` 输出，并行验证 CLI 与内容工具。服务端的根 CLI 类型检查包含 `packages/cli` 源码，所以该包和 console 的改动会覆盖服务端与离线 CLI。离线测试会构建根 CLI bundle，因此也检查 `bin` 和根 `rolldown.config.js` 的改动。
 
 包的传递依赖从 workspace manifests 递归推导，修改相关包内部任意文件时保守运行该包对应的检查。手动执行、缺失 Git 历史、无法确定改动范围时全部运行。PR 使用合并基点，push 使用前后提交，重命名同时考虑新旧路径。同一 PR 或分支的新提交会取消旧的未完成运行。
 

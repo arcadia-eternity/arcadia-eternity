@@ -32,6 +32,6 @@ pnpm --filter @arcadia-eternity/web-ui run build:static
 pnpm --filter @arcadia-eternity/web-ui run test:e2e:static
 ```
 
-The dedicated test server serves only `dist` beneath `/game/`, without a game backend or SPA rewrites. Tests use production UI controls and real media, without importing source modules or replacing assets. They cover a fresh profile selecting a team and reaching a natural AI result, starting another match, saved-resource offline reload, Cache Storage quota failure and blocked local storage. Requests outside the mounted static directory, game APIs and WebSockets are blocked and asserted absent. Browser results and screenshots are retained in Playwright artifacts; CI runs this suite in `native-browser-entry`.
+The dedicated test server serves only `dist` beneath `/game/`, without a game backend or SPA rewrites. Tests use production UI controls and real media, without importing source modules or replacing assets. They cover a fresh profile selecting a team and reaching a natural AI result, starting another match, saved-resource offline reload, Cache Storage quota failure and blocked local storage. Requests outside the mounted static directory, game APIs and WebSockets are blocked and asserted absent. The `static-browser-entry` CI job retains browser results and screenshots in Playwright artifacts.
 
 Platform-specific hosting and real deployment remain #219; Electron remains #209. This change does not publish a server or a website.

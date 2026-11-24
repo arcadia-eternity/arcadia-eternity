@@ -2,11 +2,16 @@ import { defineConfig, devices } from 'playwright/test'
 
 const onlineMode = process.env.PLAYWRIGHT_ONLINE === '1'
 const onlineP2PTransport = process.env.PLAYWRIGHT_P2P_TRANSPORT
+const dependenciesBuilt = process.env.PLAYWRIGHT_SKIP_DEPENDENCY_BUILD === '1'
 const onlineServerPort = 8112
 const onlineWebPort = 4175
 const loopbackHost = '127.0.0.1'
 const baseURL =
   process.env.PLAYWRIGHT_BASE_URL ?? (onlineMode ? `http://${loopbackHost}:${onlineWebPort}` : 'http://127.0.0.1:4173')
+
+function withDependencies(build: string, start: string) {
+  return dependenciesBuilt ? start : `${build} && ${start}`
+}
 
 export default defineConfig({
   testDir: './e2e',
@@ -35,7 +40,10 @@ export default defineConfig({
   webServer: onlineMode
     ? [
         {
-          command: `pnpm --filter @arcadia-eternity/server... run build && pnpm --workspace-root cli server --headless --port ${onlineServerPort} --cors-origin http://${loopbackHost}:${onlineWebPort}`,
+          command: withDependencies(
+            'pnpm --filter @arcadia-eternity/server... run build',
+            `pnpm --workspace-root cli server --headless --port ${onlineServerPort} --cors-origin http://${loopbackHost}:${onlineWebPort}`,
+          ),
           url: `http://${loopbackHost}:${onlineServerPort}/health`,
           reuseExistingServer: true,
           stdout: 'ignore',
@@ -43,9 +51,12 @@ export default defineConfig({
           timeout: 180_000,
         },
         {
-          command: `pnpm --filter @arcadia-eternity/web-ui run build:deps && VITE_BACKEND_ORIGIN=http://${loopbackHost}:${onlineServerPort}${
-            onlineP2PTransport ? ` VITE_P2P_TRANSPORT=${onlineP2PTransport}` : ''
-          } pnpm --filter @arcadia-eternity/web-ui exec vite --host ${loopbackHost} --port ${onlineWebPort} --strictPort`,
+          command: withDependencies(
+            'pnpm --filter @arcadia-eternity/web-ui run build:deps',
+            `VITE_BACKEND_ORIGIN=http://${loopbackHost}:${onlineServerPort}${
+              onlineP2PTransport ? ` VITE_P2P_TRANSPORT=${onlineP2PTransport}` : ''
+            } pnpm --filter @arcadia-eternity/web-ui exec vite --host ${loopbackHost} --port ${onlineWebPort} --strictPort`,
+          ),
           url: `http://${loopbackHost}:${onlineWebPort}`,
           reuseExistingServer: true,
           stdout: 'ignore',
@@ -54,8 +65,10 @@ export default defineConfig({
         },
       ]
     : {
-        command:
-          'pnpm --filter "@arcadia-eternity/web-ui^..." --filter "@arcadia-eternity/server..." run build && pnpm --filter @arcadia-eternity/web-ui exec vite --host 127.0.0.1 --port 4173 --strictPort',
+        command: withDependencies(
+          'pnpm --filter "@arcadia-eternity/web-ui^..." --filter "@arcadia-eternity/server..." run build',
+          'pnpm --filter @arcadia-eternity/web-ui exec vite --host 127.0.0.1 --port 4173 --strictPort',
+        ),
         url: 'http://127.0.0.1:4173',
         reuseExistingServer: true,
         stdout: 'ignore',
