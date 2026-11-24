@@ -3,13 +3,13 @@ import {
   defineEffects,
   EffectTrigger,
   actions,
-  checks,
   conditions,
   ops,
   selectFrom,
   targets,
   type Action,
 } from '@arcadia-eternity/battle/authoring'
+import { ownerHasMark } from './mark-queries'
 
 /** Select first, then execute. Each selected action queries its target at execution time. */
 function randomAction(...choices: readonly Action[]): Action {
@@ -18,7 +18,7 @@ function randomAction(...choices: readonly Action[]): Action {
 }
 const when = conditions.all(
   conditions.selfUsesSkill,
-  targets.ownerMarks.where(mark => mark.baseId === 'mark_emblem_wuxing').condition(checks.exists()),
+  ownerHasMark('mark_emblem_wuxing'),
   targets.opponentActive.condition((_, pets) => pets.some(pet => pet.gender === 'NoGender')),
 )
 

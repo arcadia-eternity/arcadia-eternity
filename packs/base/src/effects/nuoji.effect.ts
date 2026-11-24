@@ -2,14 +2,16 @@ import {
   actions,
   conditions,
   contexts,
-  DamageType,
   defineEffects,
   EffectTrigger,
   ops,
   targets,
-  type Condition,
+  checks,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { physicalOrSpecialDamage } from './damage-conditions'
+import { activeOwnerMarks, requireMark } from './mark-queries'
+import { actualSkillTarget } from './skill-queries'
 
 const N_PLAN = 'mark_nuoji_njihua'
 const B_PLAN = 'mark_nuoji_bjihua'
@@ -17,45 +19,34 @@ const NB_PLAN = 'mark_nuoji_nbjihua'
 const DONG_FENG = 'mark_nuoji_dongfeng'
 const WANSHI = 'mark_nuoji_wanshijubei'
 
-const attackDamage = contexts.damage.condition((_, events) =>
-  events.some(event => event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
-)
-
 @effectGroup({ id: 'nuoji' })
 export class NuojiEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const nPlan = marks.get(N_PLAN)
-    const bPlan = marks.get(B_PLAN)
-    const nbPlan = marks.get(NB_PLAN)
-    const dongFeng = marks.get(DONG_FENG)
-    const countdown = marks.get('mark_nuoji_dongfeng_countdown')
-    const wanshi = marks.get(WANSHI)
-    const pendingHeal = marks.get('mark_nuoji_dongfeng_heal')
-    if (!pendingHeal || !nPlan || !bPlan || !nbPlan || !dongFeng || !wanshi || !countdown) {
-      throw new Error('Missing Nuoji plan marks')
-    }
+    const nPlan = requireMark(marks, N_PLAN)
+    const bPlan = requireMark(marks, B_PLAN)
+    const nbPlan = requireMark(marks, NB_PLAN)
+    const dongFeng = requireMark(marks, DONG_FENG)
+    const countdown = requireMark(marks, 'mark_nuoji_dongfeng_countdown')
+    const wanshi = requireMark(marks, WANSHI)
+    const pendingHeal = requireMark(marks, 'mark_nuoji_dongfeng_heal')
 
-    const hasN = targets.ownerMarks.where(mark => mark.baseId === N_PLAN && mark.isActive).first()
-    const hasB = targets.ownerMarks.where(mark => mark.baseId === B_PLAN && mark.isActive).first()
-    const hasNB = targets.ownerMarks.where(mark => mark.baseId === NB_PLAN && mark.isActive).first()
-    const hasPlan = targets.ownerMarks
-      .where(mark => (mark.baseId === N_PLAN || mark.baseId === B_PLAN || mark.baseId === NB_PLAN) && mark.isActive)
-      .first()
+    const nMarks = activeOwnerMarks(N_PLAN)
+    const bMarks = activeOwnerMarks(B_PLAN)
+    const nbMarks = activeOwnerMarks(NB_PLAN)
+    const nActive = nMarks.condition(checks.exists())
+    const bActive = bMarks.condition(checks.exists())
+    const nbActive = nbMarks.condition(checks.exists())
+    const nPlanActive = conditions.any(nActive, nbActive)
+    const bPlanActive = conditions.any(bActive, nbActive)
+    const planActive = conditions.any(nActive, bActive, nbActive)
 
-    const nActive: Condition = ctx => ctx.read(hasN) !== undefined
-    const bActive: Condition = ctx => ctx.read(hasB) !== undefined
-    const nbActive: Condition = ctx => ctx.read(hasNB) !== undefined
-    const planActive: Condition = ctx => ctx.read(hasPlan) !== undefined
-    const nPlanActive: Condition = ctx => nActive(ctx) || nbActive(ctx)
-    const bPlanActive: Condition = ctx => bActive(ctx) || nbActive(ctx)
-
-    const removeN = targets.ownerMarks.where(mark => mark.baseId === N_PLAN && mark.isActive).apply(ops.removeMark())
-    const removeB = targets.ownerMarks.where(mark => mark.baseId === B_PLAN && mark.isActive).apply(ops.removeMark())
-    const removeNB = targets.ownerMarks.where(mark => mark.baseId === NB_PLAN && mark.isActive).apply(ops.removeMark())
+    const removeN = nMarks.apply(ops.removeMark())
+    const removeB = bMarks.apply(ops.removeMark())
+    const removeNB = nbMarks.apply(ops.removeMark())
 
     const ownerPet = targets.ownerPet
 
-    const windMarks = targets.ownerMarks.where(mark => mark.baseId === DONG_FENG && mark.isActive)
+    const windMarks = activeOwnerMarks(DONG_FENG)
     const incoming = contexts.switchPet.select(event => event.switchInPet)
 
     return defineEffects({
@@ -140,9 +131,7 @@ export class NuojiEffects {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, bPlanActive),
-        apply: contexts.skillUse
-          .flatMap(event => (event.actualTarget ? [event.actualTarget] : []))
-          .apply(ops.dealDamage(80)),
+        apply: actualSkillTarget.apply(ops.dealDamage(80)),
       },
       effect_skill_raise_priority_1_with_n_or_nb_plan: {
         triggers: [EffectTrigger.BeforeSort],
@@ -184,7 +173,7 @@ export class NuojiEffects {
       effect_skill_min_attack_damage_165_with_any_plan: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, planActive, attackDamage),
+        when: conditions.all(conditions.selfUsesSkill, planActive, physicalOrSpecialDamage),
         apply: contexts.damage.apply(ops.setDamageThreshold({ min: 165 })),
       },
       effect_skill_add_mark_self_dongfeng_after_check: {
@@ -209,20 +198,18 @@ export class NuojiEffects {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, bPlanActive),
-        apply: contexts.skillUse
-          .flatMap(event => (event.actualTarget ? [event.actualTarget] : []))
-          .apply(ops.dealDamage(65)),
+        apply: actualSkillTarget.apply(ops.dealDamage(65)),
       },
       effect_mark_increase_attack_damage_dealt_20_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, attackDamage),
+        when: conditions.all(conditions.selfUsesSkill, physicalOrSpecialDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 20, delta: 0 })),
       },
       effect_mark_increase_attack_damage_dealt_20_percent_without_n_plan: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, attackDamage, conditions.not(nActive)),
+        when: conditions.all(conditions.selfUsesSkill, physicalOrSpecialDamage, conditions.not(nActive)),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 20, delta: 0 })),
       },
       effect_mark_reduce_damage_taken_20_percent_without_b_plan: {

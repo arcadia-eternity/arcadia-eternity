@@ -20,8 +20,6 @@ import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle
 //   https://news.7k7k.com/content/20120423/168490.html
 //
 // Restoration-server skill values and secondary effects take precedence (BWIKI oldid 37122).
-import { DamageType } from '@arcadia-eternity/const'
-import { BaseMark } from '@arcadia-eternity/battle/engine'
 import {
   defineEffects,
   EffectTrigger,
@@ -34,12 +32,8 @@ import {
   values,
   type Condition,
 } from '@arcadia-eternity/battle/authoring'
-
-function requireMark(marks: ReadonlyMap<string, BaseMark>, id: string): BaseMark {
-  const mark = marks.get(id)
-  if (!(mark instanceof BaseMark) || mark.id !== id) throw new Error(`Missing official mark: ${id}`)
-  return mark
-}
+import { physicalOrSpecialDamage } from './damage-conditions'
+import { opponentActiveMarks, requireMark, ownerHasMark } from './mark-queries'
 
 const HONGXIN = 'mark_hongxinyinji'
 const TAOHONG = 'mark_taohongyinji'
@@ -51,36 +45,24 @@ const hasHongxinMark: Condition = targets.ownerMarks
   .condition(checks.exists())
 
 /** Only the real stackable 红心印记 is consumed; 桃红印记 is a timed substitute. */
-const hasRealHongxinMark: Condition = targets.ownerMarks
-  .where(mark => mark.baseId === HONGXIN)
-  .condition(checks.exists())
+const hasRealHongxinMark: Condition = ownerHasMark(HONGXIN)
 
 /**
  * The opponent's active marks are read from the opposing player, not from the
  * skill's actual target: 红心连接 is a self-target status skill but still needs
  * to see the opponent's 心之印记.
  */
-const opponentActiveMarks = targets.opponentActive.flatMap(pet => pet.marks)
-const hasOpponentXinzhiMark: Condition = opponentActiveMarks
-  .where(mark => mark.tags.includes('xinzhiyinji_tag'))
-  .condition(checks.exists())
+const opponentHeartMarks = opponentActiveMarks.where(mark => mark.tags.includes('xinzhiyinji_tag'))
 
-const comboReady = conditions.all(hasHongxinMark, hasOpponentXinzhiMark)
+const comboReady = conditions.all(hasHongxinMark, opponentHeartMarks.condition(checks.exists()))
 
 const consumeRealHongxinMark = targets.ownerMarks.where(mark => mark.baseId === HONGXIN).apply(ops.consumeStacks(1))
 
-const consumeOpponentXinzhiMark = opponentActiveMarks
-  .where(mark => mark.tags.includes('xinzhiyinji_tag'))
-  .apply(ops.consumeStacks(1))
+const consumeOpponentXinzhiMark = opponentHeartMarks.apply(ops.consumeStacks(1))
 
 /** 红心连接's shared damage must not recursively share its own effect damage. */
 const damageNotFromHongxinLianjie = contexts.damage.condition((_ctx, events) =>
   events.some(event => (event.source as { baseId?: string }).baseId !== LIANJIE),
-)
-
-/** 红心连接 shares physical and special damage. */
-const damageIsPhysicalOrSpecial = contexts.damage.condition((_ctx, events) =>
-  events.some(event => event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
 )
 
 @effectGroup({ id: 'kadundudu' })
@@ -199,7 +181,7 @@ export class KadunduduEffects {
       effect_mark_kadundudu_hongxin_lianjie_reduce: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, conditions.ownerIsActive, damageIsPhysicalOrSpecial),
+        when: conditions.all(conditions.selfBeDamaged, conditions.ownerIsActive, physicalOrSpecialDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -25, delta: 0 })),
       },
       effect_mark_kadundudu_hongxin_lianjie_share: {
@@ -208,7 +190,7 @@ export class KadunduduEffects {
         when: conditions.all(
           conditions.selfBeDamaged,
           conditions.ownerIsActive,
-          damageIsPhysicalOrSpecial,
+          physicalOrSpecialDamage,
           damageNotFromHongxinLianjie,
         ),
         apply: targets.opponentActive.apply(

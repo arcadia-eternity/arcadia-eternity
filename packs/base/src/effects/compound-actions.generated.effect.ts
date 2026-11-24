@@ -1,18 +1,18 @@
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
 // Reviewed native behavior; edit this TypeScript source directly.
-import { BaseMark } from '@arcadia-eternity/battle/engine'
+import type { BaseMark } from '@arcadia-eternity/battle/engine'
 import {
   defineEffects,
   EffectTrigger,
   conditions,
   contexts,
   targets,
-  checks,
   ops,
   actions,
   values,
   type EffectFrame,
 } from '@arcadia-eternity/battle/authoring'
+import { requireMark, ownerHasMark, opponentHasMark } from './mark-queries'
 export const generatedCompoundActionDependencies = Object.freeze([
   'mark_anyinglingyu',
   'mark_anzhilingyu',
@@ -58,10 +58,7 @@ export class CompoundActionsGeneratedEffects {
 
     const resolved = new Map<string, BaseMark>()
     for (const id of generatedCompoundActionDependencies) {
-      const mark = marks.get(id)
-      if (!(mark instanceof BaseMark) || mark.id !== id)
-        throw new Error('Missing or mismatched native mark dependency: ' + id)
-      resolved.set(id, mark)
+      resolved.set(id, requireMark(marks, id))
     }
     return defineEffects({
       effect_mark_add_crit_on_damage: {
@@ -185,10 +182,7 @@ export class CompoundActionsGeneratedEffects {
       effect_mark_xukongtizhi_consume_on_evasion: {
         triggers: [EffectTrigger.OnMiss],
         priority: 0,
-        when: conditions.all(
-          conditions.ownerIsSkillTarget,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_xukongtizhi').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.ownerIsSkillTarget, ownerHasMark('mark_xukongtizhi')),
         apply: actions.sequence(
           targets.ownerPet.apply(ops.addMark(resolved.get('mark_xukongganying')!)),
           targets.sourceMark.apply(ops.removeMark()),
@@ -202,7 +196,7 @@ export class CompoundActionsGeneratedEffects {
           targets.ownerPet.apply(
             ops.addMark(
               values.choose(
-                targets.ownerMarks.where(mark => mark.baseId === 'mark_yitelingyu').condition(checks.exists()),
+                ownerHasMark('mark_yitelingyu'),
                 resolved.get('mark_anyinglingyu')!,
                 resolved.get('mark_anzhilingyu')!,
               ),
@@ -218,7 +212,7 @@ export class CompoundActionsGeneratedEffects {
           targets.ownerPet.apply(
             ops.addMark(
               values.choose(
-                targets.ownerMarks.where(mark => mark.baseId === 'mark_yitelingyu').condition(checks.exists()),
+                ownerHasMark('mark_yitelingyu'),
                 resolved.get('mark_bingshuanglingyu')!,
                 resolved.get('mark_bingzhilingyu')!,
               ),
@@ -243,7 +237,7 @@ export class CompoundActionsGeneratedEffects {
           targets.ownerPet.apply(
             ops.addMark(
               values.choose(
-                targets.ownerMarks.where(mark => mark.baseId === 'mark_yitelingyu').condition(checks.exists()),
+                ownerHasMark('mark_yitelingyu'),
                 resolved.get('mark_chongqunlingyu')!,
                 resolved.get('mark_chongzhilingyu')!,
               ),
@@ -259,7 +253,7 @@ export class CompoundActionsGeneratedEffects {
           targets.ownerPet.apply(
             ops.addMark(
               values.choose(
-                targets.ownerMarks.where(mark => mark.baseId === 'mark_yitelingyu').condition(checks.exists()),
+                ownerHasMark('mark_yitelingyu'),
                 resolved.get('mark_diancilingyu')!,
                 resolved.get('mark_dianzhilingyu')!,
               ),
@@ -275,7 +269,7 @@ export class CompoundActionsGeneratedEffects {
           targets.ownerPet.apply(
             ops.addMark(
               values.choose(
-                targets.ownerMarks.where(mark => mark.baseId === 'mark_yitelingyu').condition(checks.exists()),
+                ownerHasMark('mark_yitelingyu'),
                 resolved.get('mark_feikonglingyu')!,
                 resolved.get('mark_feizhilingyu')!,
               ),
@@ -291,7 +285,7 @@ export class CompoundActionsGeneratedEffects {
           targets.ownerPet.apply(
             ops.addMark(
               values.choose(
-                targets.ownerMarks.where(mark => mark.baseId === 'mark_yitelingyu').condition(checks.exists()),
+                ownerHasMark('mark_yitelingyu'),
                 resolved.get('mark_fengbaolingyu')!,
                 resolved.get('mark_fengzhilingyu')!,
               ),
@@ -307,7 +301,7 @@ export class CompoundActionsGeneratedEffects {
           targets.ownerPet.apply(
             ops.addMark(
               values.choose(
-                targets.ownerMarks.where(mark => mark.baseId === 'mark_yitelingyu').condition(checks.exists()),
+                ownerHasMark('mark_yitelingyu'),
                 resolved.get('mark_guanghuilingyu')!,
                 resolved.get('mark_guangzhilingyu')!,
               ),
@@ -336,14 +330,8 @@ export class CompoundActionsGeneratedEffects {
         when: conditions.all(
           conditions.selfUsesSkill,
           targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Ice'),
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_dongqifuti').condition(checks.exists()),
-          conditions.chance(
-            values.choose(
-              targets.ownerMarks.where(mark => mark.baseId === 'mark_dongqifuti').condition(checks.exists()),
-              70,
-              10,
-            ),
-          ),
+          ownerHasMark('mark_dongqifuti'),
+          conditions.chance(values.choose(ownerHasMark('mark_dongqifuti'), 70, 10)),
         ),
         apply: actions.sequence(
           targets.opponentActive.apply(ops.addMark(resolved.get('mark_dongshang')!)),
@@ -379,7 +367,7 @@ export class CompoundActionsGeneratedEffects {
           targets.ownerPet.apply(
             ops.addMark(
               values.choose(
-                targets.ownerMarks.where(mark => mark.baseId === 'mark_yitelingyu').condition(checks.exists()),
+                ownerHasMark('mark_yitelingyu'),
                 resolved.get('mark_shabaolingyu')!,
                 resolved.get('mark_shazhilingyu')!,
               ),
@@ -395,7 +383,7 @@ export class CompoundActionsGeneratedEffects {
           targets.ownerPet.apply(
             ops.addMark(
               values.choose(
-                targets.ownerMarks.where(mark => mark.baseId === 'mark_yitelingyu').condition(checks.exists()),
+                ownerHasMark('mark_yitelingyu'),
                 resolved.get('mark_zhandoulingyu')!,
                 resolved.get('mark_zhanzhilingyu')!,
               ),
@@ -406,10 +394,7 @@ export class CompoundActionsGeneratedEffects {
       effect_skill_add_multihit_1_consume_shazhidanke: {
         triggers: [EffectTrigger.BeforeMultiHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shazhidanke').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shazhidanke')),
         apply: actions.sequence(
           contexts.skillUse.apply(ops.addMultihitResult(1)),
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shazhidanke').apply(ops.consumeStacks(1)),
@@ -420,7 +405,7 @@ export class CompoundActionsGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').condition(checks.exists()),
+          ownerHasMark('mark_huanxiang'),
           targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Ice'),
         ),
         apply: actions.sequence(
@@ -431,10 +416,7 @@ export class CompoundActionsGeneratedEffects {
       effect_skill_consume_huanxiang_multihit_2: {
         triggers: [EffectTrigger.BeforeMultiHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_huanxiang')),
         apply: actions.sequence(
           contexts.skillUse.apply(ops.addMultihitResult(1)),
           targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').apply(ops.consumeStacks(1)),
@@ -443,10 +425,7 @@ export class CompoundActionsGeneratedEffects {
       effect_skill_consume_huanxiang_multihit_4_to_5: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_huanxiang')),
         apply: actions.sequence(
           contexts.skillUse.apply(ops.setMultihit(values.randomInt(4, 5))),
           targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').apply(ops.consumeStacks(1)),
@@ -455,12 +434,7 @@ export class CompoundActionsGeneratedEffects {
       effect_skill_consume_maidijinzhen_add_jinzhenfenmo: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_maidijinzhen')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_maidijinzhen')),
         apply: actions.sequence(
           targets.opponentMarks.where(mark => mark.baseId === 'mark_maidijinzhen').apply(ops.consumeStacks(1)),
           targets.opponentActive.apply(ops.addMark(resolved.get('mark_jinzhenfenmo')!)),
@@ -469,12 +443,7 @@ export class CompoundActionsGeneratedEffects {
       effect_skill_consume_maimaijinzhen_add_liuxie_50: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_maimaijinzhen')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_maimaijinzhen')),
         apply: actions.sequence(
           targets.opponentMarks.where(mark => mark.baseId === 'mark_maimaijinzhen').apply(ops.consumeStacks(1)),
           targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 50 })),
@@ -483,12 +452,7 @@ export class CompoundActionsGeneratedEffects {
       effect_skill_consume_maimaijinzhen_add_maidijinzhen: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_maimaijinzhen')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_maimaijinzhen')),
         apply: actions.sequence(
           targets.opponentMarks.where(mark => mark.baseId === 'mark_maimaijinzhen').apply(ops.consumeStacks(1)),
           targets.opponentActive.apply(ops.addMark(resolved.get('mark_maidijinzhen')!)),
@@ -497,12 +461,7 @@ export class CompoundActionsGeneratedEffects {
       effect_skill_consume_maimaijinzhen_heal_self_50: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_maimaijinzhen')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_maimaijinzhen')),
         apply: actions.sequence(
           targets.opponentMarks.where(mark => mark.baseId === 'mark_maimaijinzhen').apply(ops.consumeStacks(1)),
           targets.ownerPet.apply(ops.addMark(resolved.get('mark_huifu_50_per_turn')!, { duration: 5 })),
@@ -511,12 +470,7 @@ export class CompoundActionsGeneratedEffects {
       effect_skill_consume_opponent_yinbo_add_yinbopingzhang: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_yinbo')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_yinbo')),
         apply: actions.sequence(
           targets.ownerPet.apply(
             ops.addMark(resolved.get('mark_yinbopingzhang')!, {
@@ -532,12 +486,7 @@ export class CompoundActionsGeneratedEffects {
       effect_skill_consume_opponent_yinbo_add_zaoyin: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_yinbo')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_yinbo')),
         apply: actions.sequence(
           targets.opponentActive.apply(
             ops.addMark(resolved.get('mark_zaoyin')!, {
@@ -553,10 +502,7 @@ export class CompoundActionsGeneratedEffects {
       effect_skill_priority_plus_1_consume_shazhidanke: {
         triggers: [EffectTrigger.BeforeSort],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shazhidanke').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shazhidanke')),
         apply: actions.sequence(
           contexts.skillUse.property('priority').apply(ops.add(1)),
           targets.ownerMarks.where(mark => mark.baseId === 'mark_shazhidanke').apply(ops.consumeStacks(1)),

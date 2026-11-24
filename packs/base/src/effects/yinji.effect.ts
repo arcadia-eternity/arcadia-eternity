@@ -1,6 +1,7 @@
 import {
   DamageType,
   actions,
+  checks,
   conditions,
   contexts,
   defineEffects,
@@ -13,6 +14,8 @@ import {
   type Condition,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { physicalOrSpecialDamage } from './damage-conditions'
+import { activeOpponentMarks, requireMark } from './mark-queries'
 
 const ZHUILUO = 'mark_zhuiluo'
 const ZHIKONG = 'mark_zhikong'
@@ -27,24 +30,13 @@ const weakeningChance = numberParam({ default: 70, tags: ['skill_effect_probabil
 @effectGroup({ id: 'yinji' })
 export class YinjiEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const zhuiluo = marks.get(ZHUILUO)
-    const zhikong = marks.get(ZHIKONG)
-    const liuxie = marks.get(LIUXIE)
-    const fangong = marks.get(FANGONG)
-    if (!zhuiluo || !zhikong || !liuxie || !fangong) {
-      throw new Error('Missing yinji mark dependencies')
-    }
+    const zhuiluo = requireMark(marks, ZHUILUO)
+    const zhikong = requireMark(marks, ZHIKONG)
+    const liuxie = requireMark(marks, LIUXIE)
+    const fangong = requireMark(marks, FANGONG)
 
-    const opponentHasZhuiluo = targets.opponentActive.condition((_, pets) =>
-      pets.some(pet => pet.marks.some(mark => mark.baseId === ZHUILUO && mark.isActive)),
-    )
-    const opponentHasZhikong = targets.opponentActive.condition((_, pets) =>
-      pets.some(pet => pet.marks.some(mark => mark.baseId === ZHIKONG && mark.isActive)),
-    )
-
-    const attackDamage = contexts.damage.condition((_, events) =>
-      events.some(event => event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
-    )
+    const opponentHasZhuiluo = activeOpponentMarks(ZHUILUO).condition(checks.exists())
+    const opponentHasZhikong = activeOpponentMarks(ZHIKONG).condition(checks.exists())
 
     const skillHasTag = (tag: string): Condition =>
       contexts.skillUse.condition((_, events) => events.some(event => event.skill.tags.includes(tag)))
@@ -97,7 +89,7 @@ export class YinjiEffects {
       effect_mark_deal_35_damage_to_attacker_70_percent_on_attack_damage: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, attackDamage, conditions.chance(70)),
+        when: conditions.all(conditions.selfBeDamaged, physicalOrSpecialDamage, conditions.chance(70)),
         apply: targets.damageOriginPet.apply(ops.dealDamage(35)),
       },
       effect_ability_add_mark_opponent_zhuiluo_on_moon_skill_hit: {
@@ -115,7 +107,7 @@ export class YinjiEffects {
       effect_emblem_amplify_outgoing_attack_damage_25_percent_if_first: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn, attackDamage),
+        when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn, physicalOrSpecialDamage),
         apply: firstMoveDamageBoost,
       },
       effect_skill_add_mark_self_fangong_after_check: {

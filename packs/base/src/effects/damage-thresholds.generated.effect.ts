@@ -6,10 +6,10 @@ import {
   conditions,
   contexts,
   targets,
-  checks,
   ops,
   actions,
 } from '@arcadia-eternity/battle/authoring'
+import { ownerHasMark } from './mark-queries'
 @effectGroup({ id: 'damage-thresholds.generated' })
 export class DamageThresholdsGeneratedEffects {
   static build() {
@@ -44,10 +44,7 @@ export class DamageThresholdsGeneratedEffects {
       effect_skill_minimum_damage_100_if_aideminyi: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_aideminyi').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_aideminyi')),
         apply: actions.sequence(contexts.damage.apply(ops.setDamageThreshold({ min: 100 }))),
       },
       effect_skill_save_hp_to_1: {

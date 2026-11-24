@@ -1,6 +1,6 @@
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
 // Reviewed native behavior; edit this TypeScript source directly.
-import { BaseMark } from '@arcadia-eternity/battle/engine'
+import type { BaseMark } from '@arcadia-eternity/battle/engine'
 import {
   defineEffects,
   EffectTrigger,
@@ -13,6 +13,8 @@ import {
   contexts,
   type EffectFrame,
 } from '@arcadia-eternity/battle/authoring'
+import { physicalDamage } from './damage-conditions'
+import { requireMark, ownerHasMark, opponentHasMark } from './mark-queries'
 export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_aideminyi',
   'mark_anhunqu',
@@ -208,10 +210,7 @@ export class MarkApplicationsGeneratedEffects {
 
     const resolved = new Map<string, BaseMark>()
     for (const id of generatedMarkApplicationDependencies) {
-      const mark = marks.get(id)
-      if (!(mark instanceof BaseMark) || mark.id !== id)
-        throw new Error('Missing or mismatched native mark dependency: ' + id)
-      resolved.set(id, mark)
+      resolved.set(id, requireMark(marks, id))
     }
     return defineEffects({
       effect_ability_add_mark_buxieanguang_on_switch: {
@@ -376,11 +375,7 @@ export class MarkApplicationsGeneratedEffects {
       effect_mark_paralyze_on_physical_50_percent: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Physical'),
-          conditions.chance(50),
-        ),
+        when: conditions.all(conditions.selfBeDamaged, physicalDamage, conditions.chance(50)),
         apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mabi')!)),
       },
       effect_mark_when_attacked_add_opponent_mark_zhongdu_50_percent: {
@@ -600,10 +595,7 @@ export class MarkApplicationsGeneratedEffects {
       effect_skill_add_mark_huifu_1_16_if_aideminyi: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_aideminyi').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_aideminyi')),
         apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_huifu_1_16')!)),
       },
       effect_skill_add_mark_huijiachifan: {
@@ -626,9 +618,7 @@ export class MarkApplicationsGeneratedEffects {
           parameters,
           when: conditions.all(
             conditions.selfUsesSkill,
-            targets.opponentActive.condition((_ctx, pets) =>
-              pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_mabi')),
-            ),
+            opponentHasMark('mark_mabi'),
             conditions.chance(parameters.condition_2_percent),
           ),
           apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_hunmi')!)),
@@ -739,10 +729,7 @@ export class MarkApplicationsGeneratedEffects {
       effect_skill_add_mark_kongqihudun_stack_with_kongqichuliang_stack: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_kongqichuliang').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_kongqichuliang')),
         apply: targets.ownerPet.apply(
           ops.addMark(resolved.get('mark_kongqihudun')!, {
             stack: targets.ownerMarks
@@ -988,9 +975,7 @@ export class MarkApplicationsGeneratedEffects {
           parameters,
           when: conditions.all(
             conditions.selfUsesSkill,
-            targets.opponentActive.condition((_ctx, pets) =>
-              pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_cuimian')),
-            ),
+            opponentHasMark('mark_cuimian'),
             conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_2_1_percent)),
           ),
           apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
@@ -1006,9 +991,7 @@ export class MarkApplicationsGeneratedEffects {
           parameters,
           when: conditions.all(
             conditions.selfUsesSkill,
-            targets.opponentActive.condition((_ctx, pets) =>
-              pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_cuimian')),
-            ),
+            opponentHasMark('mark_cuimian'),
             conditions.chance(parameters.condition_2_percent),
           ),
           apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_haipa')!)),
@@ -1165,12 +1148,7 @@ export class MarkApplicationsGeneratedEffects {
       effect_skill_add_mark_opponent_liuxie_40_if_pofang: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_pofang')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_pofang')),
         apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 40 })),
       },
       effect_skill_add_mark_opponent_liuxie_50_if_field_yemu: {
@@ -1188,12 +1166,7 @@ export class MarkApplicationsGeneratedEffects {
       effect_skill_add_mark_opponent_liuxie_50_if_has_cuimian: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_cuimian')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_cuimian')),
         apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 50 })),
       },
       effect_skill_add_mark_opponent_liuxie_50_if_hp_above_half: {
@@ -1235,10 +1208,7 @@ export class MarkApplicationsGeneratedEffects {
       effect_skill_add_mark_opponent_liuxue_60_if_chongqunlingyu: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_chongqunlingyu').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_chongqunlingyu')),
         apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_liuxie')!, { stack: 60 })),
       },
       effect_skill_add_mark_opponent_mabi: {
@@ -1368,22 +1338,13 @@ export class MarkApplicationsGeneratedEffects {
       effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_has_jinbao: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_jinbao').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_jinbao')),
         apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mingzhongxiajiang')!, { stack: 15 })),
       },
       effect_skill_add_mark_opponent_mingzhongxiajiang_15_if_opponent_has_kaowen_and_last: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kaowen')),
-          ),
-          conditions.lastSkillThisTurn,
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_kaowen'), conditions.lastSkillThisTurn),
         apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_mingzhongxiajiang')!, { stack: 15 })),
       },
       effect_skill_add_mark_opponent_mingzhongxiajiang_25: (() => {
@@ -1497,7 +1458,7 @@ export class MarkApplicationsGeneratedEffects {
           parameters,
           when: conditions.all(
             conditions.selfUsesSkill,
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_shunliu').condition(checks.exists()),
+            ownerHasMark('mark_shunliu'),
             conditions.chance(parameters.condition_2_percent),
             targets.opponentActive.condition((_ctx, pets) => pets[0]?.element !== 'Water'),
           ),
@@ -1555,12 +1516,7 @@ export class MarkApplicationsGeneratedEffects {
       effect_skill_add_mark_opponent_shoudaoshanghaizengjia_50_if_opponent_has_kaowen: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kaowen')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_kaowen')),
         apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_shoudaoshanghaizengjia')!, { stack: 50 })),
       },
       effect_skill_add_mark_opponent_shuanghunxuanlv: {
@@ -1664,9 +1620,7 @@ export class MarkApplicationsGeneratedEffects {
           parameters,
           when: conditions.all(
             conditions.selfUsesSkill,
-            targets.opponentActive.condition((_ctx, pets) =>
-              pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kaowen')),
-            ),
+            opponentHasMark('mark_kaowen'),
             conditions.chance(parameters.condition_2_percent),
           ),
           apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_taobi')!)),
@@ -1843,15 +1797,10 @@ export class MarkApplicationsGeneratedEffects {
             conditions.selfUsesSkill,
             conditions.any(
               conditions.all(
-                conditions.not(
-                  targets.ownerMarks.where(mark => mark.baseId === 'mark_xukongganying').condition(checks.exists()),
-                ),
+                conditions.not(ownerHasMark('mark_xukongganying')),
                 conditions.chance(parameters.condition_1_0_1_percent),
               ),
-              conditions.all(
-                targets.ownerMarks.where(mark => mark.baseId === 'mark_xukongganying').condition(checks.exists()),
-                conditions.chance(parameters.condition_1_1_1_percent),
-              ),
+              conditions.all(ownerHasMark('mark_xukongganying'), conditions.chance(parameters.condition_1_1_1_percent)),
             ),
           ),
           apply: targets.opponentActive.apply(ops.addMark(resolved.get('mark_zhixi')!)),
@@ -1926,12 +1875,7 @@ export class MarkApplicationsGeneratedEffects {
       effect_skill_add_mark_opponent_zhongdu_duration_2: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_zhongdu')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_zhongdu')),
         apply: targets.opponentActive.apply(
           ops.addMark(resolved.get('mark_zhongdu')!, {
             duration: targets.opponentMarks
@@ -2069,10 +2013,7 @@ export class MarkApplicationsGeneratedEffects {
       effect_skill_add_mark_shanbiwugong_if_shabaolingyu: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shabaolingyu').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shabaolingyu')),
         apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanbiwugong')!, { stack: 1 })),
       },
       effect_skill_add_mark_shandianshoushu: {
@@ -2473,12 +2414,7 @@ export class MarkApplicationsGeneratedEffects {
       effect_skill_double_mark_liuxie_stack: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_liuxie')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_liuxie')),
         apply: targets.opponentActive.apply(
           ops.addMark(resolved.get('mark_liuxie')!, {
             stack: targets.opponentMarks

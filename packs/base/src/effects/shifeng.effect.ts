@@ -1,7 +1,6 @@
 import {
   conditions,
   contexts,
-  DamageType,
   defineEffects,
   EffectTrigger,
   numberParam,
@@ -11,12 +10,15 @@ import {
   type Condition,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { physicalOrSpecialDamage } from './damage-conditions'
+import { activeOwnerMarks, requireMark } from './mark-queries'
+import { actualSkillTarget } from './skill-queries'
 
 const NEEDLES = 'mark_fenghuangzhen'
 const POISON = 'mark_zhongdu'
 const PARALYSIS = 'mark_mabi'
 
-const needles = targets.ownerMarks.where(mark => mark.baseId === NEEDLES && mark.isActive)
+const needles = activeOwnerMarks(NEEDLES)
 const remainingNeedles = needles.first().attribute('stack')
 const spendNeedle = needles.apply(ops.consumeStacks(1))
 function needleHit(secondary: Action, trigger: EffectTrigger.OnHit | EffectTrigger.BeforeHit, tags: string[]) {
@@ -38,9 +40,6 @@ function needleHit(secondary: Action, trigger: EffectTrigger.OnHit | EffectTrigg
 
 const male = targets.ownerPet.condition((_, pets) => pets[0]?.gender === 'Male')
 const female = targets.ownerPet.condition((_, pets) => pets[0]?.gender === 'Female')
-const attackDamage = contexts.damage.condition((_, events) =>
-  events.some(event => event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
-)
 
 function powerWhen(gender: Condition, bonus: number) {
   return {
@@ -52,8 +51,7 @@ function powerWhen(gender: Condition, bonus: number) {
 }
 
 function drainWhen(gender: Condition, amount: number) {
-  const target = contexts.skillUse.flatMap(event => (event.actualTarget ? [event.actualTarget] : []))
-  const drain = target.apply(ops.dealDamage(amount))
+  const drain = actualSkillTarget.apply(ops.dealDamage(amount))
   const restore = targets.ownerPet.apply(ops.heal(contexts.damageResult.select(result => result.hpLoss).first()))
   return {
     triggers: [EffectTrigger.OnHit, EffectTrigger.OnDamage] as const,
@@ -71,10 +69,9 @@ function drainWhen(gender: Condition, amount: number) {
 @effectGroup({ id: 'shifeng' })
 export class ShifengEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const needleMark = marks.get(NEEDLES)
-    const poison = marks.get(POISON)
-    const paralysis = marks.get(PARALYSIS)
-    if (!needleMark || !poison || !paralysis) throw new Error('Missing needle, poison, or paralysis mark')
+    const needleMark = requireMark(marks, NEEDLES)
+    const poison = requireMark(marks, POISON)
+    const paralysis = requireMark(marks, PARALYSIS)
 
     return defineEffects({
       effect_ability_add_mark_self_fenghuangzhen_3_on_battle_start: {
@@ -97,13 +94,13 @@ export class ShifengEffects {
       effect_emblem_increase_attack_damage_5_percent_if_male: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, male, attackDamage),
+        when: conditions.all(conditions.selfUsesSkill, male, physicalOrSpecialDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 5, delta: 0 })),
       },
       effect_emblem_reduce_incoming_attack_damage_5_percent_if_female: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, female, attackDamage),
+        when: conditions.all(conditions.selfBeDamaged, female, physicalOrSpecialDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -5, delta: 0 })),
       },
       effect_skill_add_mark_opponent_zhongdu_40_percent_or_consume_fenghuangzhen: needleHit(

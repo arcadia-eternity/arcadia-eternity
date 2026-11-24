@@ -9,6 +9,8 @@ import {
   type Action,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { physicalOrSpecialDamage } from './damage-conditions'
+import { activeOwnerMarks, requireMark } from './mark-queries'
 
 const TANLI = 'mark_tanli'
 const BENGHAUI = 'mark_benghuai'
@@ -20,28 +22,16 @@ const TANLI_CAP = 200
 @effectGroup({ id: 'mimi' })
 export class MimiEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const tanli = marks.get(TANLI)
-    const benghuai = marks.get(BENGHAUI)
-    const tizhi = marks.get(TANHUANG_TIZHI)
-    const baozha = marks.get(TANHUANG_BAOZHA)
-    if (!tanli || !benghuai || !tizhi || !baozha) {
-      throw new Error('Missing mimi marks')
-    }
+    const tanli = requireMark(marks, TANLI)
+    const benghuai = requireMark(marks, BENGHAUI)
+    const tizhi = requireMark(marks, TANHUANG_TIZHI)
+    const baozha = requireMark(marks, TANHUANG_BAOZHA)
 
-    const tanliStacks = targets.ownerMarks
-      .where(mark => mark.baseId === TANLI && mark.isActive)
-      .first()
-      .attribute('stack')
-    const hasBenghuai = targets.ownerMarks
-      .where(mark => mark.baseId === BENGHAUI && mark.isActive)
-      .condition((_, found) => found.length > 0)
-    const tanliMark = targets.ownerMarks.where(mark => mark.baseId === TANLI && mark.isActive)
+    const tanliMark = activeOwnerMarks(TANLI)
+    const tanliStacks = tanliMark.first().attribute('stack')
+    const hasBenghuai = activeOwnerMarks(BENGHAUI).condition((_, found) => found.length > 0)
     const spendTanli = (amount: number) => tanliMark.apply(ops.consumeStacks(amount))
     const addTanli = (amount: number) => targets.ownerPet.apply(ops.addMark(tanli, { stack: amount }))
-
-    const attackDamage = contexts.damage.condition((_, events) =>
-      events.some(event => event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
-    )
 
     const benghuaiSkill = contexts.skillUse.condition((_, events) =>
       events.some(event => event.skill.baseId.startsWith('skill_benghuai')),
@@ -92,7 +82,7 @@ export class MimiEffects {
     const emblemReduction = {
       triggers: [EffectTrigger.OnBeforeCalculateDamage] as const,
       priority: 0,
-      when: conditions.all(conditions.selfBeDamaged, attackDamage, hasBenghuai),
+      when: conditions.all(conditions.selfBeDamaged, physicalOrSpecialDamage, hasBenghuai),
       apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: -25 })),
     }
 
@@ -216,10 +206,8 @@ export class MimiEffects {
       priority: 0,
       when: conditions.all(
         conditions.selfBeDamaged,
-        attackDamage,
-        targets.ownerMarks
-          .where(mark => mark.baseId === TANHUANG_TIZHI && mark.isActive)
-          .condition((_, found) => found.length > 0),
+        physicalOrSpecialDamage,
+        activeOwnerMarks(TANHUANG_TIZHI).condition((_, found) => found.length > 0),
       ),
       apply: targets.damageOriginPet.apply(ops.dealDamage(30)),
     }
@@ -229,9 +217,7 @@ export class MimiEffects {
       priority: 0,
       when: conditions.all(
         conditions.selfBeDamaged,
-        targets.ownerMarks
-          .where(mark => mark.baseId === TANHUANG_BAOZHA && mark.isActive)
-          .condition((_, found) => found.length > 0),
+        activeOwnerMarks(TANHUANG_BAOZHA).condition((_, found) => found.length > 0),
       ),
       apply: (ctx => {
         const stacks = ctx.read(tanliStacks) ?? 0
@@ -239,7 +225,7 @@ export class MimiEffects {
           spendTanli(stacks)(ctx)
           targets.opponentActive.apply(ops.dealDamage(stacks, { damageType: DamageType.Effect }))(ctx)
         }
-        targets.ownerMarks.where(mark => mark.baseId === TANHUANG_BAOZHA && mark.isActive).apply(ops.removeMark())(ctx)
+        activeOwnerMarks(TANHUANG_BAOZHA).apply(ops.removeMark())(ctx)
       }) satisfies Action<EffectTrigger.OnDamage>,
     }
 

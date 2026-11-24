@@ -2,7 +2,6 @@ import {
   actions,
   conditions,
   contexts,
-  DamageType,
   defineEffects,
   EffectTrigger,
   numberParam,
@@ -10,33 +9,28 @@ import {
   targets,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { physicalOrSpecialDamage } from './damage-conditions'
+import { requireMark } from './mark-queries'
+import { nonStatusSkillUse } from './skill-queries'
 
 const HARDEN = 'mark_yinghua'
 const SURE_HIT = 'mark_bizhong'
 
 const defenseBoostChance = numberParam({ default: 15, tags: ['skill_effect_probability'] })
 
-const attackDamage = contexts.damage.condition((_, events) =>
-  events.some(event => event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
-)
-
 const ownerPet = targets.ownerPet
 
 @effectGroup({ id: 'moumou' })
 export class MoumouEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const harden = marks.get(HARDEN)
-    const sureHit = marks.get(SURE_HIT)
-    if (!harden || !sureHit) throw new Error('Missing harden or sure-hit mark')
+    const harden = requireMark(marks, HARDEN)
+    const sureHit = requireMark(marks, SURE_HIT)
 
     return defineEffects({
       effect_ability_heal_self_15_hp_after_non_status_hit: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          contexts.skillUse.condition((_, casts) => casts.some(cast => cast.category !== 'Status')),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, nonStatusSkillUse),
         apply: ownerPet.apply(ops.heal(15)),
       },
       effect_skill_add_mark_self_bizhong_2_turns_after_check: {
@@ -61,7 +55,7 @@ export class MoumouEffects {
       effect_skill_min_physical_special_damage_95: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, attackDamage),
+        when: conditions.all(conditions.selfUsesSkill, physicalOrSpecialDamage),
         apply: contexts.damage.apply(ops.setDamageThreshold({ min: 95 })),
       },
       effect_skill_double_damage_against_grass_water_desert_trait: {

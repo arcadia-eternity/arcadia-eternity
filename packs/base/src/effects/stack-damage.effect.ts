@@ -10,6 +10,7 @@ import {
   targets,
   values,
 } from '@arcadia-eternity/battle/authoring'
+import { specialDamage } from './damage-conditions'
 
 /** Explicit corrections to the source's reactive-object delta and premature skill-check trigger. */
 @effectGroup({ id: 'stack-damage' })
@@ -21,10 +22,7 @@ export class StackDamageEffects {
       effect_mark_special_damage_reduction_with_stack: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
-        ),
+        when: conditions.all(conditions.selfBeDamaged, specialDamage),
         apply: contexts.damage.apply(
           ops.modifyDamage({
             percent: 0,

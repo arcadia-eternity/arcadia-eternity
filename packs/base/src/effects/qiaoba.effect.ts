@@ -10,6 +10,7 @@ import {
   type Condition,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { activeOwnerMarks, requireMark } from './mark-queries'
 
 const BLUE_WAVE = 'mark_lanbo'
 const BERSERK = 'mark_baozou'
@@ -24,21 +25,15 @@ const specialAttackBoostChance = numberParam({ default: 5, tags: ['skill_effect_
 @effectGroup({ id: 'qiaoba' })
 export class QiaobaEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const blueWave = marks.get(BLUE_WAVE)
-    const berserk = marks.get(BERSERK)
-    const confusion = marks.get(CONFUSION)
-    const fear = marks.get(FEAR)
-    const bleed = marks.get(BLEED)
-    const vulnerable = marks.get(VULNERABLE)
-    const shyDodge = marks.get(SHY_DODGE)
-    if (!blueWave || !berserk || !confusion || !fear || !bleed || !vulnerable || !shyDodge) {
-      throw new Error('Missing qiaoba mark dependency')
-    }
+    const blueWave = requireMark(marks, BLUE_WAVE)
+    const berserk = requireMark(marks, BERSERK)
+    const confusion = requireMark(marks, CONFUSION)
+    const fear = requireMark(marks, FEAR)
+    const bleed = requireMark(marks, BLEED)
+    const vulnerable = requireMark(marks, VULNERABLE)
+    const shyDodge = requireMark(marks, SHY_DODGE)
 
-    const blueWaveStacks = targets.ownerMarks
-      .where(mark => mark.baseId === BLUE_WAVE && mark.isActive)
-      .first()
-      .attribute('stack')
+    const blueWaveStacks = activeOwnerMarks(BLUE_WAVE).first().attribute('stack')
     const hasBlueWave =
       (minimum: number): Condition =>
       ctx =>

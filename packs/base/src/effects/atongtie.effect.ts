@@ -12,8 +12,9 @@ import {
   type Condition,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
-
-import { preventedBySourceMark } from './damage-benefits.effect'
+import { preventedBySourceMark, reflectedHalfHpLoss } from './damage-benefits.effect'
+import { physicalDamage, specialDamage } from './damage-conditions'
+import { ruleConsumedSourceMark, sourceMarkOnLastTurn, requireMark } from './mark-queries'
 
 const OVERLOAD = 'mark_guozai_atongtie'
 const PHYSICAL_ABSORB = 'mark_wulixishou_atongtie'
@@ -23,27 +24,18 @@ const ATK_HALF = 'mark_wugongjianban_atongtie'
 const PROPERTY_FAIL = 'mark_shuxingshixiao_atongtie'
 const ENRAGE = 'mark_jinu_atongtie'
 
-const physicalDamage = contexts.damage.condition((_, events) =>
-  events.some(event => event.damageType === DamageType.Physical),
-)
-const specialDamage = contexts.damage.condition((_, events) =>
-  events.some(event => event.damageType === DamageType.Special),
-)
-const nextTurn = targets.sourceMark.condition((_, marks) => marks.some(mark => mark.duration === 1))
+const reflectedDamage = reflectedHalfHpLoss(182)
 
 @effectGroup({ id: 'atongtie' })
 export class AtongtieEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const overload = marks.get(OVERLOAD)
-    const physicalAbsorb = marks.get(PHYSICAL_ABSORB)
-    const specialReflect = marks.get(SPECIAL_REFLECT)
-    const specialRebound = marks.get(SPECIAL_REBOUND)
-    const atkHalf = marks.get(ATK_HALF)
-    const propertyFail = marks.get(PROPERTY_FAIL)
-    const enrage = marks.get(ENRAGE)
-    if (!overload || !physicalAbsorb || !specialReflect || !specialRebound || !atkHalf || !propertyFail || !enrage) {
-      throw new Error('Missing atongtie mark definitions')
-    }
+    const overload = requireMark(marks, OVERLOAD)
+    const physicalAbsorb = requireMark(marks, PHYSICAL_ABSORB)
+    const specialReflect = requireMark(marks, SPECIAL_REFLECT)
+    const specialRebound = requireMark(marks, SPECIAL_REBOUND)
+    const atkHalf = requireMark(marks, ATK_HALF)
+    const propertyFail = requireMark(marks, PROPERTY_FAIL)
+    const enrage = requireMark(marks, ENRAGE)
 
     const ownerHasOverload = targets.ownerMarks.condition((_, list) =>
       list.some(mark => mark.baseId === OVERLOAD && mark.isActive),
@@ -190,7 +182,7 @@ export class AtongtieEffects {
       },
       effect_mark_return_prevented_damage_capped_at_owner_max_hp_on_rule_consume: {
         triggers: [EffectTrigger.OnConsumeStack],
-        when: ctx => ctx.parent.mark === ctx.read(targets.sourceMark.first()) && ctx.parent.reason === 'rule',
+        when: ruleConsumedSourceMark,
         apply: ctx => {
           const prevented = preventedBySourceMark(ctx)
           const cap = ctx.read(ownerMaxHp) ?? 0
@@ -202,13 +194,12 @@ export class AtongtieEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
-          nextTurn,
+          sourceMarkOnLastTurn,
           specialDamage,
           contexts.damage.condition((_, hits) => hits.some(hit => hit.origin.trigger !== 'effect')),
         ),
         apply: (ctx => {
-          const loss = ctx.read(contexts.damageResult.select(result => result.hpLoss).first()) ?? 0
-          const reflected = Math.min(Math.floor(loss / 2), 182)
+          const reflected = ctx.read(reflectedDamage) ?? 0
           if (reflected > 0)
             targets.damageOriginPet.apply(ops.dealDamage(reflected, { damageType: DamageType.Special }))(ctx)
         }) satisfies Action<EffectTrigger.OnDamage>,
@@ -216,7 +207,7 @@ export class AtongtieEffects {
       effect_mark_reduce_outgoing_physical_damage_50_percent_next_turn: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage] as const,
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, nextTurn, physicalDamage),
+        when: conditions.all(conditions.selfUsesSkill, sourceMarkOnLastTurn, physicalDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
       },
       effect_mark_sure_miss_for_status_skills_next_turn: {
@@ -224,7 +215,7 @@ export class AtongtieEffects {
         priority: 0,
         when: conditions.all(
           conditions.ownerUsesSkill,
-          nextTurn,
+          sourceMarkOnLastTurn,
           contexts.skillUse.condition((_, events) => events.some(event => event.skill.category === Category.Status)),
         ),
         apply: contexts.skillUse.apply(ops.setSureMiss()),

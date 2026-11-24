@@ -8,8 +8,6 @@ import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle
 //   emblemID 300123) plus the 4399 帕拉丁解析 (community analysis used only where the
 //   client tables leave a number unspecified, e.g. the 神圣 heal rate).
 // Unsupported details are marked as assumptions in the comments, not as original facts.
-import { DamageType } from '@arcadia-eternity/const'
-import { BaseMark } from '@arcadia-eternity/battle/engine'
 import {
   defineEffects,
   EffectTrigger,
@@ -22,18 +20,14 @@ import {
   values,
   type Condition,
 } from '@arcadia-eternity/battle/authoring'
-
-function requireMark(marks: ReadonlyMap<string, BaseMark>, id: string): BaseMark {
-  const mark = marks.get(id)
-  if (!(mark instanceof BaseMark) || mark.id !== id) throw new Error(`Missing official mark: ${id}`)
-  return mark
-}
+import { physicalDamage, specialDamage, physicalOrSpecialDamage } from './damage-conditions'
+import { activeOwnerMarks, requireMark } from './mark-queries'
 
 const SHENSHENG = 'mark_shensheng'
 
 /** Owner currently has the named mark (source owner's mark list). */
 function hasOwnerMark(id: string): Condition {
-  return targets.ownerMarks.where(mark => mark.baseId === id && mark.isActive).condition(checks.exists())
+  return activeOwnerMarks(id).condition(checks.exists())
 }
 
 /**
@@ -61,16 +55,6 @@ const allAlliesFainted: Condition = targets.ownerPet.condition((_ctx, pets) =>
 
 /** The 庇护 emblem extends 庇护之火's flat reduction to special damage. */
 const emblemBiHuEquipped: Condition = hasOwnerMark('mark_emblem_bihu')
-
-const damageIsPhysical: Condition = contexts.damage.condition((_ctx, events) =>
-  events.some(event => event.damageType === DamageType.Physical),
-)
-const damageIsSpecial: Condition = contexts.damage.condition((_ctx, events) =>
-  events.some(event => event.damageType === DamageType.Special),
-)
-const damageIsPhysicalOrSpecial: Condition = contexts.damage.condition((_ctx, events) =>
-  events.some(event => event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
-)
 
 @effectGroup({ id: 'palading' })
 export class PaladingEffects {
@@ -232,8 +216,8 @@ export class PaladingEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
-          damageIsPhysicalOrSpecial,
-          conditions.any(emblemBiHuEquipped, damageIsPhysical),
+          physicalOrSpecialDamage,
+          conditions.any(emblemBiHuEquipped, physicalDamage),
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 0, delta: -50 })),
       },
@@ -241,7 +225,7 @@ export class PaladingEffects {
       effect_mark_reduce_special_damage_50_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, damageIsSpecial),
+        when: conditions.all(conditions.selfBeDamaged, specialDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
       },
       /**

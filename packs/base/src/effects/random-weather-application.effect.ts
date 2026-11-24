@@ -1,6 +1,6 @@
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
-import { BaseMark } from '@arcadia-eternity/battle/engine'
 import { EffectTrigger, compileEffect, conditions, contexts, ops, selectFrom } from '@arcadia-eternity/battle/authoring'
+import { requireMark } from './mark-queries'
 
 export const randomWeatherDependencies = Object.freeze(['mark_global_qingtian', 'mark_global_yemu'] as const)
 
@@ -10,12 +10,7 @@ export class RandomWeatherApplicationEffects {
   static build(context: Pick<EffectLoadingContext, 'marks'>) {
     const marks = context.marks
 
-    const choices = randomWeatherDependencies.map(id => {
-      const mark = marks.get(id)
-      if (!(mark instanceof BaseMark) || mark.id !== id)
-        throw new Error(`Missing or mismatched native mark dependency: ${id}`)
-      return mark
-    })
+    const choices = randomWeatherDependencies.map(id => requireMark(marks, id))
     const firstHit = contexts.skillUse.condition((_, events) => events[0]?.currentHitCount === 1)
     return compileEffect({
       id: 'effect_skill_set_field_qingtian_or_yemu',

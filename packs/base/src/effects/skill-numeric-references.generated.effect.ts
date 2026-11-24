@@ -11,6 +11,7 @@ import {
   actions,
   type EffectFrame,
 } from '@arcadia-eternity/battle/authoring'
+import { ownerHasMark } from './mark-queries'
 @effectGroup({ id: 'skill-numeric-references.generated' })
 export class SkillNumericReferencesGeneratedEffects {
   static build() {
@@ -69,10 +70,7 @@ export class SkillNumericReferencesGeneratedEffects {
       effect_skill_priority_plus_1_if_aideminyi: {
         triggers: [EffectTrigger.BeforeSort],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_aideminyi').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_aideminyi')),
         apply: actions.sequence(contexts.skillUse.property('priority').apply(ops.add(1))),
       },
       effect_skill_priority_plus_1_if_atk_over_500: {
@@ -88,10 +86,7 @@ export class SkillNumericReferencesGeneratedEffects {
       effect_skill_priority_plus_2_if_has_mark_chaojipenti: {
         triggers: [EffectTrigger.BeforeSort],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_chaojipenti').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_chaojipenti')),
         apply: actions.sequence(contexts.skillUse.property('priority').apply(ops.add(2))),
       },
     })

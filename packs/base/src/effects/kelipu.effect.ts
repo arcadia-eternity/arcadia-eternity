@@ -8,6 +8,9 @@ import {
   type Condition,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { physicalOrSpecialDamage } from './damage-conditions'
+import { activeOwnerMarks, requireMark } from './mark-queries'
+import { actualSkillTarget, opponentHasElement } from './skill-queries'
 
 const RESERVE = 'mark_chubeixiang'
 const ILLUM = 'mark_zhaomingdan'
@@ -15,37 +18,32 @@ const BURN = 'mark_shaoshang'
 const FROST = 'mark_dongshang'
 const BURIED = 'mark_qiandidan'
 
-const reserveMarks = targets.ownerMarks.where(mark => mark.baseId === RESERVE && mark.isActive)
+const reserveMarks = activeOwnerMarks(RESERVE)
 const reserveCount = reserveMarks.first().map(mark => mark.stack)
 
-const flyingTarget = targets.opponentActive.condition((_, pets) => pets.some(pet => pet.element === 'Flying'))
-const groundTarget = targets.opponentActive.condition((_, pets) => pets.some(pet => pet.element === 'Ground'))
-const waterTarget = targets.opponentActive.condition((_, pets) => pets.some(pet => pet.element === 'Water'))
-const grassTarget = targets.opponentActive.condition((_, pets) => pets.some(pet => pet.element === 'Grass'))
-const fireTarget = targets.opponentActive.condition((_, pets) => pets.some(pet => pet.element === 'Fire'))
-
-const opponentActive = contexts.skillUse.flatMap(event => (event.actualTarget ? [event.actualTarget] : []))
+const flyingTarget = opponentHasElement('Flying')
+const groundTarget = opponentHasElement('Ground')
+const waterTarget = opponentHasElement('Water')
+const grassTarget = opponentHasElement('Grass')
+const fireTarget = opponentHasElement('Fire')
 
 function extraDamageOnType(typeCondition: Condition, amount: number) {
   return {
     triggers: [EffectTrigger.OnHit] as const,
     priority: 0,
     when: conditions.all(conditions.selfUsesSkill, typeCondition),
-    apply: opponentActive.apply(ops.dealDamage(amount)),
+    apply: actualSkillTarget.apply(ops.dealDamage(amount)),
   }
 }
 
 @effectGroup({ id: 'kelipu' })
 export class KelipuEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const reserve = marks.get(RESERVE)
-    const illum = marks.get(ILLUM)
-    const burn = marks.get(BURN)
-    const frost = marks.get(FROST)
-    const buried = marks.get(BURIED)
-    if (!reserve || !illum || !burn || !frost || !buried) {
-      throw new Error('Missing kelipu marks')
-    }
+    const reserve = requireMark(marks, RESERVE)
+    const illum = requireMark(marks, ILLUM)
+    const burn = requireMark(marks, BURN)
+    const frost = requireMark(marks, FROST)
+    const buried = requireMark(marks, BURIED)
 
     const addReserve = targets.ownerPet.apply(ops.addMark(reserve, { stack: 1 }))
     const addIllum = targets.ownerPet.apply(ops.addMark(illum, { stack: 1 }))
@@ -68,13 +66,7 @@ export class KelipuEffects {
     const reserveDamageBonus = {
       triggers: [EffectTrigger.OnBeforeCalculateDamage] as const,
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        contexts.damage.condition((_, events) =>
-          events.some(event => event.damageType === 'Physical' || event.damageType === 'Special'),
-        ),
-        ctx => (ctx.read(reserveCount) ?? 0) > 0,
-      ),
+      when: conditions.all(conditions.selfUsesSkill, physicalOrSpecialDamage, ctx => (ctx.read(reserveCount) ?? 0) > 0),
       apply: contexts.damage.apply(ops.modifyDamage({ percent: 10, delta: 0 })),
     }
 
@@ -137,7 +129,7 @@ export class KelipuEffects {
         triggers: [EffectTrigger.AfterUseSkillCheck] as const,
         priority: 0,
         when: conditions.selfUsesSkill,
-        apply: contexts.battle.apply(ops.addMark(marks.get('mark_global_yutian')!, { stack: 1 })),
+        apply: contexts.battle.apply(ops.addMark(requireMark(marks, 'mark_global_yutian'), { stack: 1 })),
       },
       effect_skill_add_mark_self_chubeixiang_2_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck] as const,
@@ -157,9 +149,7 @@ export class KelipuEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
-          contexts.damage.condition((_, events) =>
-            events.some(event => event.damageType === 'Physical' || event.damageType === 'Special'),
-          ),
+          physicalOrSpecialDamage,
           contexts.damageSkill.condition((_, skills) => skills.some(skill => skill.element === 'Shadow')),
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -35, delta: 0 })),

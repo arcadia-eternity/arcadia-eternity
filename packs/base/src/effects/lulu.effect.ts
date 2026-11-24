@@ -1,7 +1,6 @@
 import {
   conditions,
   contexts,
-  DamageType,
   defineEffects,
   EffectTrigger,
   ops,
@@ -10,33 +9,28 @@ import {
   type Condition,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { physicalOrSpecialDamage } from './damage-conditions'
+import { activeOwnerMarks, requireMark } from './mark-queries'
 
 const SANDBUNSHIN = 'mark_shafenshen_lulu'
 const ZHIXI = 'mark_zhixi'
 const LIUXIE = 'mark_liuxie'
 const JUEDUIFANGYU = 'mark_jueduifangyu_lulu'
 
-const sandbunshin = targets.ownerMarks.where(mark => mark.baseId === SANDBUNSHIN && mark.isActive)
+const sandbunshin = activeOwnerMarks(SANDBUNSHIN)
 const sandbunshinCount = sandbunshin.first().attribute('stack')
 
 function hasSandbunshin(amount: number): Condition {
   return ctx => (ctx.read(sandbunshinCount) ?? 0) >= amount
 }
 
-const attackDamage = contexts.damage.condition((_, events) =>
-  events.some(event => event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
-)
-
 @effectGroup({ id: 'lulu' })
 export class LuluEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const sandbunshinMark = marks.get(SANDBUNSHIN)
-    const zhixi = marks.get(ZHIXI)
-    const liuxie = marks.get(LIUXIE)
-    const jueduifangyu = marks.get(JUEDUIFANGYU)
-    if (!sandbunshinMark || !zhixi || !liuxie || !jueduifangyu) {
-      throw new Error('Missing lulu mark dependency')
-    }
+    const sandbunshinMark = requireMark(marks, SANDBUNSHIN)
+    const zhixi = requireMark(marks, ZHIXI)
+    const liuxie = requireMark(marks, LIUXIE)
+    const jueduifangyu = requireMark(marks, JUEDUIFANGYU)
 
     function gainSandbunshin(amount: number): Action {
       return ctx => {
@@ -117,7 +111,7 @@ export class LuluEffects {
       effect_emblem_reduce_attack_damage_5_percent_per_shafenshen_stack: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfBeDamaged, attackDamage),
+        when: conditions.all(conditions.selfBeDamaged, physicalOrSpecialDamage),
         apply: (ctx => {
           const count = ctx.read(sandbunshinCount) ?? 0
           if (count > 0) {

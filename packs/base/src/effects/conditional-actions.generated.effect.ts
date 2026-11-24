@@ -1,6 +1,6 @@
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
 // Reviewed native behavior; edit this TypeScript source directly.
-import { BaseMark } from '@arcadia-eternity/battle/engine'
+import type { BaseMark } from '@arcadia-eternity/battle/engine'
 import {
   defineEffects,
   EffectTrigger,
@@ -14,6 +14,7 @@ import {
   actions,
   type EffectFrame,
 } from '@arcadia-eternity/battle/authoring'
+import { requireMark, ownerHasMark } from './mark-queries'
 export const generatedConditionalActionDependencies = Object.freeze([
   'mark_dingshizhadan',
   'mark_mabi',
@@ -29,13 +30,10 @@ export class ConditionalActionsGeneratedEffects {
 
     const resolved = new Map<string, BaseMark>()
     for (const id of generatedConditionalActionDependencies) {
-      const mark = marks.get(id)
-      if (!(mark instanceof BaseMark) || mark.id !== id)
-        throw new Error('Missing or mismatched native mark dependency: ' + id)
-      resolved.set(id, mark)
+      resolved.set(id, requireMark(marks, id))
     }
     function damageBonusOrBomb(amount: number, bombId: string) {
-      const hasTimeLaw = targets.ownerMarks.where(mark => mark.baseId === 'mark_shijianfaze').condition(checks.exists())
+      const hasTimeLaw = ownerHasMark('mark_shijianfaze')
       return {
         triggers: [EffectTrigger.OnBeforeCalculateDamage, EffectTrigger.OnDamage] as const,
         when: conditions.all(conditions.selfUsesSkill, ctx =>
@@ -58,7 +56,7 @@ export class ConditionalActionsGeneratedEffects {
         when: conditions.selfBeDamaged,
         apply: actions.sequence(
           actions.choose(
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_bingdong').condition(checks.exists()),
+            ownerHasMark('mark_bingdong'),
             contexts.damage.apply(ops.modifyDamage({ percent: 100, delta: 0 })),
             contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
           ),

@@ -1,25 +1,17 @@
-import {
-  conditions,
-  contexts,
-  DamageType,
-  defineEffects,
-  EffectTrigger,
-  ops,
-  targets,
-} from '@arcadia-eternity/battle/authoring'
+import { conditions, contexts, defineEffects, EffectTrigger, ops, targets } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { criticalDamage, isPhysicalOrSpecial } from './damage-conditions'
+import { activeOwnerMarks, requireMark } from './mark-queries'
 
 const CAIXIAZHIXIN = 'mark_caixiazhixin'
 const XUANGUANGQIDIAN = 'mark_xuanguangqidian'
 const SHIMING = 'mark_shiming'
 
-const caixiazhixin = targets.ownerMarks.where(mark => mark.baseId === CAIXIAZHIXIN && mark.isActive)
+const caixiazhixin = activeOwnerMarks(CAIXIAZHIXIN)
 const hasCaixiazhixin = caixiazhixin.condition((_, marks) => marks.length > 0)
 
 const critDamage = contexts.damage.condition((_, events) =>
-  events.some(
-    event => event.crit && (event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
-  ),
+  events.some(event => event.crit && isPhysicalOrSpecial(event.damageType)),
 )
 
 const critHeal = (fraction: number) => {
@@ -49,12 +41,9 @@ const critBlind = (shimingMark: Parameters<typeof ops.addMark>[0]) => ({
 @effectGroup({ id: 'aisa' })
 export class AisaEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const caixiazhixinMark = marks.get(CAIXIAZHIXIN)
-    const xuanguangqidianMark = marks.get(XUANGUANGQIDIAN)
-    const shimingMark = marks.get(SHIMING)
-    if (!caixiazhixinMark || !xuanguangqidianMark || !shimingMark) {
-      throw new Error('Missing caixiazhixin, xuanguangqidian, or shiming mark')
-    }
+    const caixiazhixinMark = requireMark(marks, CAIXIAZHIXIN)
+    const xuanguangqidianMark = requireMark(marks, XUANGUANGQIDIAN)
+    const shimingMark = requireMark(marks, SHIMING)
 
     return defineEffects({
       effect_ability_add_crit_rate_5_percent_before_check: {
@@ -100,10 +89,7 @@ export class AisaEffects {
       effect_mark_increase_crit_damage_50_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          contexts.damage.condition((_, hits) => hits.some(hit => hit.crit)),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, criticalDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
       },
     })

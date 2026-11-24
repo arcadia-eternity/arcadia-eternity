@@ -1,7 +1,6 @@
 import {
   conditions,
   contexts,
-  DamageType,
   defineEffects,
   EffectTrigger,
   ops,
@@ -9,6 +8,8 @@ import {
   type Condition,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { physicalOrSpecialDamage } from './damage-conditions'
+import { requireMark } from './mark-queries'
 
 const SPEED_UP = 'mark_biansu'
 const GUARD_COUNTER = 'mark_yishouzhuangong'
@@ -17,10 +18,6 @@ const LEAP = 'mark_qitiao'
 const CRIT = 'mark_huixin'
 const WEAKEN_IMMUNE = 'mark_mianyiruohua'
 const DAMAGE_REDUCTION = 'mark_shoudaoshanghaijianshao'
-
-const attackDamage = contexts.damage.condition((_, events) =>
-  events.some(event => event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
-)
 
 const usesOtherMove = contexts.skillUse.condition((_, uses) =>
   uses.some(use => use.skill.baseId !== 'skill_biansutuji'),
@@ -60,16 +57,13 @@ function firstMoveFlatDamage(amount: number) {
 @effectGroup({ id: 'tiaotiaoshu' })
 export class TiaotiaoshuEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const speedUp = marks.get(SPEED_UP)
-    const guardCounter = marks.get(GUARD_COUNTER)
-    const dodge = marks.get(DODGE)
-    const leap = marks.get(LEAP)
-    const crit = marks.get(CRIT)
-    const weakenImmune = marks.get(WEAKEN_IMMUNE)
-    const damageReduction = marks.get(DAMAGE_REDUCTION)
-    if (!speedUp || !guardCounter || !dodge || !leap || !crit || !weakenImmune || !damageReduction) {
-      throw new Error('Missing tiaotiaoshu mark dependency')
-    }
+    const speedUp = requireMark(marks, SPEED_UP)
+    const guardCounter = requireMark(marks, GUARD_COUNTER)
+    const dodge = requireMark(marks, DODGE)
+    const leap = requireMark(marks, LEAP)
+    const crit = requireMark(marks, CRIT)
+    const weakenImmune = requireMark(marks, WEAKEN_IMMUNE)
+    const damageReduction = requireMark(marks, DAMAGE_REDUCTION)
 
     return defineEffects({
       effect_ability_reduce_incoming_status_skill_accuracy_10: {
@@ -158,7 +152,7 @@ export class TiaotiaoshuEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfBeDamaged,
-          attackDamage,
+          physicalOrSpecialDamage,
           markDuration(duration => duration > 1),
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
@@ -168,7 +162,7 @@ export class TiaotiaoshuEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
-          attackDamage,
+          physicalOrSpecialDamage,
           markDuration(duration => duration <= 1),
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),

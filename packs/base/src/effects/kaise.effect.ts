@@ -1,4 +1,5 @@
 import {
+  checks,
   conditions,
   contexts,
   DamageType,
@@ -9,6 +10,7 @@ import {
   type Action,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { activeOpponentMarks, requireMark } from './mark-queries'
 
 const BURN = 'mark_shaoshang'
 const CONFUSION = 'mark_hunmi'
@@ -19,9 +21,7 @@ const hotActive = contexts.battle.condition((_, battles) =>
   battles.some(battle => battle.marks.some(mark => mark.baseId === HOT && mark.isActive)),
 )
 
-const opponentBurned = targets.opponentActive.condition((_, pets) =>
-  pets.some(pet => pet.marks.some(mark => mark.baseId === BURN && mark.isActive)),
-)
+const opponentBurned = activeOpponentMarks(BURN).condition(checks.exists())
 
 function secondaryHit(percent: number, action: Action) {
   return {
@@ -44,12 +44,9 @@ function hotSecondary(percent: number, action: Action) {
 @effectGroup({ id: 'kaise' })
 export class KaiseEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const burn = marks.get(BURN)
-    const confusion = marks.get(CONFUSION)
-    const flame = marks.get(FLAME)
-    if (!burn || !confusion || !flame) {
-      throw new Error('Missing kaise mark dependency')
-    }
+    const burn = requireMark(marks, BURN)
+    const confusion = requireMark(marks, CONFUSION)
+    const flame = requireMark(marks, FLAME)
 
     const burnTarget = targets.opponentActive.apply(ops.addMark(burn))
     const confuseTarget = targets.opponentActive.apply(ops.addMark(confusion))

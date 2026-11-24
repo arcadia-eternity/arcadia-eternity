@@ -13,6 +13,8 @@ import {
   values,
   type EffectFrame,
 } from '@arcadia-eternity/battle/authoring'
+import { specialDamage } from './damage-conditions'
+import { ownerHasMark, opponentHasMark } from './mark-queries'
 @effectGroup({ id: 'vital-sequences.generated' })
 export class VitalSequencesGeneratedEffects {
   static build() {
@@ -161,10 +163,7 @@ export class VitalSequencesGeneratedEffects {
       effect_mark_reflect_special_damage_50_percent: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.selfBeDamaged,
-          contexts.damage.condition((_ctx, events) => events[0]?.damageType === 'Special'),
-        ),
+        when: conditions.all(conditions.selfBeDamaged, specialDamage),
         apply: actions.sequence(
           targets.damageOriginPet.apply(
             ops.dealDamage(
@@ -221,12 +220,7 @@ export class VitalSequencesGeneratedEffects {
       effect_skill_add_rage_with_consume_yinbo_stack: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_yinbo')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_yinbo')),
         apply: actions.sequence(
           targets.ownerPet.apply(
             ops.addRage(
@@ -260,10 +254,7 @@ export class VitalSequencesGeneratedEffects {
       effect_skill_consume_dongqifuti_heal_self_quarter_max_hp: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_dongqifuti').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_dongqifuti')),
         apply: actions.sequence(
           targets.ownerPet.apply(
             ops.heal(
@@ -282,12 +273,7 @@ export class VitalSequencesGeneratedEffects {
           triggers: [EffectTrigger.OnHit] as const,
           priority: 0,
           parameters,
-          when: conditions.all(
-            conditions.selfUsesSkill,
-            targets.opponentActive.condition((_ctx, pets) =>
-              pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_yinbo')),
-            ),
-          ),
+          when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_yinbo')),
           apply: actions.sequence(
             targets.opponentActive.apply(
               ops.dealDamage(

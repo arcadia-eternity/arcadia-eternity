@@ -10,8 +10,9 @@ import {
   targets,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
-
 import { preventedBySourceMark } from './damage-benefits.effect'
+import { nonEffectStrikeDamage } from './damage-conditions'
+import { activeOwnerMarks, ruleConsumedSourceMark, requireMark } from './mark-queries'
 
 const ABILITY = 'mark_ability_abu'
 const EMBLEM = 'mark_emblem_abu'
@@ -26,17 +27,14 @@ const ownerPet = targets.ownerPet
 @effectGroup({ id: 'abu' })
 export class AbuEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const curse = marks.get(CURSE)
-    const bandageSubstitute = marks.get(BANDAGE_SUBSTITUTE)
-    const abuResentment = marks.get(ABU_RESENTMENT)
-    const mentalRestraint = marks.get(MENTAL_RESTRAINT)
-    if (!curse || !bandageSubstitute || !abuResentment || !mentalRestraint) {
-      throw new Error('Missing required Abu marks')
-    }
+    const curse = requireMark(marks, CURSE)
+    const bandageSubstitute = requireMark(marks, BANDAGE_SUBSTITUTE)
+    const abuResentment = requireMark(marks, ABU_RESENTMENT)
+    const mentalRestraint = requireMark(marks, MENTAL_RESTRAINT)
 
-    const ownerHasAbility = targets.ownerMarks.where(mark => mark.baseId === ABILITY && mark.isActive)
-    const ownerHasEmblem = targets.ownerMarks.where(mark => mark.baseId === EMBLEM && mark.isActive)
-    const ownerHasResentment = targets.ownerMarks.where(mark => mark.baseId === ABU_RESENTMENT && mark.isActive)
+    const ownerHasAbility = activeOwnerMarks(ABILITY)
+    const ownerHasEmblem = activeOwnerMarks(EMBLEM)
+    const ownerHasResentment = activeOwnerMarks(ABU_RESENTMENT)
 
     const repeatedHit = conditions.all(
       conditions.selfUsesSkill,
@@ -113,10 +111,7 @@ export class AbuEffects {
       },
       effect_mark_prevent_direct_attack_damage_twice_current_rage_consume_1_stack: {
         triggers: [EffectTrigger.OnDamageReplacement],
-        when: ctx =>
-          conditions.selfBeDamaged(ctx) &&
-          ctx.parent.origin.trigger !== 'effect' &&
-          (ctx.parent.damageType === DamageType.Physical || ctx.parent.damageType === DamageType.Special),
+        when: conditions.all(conditions.selfBeDamaged, nonEffectStrikeDamage),
         apply: contexts.damage.apply(
           ops.preventDamage({
             amount: targets.ownerPet.first().map(pet => pet.currentRage * 2),
@@ -126,7 +121,7 @@ export class AbuEffects {
       },
       effect_mark_restore_1_stack_spend_ceil_half_prevented_damage_as_rage: {
         triggers: [EffectTrigger.OnConsumeStack],
-        when: ctx => ctx.parent.reason === 'rule' && ctx.parent.mark === ctx.read(targets.sourceMark.first()),
+        when: ruleConsumedSourceMark,
         apply: ctx => {
           // The stack authorizes each hit. Rage pays for prevention until the mark expires.
           targets.sourceMark.apply(ops.addStacks(1))(ctx)

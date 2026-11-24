@@ -6,7 +6,6 @@ import {
   conditions,
   contexts,
   targets,
-  checks,
   ops,
   type EffectFrame,
 } from '@arcadia-eternity/battle/authoring'
@@ -15,6 +14,7 @@ import { EffectTrigger } from '@arcadia-eternity/const'
 import { UseSkillContext } from '@arcadia-eternity/battle/engine'
 import { ConfigModifierType } from '@arcadia-eternity/battle/engine'
 import { defineParameter, parameterAddress, ParameterCatalog } from '@arcadia-eternity/battle/engine'
+import { ownerHasMark, opponentHasMark } from './mark-queries'
 
 // These legacy stage effects require a direct skill event, even for nested triggers.
 const selfUsesSkill = conditions.all(ctx => ctx.parent instanceof UseSkillContext, conditions.selfUsesSkill)
@@ -497,19 +497,13 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_raise_atk_1_stage_if_anyinglingyu: {
       triggers: [EffectTrigger.BeforeHit],
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        targets.ownerMarks.where(mark => mark.baseId === 'mark_anyinglingyu').condition(checks.exists()),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_anyinglingyu')),
       apply: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
     },
     effect_skill_raise_atk_1_stage_if_has_shunliu: {
       triggers: [EffectTrigger.BeforeHit],
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        targets.ownerMarks.where(mark => mark.baseId === 'mark_shunliu').condition(checks.exists()),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shunliu')),
       apply: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
     },
     effect_skill_raise_atk_1_stage_if_opponent_male: {
@@ -565,30 +559,19 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_raise_def_1_stage_if_aideminyi: {
       triggers: [EffectTrigger.BeforeHit],
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        targets.ownerMarks.where(mark => mark.baseId === 'mark_aideminyi').condition(checks.exists()),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_aideminyi')),
       apply: targets.ownerPet.apply(ops.changeStatStage('def', 1)),
     },
     effect_skill_raise_def_1_stage_if_has_shunliu: {
       triggers: [EffectTrigger.BeforeHit],
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        targets.ownerMarks.where(mark => mark.baseId === 'mark_shunliu').condition(checks.exists()),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shunliu')),
       apply: targets.ownerPet.apply(ops.changeStatStage('def', 1)),
     },
     effect_skill_raise_def_1_stage_if_opponent_has_kaowen: {
       triggers: [EffectTrigger.BeforeHit],
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        targets.opponentActive.condition((_ctx, pets) =>
-          pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kaowen')),
-        ),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_kaowen')),
       apply: targets.ownerPet.apply(ops.changeStatStage('def', 1)),
     },
     effect_skill_raise_self_spa_1_stage_if_3_hits: {
@@ -605,10 +588,7 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_raise_self_spa_2_stage_if_has_shijianfaze: {
       triggers: [EffectTrigger.BeforeHit],
       priority: -1,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        targets.ownerMarks.where(mark => mark.baseId === 'mark_shijianfaze').condition(checks.exists()),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shijianfaze')),
       apply: targets.ownerPet.apply(ops.changeStatStage('spa', 2)),
     },
     effect_skill_raise_spa_1_stage: {
@@ -647,10 +627,7 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_raise_spa_1_stage_if_has_niliu: {
       triggers: [EffectTrigger.BeforeHit],
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        targets.ownerMarks.where(mark => mark.baseId === 'mark_niliu').condition(checks.exists()),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_niliu')),
       apply: targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
     },
     effect_skill_raise_spa_1_stage_if_hp_lt_half: {
@@ -671,10 +648,7 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_raise_spa_1_stage_if_shuiliangbaohe: {
       triggers: [EffectTrigger.BeforeHit],
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiliangbaohe').condition(checks.exists()),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shuiliangbaohe')),
       apply: targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
     },
     effect_skill_raise_spa_2_stage_if_female: {
@@ -708,21 +682,13 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_raise_spd_1_stage_if_has_niliu: {
       triggers: [EffectTrigger.BeforeHit],
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        targets.ownerMarks.where(mark => mark.baseId === 'mark_niliu').condition(checks.exists()),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_niliu')),
       apply: targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
     },
     effect_skill_raise_spd_1_stage_if_opponent_has_tongjiling: {
       triggers: [EffectTrigger.BeforeHit],
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        targets.opponentActive.condition((_ctx, pets) =>
-          pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_tongjiling')),
-        ),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_tongjiling')),
       apply: targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
     },
     effect_skill_raise_spe_1_stage: {
@@ -792,21 +758,13 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_raise_spe_1_stage_if_opponent_has_tongjiling_on_defeated: {
       triggers: [EffectTrigger.OnDefeat],
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        targets.opponentActive.condition((_ctx, pets) =>
-          pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_tongjiling')),
-        ),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_tongjiling')),
       apply: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
     },
     effect_skill_raise_spe_1_stage_if_zhandoulingyu: {
       triggers: [EffectTrigger.BeforeHit],
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        targets.ownerMarks.where(mark => mark.baseId === 'mark_zhandoulingyu').condition(checks.exists()),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_zhandoulingyu')),
       apply: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
     },
     effect_skill_raise_spe_20_percent: {
@@ -924,10 +882,7 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_reduce_opponent_def_1_stage_if_has_shunliu: {
       triggers: [EffectTrigger.BeforeHit],
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        targets.ownerMarks.where(mark => mark.baseId === 'mark_shunliu').condition(checks.exists()),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shunliu')),
       apply: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
     },
     effect_skill_reduce_opponent_def_1_stage_if_rage_lt_30: {
@@ -943,10 +898,7 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_reduce_opponent_def_1_stage_if_wuzhezhixin: {
       triggers: [EffectTrigger.BeforeHit],
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        targets.ownerMarks.where(mark => mark.baseId === 'mark_wuzhezhixin').condition(checks.exists()),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_wuzhezhixin')),
       apply: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
     },
     effect_skill_reduce_opponent_spa_1_stage: {
@@ -986,21 +938,13 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_reduce_opponent_spa_1_stage_if_bingdong: {
       triggers: [EffectTrigger.BeforeHit],
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        targets.opponentActive.condition((_ctx, pets) =>
-          pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_bingdong')),
-        ),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_bingdong')),
       apply: targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
     },
     effect_skill_reduce_opponent_spa_1_stage_if_has_niliu: {
       triggers: [EffectTrigger.BeforeHit],
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        targets.ownerMarks.where(mark => mark.baseId === 'mark_niliu').condition(checks.exists()),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_niliu')),
       apply: targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
     },
     effect_skill_reduce_opponent_spa_1_stage_if_opponent_female: {
@@ -1015,13 +959,7 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_reduce_opponent_spa_1_stage_if_opponent_has_kaowen_and_last: {
       triggers: [EffectTrigger.BeforeHit],
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        targets.opponentActive.condition((_ctx, pets) =>
-          pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kaowen')),
-        ),
-        conditions.lastSkillThisTurn,
-      ),
+      when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_kaowen'), conditions.lastSkillThisTurn),
       apply: targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
     },
     effect_skill_reduce_opponent_spd_1_stage: {
@@ -1088,12 +1026,7 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_reduce_opponent_spd_1_stage_if_renzhezhixin: {
       triggers: [EffectTrigger.BeforeHit],
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        targets.opponentActive.condition((_ctx, pets) =>
-          pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_renzhezhixin')),
-        ),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_renzhezhixin')),
       apply: targets.opponentActive.apply(ops.changeStatStage('spd', -1)),
     },
     effect_skill_reduce_opponent_spe_1_stage: {
@@ -1133,19 +1066,13 @@ export const generatedStatStageCandidates = Object.freeze({
     effect_skill_reduce_opponent_spe_2_stage_if_shijianfaze: {
       triggers: [EffectTrigger.BeforeHit],
       priority: -1,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        targets.ownerMarks.where(mark => mark.baseId === 'mark_shijianfaze').condition(checks.exists()),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shijianfaze')),
       apply: targets.opponentActive.apply(ops.changeStatStage('spe', -2)),
     },
     effect_skill_set_self_spa_to_atk: {
       triggers: [EffectTrigger.BeforeHit],
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        targets.ownerMarks.where(mark => mark.baseId === 'stat_stage_atk_up').condition(checks.exists()),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, ownerHasMark('stat_stage_atk_up')),
       apply: targets.ownerPet.apply(
         ops.changeStatStage(
           'spa',

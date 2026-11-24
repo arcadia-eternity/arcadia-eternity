@@ -6,11 +6,11 @@ import {
   selectFrom,
   conditions,
   targets,
-  checks,
   ops,
   actions,
   type EffectFrame,
 } from '@arcadia-eternity/battle/authoring'
+import { ownerHasMark } from './mark-queries'
 @effectGroup({ id: 'stat-stage-sequences.generated' })
 export class StatStageSequencesGeneratedEffects {
   static build() {
@@ -45,10 +45,7 @@ export class StatStageSequencesGeneratedEffects {
       effect_skill_consume_huanxiang_raise_spa_1_stage: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_huanxiang')),
         apply: actions.sequence(
           targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').apply(ops.consumeStacks(1)),
           targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
@@ -57,10 +54,7 @@ export class StatStageSequencesGeneratedEffects {
       effect_skill_consume_huanxiang_raise_spd_1_stage: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_huanxiang')),
         apply: actions.sequence(
           targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').apply(ops.consumeStacks(1)),
           targets.ownerPet.apply(ops.changeStatStage('spd', 1)),

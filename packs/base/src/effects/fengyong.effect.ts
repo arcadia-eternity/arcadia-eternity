@@ -10,6 +10,7 @@ import {
   type Action,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { activeOpponentMarks, requireMark } from './mark-queries'
 
 const FENGWEN = 'mark_fengwen'
 const ZHONGDU = 'mark_zhongdu'
@@ -21,47 +22,24 @@ const FENGWEN_MAX = 3
 @effectGroup({ id: 'fengyong' })
 export class FengyongEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const fengwen = marks.get(FENGWEN)
-    const mabi = marks.get(MABI)
-    const qingfengzhiwu = marks.get(QINGFENGZHIWU)
-    if (!fengwen || !mabi || !qingfengzhiwu) {
-      throw new Error('Missing fengyong mark dependency')
-    }
+    const fengwen = requireMark(marks, FENGWEN)
+    const mabi = requireMark(marks, MABI)
+    const qingfengzhiwu = requireMark(marks, QINGFENGZHIWU)
 
-    const opponentFengwen = targets.opponentActive
-      .flatMap(pet => pet.marks)
-      .where(mark => mark.baseId === FENGWEN && mark.isActive)
+    const opponentFengwen = activeOpponentMarks(FENGWEN)
     const opponentFengwenStack = opponentFengwen.first().attribute('stack')
 
     const opponentHasFengwen = opponentFengwen.condition((_, list) => list.length > 0)
-    const opponentHasZhongdu = targets.opponentActive
-      .flatMap(pet => pet.marks)
-      .where(mark => mark.baseId === ZHONGDU && mark.isActive)
-      .condition((_, list) => list.length > 0)
+    const opponentHasZhongdu = activeOpponentMarks(ZHONGDU).condition((_, list) => list.length > 0)
 
-    const addFengwen = targets.opponentActive.apply(ops.addMark(fengwen!, { stack: 1 }))
+    const addFengwen = targets.opponentActive.apply(ops.addMark(fengwen, { stack: 1 }))
     const addMabi = targets.opponentActive.apply(ops.addMark(mabi))
 
     const spendOneFengwen = opponentFengwen.apply(ops.consumeStacks(1))
     const spendAllFengwen = opponentFengwen.apply(ops.consumeStacks(opponentFengwen.first().attribute('stack')))
 
-    function onHitAddFengwen(): Action {
-      return actions.choose(conditions.selfUsesSkill, addFengwen)
-    }
-
-    function onHitConsumeFengwenForMabi(): Action {
-      return actions.choose(
-        conditions.all(conditions.selfUsesSkill, opponentHasFengwen),
-        actions.sequence(spendOneFengwen, addMabi),
-      )
-    }
-
-    function onHitConsumeFengwenForFixedDamage(amount: number): Action {
-      const dealFixed = targets.opponentActive.apply(ops.dealDamage(amount))
-      return actions.choose(
-        conditions.all(conditions.selfUsesSkill, opponentHasFengwen),
-        actions.sequence(spendOneFengwen, dealFixed),
-      )
+    function spendFengwenFor(action: Action, otherwise?: Action): Action {
+      return actions.choose(opponentHasFengwen, actions.sequence(spendOneFengwen, action), otherwise)
     }
 
     function statusSelfBuffWithFengwenBonus(
@@ -72,10 +50,7 @@ export class FengyongEffects {
     ): Action {
       const baseApply = targets.ownerPet.apply(ops.changeStatStage(baseStat, baseAmount))
       const bonusApply = targets.ownerPet.apply(ops.changeStatStage(bonusStat, bonusAmount))
-      return actions.choose(
-        conditions.selfUsesSkill,
-        actions.choose(opponentHasFengwen, actions.sequence(spendOneFengwen, bonusApply), baseApply),
-      )
+      return actions.choose(conditions.selfUsesSkill, spendFengwenFor(bonusApply, baseApply))
     }
 
     function statusHealPerFengwen(perStack: number): Action {
@@ -98,7 +73,7 @@ export class FengyongEffects {
       const target = values.combine(current, values.choose(opponentHasFengwen, 1, 0), (stack, present) =>
         present === 1 ? Math.max(0, FENGWEN_MAX - stack) : 0,
       )
-      const add = targets.opponentActive.apply(ops.addMark(fengwen!, { stack: target }))
+      const add = targets.opponentActive.apply(ops.addMark(fengwen, { stack: target }))
       return actions.choose(conditions.all(conditions.selfUsesSkill, opponentHasFengwen), add)
     }
 
@@ -107,10 +82,7 @@ export class FengyongEffects {
         triggers: [EffectTrigger.OnDamage] as const,
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentHasZhongdu),
-        apply: targets.opponentActive
-          .flatMap(pet => pet.marks)
-          .where(mark => mark.baseId === ZHONGDU && mark.isActive)
-          .apply(ops.refreshMarkDuration()),
+        apply: activeOpponentMarks(ZHONGDU).apply(ops.refreshMarkDuration()),
       },
       effect_emblem_heal_10_percent_damage_dealt_to_opponent_if_has_fengwen: {
         triggers: [EffectTrigger.OnDamage] as const,
@@ -124,13 +96,13 @@ export class FengyongEffects {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.OnHit] as const,
         priority: 0,
-        apply: onHitAddFengwen(),
+        apply: addFengwen,
       },
       effect_skill_consume_opponent_fengwen_1_to_add_mabi: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.OnHit] as const,
         priority: 0,
-        apply: onHitConsumeFengwenForMabi(),
+        apply: spendFengwenFor(addMabi),
       },
       effect_skill_consume_opponent_fengwen_1_to_raise_spe_1_stage_else_raise_spa_1_stage: {
         when: conditions.selfUsesSkill,
@@ -148,7 +120,7 @@ export class FengyongEffects {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.OnHit] as const,
         priority: 0,
-        apply: onHitConsumeFengwenForFixedDamage(50),
+        apply: spendFengwenFor(targets.opponentActive.apply(ops.dealDamage(50))),
       },
       effect_skill_add_multihit_per_opponent_fengwen_and_consume_all: {
         triggers: [EffectTrigger.BeforeMultiHit],

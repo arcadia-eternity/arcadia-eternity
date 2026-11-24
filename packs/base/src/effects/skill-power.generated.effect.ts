@@ -12,6 +12,7 @@ import {
   values,
   type EffectFrame,
 } from '@arcadia-eternity/battle/authoring'
+import { ownerHasMark, opponentHasMark } from './mark-queries'
 @effectGroup({ id: 'skill-power.generated' })
 export class SkillPowerGeneratedEffects {
   static build() {
@@ -284,10 +285,7 @@ export class SkillPowerGeneratedEffects {
       effect_skill_add_power_15_per_spd_level: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'stat_stage_spd_up').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('stat_stage_spd_up')),
         apply: contexts.skillUse.apply(
           ops.addPower(
             targets.ownerMarks
@@ -345,10 +343,7 @@ export class SkillPowerGeneratedEffects {
       effect_skill_add_power_30_has_mark_yinghua: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_yinghua').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_yinghua')),
         apply: contexts.skillUse.apply(ops.addPower(30)),
       },
       effect_skill_add_power_30_if_female: {
@@ -372,10 +367,7 @@ export class SkillPowerGeneratedEffects {
       effect_skill_add_power_30_per_shunliu: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shunliu').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shunliu')),
         apply: contexts.skillUse.apply(
           ops.addPower(
             targets.ownerMarks
@@ -389,10 +381,7 @@ export class SkillPowerGeneratedEffects {
       effect_skill_add_power_30_per_stack_if_has_shunliu: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shunliu').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shunliu')),
         apply: contexts.skillUse.apply(
           ops.addPower(
             targets.ownerMarks
@@ -443,23 +432,13 @@ export class SkillPowerGeneratedEffects {
       effect_skill_add_power_40_if_opponent_has_mark_jingshencuoluan: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_jingshencuoluan')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_jingshencuoluan')),
         apply: contexts.skillUse.apply(ops.addPower(40)),
       },
       effect_skill_add_power_40_opponent_per_atk_level: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'stat_stage_atk_up')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('stat_stage_atk_up')),
         apply: contexts.skillUse.apply(
           ops.addPower(
             targets.opponentMarks
@@ -473,12 +452,7 @@ export class SkillPowerGeneratedEffects {
       effect_skill_add_power_40_opponent_per_def_level: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'stat_stage_def_up')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('stat_stage_def_up')),
         apply: contexts.skillUse.apply(
           ops.addPower(
             targets.opponentMarks
@@ -492,12 +466,7 @@ export class SkillPowerGeneratedEffects {
       effect_skill_add_power_40_opponent_per_spa_level: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'stat_stage_spa_up')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('stat_stage_spa_up')),
         apply: contexts.skillUse.apply(
           ops.addPower(
             targets.opponentMarks
@@ -511,12 +480,7 @@ export class SkillPowerGeneratedEffects {
       effect_skill_add_power_40_opponent_per_spd_level: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'stat_stage_spd_up')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('stat_stage_spd_up')),
         apply: contexts.skillUse.apply(
           ops.addPower(
             targets.opponentMarks
@@ -530,12 +494,7 @@ export class SkillPowerGeneratedEffects {
       effect_skill_add_power_40_opponent_per_spe_level: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'stat_stage_spe_up')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('stat_stage_spe_up')),
         apply: contexts.skillUse.apply(
           ops.addPower(
             targets.opponentMarks
@@ -555,41 +514,25 @@ export class SkillPowerGeneratedEffects {
       effect_skill_add_power_50_if_aideminyi: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_aideminyi').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_aideminyi')),
         apply: contexts.skillUse.apply(ops.addPower(50)),
       },
       effect_skill_add_power_50_if_has_xukongganying: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_xukongganying').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_xukongganying')),
         apply: contexts.skillUse.apply(ops.addPower(50)),
       },
       effect_skill_add_power_50_if_opponent_renzhezhixin: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_renzhezhixin')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_renzhezhixin')),
         apply: contexts.skillUse.apply(ops.addPower(50)),
       },
       effect_skill_add_power_50_if_opponent_wuzhezhixin: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_wuzhezhixin')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_wuzhezhixin')),
         apply: contexts.skillUse.apply(ops.addPower(50)),
       },
       effect_skill_add_power_50_ruodian: {
@@ -629,13 +572,9 @@ export class SkillPowerGeneratedEffects {
         apply: contexts.skillUse.apply(
           ops.addPower(
             values.choose(
-              targets.ownerMarks.where(mark => mark.baseId === 'mark_bingshuanglingyu').condition(checks.exists()),
+              ownerHasMark('mark_bingshuanglingyu'),
               [150],
-              values.choose(
-                targets.ownerMarks.where(mark => mark.baseId === 'mark_bingzhilingyu').condition(checks.exists()),
-                [50],
-                [],
-              ),
+              values.choose(ownerHasMark('mark_bingzhilingyu'), [50], []),
             ),
           ),
         ),
@@ -647,13 +586,9 @@ export class SkillPowerGeneratedEffects {
         apply: contexts.skillUse.apply(
           ops.addPower(
             values.choose(
-              targets.ownerMarks.where(mark => mark.baseId === 'mark_diancilingyu').condition(checks.exists()),
+              ownerHasMark('mark_diancilingyu'),
               [150],
-              values.choose(
-                targets.ownerMarks.where(mark => mark.baseId === 'mark_dianzhilingyu').condition(checks.exists()),
-                [50],
-                [],
-              ),
+              values.choose(ownerHasMark('mark_dianzhilingyu'), [50], []),
             ),
           ),
         ),
@@ -665,13 +600,9 @@ export class SkillPowerGeneratedEffects {
         apply: contexts.skillUse.apply(
           ops.addPower(
             values.choose(
-              targets.ownerMarks.where(mark => mark.baseId === 'mark_fengbaolingyu').condition(checks.exists()),
+              ownerHasMark('mark_fengbaolingyu'),
               [150],
-              values.choose(
-                targets.ownerMarks.where(mark => mark.baseId === 'mark_fengzhilingyu').condition(checks.exists()),
-                [50],
-                [],
-              ),
+              values.choose(ownerHasMark('mark_fengzhilingyu'), [50], []),
             ),
           ),
         ),
@@ -696,10 +627,7 @@ export class SkillPowerGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
-          conditions.any(
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_anzhilingyu').condition(checks.exists()),
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_anyinglingyu').condition(checks.exists()),
-          ),
+          conditions.any(ownerHasMark('mark_anzhilingyu'), ownerHasMark('mark_anyinglingyu')),
         ),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
@@ -722,10 +650,7 @@ export class SkillPowerGeneratedEffects {
       effect_skill_power_2x_if_first_switch_in_zuijiazhuogong: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 1,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_first_turn_after_switch').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_first_turn_after_switch')),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_power_2x_if_guangzhilingyu_or_guanghuilingyu: {
@@ -733,10 +658,7 @@ export class SkillPowerGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
-          conditions.any(
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_guangzhilingyu').condition(checks.exists()),
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_guanghuilingyu').condition(checks.exists()),
-          ),
+          conditions.any(ownerHasMark('mark_guangzhilingyu'), ownerHasMark('mark_guanghuilingyu')),
         ),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
@@ -745,10 +667,7 @@ export class SkillPowerGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
-          conditions.any(
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_chongzhilingyu').condition(checks.exists()),
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_chongqunlingyu').condition(checks.exists()),
-          ),
+          conditions.any(ownerHasMark('mark_chongzhilingyu'), ownerHasMark('mark_chongqunlingyu')),
         ),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
@@ -757,29 +676,20 @@ export class SkillPowerGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
-          conditions.any(
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_feizhilingyu').condition(checks.exists()),
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_feikonglingyu').condition(checks.exists()),
-          ),
+          conditions.any(ownerHasMark('mark_feizhilingyu'), ownerHasMark('mark_feikonglingyu')),
         ),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_power_2x_if_has_mark_penti: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_penti').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_penti')),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_power_2x_if_has_mark_qianglipenti: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_qianglipenti').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_qianglipenti')),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_power_2x_if_has_mark_shazhilingyu_or_shabaoLingyu: {
@@ -787,10 +697,7 @@ export class SkillPowerGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
-          conditions.any(
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_shazhilingyu').condition(checks.exists()),
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_shabaoLingyu').condition(checks.exists()),
-          ),
+          conditions.any(ownerHasMark('mark_shazhilingyu'), ownerHasMark('mark_shabaoLingyu')),
         ),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
@@ -799,47 +706,32 @@ export class SkillPowerGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
-          conditions.any(
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_zhanzhilingyu').condition(checks.exists()),
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_zhandoulingyu').condition(checks.exists()),
-          ),
+          conditions.any(ownerHasMark('mark_zhanzhilingyu'), ownerHasMark('mark_zhandoulingyu')),
         ),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_power_2x_if_has_shuiliangbaohe: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiliangbaohe').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shuiliangbaohe')),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_power_2x_if_has_shuiliangchongzu: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiliangchongzu').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shuiliangchongzu')),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_power_2x_if_has_xukongganying: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_xukongganying').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_xukongganying')),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_power_2x_if_has_zhaocai: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_zhaocai').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_zhaocai')),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_power_2x_if_height_above_100: {
@@ -911,34 +803,19 @@ export class SkillPowerGeneratedEffects {
       effect_skill_power_2x_if_oppoent_has_yinzhiwang: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_yinzhiwang')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_yinzhiwang')),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_power_2x_if_opponent_has_mark_haipa: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_haipa')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_haipa')),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_power_2x_if_opponent_has_mark_hunmi: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_hunmi')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_hunmi')),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_power_2x_if_opponent_has_mark_jingshencuoluan_and_haipa: {
@@ -946,24 +823,15 @@ export class SkillPowerGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_jingshencuoluan')),
-          ),
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_haipa')),
-          ),
+          opponentHasMark('mark_jingshencuoluan'),
+          opponentHasMark('mark_haipa'),
         ),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_power_2x_if_opponent_has_mark_mabi: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_mabi')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_mabi')),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_power_2x_if_opponent_has_shield: {
@@ -978,45 +846,25 @@ export class SkillPowerGeneratedEffects {
       effect_skill_power_2x_if_opponent_hunluan: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_hunluan')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_hunluan')),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_power_2x_if_opponent_is_bingdong: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_bingdong')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_bingdong')),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_power_2x_if_opponent_mabi: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_mabi')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_mabi')),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_power_2x_if_opponent_shuimian: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_shuimian')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_shuimian')),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_power_2x_if_opponent_shuimian_or_mabi: {
@@ -1033,12 +881,7 @@ export class SkillPowerGeneratedEffects {
       effect_skill_power_2x_if_opponent_zhixi: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_zhixi')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_zhixi')),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_power_2x_if_self_full_hp: {
@@ -1118,19 +961,13 @@ export class SkillPowerGeneratedEffects {
       effect_skill_power_4x_if_has_mark_chaojipenti: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_chaojipenti').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_chaojipenti')),
         apply: contexts.skillUse.apply(ops.amplifyPower(4)),
       },
       effect_skill_power_4x_if_has_mark_qianglipenti: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_qianglipenti').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_qianglipenti')),
         apply: contexts.skillUse.apply(ops.amplifyPower(4)),
       },
       effect_skill_power_4x_opponent_below_quarter_hp: {
@@ -1151,12 +988,7 @@ export class SkillPowerGeneratedEffects {
       effect_skill_power_plus_50_if_opponent_has_kongjuzhinian: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kongjuzhinian')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_kongjuzhinian')),
         apply: contexts.skillUse.apply(ops.addPower(50)),
       },
       effect_skill_power2x_if_heavier: {
@@ -1191,22 +1023,16 @@ export class SkillPowerGeneratedEffects {
       effect_skill_power2x_if_opponent_has_tongjiling_and_below_half_hp: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_tongjiling')),
-          ),
-          (ctx: EffectFrame) => {
-            const left = ctx.read(targets.opponentActive.select(pet => pet.currentHp).first())
-            const right = ctx.read(
-              targets.opponentActive
-                .select(pet => pet.stat.maxHp)
-                .first()
-                .map(n => Math.floor(n * 0.5)),
-            )
-            return left !== undefined && right !== undefined && left < right
-          },
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_tongjiling'), (ctx: EffectFrame) => {
+          const left = ctx.read(targets.opponentActive.select(pet => pet.currentHp).first())
+          const right = ctx.read(
+            targets.opponentActive
+              .select(pet => pet.stat.maxHp)
+              .first()
+              .map(n => Math.floor(n * 0.5)),
+          )
+          return left !== undefined && right !== undefined && left < right
+        }),
         apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_power2x_if_weight_above_99: {

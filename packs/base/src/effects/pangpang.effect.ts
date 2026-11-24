@@ -2,7 +2,6 @@ import {
   actions,
   conditions,
   contexts,
-  DamageType,
   defineEffects,
   EffectTrigger,
   ops,
@@ -11,6 +10,8 @@ import {
   type Action,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { physicalDamage } from './damage-conditions'
+import { activeOwnerMarks, sourceMarkOnLastTurn, requireMark } from './mark-queries'
 
 const WEIZUI = 'mark_weizui'
 const LANZUI = 'mark_lanzui'
@@ -19,8 +20,8 @@ const HUNMI = 'mark_hunmi'
 const EXIN = 'mark_exin'
 const MIANYIYICHANG = 'mark_mianyiyichang'
 
-const weizui = targets.ownerMarks.where(mark => mark.baseId === WEIZUI && mark.isActive)
-const lanzui = targets.ownerMarks.where(mark => mark.baseId === LANZUI && mark.isActive)
+const weizui = activeOwnerMarks(WEIZUI)
+const lanzui = activeOwnerMarks(LANZUI)
 const hasWeizui = weizui.first().map(mark => mark !== undefined)
 const hasLanzui = lanzui.first().map(mark => mark !== undefined)
 const hasAnyDrunk = conditions.any(
@@ -28,23 +29,18 @@ const hasAnyDrunk = conditions.any(
   targets.ownerMarks.condition((_, marks) => marks.some(mark => mark.baseId === LANZUI && mark.isActive)),
 )
 
-function consumeDrunk(): Action {
-  return actions.sequence(weizui.apply(ops.removeMark()), lanzui.apply(ops.removeMark()))
-}
+const consumeDrunk = actions.sequence(weizui.apply(ops.removeMark()), lanzui.apply(ops.removeMark()))
 
 @effectGroup({ id: 'pangpang' })
 export class PangpangEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const recovery = marks.get('mark_huifu_1_16')
-    const weizuiMark = marks.get(WEIZUI)
-    const lanzuiMark = marks.get(LANZUI)
-    const meijiuMark = marks.get(MEIJIU)
-    const hunmiMark = marks.get(HUNMI)
-    const exinMark = marks.get(EXIN)
-    const mianyiMark = marks.get(MIANYIYICHANG)
-    if (!recovery || !weizuiMark || !lanzuiMark || !meijiuMark || !hunmiMark || !exinMark || !mianyiMark) {
-      throw new Error('Missing pangpang mark dependency')
-    }
+    const recovery = requireMark(marks, 'mark_huifu_1_16')
+    const weizuiMark = requireMark(marks, WEIZUI)
+    const lanzuiMark = requireMark(marks, LANZUI)
+    const meijiuMark = requireMark(marks, MEIJIU)
+    const hunmiMark = requireMark(marks, HUNMI)
+    const exinMark = requireMark(marks, EXIN)
+    const mianyiMark = requireMark(marks, MIANYIYICHANG)
 
     const opponentActive = targets.opponentActive
     const ownerPet = targets.ownerPet
@@ -79,7 +75,7 @@ export class PangpangEffects {
           const hasWeizuiNow = ctx.read(hasWeizui)
           const hasLanzuiNow = ctx.read(hasLanzui)
           if (hasWeizuiNow && !hasLanzuiNow) {
-            consumeDrunk()(ctx)
+            consumeDrunk(ctx)
             ownerPet.apply(ops.addMark(lanzuiMark, { stack: 1, duration: 2 }))(ctx)
           } else if (!hasWeizuiNow && !hasLanzuiNow) {
             ownerPet.apply(ops.addMark(weizuiMark, { stack: 1, duration: 3 }))(ctx)
@@ -103,7 +99,7 @@ export class PangpangEffects {
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasAnyDrunk),
         apply: (ctx => {
-          consumeDrunk()(ctx)
+          consumeDrunk(ctx)
           ownerPet.apply(ops.addMark(recovery, { duration: 5 }))(ctx)
         }) satisfies Action,
       },
@@ -112,7 +108,7 @@ export class PangpangEffects {
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasAnyDrunk),
         apply: (ctx => {
-          consumeDrunk()(ctx)
+          consumeDrunk(ctx)
           contexts.skillUse.apply(ops.setAccuracy(95))(ctx)
           opponentActive.apply(ops.addMark(exinMark, { stack: 1, duration: 3 }))(ctx)
           ownerPet.apply(ops.addMark(exinMark, { stack: 1, duration: 3 }))(ctx)
@@ -146,7 +142,7 @@ export class PangpangEffects {
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasAnyDrunk),
         apply: (ctx => {
-          consumeDrunk()(ctx)
+          consumeDrunk(ctx)
           opponentActive.apply(ops.changeStatStage('spd', -1))(ctx)
           ownerPet.apply(ops.changeStatStage('spd', -1))(ctx)
         }) satisfies Action,
@@ -165,7 +161,7 @@ export class PangpangEffects {
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasAnyDrunk),
         apply: (ctx => {
-          consumeDrunk()(ctx)
+          consumeDrunk(ctx)
           opponentActive.apply(ops.changeStatStage('spe', -1))(ctx)
           ownerPet.apply(ops.changeStatStage('spe', -1))(ctx)
         }) satisfies Action,
@@ -208,12 +204,7 @@ export class PangpangEffects {
       effect_mark_add_lanzui_to_physical_attacker_and_remove_self_on_last_turn: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
-        when: conditions.all(
-          conditions.ownerIsActive,
-          conditions.selfBeDamaged,
-          ctx => ctx.read(targets.sourceMark.first())?.duration === 1,
-          contexts.damage.condition((_, events) => events.some(e => e.damageType === DamageType.Physical)),
-        ),
+        when: conditions.all(conditions.ownerIsActive, conditions.selfBeDamaged, sourceMarkOnLastTurn, physicalDamage),
         apply: actions.sequence(
           targets.damageOriginPet.apply(ops.addMark(lanzuiMark, { stack: 1, duration: 2 })),
           targets.sourceMark.apply(ops.removeMark()),

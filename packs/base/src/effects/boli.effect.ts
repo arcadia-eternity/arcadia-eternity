@@ -1,4 +1,5 @@
 import {
+  checks,
   conditions,
   contexts,
   defineEffects,
@@ -9,6 +10,7 @@ import {
   type Condition,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { activeOpponentMarks, requireMark } from './mark-queries'
 
 const FEAR = 'mark_haipa'
 const CONFUSE = 'mark_hunmi'
@@ -25,13 +27,9 @@ const opponentBelowQuarter = targets.opponentActive.condition((_, pets) => {
   return !!pet && pet.currentHp * 4 < pet.stat.maxHp
 })
 
-const opponentHasFear = targets.opponentActive.condition((_, pets) =>
-  pets.some(pet => pet.marks.some(mark => mark.baseId === FEAR && mark.isActive)),
-)
+const opponentHasFear = activeOpponentMarks(FEAR).condition(checks.exists())
 
-const opponentHasConfuse = targets.opponentActive.condition((_, pets) =>
-  pets.some(pet => pet.marks.some(mark => mark.baseId === CONFUSE && mark.isActive)),
-)
+const opponentHasConfuse = activeOpponentMarks(CONFUSE).condition(checks.exists())
 
 function powerWhen(condition: Condition, multiplier: number) {
   return {
@@ -54,13 +52,10 @@ function secondaryStatus(markId: Parameters<typeof ops.addMark>[0], percent: num
 @effectGroup({ id: 'boli' })
 export class BoliEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const fear = marks.get(FEAR)
-    const confuse = marks.get(CONFUSE)
-    const frostbite = marks.get(FROSTBITE)
-    const ancestor = marks.get(ANCESTOR)
-    if (!fear || !confuse || !frostbite || !ancestor) {
-      throw new Error('Missing boli mark dependency')
-    }
+    const fear = requireMark(marks, FEAR)
+    const confuse = requireMark(marks, CONFUSE)
+    const frostbite = requireMark(marks, FROSTBITE)
+    const ancestor = requireMark(marks, ANCESTOR)
 
     return defineEffects({
       effect_ability_increase_damage_10_percent_if_opponent_hp_below_half: {

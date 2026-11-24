@@ -9,6 +9,8 @@ import {
   selectFrom,
   targets,
 } from '@arcadia-eternity/battle/authoring'
+import { requireMark, opponentHasMark } from './mark-queries'
+import { nonStatusSkillUse } from './skill-queries'
 
 const hearing = 'mark_shiqutingjue'
 const smell = 'mark_shiquxiujue'
@@ -19,18 +21,10 @@ const opponentLostAnySense = targets.opponentActive.condition((_ctx, pets) =>
   pets.some(pet => pet.marks.some(mark => senseLoss.has(mark.baseId))),
 )
 
-function opponentLostSense(id: string) {
-  return targets.opponentActive.condition((_ctx, pets) => pets.some(pet => pet.marks.some(mark => mark.baseId === id)))
-}
-
 @effectGroup({ id: 'hema' })
 export class HemaEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const lostSenseMarks = [...senseLoss].map(id => {
-      const mark = marks.get(id)
-      if (!mark || mark.id !== id) throw new Error(`Missing official mark: ${id}`)
-      return mark
-    })
+    const lostSenseMarks = [...senseLoss].map(id => requireMark(marks, id))
 
     return defineEffects({
       effect_skill_add_random_sense_loss_to_opponent: {
@@ -48,7 +42,7 @@ export class HemaEffects {
       effect_skill_reduce_opponent_spe_1_stage_if_opponent_lost_hearing: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, opponentLostSense(hearing)),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark(hearing)),
         apply: targets.opponentActive.apply(ops.changeStatStage('spe', -1)),
       },
       effect_skill_raise_self_spe_spd_def_1_stage_for_opponent_sense_losses: {
@@ -56,9 +50,9 @@ export class HemaEffects {
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: actions.sequence(
-          actions.choose(opponentLostSense(hearing), targets.ownerPet.apply(ops.changeStatStage('spe', 1))),
-          actions.choose(opponentLostSense(smell), targets.ownerPet.apply(ops.changeStatStage('spd', 1))),
-          actions.choose(opponentLostSense(taste), targets.ownerPet.apply(ops.changeStatStage('def', 1))),
+          actions.choose(opponentHasMark(hearing), targets.ownerPet.apply(ops.changeStatStage('spe', 1))),
+          actions.choose(opponentHasMark(smell), targets.ownerPet.apply(ops.changeStatStage('spd', 1))),
+          actions.choose(opponentHasMark(taste), targets.ownerPet.apply(ops.changeStatStage('def', 1))),
         ),
       },
       effect_skill_add_all_sense_losses_to_opponent: {
@@ -70,10 +64,7 @@ export class HemaEffects {
       effect_mark_shiqutingjue_attack_sure_hit: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.ownerIsSkillTarget,
-          contexts.skillUse.condition((_ctx, events) => events.some(event => event.category !== 'Status')),
-        ),
+        when: conditions.all(conditions.ownerIsSkillTarget, nonStatusSkillUse),
         apply: contexts.skillUse.apply(ops.setSureHit(2)),
       },
       effect_mark_shiquweijue_status_skill_sure_hit: {

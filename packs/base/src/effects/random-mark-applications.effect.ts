@@ -1,6 +1,6 @@
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
-import { BaseMark } from '@arcadia-eternity/battle/engine'
 import { defineEffects, EffectTrigger, conditions, ops, selectFrom, targets } from '@arcadia-eternity/battle/authoring'
+import { requireMark } from './mark-queries'
 
 export const randomMarkApplicationDependencies = Object.freeze(['mark_zhaocai', 'mark_jinbao'] as const)
 
@@ -10,12 +10,7 @@ export class RandomMarkApplicationsEffects {
   static build(context: Pick<EffectLoadingContext, 'marks'>) {
     const marks = context.marks
 
-    const choices = randomMarkApplicationDependencies.map(id => {
-      const mark = marks.get(id)
-      if (!(mark instanceof BaseMark) || mark.id !== id)
-        throw new Error(`Missing or mismatched native mark dependency: ${id}`)
-      return mark
-    })
+    const choices = randomMarkApplicationDependencies.map(id => requireMark(marks, id))
     const luckyMark = selectFrom(choices).shuffled().first()
     return defineEffects({
       effect_skill_add_mark_zhaocai_or_jinbao: {

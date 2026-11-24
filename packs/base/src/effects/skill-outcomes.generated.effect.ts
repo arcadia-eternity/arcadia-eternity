@@ -12,6 +12,7 @@ import {
   values,
   type EffectFrame,
 } from '@arcadia-eternity/battle/authoring'
+import { ownerHasMark, opponentHasMark } from './mark-queries'
 @effectGroup({ id: 'skill-outcomes.generated' })
 export class SkillOutcomesGeneratedEffects {
   static build() {
@@ -19,12 +20,7 @@ export class SkillOutcomesGeneratedEffects {
       effect_ability_add_crit_rate_10_if_opponent_has_mark_shihua: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_shihua')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_shihua')),
         apply: contexts.skillUse.apply(ops.addCritRate(10)),
       },
       effect_ability_add_skill_accuracy_10_percent_when_yanre: {
@@ -44,7 +40,7 @@ export class SkillOutcomesGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.sourceOwnsEvent,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_kongqichuliang').condition(checks.exists()),
+          ownerHasMark('mark_kongqichuliang'),
           contexts.skillUse.condition((_ctx, events) => events[0]?.element === 'Water'),
         ),
         apply: contexts.skillUse.apply(ops.addAccuracy(5)),
@@ -98,10 +94,7 @@ export class SkillOutcomesGeneratedEffects {
       effect_emblem_increase_crit_rate_when_dongqifuti: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.all(
-          conditions.sourceOwnsEvent,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_dongqifuti').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.sourceOwnsEvent, ownerHasMark('mark_dongqifuti')),
         apply: contexts.skillUse.apply(ops.addCritRate(5)),
       },
       effect_emblem_sure_hit_when_yanre: {
@@ -188,10 +181,7 @@ export class SkillOutcomesGeneratedEffects {
           triggers: [EffectTrigger.AfterUseSkillCheck] as const,
           priority: 0,
           parameters,
-          when: conditions.all(
-            conditions.selfUsesSkill,
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_shahezhili').condition(checks.exists()),
-          ),
+          when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shahezhili')),
           apply: contexts.skillUse.apply(
             ops.addAccuracy(
               values.combine(
@@ -245,10 +235,7 @@ export class SkillOutcomesGeneratedEffects {
           triggers: [EffectTrigger.AfterUseSkillCheck] as const,
           priority: 0,
           parameters,
-          when: conditions.all(
-            conditions.selfUsesSkill,
-            targets.ownerMarks.where(mark => mark.baseId === 'mark_shahezhili').condition(checks.exists()),
-          ),
+          when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shahezhili')),
           apply: contexts.skillUse.apply(
             ops.addCritRate(
               values.combine(
@@ -293,10 +280,7 @@ export class SkillOutcomesGeneratedEffects {
       effect_skill_add_crit_rate_50_shuiwenzhenji: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiwenzhenji').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shuiwenzhenji')),
         apply: contexts.skillUse.apply(ops.addCritRate(50)),
       },
       effect_skill_add_crit_rate_65_if_first: {
@@ -308,44 +292,25 @@ export class SkillOutcomesGeneratedEffects {
       effect_skill_add_crit_rate_70_shuiwenzhenji: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiwenzhenji').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shuiwenzhenji')),
         apply: contexts.skillUse.apply(ops.addCritRate(70)),
       },
       effect_skill_add_crit_rate_85_if_opponent_has_mark_shihua: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_shihua')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_shihua')),
         apply: contexts.skillUse.apply(ops.addCritRate(85)),
       },
       effect_skill_add_crit_rate_85_if_opponent_has_mark_zhongdu_and_haipa: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_zhongdu')),
-          ),
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_haipa')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_zhongdu'), opponentHasMark('mark_haipa')),
         apply: contexts.skillUse.apply(ops.addCritRate(85)),
       },
       effect_skill_add_crit_rate_95_if_has_jinbao: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_jinbao').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_jinbao')),
         apply: contexts.skillUse.apply(ops.addCritRate(95)),
       },
       effect_skill_add_crit_rate_ruodian: {
@@ -444,21 +409,13 @@ export class SkillOutcomesGeneratedEffects {
       effect_skill_set_sure_hit_if_has_niliu: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_niliu').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_niliu')),
         apply: contexts.skillUse.apply(ops.setSureHit(2)),
       },
       effect_skill_setsurehit_opponent_has_mark_kuihuazhongzi: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_kuihuazhongzi')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_kuihuazhongzi')),
         apply: contexts.skillUse.apply(ops.setSureHit(2)),
       },
       effect_skill_sure_crit_below_1_4: {
@@ -488,21 +445,13 @@ export class SkillOutcomesGeneratedEffects {
       effect_skill_sure_crit_if_has_yitelingyu: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_yitelingyu').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_yitelingyu')),
         apply: contexts.skillUse.apply(ops.setSureCrit(1)),
       },
       effect_skill_sure_crit_if_opponent_bingdong: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_bingdong')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_bingdong')),
         apply: contexts.skillUse.apply(ops.setSureCrit(1)),
       },
       effect_skill_sure_crit_if_opponent_has_2_kongjuzhinian: {
@@ -523,10 +472,7 @@ export class SkillOutcomesGeneratedEffects {
       effect_skill_sure_crit_shuiwenzhenji: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_shuiwenzhenji').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_shuiwenzhenji')),
         apply: contexts.skillUse.apply(ops.setSureCrit(0)),
       },
       effect_skill_sure_hit_below_1_4_hp: {
@@ -563,37 +509,25 @@ export class SkillOutcomesGeneratedEffects {
       effect_skill_sure_hit_if_has_mark_yinghua: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_yinghua').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_yinghua')),
         apply: contexts.skillUse.apply(ops.setSureHit(2)),
       },
       effect_skill_sure_hit_if_has_xukongganying: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_xukongganying').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_xukongganying')),
         apply: contexts.skillUse.apply(ops.setSureHit(2)),
       },
       effect_skill_sure_hit_if_has_zhaocai: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_zhaocai').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_zhaocai')),
         apply: contexts.skillUse.apply(ops.setSureHit(2)),
       },
       effect_skill_sure_hit_if_has_zhenkongzhixin: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.ownerMarks.where(mark => mark.baseId === 'mark_zhenkongzhixin').condition(checks.exists()),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, ownerHasMark('mark_zhenkongzhixin')),
         apply: contexts.skillUse.apply(ops.setSureHit(2)),
       },
       effect_skill_sure_hit_if_height_above_100: {
@@ -609,34 +543,19 @@ export class SkillOutcomesGeneratedEffects {
       effect_skill_sure_hit_if_opponent_has_maimaijinzhen: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_maimaijinzhen')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_maimaijinzhen')),
         apply: contexts.skillUse.apply(ops.setSureHit(2)),
       },
       effect_skill_sure_hit_if_opponent_has_mark_mabi: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_mabi')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_mabi')),
         apply: contexts.skillUse.apply(ops.setSureHit(2)),
       },
       effect_skill_sure_hit_if_opponent_has_tongjiling: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_tongjiling')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_tongjiling')),
         apply: contexts.skillUse.apply(ops.setSureHit(2)),
       },
       effect_skill_sure_hit_if_opponent_spa_gt_atk: {
@@ -667,12 +586,7 @@ export class SkillOutcomesGeneratedEffects {
       effect_skill_sure_hit_opponent_jingshencuoluan: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.all(
-          conditions.selfUsesSkill,
-          targets.opponentActive.condition((_ctx, pets) =>
-            pets.some(pet => pet.marks.some(mark => mark.baseId === 'mark_jingshencuoluan')),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, opponentHasMark('mark_jingshencuoluan')),
         apply: contexts.skillUse.apply(ops.setSureHit(2)),
       },
       effect_skill_sure_hit_opponent_shaoshang: {

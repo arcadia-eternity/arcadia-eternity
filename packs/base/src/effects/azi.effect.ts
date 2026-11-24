@@ -1,26 +1,13 @@
-import {
-  conditions,
-  contexts,
-  DamageType,
-  defineEffects,
-  EffectTrigger,
-  ops,
-  targets,
-} from '@arcadia-eternity/battle/authoring'
+import { conditions, contexts, defineEffects, EffectTrigger, ops, targets } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
+import { specialDamage, physicalOrSpecialDamage } from './damage-conditions'
+import { requireMark } from './mark-queries'
+import { actualSkillTarget } from './skill-queries'
 
 const PARALYSIS = 'mark_mabi'
 
 const opponentRageAbove50 = targets.opponentActive.condition((_, pets) => (pets[0]?.currentRage ?? 0) > 50)
 const opponentRageBelow50 = targets.opponentActive.condition((_, pets) => (pets[0]?.currentRage ?? 0) < 50)
-
-const specialDamage = contexts.damage.condition((_, events) =>
-  events.some(event => event.damageType === DamageType.Special),
-)
-
-const attackDamage = contexts.damage.condition((_, events) =>
-  events.some(event => event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
-)
 
 const physicalSkill = contexts.skillUse.condition((_, events) =>
   events.some(event => event.skill.category === 'Physical'),
@@ -35,8 +22,7 @@ const skillIs = (id: string) =>
 @effectGroup({ id: 'azi' })
 export class AziEffects {
   static build({ marks }: Pick<EffectLoadingContext, 'marks'>) {
-    const paralysis = marks.get(PARALYSIS)
-    if (!paralysis) throw new Error('Missing paralysis mark')
+    const paralysis = requireMark(marks, PARALYSIS)
 
     return defineEffects({
       effect_ability_increase_special_damage_5_percent: {
@@ -102,7 +88,7 @@ export class AziEffects {
       effect_skill_min_physical_special_damage_100: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, attackDamage),
+        when: conditions.all(conditions.selfUsesSkill, physicalOrSpecialDamage),
         apply: contexts.damage.apply(ops.setDamageThreshold({ min: 100 })),
       },
       effect_skill_add_multihit_1_if_opponent_rage_below_50: {
@@ -115,9 +101,7 @@ export class AziEffects {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentRageAbove50),
-        apply: contexts.skillUse
-          .flatMap(event => (event.actualTarget ? [event.actualTarget] : []))
-          .apply(ops.dealDamage(75)),
+        apply: actualSkillTarget.apply(ops.dealDamage(75)),
       },
       effect_skill_heal_self_25_percent_max_hp_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
