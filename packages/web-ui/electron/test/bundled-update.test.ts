@@ -213,6 +213,11 @@ test(
       stageBundledOfficialEnvironmentPackages,
     } = await import('@arcadia-eternity/content-sdk/management-workspace')
     const { createHash } = await import('node:crypto')
+    const { version: clientVersion } = JSON.parse(
+      await readFile(new URL('../../package.json', import.meta.url), 'utf8'),
+    )
+    const compatibleRange = '^' + clientVersion
+    const futureClientVersion = `${Number(clientVersion.split('.')[0]) + 1}.0.0`
     const root = await mkdtemp(join(tmpdir(), 'independent-base-'))
     t.after(() => rm(root, { recursive: true, force: true }))
     const name = '@arcadia-eternity/data-pack-base'
@@ -222,7 +227,7 @@ test(
     )
     const manifest = JSON.parse(await readFile(join(bundled, 'package.json')))
     manifest.version = '3.0.0'
-    manifest.engines = { arcadia: '^4.0.0' }
+    manifest.engines = { arcadia: compatibleRange }
     await writeFile(join(bundled, 'package.json'), JSON.stringify(manifest))
     const effectFile = join(bundled, manifest.arcadia.effectArtifact)
     const originalEffect = await readFile(effectFile, 'utf8')
@@ -237,7 +242,7 @@ test(
     const candidate = {
       name,
       version: '3.0.0',
-      range: '^4.0.0',
+      range: compatibleRange,
       url: 'https://registry.npmjs.org/@arcadia-eternity/data-pack-base/-/data-pack-base-3.0.0.tgz',
       integrity: 'sha512-' + createHash('sha512').update(bytes).digest('base64'),
     }
@@ -301,7 +306,7 @@ test(
           stageBundledOfficialEnvironmentPackages(version, directory, resolveRecipe),
         readEnvironments: directory =>
           readInstalledOfficialEnvironments(join(directory, 'node_modules', name), directory),
-        clientVersion: '4.11.0',
+        clientVersion,
         find: async (pkg, version) => {
           assert.equal(pkg, name)
           if (offline) throw new Error('registry offline')
@@ -453,13 +458,13 @@ test(
           return (await library.list()).packages.find(item => item.bundled)
         }
         // A future host can still run the older, previously verified v2 held locally.
-        assert.equal((await restart('1.0.0', '5.0.0', '*')).id, previous.id)
+        assert.equal((await restart('1.0.0', futureClientVersion, '*')).id, previous.id)
         await activateOfficialEnvironments(library, synchronize)
-        assert.equal((await restart('2.0.0', '4.11.0', '*')).id, updatedId)
+        assert.equal((await restart('2.0.0', clientVersion, '*')).id, updatedId)
         await activateOfficialEnvironments(library, synchronize)
         await writeFile(effectFile, JSON.stringify(effect))
         manifest.description = 'packaging metadata only'
-        assert.equal((await restart('3.0.0', '4.11.0', '^4.0.0')).id, updatedId)
+        assert.equal((await restart('3.0.0', clientVersion, compatibleRange)).id, updatedId)
         const pinnedSame = { ...current.document, id: 'same-version-pin' }
         await workspace.prepareEnvironment(
           {
@@ -473,7 +478,7 @@ test(
         const file = manifest.arcadia.catalog
         const original = await readFile(join(bundled, file), 'utf8')
         await writeFile(join(bundled, file), original + '\n')
-        const selected = await restart('3.0.0', '4.11.0', '^4.0.0')
+        const selected = await restart('3.0.0', clientVersion, compatibleRange)
         assert.notEqual(selected.id, updatedId)
         let failOnce = true
         await activateOfficialEnvironments(library, async () => {
@@ -484,7 +489,7 @@ test(
           await synchronize()
         })
         assert.equal((await library.list()).packages.find(item => item.bundled).id, updatedId)
-        await restart('3.0.0', '4.11.0', '^4.0.0')
+        await restart('3.0.0', clientVersion, compatibleRange)
         await activateOfficialEnvironments(library, synchronize)
         for (const [id, expected] of [
           [envId, original + '\n'],
