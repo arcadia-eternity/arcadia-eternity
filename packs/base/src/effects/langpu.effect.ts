@@ -21,9 +21,11 @@ function rageOnNoCrit(amount: number) {
 
 function powerOnNoCrit(bonus: number) {
   return {
-    triggers: [EffectTrigger.AfterUseSkillCheck] as const,
-    priority: 0,
-    when: conditions.all(conditions.selfUsesSkill, notCritDamage),
+    triggers: [EffectTrigger.BeforeMultiHit] as const,
+    when: conditions.all(
+      conditions.selfUsesSkill,
+      contexts.skillUse.condition((_, casts) => casts.some(cast => !cast.crit)),
+    ),
     apply: contexts.skillUse.apply(ops.addPower(bonus)),
   }
 }
@@ -72,7 +74,7 @@ export class LangpuEffects {
       },
       effect_skill_add_rage_self_15_on_noncritical_damage: rageOnNoCrit(15),
       effect_skill_double_power_against_ice_opponent_after_check: icePowerDouble(),
-      effect_skill_add_power_35_unless_critical_damage_after_check: powerOnNoCrit(35),
+      effect_skill_add_power_35_if_not_critical: powerOnNoCrit(35),
       effect_skill_deal_40_fixed_damage_on_noncritical_damage: flatDamageOnNoCrit(40),
       effect_skill_min_attack_damage_95_if_not_first_skill: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
@@ -83,7 +85,7 @@ export class LangpuEffects {
         ),
         apply: contexts.damage.apply(ops.setDamageThreshold({ min: 95 })),
       },
-      effect_skill_add_power_40_unless_critical_damage_after_check: powerOnNoCrit(40),
+      effect_skill_add_power_40_if_not_critical: powerOnNoCrit(40),
       effect_skill_deal_50_fixed_damage_on_noncritical_damage: flatDamageOnNoCrit(50),
     })
   }

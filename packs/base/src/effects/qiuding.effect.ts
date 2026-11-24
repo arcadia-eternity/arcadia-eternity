@@ -13,7 +13,7 @@ import { reflectedHalfHpLoss } from './damage-benefits.effect'
 import { physicalDamage, nonEffectStrikeDamage } from './damage-conditions'
 import { defensePowerBonus, defenseHitCount } from './defense-scaling'
 import { activeOwnerMarks, ruleConsumedSourceMark, requireMark } from './mark-queries'
-import { nonStatusSkillUse } from './skill-queries'
+import { actualSkillTarget, nonStatusSkillUse } from './skill-queries'
 
 const SPIKE_SHELL = 'mark_jiancijiaqiao'
 const BARB_SHELL = 'mark_daocijiaqiao'
@@ -85,11 +85,10 @@ export class QiudingEffects {
         when: conditions.selfUsesSkill,
         apply: addSpikeShell,
       },
-      effect_skill_add_power_by_def_div_5_max_100_pre_damage: {
-        triggers: [EffectTrigger.PreDamage],
-        priority: 0,
+      effect_skill_deal_fixed_damage_1_per_5_def_max_100: {
+        triggers: [EffectTrigger.OnHit],
         when: conditions.selfUsesSkill,
-        apply: contexts.skillUse.apply(ops.addPower(defBonusDamage)),
+        apply: actualSkillTarget.apply(ops.dealDamage(defBonusDamage)),
       },
       effect_skill_add_mark_opponent_jiancibaofa_on_hit: {
         triggers: [EffectTrigger.OnHit],
@@ -122,9 +121,8 @@ export class QiudingEffects {
         when: conditions.selfUsesSkill,
         apply: addSandSeverity,
       },
-      effect_skill_add_power_by_def_div_10_max_100_pre_damage: {
-        triggers: [EffectTrigger.PreDamage],
-        priority: 0,
+      effect_skill_add_power_1_per_10_def_max_100: {
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         when: conditions.selfUsesSkill,
         apply: contexts.skillUse.apply(ops.addPower(defBonusPower)),
       },

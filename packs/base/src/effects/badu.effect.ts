@@ -14,6 +14,7 @@ import { reflectedHalfHpLoss } from './damage-benefits.effect'
 import { specialDamage, physicalOrSpecialDamage, isPhysicalOrSpecial } from './damage-conditions'
 import { defensePowerBonus, defenseHitCount } from './defense-scaling'
 import { requireMark } from './mark-queries'
+import { actualSkillTarget } from './skill-queries'
 
 const LINGGUI = 'mark_badu_shihunlinggui'
 const YOULINGGUI = 'mark_badu_youhunlinggui'
@@ -31,19 +32,6 @@ const physicalSpecialOrEffectDamage = contexts.damage.condition((_, events) =>
 const opponentActive = targets.opponentActive
 
 const spdBoostChance = numberParam({ default: 10, tags: ['skill_effect_probability'] })
-
-function spdBonusPower(divisor: number) {
-  return {
-    triggers: [EffectTrigger.AfterUseSkillCheck] as const,
-    priority: 0,
-    when: conditions.selfUsesSkill,
-    apply: (ctx => {
-      const spd = ctx.read(specialDefense) ?? 0
-      const bonus = defensePowerBonus(spd, divisor)
-      if (bonus > 0) contexts.skillUse.apply(ops.addPower(bonus))(ctx)
-    }) satisfies Action<EffectTrigger.AfterUseSkillCheck>,
-  }
-}
 
 const reflectedDamage = reflectedHalfHpLoss(284)
 
@@ -84,7 +72,11 @@ export class BaduEffects {
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(linggui, { stack: 1 })),
       },
-      effect_skill_add_power_1_per_5_spd_max_100: spdBonusPower(5),
+      effect_skill_deal_fixed_damage_1_per_5_spd_max_100: {
+        triggers: [EffectTrigger.OnHit],
+        when: conditions.selfUsesSkill,
+        apply: actualSkillTarget.apply(ops.dealDamage(specialDefense.map(spd => defensePowerBonus(spd, 5)))),
+      },
       effect_skill_add_mark_opponent_linghunsuiji_on_hit: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
@@ -129,7 +121,11 @@ export class BaduEffects {
         when: conditions.selfUsesSkill,
         apply: opponentActive.apply(ops.addMark(dizhishang, { stack: 1 })),
       },
-      effect_skill_add_power_1_per_10_spd_max_100: spdBonusPower(10),
+      effect_skill_add_power_1_per_10_spd_max_100: {
+        triggers: [EffectTrigger.AfterUseSkillCheck],
+        when: conditions.selfUsesSkill,
+        apply: contexts.skillUse.apply(ops.addPower(specialDefense.map(spd => defensePowerBonus(spd, 10)))),
+      },
       effect_skill_add_mark_self_fankangyishi_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,

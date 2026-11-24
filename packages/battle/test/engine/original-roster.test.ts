@@ -1,6 +1,13 @@
-import { BattleMessageType, DamageType, EffectTrigger, individualValueSpread } from '@arcadia-eternity/const'
+import {
+  BattleMessageType,
+  DamageType,
+  EffectTrigger,
+  individualValueSpread,
+  type DamageResult,
+} from '@arcadia-eternity/const'
 import {
   dealDamage,
+  executeTurnOperation,
   SwitchPetPhase,
   DamageContext,
   SwitchPetContext,
@@ -8,7 +15,171 @@ import {
   UseSkillContext,
 } from '@arcadia-eternity/battle/engine'
 import { describe, expect, it, vi } from 'vitest'
-import { petBattle } from './original-pet-battle'
+import { petBattle, waitTurn } from './original-pet-battle'
+
+it('喷火命中后降低特防，不改变特攻', () => {
+  const { battle, opponent, use } = petBattle('pet_huohuashou', ['skill_penhuo'])
+  vi.spyOn(battle, 'random').mockReturnValue(0)
+  use('skill_penhuo')
+  expect(opponent.activePet.marks.map(mark => mark.baseId)).toContain('stat_stage_spd_down')
+  expect(opponent.activePet.marks.map(mark => mark.baseId)).not.toContain('stat_stage_spa_down')
+})
+
+it('群蜂集结先强化特攻，有蜂纹时额外消耗一层强化速度', () => {
+  const { owner, opponent, use } = petBattle('pet_qingfeng', ['skill_fengwenzhike', 'skill_qunfengjijie'])
+  const stage = (stat: string) =>
+    owner.activePet.marks.find(mark => mark.baseId === `stat_stage_${stat}_up`)?.stack ?? 0
+  use('skill_qunfengjijie')
+  expect(stage('spa')).toBe(1)
+  expect(stage('spe')).toBe(0)
+  use('skill_fengwenzhike')
+  use('skill_qunfengjijie', owner, false)
+  expect(stage('spa')).toBe(1)
+  expect(opponent.activePet.marks.find(mark => mark.baseId === 'mark_fengwen')?.stack).toBe(1)
+  use('skill_qunfengjijie')
+  expect(stage('spa')).toBe(2)
+  expect(stage('spe')).toBe(1)
+  expect(opponent.activePet.marks.some(mark => mark.baseId === 'mark_fengwen')).toBe(false)
+})
+
+it('蜂纹逐层提高中毒印记的同一次伤害，蜂纹腐蚀只消耗蜂纹并回复体力', () => {
+  const { battle, owner, opponent, use } = petBattle('pet_qingfeng', [
+    'skill_fengwenzhike',
+    'skill_judufengzhen',
+    'skill_fengwenfushi',
+  ])
+  const target = opponent.activePet
+  target.attributeSystem.updateBaseValue('maxHp', 1600)
+  target.currentHp = 1600
+  const damage: DamageResult[] = []
+  battle.registerListener(message => {
+    if (message.type === BattleMessageType.Damage && message.data.target === target.id && message.data.result) {
+      damage.push(message.data.result)
+    }
+  })
+  const poisonMark = () => target.marks.find(mark => mark.baseId === 'mark_zhongdu')
+  const poisonDamage = Math.floor(target.stat.maxHp / 8)
+  const expectPoisonTick = (bonus: number) => {
+    const source = poisonMark()
+    expect(source).toBeDefined()
+    damage.length = 0
+    waitTurn(battle)
+    expect(damage).toEqual([
+      expect.objectContaining({
+        hpLoss: poisonDamage + bonus,
+        origin: expect.objectContaining({ trigger: 'effect', executorId: source?.id }),
+        intent: expect.objectContaining({ damageType: DamageType.Effect }),
+      }),
+    ])
+  }
+  use('skill_fengwenzhike')
+  damage.length = 0
+  waitTurn(battle)
+  expect(damage).toEqual([])
+
+  use('skill_judufengzhen')
+  expectPoisonTick(30)
+  use('skill_fengwenzhike')
+  expectPoisonTick(60)
+
+  owner.activePet.attributeSystem.updateBaseValue('maxHp', 500)
+  owner.activePet.currentHp = 250
+  damage.length = 0
+  use('skill_fengwenfushi')
+  expect(owner.activePet.currentHp).toBe(370)
+  expect(damage).toEqual([])
+  expect(target.marks.some(mark => mark.baseId === 'mark_fengwen')).toBe(false)
+  expectPoisonTick(0)
+})
+
+it('毒液腐蚀根据对手是否中毒使用原威力或四倍威力', () => {
+  const { battle, opponent, use } = petBattle('pet_zhongjiadujiao', ['skill_yingjiazhongji', 'skill_duyefushi'])
+  vi.spyOn(battle, 'random').mockReturnValue(0.5)
+  opponent.activePet.attributeSystem.updateBaseValue('maxHp', 1000)
+  opponent.activePet.currentHp = 1000
+  expect(use('skill_duyefushi').power).toBe(50)
+  use('skill_yingjiazhongji')
+  expect(use('skill_duyefushi').power).toBe(200)
+})
+
+it.each([
+  ['skill_hailangzhenpao', 65, 75],
+  ['skill_mouwangzhenpao', 80, 90],
+  ['skill_jilang', 60, 60],
+])('震炮纹章使 %s 的威力从 %i 变为 %i', (skill, basePower, equippedPower) => {
+  const control = petBattle('pet_moumouwang', [skill])
+  const equipped = petBattle('pet_moumouwang', [skill], 'mark_emblem_moumou')
+  vi.spyOn(control.battle, 'random').mockReturnValue(0.5)
+  vi.spyOn(equipped.battle, 'random').mockReturnValue(0.5)
+  expect(control.use(skill).power).toBe(basePower)
+  expect(equipped.use(skill).power).toBe(equippedPower)
+})
+
+it.each([
+  ['pet_dilan', 150],
+  ['pet_qiuji', 75],
+])('逆势冲撞对 %s 使用 %i 威力', (species, power) => {
+  const { use } = petBattle(
+    'pet_moumouwang',
+    ['skill_nishichongzhuang'],
+    undefined,
+    undefined,
+    [],
+    [{ species, skills: ['skill_paida'] }],
+  )
+  expect(use('skill_nishichongzhuang').power).toBe(power)
+})
+
+it('青蜂之舞从施加起就提高50点闪避，三回合结束后复原', () => {
+  const { battle, owner, opponent, use } = petBattle('pet_qingfeng', ['skill_qingfengzhiwu'])
+  const evasion = owner.activePet.stat.evasion
+  use('skill_qingfengzhiwu')
+  expect(owner.activePet.stat.evasion).toBe(evasion + 50)
+  vi.spyOn(battle, 'random').mockReturnValue(0.7)
+  expect(use('skill_paida', opponent, null).hitResult).toBe(false)
+  waitTurn(battle)
+  waitTurn(battle)
+  expect(owner.activePet.stat.evasion).toBe(evasion + 50)
+  waitTurn(battle)
+  expect(owner.activePet.stat.evasion).toBe(evasion)
+  expect(use('skill_paida', opponent, null).hitResult).toBe(true)
+})
+
+it.each([
+  ['skill_hanbingzhiti', 75, 110],
+  ['skill_hanbingzhenji', 90, 130],
+])('%s 只在本次攻击未暴击时增加威力', (skill, power, boostedPower) => {
+  const { battle, use } = petBattle('pet_weilangpu', [skill])
+  const random = vi.spyOn(battle, 'random').mockReturnValue(0)
+  const critical = use(skill)
+  expect(critical.crit).toBe(true)
+  expect(critical.power).toBe(power)
+  random.mockReturnValue(0.5)
+  const normal = use(skill)
+  expect(normal.crit).toBe(false)
+  expect(normal.power).toBe(boostedPower)
+})
+
+it.each([
+  [600, 130],
+  [100, 65],
+])('跳跃冲撞按实际出手顺序获得威力，速度为 %i', (speed, power) => {
+  const skill = 'skill_tiaoyuechongzhuang'
+  const { battle, owner, opponent } = petBattle('pet_tuoniqiaoba', [skill])
+  const jump = owner.activePet.skills[0]!
+  const slap = opponent.activePet.skills[0]!
+  owner.activePet.attributeSystem.updateBaseValue('spe', speed)
+  opponent.activePet.attributeSystem.updateBaseValue('spe', 300)
+  owner.currentRage = opponent.currentRage = 100
+  owner.selection = { type: 'use-skill', player: owner.id, skill: jump.id, target: jump.target }
+  opponent.selection = { type: 'use-skill', player: opponent.id, skill: slap.id, target: slap.target }
+  const turn = new TurnContext(battle)
+  executeTurnOperation(turn, battle)
+  const cast = turn.appledContexts.find(
+    (context): context is UseSkillContext => context instanceof UseSkillContext && context.skill === jump,
+  )
+  expect(cast?.power).toBe(power)
+})
 
 it('蹦蹦鼠使用以守转攻时结算自身的印记', () => {
   const { owner, use } = petBattle('pet_bengbengshu', ['skill_yishouzhuangong'], 'mark_emblem_tiaotiaoshu')
@@ -586,34 +757,46 @@ describe.each([
   {
     species: 'pet_baduo',
     stat: 'spd',
-    power5: 'skill_linghunzhifa',
-    power10: 'skill_lihunsuiji',
+    fixedMove: 'skill_linghunzhifa',
+    powerMove: 'skill_lihunsuiji',
     multi: 'skill_linghunlianda',
   },
   {
     species: 'pet_qiuji',
     stat: 'def',
-    power5: 'skill_jiancichongzhuang',
-    power10: 'skill_licitujin',
+    fixedMove: 'skill_jiancichongzhuang',
+    powerMove: 'skill_licitujin',
     multi: 'skill_jiancifangun',
   },
-] as const)('$species 防御属性换算', ({ species, stat, power5, power10, multi }) => {
+] as const)('$species 防御属性换算', ({ species, stat, fixedMove, powerMove, multi }) => {
   it.each([
-    ['power5', 4, 75, 123, 131],
-    ['power5', 499, 174, 280, 131],
-    ['power5', 500, 175, 280, 131],
-    ['power5', 505, 175, 280, 131],
-    ['power10', 999, 169, 277, 123],
-    ['power10', 1000, 170, 278, 123],
-    ['power10', 1010, 170, 278, 123],
-  ] as const)('%s 属性 %i 时威力为 %i', (formula, value, expectedPower, baduDamage, qiudingDamage) => {
-    const move = formula === 'power5' ? power5 : power10
-    const { owner, opponent, battle, use } = petBattle(species, [move])
+    [4, 0],
+    [499, 99],
+    [500, 100],
+    [505, 100],
+  ])('防御属性 %i 时附加 %i 点固定伤害', (value, fixedDamage) => {
+    const { owner, opponent, battle, use } = petBattle(species, [fixedMove])
     owner.activePet.attributeSystem.updateBaseValue(stat, value)
     vi.spyOn(battle, 'random').mockReturnValue(0.5)
     const hp = opponent.activePet.currentHp
-    expect(use(move).power).toBe(expectedPower)
-    expect(hp - opponent.activePet.currentHp).toBe(stat === 'spd' ? baduDamage : qiudingDamage)
+    expect(use(fixedMove, owner, false).hitResult).toBe(false)
+    expect(opponent.activePet.currentHp).toBe(hp)
+    expect(use(fixedMove).power).toBe(75)
+    expect(hp - opponent.activePet.currentHp).toBe((stat === 'spd' ? 123 : 131) + fixedDamage)
+  })
+
+  it.each([
+    [999, 169, 277, 294],
+    [1000, 170, 278, 295],
+    [1010, 170, 278, 295],
+  ])('防御属性 %i 时以 %i 威力结算技能伤害', (value, power, baduDamage, qiudingDamage) => {
+    const { owner, opponent, battle, use } = petBattle(species, [powerMove])
+    owner.activePet.attributeSystem.updateBaseValue(stat, value)
+    opponent.activePet.attributeSystem.updateBaseValue('maxHp', 1000)
+    opponent.activePet.currentHp = 1000
+    vi.spyOn(battle, 'random').mockReturnValue(0.5)
+    expect(use(powerMove).power).toBe(power)
+    expect(1000 - opponent.activePet.currentHp).toBe(stat === 'spd' ? baduDamage : qiudingDamage)
   })
 
   it.each([

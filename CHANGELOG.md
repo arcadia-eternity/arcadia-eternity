@@ -1,5 +1,18 @@
 # Changelog
 
+## [5.0.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v5.0.2...arcadia-eternity-v5.0.3) (2026-11-24)
+
+
+### 🐛 Bug Fixes
+
+* **base:** apply fengwen to poison damage ([426b60a](https://github.com/arcadia-eternity/arcadia-eternity/commit/426b60a43729d16b47f7f6aaa7a45cfff1061d95))
+* **base:** correct restored pet and emblem effects ([eeb7dd0](https://github.com/arcadia-eternity/arcadia-eternity/commit/eeb7dd0d4db748e52bd1b89a12f078796833f5f0))
+
+
+### 📚 Documentation
+
+* **skill:** preserve authored text and verify recreated effects ([69f1026](https://github.com/arcadia-eternity/arcadia-eternity/commit/69f10262768de78c57aade94cb3b1253c1c69c6e))
+
 ## [5.0.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v5.0.1...arcadia-eternity-v5.0.2) (2026-11-24)
 
 

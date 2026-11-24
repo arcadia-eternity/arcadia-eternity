@@ -7383,6 +7383,11 @@
     kind: marks
     id: mark_huixin
   icon: mark:mark_huixin
+- id: marks.mark_huixin_crit_rate
+  target:
+    kind: marks
+    id: mark_huixin_crit_rate
+  icon: mark:mark_huixin
 - id: marks.mark_zhaocai
   target:
     kind: marks

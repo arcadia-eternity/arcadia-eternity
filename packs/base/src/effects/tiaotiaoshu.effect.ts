@@ -15,7 +15,7 @@ const SPEED_UP = 'mark_biansu'
 const GUARD_COUNTER = 'mark_yishouzhuangong'
 const DODGE = 'mark_shanduo'
 const LEAP = 'mark_qitiao'
-const CRIT = 'mark_huixin'
+const CRIT = 'mark_huixin_crit_rate'
 const WEAKEN_IMMUNE = 'mark_mianyiruohua'
 const DAMAGE_REDUCTION = 'mark_shoudaoshanghaijianshao'
 
@@ -113,14 +113,17 @@ export class TiaotiaoshuEffects {
       },
       effect_skill_reduce_opponent_spe_1_stage_if_first: firstMoveStatDrop('spe'),
       effect_skill_deal_35_effect_damage_if_first_on_hit: firstMoveFlatDamage(35),
-      effect_skill_add_mark_self_huixin_for_1_turn_after_check: {
-        triggers: [EffectTrigger.AfterUseSkillCheck] as const,
-        priority: 0,
+      effect_skill_add_mark_self_huixin_crit_rate: {
+        triggers: [EffectTrigger.OnHit],
         when: conditions.selfUsesSkill,
-        apply: targets.ownerPet.apply(ops.addMark(crit, { stack: 1, duration: 1 })),
+        apply: targets.ownerPet.apply(ops.addMark(crit)),
+      },
+      effect_mark_increase_crit_rate_25_percent: {
+        triggers: [EffectTrigger.OnMarkCreated],
+        apply: targets.ownerPet.apply(ops.addAttributeModifier('critRate', 'delta', 25)),
       },
       effect_skill_add_mark_self_shanduo_for_1_turn_if_first: {
-        triggers: [EffectTrigger.AfterUseSkillCheck] as const,
+        triggers: [EffectTrigger.OnHit] as const,
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, firstMove),
         apply: targets.ownerPet.apply(ops.addMark(dodge, { stack: 1, duration: 1 })),

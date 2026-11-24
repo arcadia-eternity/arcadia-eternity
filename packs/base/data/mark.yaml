@@ -220,7 +220,7 @@
   tags:
     - status
   effect:
-    - effect_mark_turn_damage
+    - effect_mark_deal_poison_damage_at_turn_end
     - effect_mark_decrease_heal
 - id: mark_liuxie
   tags:
@@ -1927,6 +1927,14 @@
     keepOnSwitchOut: true
   effect:
     - effect_mark_next_non_status_skill_sure_crit
+- id: mark_huixin_crit_rate
+  config:
+    duration: 5
+    persistent: false
+    stackable: true
+    stackStrategy: refresh
+  effect:
+    - effect_mark_increase_crit_rate_25_percent
 - id: mark_zhaocai
   config:
     persistent: false
@@ -3026,7 +3034,7 @@
   effect:
     - effect_mark_amplify_outgoing_skill_damage_100_percent
     - effect_mark_amplify_incoming_skill_damage_50_percent
-    - effect_mark_remove_self_lanbo_on_baozou_duration_end
+    - effect_mark_remove_self_lanbo_when_baozou_ends
 - id: mark_haixiuduobi
   config:
     duration: 1
@@ -3054,6 +3062,8 @@
     persistent: true
     stackable: true
     stackStrategy: stack
+  effect:
+    - effect_mark_add_30_poison_damage_per_fengwen_stack
 - id: mark_qingfengzhiwu
   config:
     duration: 3
@@ -3062,7 +3072,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_mark_increase_owner_evasion_50_percent_before_damage
+    - effect_mark_increase_evasion_50_percent
 - id: mark_zhuiluo
   config:
     duration: 3

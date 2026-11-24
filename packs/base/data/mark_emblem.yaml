@@ -661,6 +661,8 @@
     keepOnSwitchOut: true
   tags:
     - emblem
+  effect:
+    - effect_emblem_add_power_10_to_zhenpao_skills
 - id: mark_emblem_langpu
   config:
     persistent: true

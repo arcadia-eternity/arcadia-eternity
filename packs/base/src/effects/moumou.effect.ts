@@ -11,7 +11,7 @@ import {
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
 import { physicalOrSpecialDamage } from './damage-conditions'
 import { requireMark } from './mark-queries'
-import { nonStatusSkillUse } from './skill-queries'
+import { actualSkillTarget, nonStatusSkillUse } from './skill-queries'
 
 const HARDEN = 'mark_yinghua'
 const SURE_HIT = 'mark_bizhong'
@@ -32,6 +32,14 @@ export class MoumouEffects {
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, nonStatusSkillUse),
         apply: ownerPet.apply(ops.heal(15)),
+      },
+      effect_emblem_add_power_10_to_zhenpao_skills: {
+        triggers: [EffectTrigger.AfterUseSkillCheck],
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          contexts.skillUse.condition((_, casts) => casts.some(cast => cast.skill.tags.includes('zhenpao'))),
+        ),
+        apply: contexts.skillUse.apply(ops.addPower(10)),
       },
       effect_skill_add_mark_self_bizhong_2_turns_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
@@ -58,21 +66,18 @@ export class MoumouEffects {
         when: conditions.all(conditions.selfUsesSkill, physicalOrSpecialDamage),
         apply: contexts.damage.apply(ops.setDamageThreshold({ min: 95 })),
       },
-      effect_skill_double_damage_against_grass_water_desert_trait: {
-        triggers: [EffectTrigger.OnBeforeCalculateDamage],
-        priority: 0,
+      effect_skill_double_power_against_grass_water_desert_trait: {
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         when: conditions.all(
           conditions.selfUsesSkill,
-          contexts.damage.condition((_, events) =>
-            events.some(event => {
-              const target = event.target
-              if (!target) return false
-              const element = target.element
-              return element === 'Grass' || element === 'Water' || element === 'Desert' || element === 'Trait'
-            }),
+          actualSkillTarget.condition((_, pets) =>
+            pets.some(
+              ({ element }) =>
+                element === 'Grass' || element === 'Water' || element === 'Desert' || element === 'Trait',
+            ),
           ),
         ),
-        apply: contexts.damage.apply(ops.modifyDamage({ percent: 100, delta: 0 })),
+        apply: contexts.skillUse.apply(ops.amplifyPower(2)),
       },
       effect_skill_raise_atk_1_stage_heal_self_17_percent_max_hp_before_hit: {
         triggers: [EffectTrigger.BeforeHit],
