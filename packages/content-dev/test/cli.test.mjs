@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
+import sdk from '../package.json' with { type: 'json' }
 const exec = promisify(execFile)
 const cli = fileURLToPath(new URL('../src/cli.ts', import.meta.url))
 test('CLI checks, builds and packs from the caller directory, with type errors failing the command', async () => {
@@ -85,7 +86,7 @@ test('pack checks the generated presentation entry and refuses missing npm media
     await writeFile(join(root, 'locales/zh-CN/species.yaml'), 'pet:\n  name: 精灵\n')
     const manifest = {
       name: '@test/media-pack',
-      engines: { arcadia: '^4.0.0' },
+      engines: { arcadia: '^' + sdk.version },
       version: '1.0.0',
       files: ['dist'],
       arcadia: { formatVersion: 1, projectId: 'media', namespace: 'media', content: 'dist/content.json' },

@@ -14,9 +14,9 @@
     "check": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
-    "@arcadia-eternity/battle": "5.0.0",
-    "@arcadia-eternity/content-sdk": "5.0.0",
-    "@arcadia-eternity/pack-loader": "5.0.0",
+    "@arcadia-eternity/battle": "5.0.1",
+    "@arcadia-eternity/content-sdk": "5.0.1",
+    "@arcadia-eternity/pack-loader": "5.0.1",
     "@types/node": "26.6.6",
     "typescript": "6.0.3"
   },
@@ -30,6 +30,6 @@
     "effectArtifact": "dist/arcadia-effects.json"
   },
   "engines": {
-    "arcadia": "^4.11.0"
+    "arcadia": "^5.0.0"
   }
 }

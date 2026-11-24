@@ -1,6 +1,6 @@
 {
   "name": "@arcadia-eternity/data-pack-base",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "license": "MIT",
   "type": "module",
   "description": "Arcadia Eternity base content and effects",
@@ -67,6 +67,6 @@
     "@arcadia-eternity/pack-loader": "workspace:*"
   },
   "engines": {
-    "arcadia": "^4.17.0"
+    "arcadia": "^5.0.0"
   }
 }
