@@ -11,6 +11,7 @@ import { promisify } from 'node:util'
 import { fileURLToPath } from 'node:url'
 import { nativeBuildIdentity } from '@arcadia-eternity/battle/build'
 import { prepareNpmProject, resolveNpmInvocation } from '@arcadia-eternity/pack-loader/node'
+import sdk from '../package.json' with { type: 'json' }
 import { packBuiltProject } from '../src/pack-project.ts'
 
 const exec = promisify(execFile)
@@ -23,7 +24,7 @@ async function fixture(t, { files = ['dist/content.json'] } = {}) {
   await mkdir(join(project, 'node_modules', 'artifact-helper'), { recursive: true })
   const manifest = {
     name: '@test/prebuilt-pack',
-    engines: { arcadia: '^4.0.0' },
+    engines: { arcadia: '^' + sdk.version },
     version: '1.0.0',
     type: 'module',
     files,
@@ -301,6 +302,7 @@ test(
 test('release mode prepares the staged archive and preserves the private author project', async t => {
   const { project, cache } = await fixture(t, { files: ['dist'] })
   const source = JSON.parse(await readFile(join(project, 'package.json'), 'utf8'))
+  const compatibleEngines = source.engines
   Object.assign(source, {
     private: true,
     license: 'MIT',
@@ -314,7 +316,7 @@ test('release mode prepares the staged archive and preserves the private author 
   await writeFile(join(project, 'package.json'), JSON.stringify(source))
   await assert.rejects(packBuiltProject(project, { cache }), /engines.arcadia/)
   await assert.rejects(packBuiltProject(project, { cache, release: true }), /engines.arcadia/)
-  source.engines = { arcadia: '^4.0.0' }
+  source.engines = compatibleEngines
   await writeFile(join(project, 'package.json'), JSON.stringify(source))
   const packed = await packBuiltProject(project, { cache, release: true })
   assert.deepEqual(packed.files.map(file => file.path).sort(), [

@@ -67,6 +67,6 @@
     "@arcadia-eternity/pack-loader": "workspace:*"
   },
   "engines": {
-    "arcadia": "^4.17.0"
+    "arcadia": "^5.0.0"
   }
 }

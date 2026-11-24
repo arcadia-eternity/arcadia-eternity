@@ -30,6 +30,6 @@
     "effectArtifact": "dist/arcadia-effects.json"
   },
   "engines": {
-    "arcadia": "^4.11.0"
+    "arcadia": "^5.0.0"
   }
 }
