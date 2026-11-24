@@ -5,7 +5,12 @@ import {
   readElementCatalog,
   type ElementCatalogInput,
 } from '@arcadia-eternity/const'
-import { bundledEnvironmentCatalog } from './official-environments.ts'
+import type { OfficialEnvironmentCatalog } from './official-environments.ts'
+export {
+  readOfficialEnvironments,
+  readInstalledOfficialEnvironments,
+  stageBundledOfficialEnvironmentPackages,
+} from './official-environments.ts'
 import { randomUUID } from 'node:crypto'
 import { isDeepStrictEqual } from 'node:util'
 import { lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
@@ -1327,43 +1332,9 @@ async function changeEnvironmentPackage(
   return workspace.saveDraft({ document: normalizeEnvironmentDocument(document), expectedRevision })
 }
 
-export async function readOfficialEnvironments(
-  root: string,
-  resolvePackage: (specifier: string) => string,
-  cachedCatalog?: string,
-) {
-  const manifest = await readJson(join(root, 'package.json'))
-  if (manifest.name !== hostBaseName || typeof manifest.version !== 'string' || !semver.valid(manifest.version))
-    throw contentError('BUNDLED_PACKAGE_INVALID')
-  return cachedCatalog
-    ? readShippedEnvironments(cachedCatalog, { [hostBaseName]: manifest.version })
-    : bundledEnvironmentCatalog(manifest.version, resolvePackage)
-}
-
-/** The host supplies this catalog from the application distribution. */
-export async function readShippedEnvironments(file: string | URL, bundledVersions: Record<string, string>) {
-  const schema = z
-    .object({
-      defaultEnvironment: z.string(),
-      environments: z.array(EnvironmentDocumentV2Schema).min(1),
-    })
-    .strict()
-  const catalog = schema.parse(JSON.parse(await readFile(file, 'utf8')))
-  const keys = new Set(catalog.environments.map(doc => doc.id))
-  if (keys.size !== catalog.environments.length || !keys.has(catalog.defaultEnvironment))
-    throw contentError('SHIPPED_ENVIRONMENT_CATALOG_INVALID')
-  for (const { packages } of catalog.environments)
-    for (const [name, version] of Object.entries(bundledVersions))
-      if (Object.hasOwn(packages, name)) {
-        if (!semver.satisfies(version, packages[name])) throw contentError('SHIPPED_PACKAGE_VERSION_MISMATCH')
-        packages[name] = version
-      }
-  return catalog
-}
-
 export async function synchronizeShippedEnvironments(
   workspace: OwnedContentWorkspace,
-  catalog: Awaited<ReturnType<typeof readShippedEnvironments>>,
+  catalog: OfficialEnvironmentCatalog,
   adopted: Record<string, string>,
   prepare: (document: EnvironmentDocument, expectedRevision: string | null) => Promise<unknown>,
   officialBaseRoot?: string,

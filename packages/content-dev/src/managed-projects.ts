@@ -2,7 +2,6 @@ import { sha256Hex } from '@arcadia-eternity/const'
 import { execFile } from 'node:child_process'
 import { mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import type { OfficialEnvironmentCatalog } from './official-environments.ts'
 import { withOfficialUpdateDirectory, type PackageUpdate } from './package-updates.ts'
 export {
   officialPackage,
@@ -712,15 +711,14 @@ export class ManagedProjects {
   }
 }
 
-// Discard the npm development/runtime dependencies before passing the official catalog
-// to the same offline installer used for the application's bundled copy.
+// Strip npm dependencies from the base archive used by the desktop offline installer.
 export async function withOfficialUpdateArchive<T>(
   candidate: PackageUpdate,
   npmCli: string | undefined,
   signal: AbortSignal,
-  use: (file: string, catalog: OfficialEnvironmentCatalog) => Promise<T>,
+  use: (file: string, environmentPackages: string) => Promise<T>,
 ) {
-  return withOfficialUpdateDirectory(candidate, signal, (directory, catalog) =>
-    withShippedCatalogArchive(directory, npmCli, file => use(file, catalog)),
+  return withOfficialUpdateDirectory(candidate, signal, (directory, environmentPackages) =>
+    withShippedCatalogArchive(directory, npmCli, file => use(file, environmentPackages)),
   )
 }

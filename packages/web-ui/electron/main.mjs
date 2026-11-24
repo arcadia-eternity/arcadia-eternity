@@ -311,12 +311,8 @@ function getContentLibrary() {
     : require
   const root = path.join(app.getPath('userData'), 'content-packages')
   const shippedRoot = path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json'))
-  const readCatalog = async (baseRoot, file) => {
-    const { readOfficialEnvironments } = await import(
-      pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
-    )
-    return readOfficialEnvironments(baseRoot, runtimeRequire.resolve, file)
-  }
+  const loadWorkspace = () =>
+    import(pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href)
   contentLibrary ??= new ContentLibrary({
     root,
     packageUpdates: {
@@ -326,7 +322,21 @@ function getContentLibrary() {
         return findPackageUpdate(...args)
       },
       shippedRoot,
-      shippedCatalog: () => readCatalog(shippedRoot),
+      shippedCatalog: async () => {
+        const { readOfficialEnvironments } = await loadWorkspace()
+        return readOfficialEnvironments(shippedRoot, runtimeRequire.resolve)
+      },
+      stageShippedEnvironments: async (directory, version) => {
+        const { stageBundledOfficialEnvironmentPackages } = await loadWorkspace()
+        return stageBundledOfficialEnvironmentPackages(version, directory, runtimeRequire.resolve)
+      },
+      readEnvironments: async directory => {
+        const { readInstalledOfficialEnvironments } = await loadWorkspace()
+        return readInstalledOfficialEnvironments(
+          path.join(directory, 'node_modules', '@arcadia-eternity/data-pack-base'),
+          directory,
+        )
+      },
       catalogDigest: async root => {
         const { catalogMaterialDigest } = await import(
           pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/pack-loader/node')).href
@@ -337,13 +347,9 @@ function getContentLibrary() {
         const { withOfficialUpdateArchive } = await loadPackageUpdates()
         return withOfficialUpdateArchive(candidate, localBattleHost.npmCliPath, signal, use)
       },
-      validate: async (directory, signal) => {
+      validate: async (directory, signal, catalog) => {
         const { validateWorkspaceProject } = await import(
           pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/server')).href
-        )
-        const catalog = await readCatalog(
-          path.join(directory, 'node_modules', '@arcadia-eternity/data-pack-base'),
-          path.join(directory, 'official-environments.json'),
         )
         for (const draft of catalog.environments)
           await validateWorkspaceProject({ directory, signal, draft }, { effectPreparation: 'prebuilt-only' })
@@ -507,14 +513,10 @@ async function refreshDesktopEnvironments(workspace) {
     pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/server')).href
   )
   const library = getContentLibrary()
-  const { synchronizeShippedEnvironments, readOfficialEnvironments } = await import(
+  const { synchronizeShippedEnvironments } = await import(
     pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
   )
-  const catalog = await readOfficialEnvironments(
-    activeBaseRoot(runtimeRequire),
-    runtimeRequire.resolve,
-    library.officialEnvironmentCatalogFile,
-  )
+  const catalog = await library.officialEnvironmentCatalog()
   await workspace.refreshBuiltinRules(catalog.environments)
   builtinEnvironment = await openBuiltinEnvironment({
     workspace,
@@ -522,32 +524,6 @@ async function refreshDesktopEnvironments(workspace) {
     validate: validateWorkspaceProject,
     catalog,
     synchronizeShippedEnvironments,
-    legacyBuiltinId: async () => {
-      const directory = path.join(app.getPath('userData'), 'local-server')
-      const profile = await fs.readFile(path.join(directory, 'server.json'), 'utf8').catch(error => {
-        if (error.code !== 'ENOENT') throw error
-      })
-      if (
-        !profile ||
-        !(await fs.stat(path.join(directory, 'server.sqlite')).catch(error => {
-          if (error.code !== 'ENOENT') throw error
-        }))
-      )
-        return undefined
-      const { openStorage } = await import(pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/database')).href)
-      const db = openStorage({ driver: 'sqlite', filename: path.join(directory, 'server.sqlite'), readonly: true })
-      try {
-        const row = await db.get('servers', JSON.parse(profile).serverId)
-        const init = row?.value.initialization
-        return row?.value.workspaceId === workspace.workspaceId &&
-          init?.kind === 'builtin' &&
-          init.environmentId === 'desktop-host'
-          ? init.environmentId
-          : undefined
-      } finally {
-        await db.close()
-      }
-    },
   })
   await localBattleHost.refreshBuiltinBindings()
 }

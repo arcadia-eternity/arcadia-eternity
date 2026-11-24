@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, mkdir, readFile, writeFile, rm, symlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { ContentWorkspace, readShippedEnvironments, synchronizeShippedEnvironments } from '../src/content-workspace.ts'
+import { ContentWorkspace, synchronizeShippedEnvironments } from '../src/content-workspace.ts'
 
 const document = { schemaVersion: 1, id: 'main', name: 'Main', packages: {}, sources: [] }
 async function fixture(t) {
@@ -363,14 +363,12 @@ test('shipped definitions migrate 4.8 workspace and snapshot identities and acce
     schemaVersion: 2,
     id,
     name: id,
-    packages: { sample: '*' },
+    packages: { sample: '1.0.0' },
     sources: [],
     requires: {},
     rules: { schemaVersion: 2 },
   }))
-  const file = join(root, 'catalog.json')
-  await writeFile(file, JSON.stringify({ defaultEnvironment: 'classic', environments: definitions }))
-  const catalog = await readShippedEnvironments(file, { sample: '1.0.0' })
+  const catalog = { defaultEnvironment: 'classic', environments: definitions }
   for (const owner of [reopened, restored]) {
     const prepared = []
     const synchronize = () =>

@@ -1,6 +1,10 @@
 import { sha256Hex } from '@arcadia-eternity/const'
 import { catalogMaterialDigest } from '@arcadia-eternity/pack-loader/node'
-import { officialEnvironmentCatalog, type OfficialEnvironmentCatalog } from './official-environments.ts'
+import {
+  officialEnvironmentPackagesDirectory,
+  readInstalledOfficialEnvironments,
+  stageOfficialEnvironmentPackages,
+} from './official-environments.ts'
 import semver from 'semver'
 import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
@@ -156,7 +160,7 @@ async function acquireOfficial(candidate: PackageUpdate, destination: string, si
     manifest.arcadia?.namespace !== 'base'
   )
     throw new Error('INVALID_OFFICIAL_PACKAGE')
-  const catalog = await officialEnvironmentCatalog(candidate.version, name =>
+  const catalog = await stageOfficialEnvironmentPackages(candidate.version, destination, name =>
     registryJson(
       'https://registry.npmjs.org/' + encodeURIComponent(name) + '/' + candidate.version,
       'application/json',
@@ -169,12 +173,13 @@ async function acquireOfficial(candidate: PackageUpdate, destination: string, si
 export async function withOfficialUpdateDirectory<T>(
   candidate: PackageUpdate,
   signal: AbortSignal,
-  use: (directory: string, catalog: OfficialEnvironmentCatalog) => Promise<T>,
+  use: (directory: string, environmentPackages: string) => Promise<T>,
 ) {
   const stage = await mkdtemp(join(tmpdir(), 'arcadia-official-update-'))
   try {
-    const { directory, catalog } = await acquireOfficial(candidate, join(stage, 'source'), signal)
-    return await use(directory, catalog)
+    const release = join(stage, 'release')
+    const { directory } = await acquireOfficial(candidate, release, signal)
+    return await use(directory, officialEnvironmentPackagesDirectory(release))
   } finally {
     await rm(stage, { recursive: true, force: true })
   }
@@ -219,9 +224,10 @@ export async function selectServerBase(
         if (!manifest.engines?.arcadia?.trim() || !semver.satisfies(host, manifest.engines.arcadia)) continue
         const digest = await catalogMaterialDigest(directory)
         const release = dirname(directory)
-        const catalog = await readFile(join(release, 'official-environments.json'), 'utf8')
+        const catalog = await readInstalledOfficialEnvironments(directory, release)
         const recorded = await readFile(join(release, '.arcadia-release-digest'), 'utf8')
-        if (sha256Hex(digest, '\0', catalog) !== recorded) throw new Error('OFFICIAL_MATERIAL_DIGEST_MISMATCH')
+        if (sha256Hex(digest, '\0', JSON.stringify(catalog)) !== recorded)
+          throw new Error('OFFICIAL_MATERIAL_DIGEST_MISMATCH')
         if (version === bundled.version && bundledCompatible) {
           if (digest !== (await catalogMaterialDigest(shipped)))
             console.warn('OFFICIAL_BASE_VERSION_CONFLICT', version, 'using bundled materials')
@@ -255,10 +261,8 @@ export async function installServerBaseUpdate(
     const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout
     const release = join(stage, 'release')
     const { directory, catalog } = await acquireOfficial(candidate, release, signal)
-    const catalogText = JSON.stringify(catalog)
-    await writeFile(join(release, 'official-environments.json'), catalogText)
     await validate(directory, signal)
-    const digest = sha256Hex(await catalogMaterialDigest(directory), '\0', catalogText)
+    const digest = sha256Hex(await catalogMaterialDigest(directory), '\0', JSON.stringify(catalog))
     await writeFile(join(release, '.arcadia-release-digest'), digest)
     signal.throwIfAborted()
     await options.beforeCommit?.(directory)
@@ -269,10 +273,11 @@ export async function installServerBaseUpdate(
       // Concurrent installers can only publish a complete, verified directory at this version.
       if (!['EEXIST', 'ENOTEMPTY'].includes(errorCode(error) ?? '')) throw error
       const installed = join(store, candidate.version)
+      const base = join(installed, 'package')
       const installedDigest = sha256Hex(
-        await catalogMaterialDigest(join(installed, 'package')),
+        await catalogMaterialDigest(base),
         '\0',
-        await readFile(join(installed, 'official-environments.json'), 'utf8'),
+        JSON.stringify(await readInstalledOfficialEnvironments(base, installed)),
       )
       if (installedDigest !== digest)
         throw new Error('OFFICIAL_BASE_VERSION_CONFLICT: ' + candidate.version, { cause: error })

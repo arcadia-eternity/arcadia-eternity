@@ -206,8 +206,12 @@ test(
     const { withOfficialUpdateArchive } = await import('@arcadia-eternity/content-sdk/managed-projects')
     const { activateOfficialEnvironments, createOfficialContentUpdater, openBuiltinEnvironment } =
       await import('../builtin-environment.mjs')
-    const { synchronizeShippedEnvironments, readOfficialEnvironments } =
-      await import('@arcadia-eternity/content-sdk/management-workspace')
+    const {
+      synchronizeShippedEnvironments,
+      readOfficialEnvironments,
+      readInstalledOfficialEnvironments,
+      stageBundledOfficialEnvironmentPackages,
+    } = await import('@arcadia-eternity/content-sdk/management-workspace')
     const { createHash } = await import('node:crypto')
     const root = await mkdtemp(join(tmpdir(), 'independent-base-'))
     t.after(() => rm(root, { recursive: true, force: true }))
@@ -294,6 +298,10 @@ test(
       packageUpdates: {
         shippedRoot: bundled,
         shippedCatalog: () => readOfficialEnvironments(bundled, resolveRecipe),
+        stageShippedEnvironments: (directory, version) =>
+          stageBundledOfficialEnvironmentPackages(version, directory, resolveRecipe),
+        readEnvironments: directory =>
+          readInstalledOfficialEnvironments(join(directory, 'node_modules', name), directory),
         clientVersion: '4.11.0',
         find: async (pkg, version) => {
           assert.equal(pkg, name)
@@ -320,17 +328,12 @@ test(
     })
     const workspace = await owner.ready()
     const synchronize = async (validate = validateWorkspaceProject) => {
-      const catalog = await readOfficialEnvironments(
-        library.officialPackageRoot,
-        resolveRecipe,
-        library.officialEnvironmentCatalogFile,
-      )
+      const catalog = await library.officialEnvironmentCatalog()
       await openBuiltinEnvironment({
         workspace,
         library,
         catalog,
         synchronizeShippedEnvironments,
-        legacyBuiltinId: async () => undefined,
         validate,
       })
       await host.refreshBuiltinBindings()
@@ -368,8 +371,26 @@ test(
         await assert.rejects(update(), /SOURCE_INTEGRITY_MISMATCH/)
         assert.equal((await library.list()).packages[0].id, previous.id)
         damaged = false
+        const rollbackManifest = join(
+          library.officialPackageRoot,
+          '../../../environment-packages/@arcadia-eternity/environment-default/package.json',
+        )
         const failedActivation = await library.updatePackage(previous.id, candidate.version)
         assert.equal(library.pendingOfficialUpdateId, failedActivation)
+        const savedManifest = await readFile(rollbackManifest)
+        await rm(rollbackManifest)
+        try {
+          const activationError = new Error('official activation failed')
+          await assert.rejects(
+            activateOfficialEnvironments(library, async () => {
+              throw activationError
+            }),
+            error => error === activationError,
+          )
+          assert.equal(library.pendingOfficialUpdateId, failedActivation)
+        } finally {
+          await writeFile(rollbackManifest, savedManifest)
+        }
         let prepared = 0
         await assert.rejects(
           activateOfficialEnvironments(
