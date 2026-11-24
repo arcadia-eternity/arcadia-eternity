@@ -8,7 +8,7 @@ import { randomUUID } from 'node:crypto'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { JobJournal } from '../src/job-journal.ts'
-import { AuthorWorkspaces } from '../../web-ui/electron/author-workspaces.mjs'
+import { AuthorWorkspaces } from '../../web-ui/electron/author-workspaces.ts'
 import * as api from '../src/author-api.ts'
 
 async function fixture(t) {

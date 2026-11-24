@@ -5,7 +5,7 @@ import { mkdtemp, writeFile, rm, symlink, readFile, readdir, realpath } from 'no
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { AuthorWorkspace } from '../src/workspace.ts'
-import { AuthorWorkspaces } from '../../web-ui/electron/author-workspaces.mjs'
+import { AuthorWorkspaces } from '../../web-ui/electron/author-workspaces.ts'
 
 test('install resolves project-owned successful receipts and captures verified archive bytes', async t => {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'built-receipt-')))

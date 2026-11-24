@@ -267,7 +267,7 @@ for (const path of [
 }
 
 test('desktop workspace changes exercise client upgrades with the built local server', () => {
-  assert.deepEqual(affectedBattleJobs(['packages/web-ui/electron/content-library.mjs'], packages), {
+  assert.deepEqual(affectedBattleJobs(['packages/web-ui/electron/content-library.ts'], packages), {
     ...none,
     server: true,
     browser: true,

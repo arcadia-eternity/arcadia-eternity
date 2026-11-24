@@ -162,11 +162,11 @@ jobs:
           pnpm build:cli
           pnpm exec vitest run bin/__tests__/server-*.test.ts --maxWorkers=1
       - name: Verify client upgrades, offline rollback and live official environment updates
-        run: node --test packages/web-ui/electron/test/package-updates.test.mjs packages/web-ui/electron/test/bundled-update.test.mjs
+        run: node --test --test-concurrency=1 packages/web-ui/electron/test/package-updates.test.ts packages/web-ui/electron/test/bundled-update.test.ts
       - name: Verify offline player library installation and selection
         env:
           ARCADIA_DESKTOP_REAL_HOST: '1'
-        run: node --test --test-name-pattern='portable recipe' packages/web-ui/electron/test/content-library-real.test.mjs
+        run: node --test --test-name-pattern='portable recipe' packages/web-ui/electron/test/content-library-real.test.ts
 
   native-browser-entry:
     needs: changes
@@ -216,7 +216,7 @@ jobs:
           src/features/development/__tests__/DevelopmentWorkspacePage.test.ts
           src/services/__tests__/authorPreview.test.ts src/features/authoring/__tests__/AuthorPreviewPage.test.ts
       - name: Verify desktop local host lifecycle
-        run: node --test packages/web-ui/electron/test/local-battle-host.test.mjs packages/web-ui/electron/test/local-environments.test.mjs scripts/desktop-runtime-licenses.test.mjs scripts/stage-desktop-runtime.test.mjs
+        run: node --test packages/web-ui/electron/test/local-battle-host.test.ts packages/web-ui/electron/test/local-environments.test.ts scripts/desktop-runtime-licenses.test.mjs scripts/stage-desktop-runtime.test.mjs
       - name: Install browser
         run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
       - name: Verify local battles, team selection, content and connection policy

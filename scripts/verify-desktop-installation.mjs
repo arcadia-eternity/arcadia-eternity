@@ -1,4 +1,5 @@
 import { sha256Hex } from '../packages/const/src/sha256.ts'
+import { mediaMimeForFile } from '../packages/web-ui/shared/media-formats.mjs'
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises'
@@ -67,7 +68,7 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
         appPath: app.getAppPath(),
         userData: app.getPath('userData'),
         sessionData: app.getPath('sessionData'),
-        version: app.getInstallation(),
+        version: app.getVersion(),
         name: app.getName(),
         executable: process.execPath,
         resourcesPath: process.resourcesPath,
@@ -88,8 +89,8 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
       const asar = createRequire(builderRequire.resolve('app-builder-lib/package.json'))('@electron/asar')
       const runtime = join(identity.resourcesPath, 'arcadia-server')
       const actual = {
-        mainSha256: sha256Hex(asar.extractFile(identity.appPath, 'electron/main.mjs')),
-        contentLibrarySha256: sha256Hex(asar.extractFile(identity.appPath, 'electron/content-library.mjs')),
+        mainSha256: sha256Hex(asar.extractFile(identity.appPath, 'electron/main.ts')),
+        contentLibrarySha256: sha256Hex(asar.extractFile(identity.appPath, 'electron/content-library.ts')),
         rendererIndexSha256: sha256Hex(asar.extractFile(identity.appPath, 'dist/index.html')),
         cliSha256: sha256Hex(await readFile(join(runtime, 'cli.js'))),
         serverSha256: sha256Hex(await readFile(join(runtime, 'node_modules/@arcadia-eternity/server/dist/index.js'))),
@@ -156,8 +157,15 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
       await field.getByRole('textbox').press('Enter')
     }
     await expect(page.getByText(name, { exact: true })).toBeVisible()
-    const player = await page.evaluate(() => JSON.parse(localStorage.getItem('player-data')))
-    assert.ok(player.id)
+    const readPlayer = () =>
+      page.evaluate(async () => {
+        const { value, error } = await window.arcadiaDesktop.profile({ action: 'read' })
+        if (error) throw new Error(error.message)
+        return value?.current.data.profile
+      })
+    await expect.poll(readPlayer).toMatchObject({ name })
+    const player = await readPlayer()
+    assert.ok(player?.id, 'the profile rename is persisted in desktop storage')
     assert.equal(player.name, name)
     if (baseline) assert.deepEqual(player, baseline.player)
 
@@ -183,6 +191,7 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
       assert.ok(project, 'author source project survives application replacement')
       assert.equal(project.directory, baseline.project.directory)
       await page.goto(`arcadia-client://app/creation/edit/${encodeURIComponent(project.id)}`)
+      await page.getByRole('link', { name: '内容编辑', exact: true }).click()
       await page.getByRole('navigation', { name: '内容分类' }).getByRole('button', { name: /^技能/ }).click()
       await page.locator('.content-card').filter({ hasText: '霜击' }).click()
       await expect(page.getByLabel('威力', { exact: true })).toHaveValue('77')
@@ -218,39 +227,74 @@ export async function verifyInstalledDesktop(installation, { evidenceDirectory, 
       item => item.id === server.defaultBindingId,
     )
     assert.equal(binding.condition, 'available')
-    await page.goto('arcadia-client://app/environments?target=local')
+    const environmentId = 'installation-persistence'
+    const localEnvironment = input =>
+      page.evaluate(async input => {
+        const { result, error } = await window.arcadiaDesktop.localEnvironment(input)
+        if (error) throw new Error(`${error.code}: ${error.message}`)
+        return result
+      }, input)
     if (!baseline) {
-      await page.getByRole('button', { name: '新建环境', exact: true }).click()
-      const editor = page.getByRole('form', { name: '编辑环境' })
-      await editor.getByLabel('名称', { exact: true }).fill('安装保留环境')
-      await editor.getByLabel('标识', { exact: true }).fill('installation-persistence')
-      await editor.getByRole('button', { name: '保存并应用', exact: true }).click()
-      await expect(editor).not.toBeVisible()
+      const { operationId } = await localEnvironment({
+        action: 'apply',
+        document: {
+          schemaVersion: 2,
+          id: environmentId,
+          name: '安装保留环境',
+          packages: {},
+          sources: ['@arcadia-eternity/data-pack-base'],
+          rules: { schemaVersion: 1 },
+          requires: {},
+        },
+        expectedRevision: null,
+        allowDownload: false,
+      })
+      assert.equal(typeof operationId, 'string')
+      let operation
+      await expect
+        .poll(
+          async () => {
+            const snapshot = await localEnvironment({ action: 'snapshot' })
+            operation = snapshot.operations.find(item => item.id === operationId)
+            return operation?.status
+          },
+          { timeout: 90000 },
+        )
+        .toMatch(/^(succeeded|failed|cancelled)$/)
+      assert.equal(operation.status, 'succeeded', JSON.stringify(operation.error))
     }
-    const environments = await request('GET', `/workspaces/${capabilities.workspaceId}/environments`)
-    assert.match(JSON.stringify(environments), /installation-persistence/)
+    const snapshot = await localEnvironment({ action: 'snapshot' })
+    const draft = snapshot.environments.find(item => item.document.id === environmentId)
+    const installed = snapshot.installations.find(item => item.installationId === environmentId)
+    assert.equal(draft?.document.name, '安装保留环境')
+    assert.equal(installed?.status, 'ready')
+    assert.equal(installed.draftRevision, draft.revision)
     const persistent = {
       workspaceId: capabilities.workspaceId,
       serverId: host.serverId,
       bindingId: binding.id,
       installationId: binding.environmentId,
-      environments,
+      clientWorkspaceId: snapshot.workspaceId,
+      clientDraftRevision: draft.revision,
+      clientEnvironmentVersion: installed.environmentVersion,
     }
     if (baseline) assert.deepEqual(persistent, baseline.persistent)
-    await expect(page.getByText('安装保留环境', { exact: true }).first()).toBeVisible()
     const connectionStatus = page.getByRole('button', { name: /^(当前未连接服务器|已连接.*)，连接设置$/ })
     await expect(connectionStatus).toBeVisible()
     await page.screenshot({ path: join(evidenceDirectory, `${label}.png`), fullPage: true })
-    await page.goto('arcadia-client://app/servers')
-    await expect(connectionStatus).toBeVisible({ timeout: 90000 })
     assert.deepEqual(errors, [], 'no unhandled renderer errors')
     assert.deepEqual(consoleErrors, [], 'no renderer error logs')
     assert.deepEqual(responses, [], 'no unexpected HTTP errors')
-    // The author project may display configured remote images on demand. This
-    // scenario is not offline asset acceptance, but must not contact a game or
-    // account backend just to edit the local profile or start local hosting.
+    // The author project loads public presentation files through fetch as well as img elements.
+    const presentationOrigins = new Set([
+      'https://seer2-resource.yuuinih.com',
+      'https://seer2-pet-resource.yuuinih.com',
+    ])
     assert.deepEqual(
-      externalRequests.filter(request => request.resourceType !== 'image'),
+      externalRequests.filter(
+        request =>
+          !(request.method === 'GET' && presentationOrigins.has(request.origin) && mediaMimeForFile(request.path)),
+      ),
       [],
       'local profile, authoring and hosting do not contact external service APIs',
     )

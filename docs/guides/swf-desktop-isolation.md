@@ -12,7 +12,7 @@ The logical canvas retains the battle stage's dimensions, normally 1600×900. Of
 
 ## Bounded frame channel
 
-`swf-frame-broker.mjs` accepts images only from Electron's native `paint` event. The untrusted player preload cannot emit image frames. The trusted game preload exposes fixed `onFrame` and `ackFrame` operations in addition to playback controls; the host checks the actual registered owner main frame.
+`swf-frame-broker.ts` accepts images only from Electron's native `paint` event. The untrusted player preload cannot emit image frames. The trusted game preload exposes fixed `onFrame` and `ackFrame` operations in addition to playback controls; the host checks the actual registered owner main frame.
 
 Frames carry an instance, playback task, increasing frame number, logical canvas dimensions, a dirty rectangle, and PNG bytes. Dimensions are limited to 2048 per axis and 2,097,152 total pixels; encoded frames are limited to 8 MiB. The host permits one unacknowledged frame and one newest coalesced paint image per player. Intermediate changes accumulate into one dirty region. The first frame after a task change or resize covers the complete canvas; a resize waits for any old frame acknowledgement.
 
@@ -26,7 +26,7 @@ Runtime files are loaded from the pinned local Ruffle distribution and replace c
 
 The host permits two players per owner. Main-frame document navigation/reload, owner crash/destruction, explicit disposal, and player failures release the renderer, session, listeners, and frame state. Hash navigation and child-frame navigation do not destroy active players. A host-side heartbeat watchdog detects blocked player JavaScript; it checks actual renderer process ownership before forcibly terminating a process, avoiding a shared-process crash. An acknowledgement deadline also prevents a stalled frame channel from freezing silently.
 
-Development resolves the fixed page from `public/swf-player.html` and runtime from `node_modules/@ruffle-rs/ruffle`; built clients use `dist/swf-player.html` and `dist/ruffle`. Import `swf-host.mjs` before Electron readiness to register its scheme, then register its IPC after readiness. The two trusted game preloads use the same bounded protocol. No battle wire message was added.
+Development resolves the fixed page from `public/swf-player.html` and runtime from `node_modules/@ruffle-rs/ruffle`; built clients use `dist/swf-player.html` and `dist/ruffle`. Import `swf-host.ts` before Electron readiness to register its scheme, then register its IPC after readiness. The two trusted game preloads use the same bounded protocol. No battle wire message was added.
 
 ## Validation evidence
 
