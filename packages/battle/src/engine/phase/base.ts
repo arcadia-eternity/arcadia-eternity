@@ -1,4 +1,4 @@
-import { Context } from '../context'
+import type { Context } from '../context'
 import type { Battle } from '../battle'
 import { ConfigModifier, ConfigDurationType, ConfigModifierType, type ConfigValue } from '../config'
 

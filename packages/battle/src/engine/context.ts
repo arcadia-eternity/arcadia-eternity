@@ -1,12 +1,6 @@
-import {
-  DamageResolution,
-  freezeDamageRecord,
-  type DamageOrigin,
-  type DamagePolicy,
-  type DamageRule,
-} from './damageResolution'
-import type { DeferredDamage } from './deferredDamage'
-import { calculateSkillDamage } from './skillDamage'
+import { calculateDamageMagnitude, freezeDamageRecord, reserveDamageStacks } from './phase/damage'
+import type { NumericModifierTerm } from './modifierMath'
+import type { DeferredDamage } from './phase/skill'
 import { normalizeMarkInstanceParams, type MarkInstanceParams } from './content/mark-parameters'
 import {
   AttackTargetOpinion,
@@ -16,8 +10,14 @@ import {
   IgnoreStageStrategy,
   StackStrategy,
   type Element,
+  type DamageOrigin,
+  type DamagePolicy,
+  type DamageIntent,
+  type DamageResult,
+  type DamageTraceEntry,
+  type DamagePayment,
 } from '@arcadia-eternity/const'
-import { Battle } from './battle'
+import type { Battle } from './battle'
 import { type MarkOwner } from './entity'
 import { BaseMark, type MarkInstance } from './mark'
 import { Pet } from './pet'
@@ -182,11 +182,6 @@ export class UseSkillContext extends Context {
     this.logger.debug('critrate', this.critRate)
   }
 
-  updateDamageResult() {
-    if (!this.actualTarget || this.category === Category.Status) return
-    Object.assign(this, calculateSkillDamage(this.battle, this.pet, this.actualTarget, this))
-  }
-
   setSkill(skill: SkillInstance, updateConfig?: boolean) {
     this.skill = skill
     if (updateConfig) {
@@ -312,7 +307,7 @@ export class RageContext extends Context {
   /** Actual debit, captured before reactions can change rage again. */
   public rageSpent = 0
   public rageChangeResult = 0
-  private gainLimit = Infinity
+  gainLimit = Infinity
   constructor(
     public readonly parent:
       UseSkillContext | DamageContext | EffectContext<EffectTrigger> | TurnContext | SwitchPetContext,
@@ -326,14 +321,6 @@ export class RageContext extends Context {
   ) {
     super(parent)
     this.battle = parent.battle
-  }
-
-  updateRageChangeResult() {
-    const percentModifier = 1 + this.modified[0] / 100
-    const deltaModifier = this.modified[1]
-    const amount = this.value * percentModifier + deltaModifier
-    const limited = this.modifiedType === 'add' ? Math.min(amount, this.gainLimit) : amount
-    this.rageChangeResult = this.rounding === 'floor' ? Math.floor(limited) : limited
   }
 
   /** Gain limits compose by minimum and apply after every numeric modifier. */
@@ -355,10 +342,39 @@ export interface EffectDamageOptions {
   readonly policy?: Partial<DamagePolicy>
 }
 
+export interface DamageRule {
+  readonly id: string
+  readonly priority?: number
+  readonly target?: Pet
+  readonly cost?: { readonly mark: MarkInstance; readonly stacks: number | 'all' }
+  readonly change:
+    | { readonly kind: 'redirect'; readonly target: Pet }
+    | { readonly kind: 'prevent'; readonly amount?: number; readonly fraction?: number }
+    | { readonly kind: 'survive'; readonly hp: number }
+    | { readonly kind: 'heal'; readonly source: EffectContext<EffectTrigger>; readonly fraction?: number }
+}
+
+interface DamageProposal {
+  modifiers: NumericModifierTerm[]
+  candidates: Map<string, DamageRule>
+  applied: Set<string>
+  trace: DamageTraceEntry[]
+  payments: Readonly<{ mark: MarkInstance; requested: number; actualAmount: number; reason: DamagePayment['reason'] }>[]
+  remaining?: number
+  intent?: DamageIntent
+  result?: DamageResult
+}
+
 export class DamageContext extends Context {
   readonly type = 'damage'
   readonly battle: Battle
-  readonly resolution: DamageResolution
+  readonly proposal: DamageProposal = {
+    modifiers: [],
+    candidates: new Map(),
+    applied: new Set(),
+    trace: [],
+    payments: [],
+  }
   readonly origin: DamageOrigin
   readonly policy: DamagePolicy
   available = true
@@ -414,7 +430,6 @@ export class DamageContext extends Context {
       skillReactions: strike,
       ...policy,
     })
-    this.resolution = new DamageResolution(this)
     if (modified[0] || modified[1]) this.addModified(...modified)
     if (minThreshold !== 0 || maxThreshold !== Number.MAX_SAFE_INTEGER) this.addThreshold(minThreshold, maxThreshold)
   }
@@ -441,16 +456,27 @@ export class DamageContext extends Context {
   }
 
   get result() {
-    return this.resolution.result
+    return this.proposal.result
   }
 
   get damageResult(): number {
-    return this.result?.dealtDamage ?? this.resolution.remaining ?? this.resolution.evaluate()
+    return this.result?.dealtDamage ?? this.proposal.remaining ?? calculateDamageMagnitude(this)
+  }
+
+  private addModifiers(id: string, terms: NumericModifierTerm[]): void {
+    if (this.result) throw new Error('Damage already resolved')
+    if (this.proposal.remaining !== undefined) throw new Error('Damage modifiers have already been evaluated')
+    if (terms.some(term => !Number.isFinite(term.value))) throw new Error('Damage modifier must be finite')
+    const before = this.damageResult
+    this.proposal.modifiers.push(...terms)
+    this.proposal.trace.push(
+      Object.freeze({ kind: 'modifier', id, targetId: this.target.id, before, after: this.damageResult }),
+    )
   }
 
   /** Numeric terms are sampled once by authoring Values in the active effect frame. */
   addModified(percent: number, delta: number, sourceId = this.source.id as string): void {
-    this.resolution.addModifiers(sourceId, [
+    this.addModifiers(sourceId, [
       { type: 'percent', value: percent },
       { type: 'delta', value: delta },
     ])
@@ -460,7 +486,7 @@ export class DamageContext extends Context {
   get modified(): [number, number] {
     let percent = 0,
       delta = 0
-    for (const term of this.resolution.modifiers) {
+    for (const term of this.proposal.modifiers) {
       if (term.type === 'percent') percent += term.value
       if (term.type === 'delta') delta += term.value
     }
@@ -468,44 +494,36 @@ export class DamageContext extends Context {
   }
 
   get minThreshold(): number {
-    return this.resolution.modifiers.reduce(
+    return this.proposal.modifiers.reduce(
       (min, term) => (term.type === 'clampMin' ? Math.max(min, term.value) : min),
       0,
     )
   }
 
   get maxThreshold(): number {
-    return this.resolution.modifiers.reduce(
+    return this.proposal.modifiers.reduce(
       (max, term) => (term.type === 'clampMax' ? Math.min(max, term.value) : max),
       Number.MAX_SAFE_INTEGER,
     )
   }
 
   addThreshold(min?: number, max?: number, sourceId = this.source.id as string): void {
-    this.resolution.addModifiers(sourceId, [
+    this.addModifiers(sourceId, [
       ...(min === undefined ? [] : [{ type: 'clampMin' as const, value: min }]),
       ...(max === undefined ? [] : [{ type: 'clampMax' as const, value: max }]),
     ])
   }
 
   addRule(rule: DamageRule): void {
-    this.resolution.addRule(rule)
+    if (this.result) throw new Error('Damage already resolved')
+    if (!rule.id || !Number.isFinite(rule.priority ?? 0)) throw new Error('Invalid damage rule')
+    const { applied, candidates } = this.proposal
+    if (!applied.has(rule.id) && !candidates.has(rule.id))
+      candidates.set(rule.id, { ...rule, target: rule.target ?? this.target })
   }
 
   reserveModifierCost(mark: MarkInstance, stacks: number | 'all'): boolean {
-    this.resolution.assertOpen()
-    return this.resolution.payments.reserve(mark, stacks, false, 'modifier') > 0
-  }
-
-  savepoint(): () => void {
-    const { available, baseDamage, target } = this
-    const rollback = this.resolution.savepoint()
-    return () => {
-      this.available = available
-      this.baseDamage = baseDamage
-      this.target = target
-      rollback()
-    }
+    return reserveDamageStacks(this, mark, stacks, 'modifier') > 0
   }
 }
 
@@ -525,16 +543,6 @@ export class HealContext extends Context {
     super(parent)
     this.battle = parent.battle
     this.healResult = baseHeal
-  }
-
-  updateHealResult() {
-    // 应用百分比修正（叠加计算）
-    const percentModifier = 1 + this.modified[0] / 100
-    const deltaModifier = this.modified[1]
-    let intermediateHeal = this.baseHeal * percentModifier + deltaModifier
-
-    // 记录最终治疗值
-    this.healResult = Math.floor(Math.max(0, intermediateHeal))
   }
 
   addModified: (percent: number, delta: number) => void = (percent, delta) => {

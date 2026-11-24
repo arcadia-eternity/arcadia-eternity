@@ -1,6 +1,5 @@
 import { EffectTrigger } from '@arcadia-eternity/const'
-import { evaluationSavepoint, getDamageEvaluation, runDamageAuthor } from './damageEvaluation'
-import { runReplacementSample } from './replacementSampling'
+import { evaluationSavepoint, getDamageEvaluation, runDamageAuthor, runReplacementSample } from './phase/damage'
 import { EffectContext } from './context'
 import { type Prototype } from './entity'
 import type { effectId } from '@arcadia-eternity/const'

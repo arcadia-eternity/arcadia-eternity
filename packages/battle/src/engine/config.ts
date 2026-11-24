@@ -1309,8 +1309,3 @@ export class ConfigSystem {
     return totalCleaned
   }
 }
-
-// A Battle's attributes query its own phase stack, never the global template.
-AttributeSystem.setConfigSystemGetter((battleId?: string) =>
-  battleId ? ConfigSystem.getBattleConfig(battleId) : ConfigSystem.getInstance(),
-)

@@ -1,4 +1,4 @@
-import { getDamageEvaluation } from '../damageEvaluation'
+import { getDamageEvaluation } from './damage'
 import { EffectExecutionPhase } from './effectExecution'
 import { type BattlePhaseBase, PhaseState, type PhaseResult, InteractivePhase } from './base'
 import type { Battle } from '../battle'

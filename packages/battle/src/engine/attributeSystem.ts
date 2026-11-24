@@ -1,4 +1,4 @@
-import { getDamageEvaluation } from './damageEvaluation'
+import { getDamageEvaluation } from './phase/damage'
 import { applyNumericModifier, type NumericModifierOperation } from './modifierMath'
 import { ExecutionBudgetExceeded } from './execution/budget'
 import { rememberModifierCleanup, describeCleanup, deactivateCleanup, noopCleanup } from './snapshotBindings'
@@ -14,7 +14,7 @@ import type {
 } from '@arcadia-eternity/const'
 import type { MarkInstance } from './mark'
 import type { SkillInstance } from './skill'
-import type { PhaseTypeSpec } from './config'
+import { ConfigSystem, type PhaseTypeSpec } from './config'
 import { createChildLogger } from './logger'
 
 // Keep the historical helper entrypoints, backed by synchronous battle values.
@@ -300,9 +300,6 @@ export class AttributeSystem<T extends AttributeData> {
   // Track phase type modifiers for automatic cleanup
   private phaseTypeModifiers = new Map<string, Modifier[]>()
 
-  // Static reference to ConfigSystem to avoid circular dependency
-  private static configSystemGetter: ((battleId?: string) => any) | null = null
-
   // Phase change notification subject
   private static phaseVersion = new Signal(0)
 
@@ -384,11 +381,8 @@ export class AttributeSystem<T extends AttributeData> {
       }
   }
 
-  /**
-   * Set the ConfigSystem getter to avoid circular dependency
-   */
-  static setConfigSystemGetter(getter: (battleId?: string) => any): void {
-    AttributeSystem.configSystemGetter = getter
+  private get phaseConfig() {
+    return this.battleId ? ConfigSystem.getBattleConfig(this.battleId) : ConfigSystem.getInstance()
   }
 
   /**
@@ -710,7 +704,7 @@ export class AttributeSystem<T extends AttributeData> {
       return true
     }
 
-    const config = AttributeSystem.configSystemGetter?.(this.battleId)
+    const config = this.phaseConfig
     return config?.isPhaseModifierApplicable(modifier) ?? false
   }
 
@@ -835,11 +829,7 @@ export class AttributeSystem<T extends AttributeData> {
       }
     }
     if (modifier.durationType === DurationType.phaseType && modifier.phaseTypeSpec) {
-      untrack = AttributeSystem.configSystemGetter?.(this.battleId)?.trackPhaseModifier(
-        modifier,
-        modifier.phaseTypeSpec,
-        cleanup,
-      )
+      untrack = this.phaseConfig?.trackPhaseModifier(modifier, modifier.phaseTypeSpec, cleanup)
     }
     rememberModifierCleanup(this, modifier, cleanup)
     this.modifierCleanups.set(modifier, cleanup)

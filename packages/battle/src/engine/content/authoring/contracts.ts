@@ -1,4 +1,4 @@
-import type { DeferredDamageOptions } from '../../deferredDamage'
+import type { DeferredDamageOptions } from '../../phase/skill'
 import type { Effect } from '../../effect'
 import type { ParameterCatalog } from '../parameters'
 /** Author-facing contracts. Runtime implementations are exported from api.ts. */

@@ -1,7 +1,8 @@
-import { resolveDeferredDamage } from '../deferredDamage'
+import { calculateSkillDamage, makeSkillDamageContext, type DeferredDamage } from './skill'
+import { DamagePhase } from './damage'
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
 import type { Battle } from '../battle'
-import { RemoveMarkContext, type TurnContext } from '../context'
+import { EffectContext, RemoveMarkContext, type TurnContext } from '../context'
 import type { MarkInstance } from '../mark'
 import { Pet } from '../pet'
 import { SynchronousPhase } from './base'
@@ -35,7 +36,7 @@ export class MarkUpdatePhase extends SynchronousPhase<TurnContext> {
     if (expired) {
       const pending = mark.deferredDamage
       mark.deferredDamage = undefined
-      if (pending) resolveDeferredDamage(context, mark, pending)
+      if (pending) this.resolveDeferredDamage(context, pending)
       battle.applyEffects(context, EffectTrigger.OnMarkDurationEnd, mark)
       battle.emitMessage(BattleMessageType.MarkExpire, {
         mark: mark.id,
@@ -49,5 +50,49 @@ export class MarkUpdatePhase extends SynchronousPhase<TurnContext> {
       target: mark.owner instanceof Pet ? mark.owner.id : 'battle',
       mark: mark.toMessage(),
     })
+  }
+
+  private resolveDeferredDamage(turn: TurnContext, pending: DeferredDamage): void {
+    const holder = this.mark
+    if (!holder.isActive || holder.isSuppressed) return
+    const battle = turn.battle
+    const attacker = battle.petMap.get(pending.origin.petId)
+    const skill = battle.skillMap.get(pending.origin.skillInstanceId)
+    const side = [battle.playerA, battle.playerB].find(player => player.id === pending.target.playerId)
+    if (!attacker || !skill || !side) return
+    if (pending.sourcePolicy !== 'any' && (!attacker.isAlive || attacker.currentHp <= 0)) return
+    if (pending.sourcePolicy === 'active' && attacker.owner?.activePet !== attacker) return
+
+    const target = side.activePet
+    const formula = pending.formula
+    const power =
+      formula.capturedPower ?? (skill.baseId === pending.origin.skillId ? skill.power : formula.definitionPower)
+    const crit = formula.sureCrit || battle.random() * 100 < attacker.stat.critRate
+    const hit = calculateSkillDamage(battle, attacker, target, {
+      ...formula,
+      power,
+      crit,
+      stabMultiplier: 1.5,
+      critMultiplier: 2,
+    })
+    const expiry = new EffectContext(turn, EffectTrigger.OnMarkDurationEnd, holder)
+    const event = makeSkillDamageContext(
+      expiry,
+      skill,
+      target,
+      { ...hit, crit, element: formula.element, ignoreShield: formula.ignoreShield },
+      {
+        ...pending.origin,
+        skillCategory: formula.category,
+        skillElement: formula.element,
+        skillTags: formula.tags,
+        hitCount: 1,
+        executorId: holder.id,
+        holderId: holder.id,
+        trigger: 'deferred',
+        causeId: pending.id,
+      },
+    )
+    battle.phaseManager.run(new DamagePhase(event))
   }
 }

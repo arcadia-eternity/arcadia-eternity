@@ -4,8 +4,14 @@ import { DamageContext, EffectContext, type TriggerContextMap } from '../context
 import type { Battle } from '../battle'
 import { Effect, type EffectContainer } from '../effect'
 
-import { damageRuleId, isReplacementTrigger, runReplacementSample } from '../replacementSampling'
-import { evaluationSavepoint, getDamageEvaluation, runDamageAuthor } from '../damageEvaluation'
+import {
+  damageRuleId,
+  isReplacementTrigger,
+  runReplacementSample,
+  evaluationSavepoint,
+  getDamageEvaluation,
+  runDamageAuthor,
+} from './damage'
 import { createChildLogger } from '../logger'
 
 export class EffectExecutionPhase<T extends EffectTrigger> extends SynchronousPhase<TriggerContextMap[T]> {
@@ -109,7 +115,7 @@ function collectEffectsFromContainers<T extends EffectTrigger>(
           if (
             isReplacementTrigger(trigger) &&
             parentContext instanceof DamageContext &&
-            parentContext.resolution.applied.has(damageRuleId(effectContext))
+            parentContext.proposal.applied.has(damageRuleId(effectContext))
           )
             return
 

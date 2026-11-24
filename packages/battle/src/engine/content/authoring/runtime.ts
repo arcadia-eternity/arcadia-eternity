@@ -1,6 +1,11 @@
-import { damageRuleId } from '../../replacementSampling'
-import { assertEvaluationOperation, getDamageEvaluation } from '../../damageEvaluation'
-import { deferSkillDamage } from '../../deferredDamage'
+import {
+  DamagePhase,
+  setEffectHp,
+  assertEvaluationOperation,
+  damageRuleId,
+  getDamageEvaluation,
+} from '../../phase/damage'
+import { deferSkillDamage } from '../../phase/skill'
 import { nanoid } from 'nanoid'
 import type { TSchema } from '@sinclair/typebox'
 import { ConfigModifier, ConfigDurationType, ConfigModifierType } from '../../config'
@@ -29,7 +34,6 @@ import {
   RemoveMarkContext,
 } from '../../context'
 import { Pet } from '../../pet'
-import { setEffectHp } from '../../damageState'
 import { Player } from '../../player'
 import { RagePhase } from '../../phase/rage'
 import { BaseSkill, SkillInstance } from '../../skill'
@@ -276,9 +280,7 @@ function selector<T>(query: (ctx: Frame) => readonly T[]): C.Selector<T> {
             writes.set(ref, {
               target,
               get: () => target.currentHp,
-              set: value => {
-                setEffectHp(engine(ctx), target, value)
-              },
+              set: value => setEffectHp(engine(ctx), target, value),
             })
           } else if (target instanceof UseSkillContext && (key === 'rage' || key === 'evasion' || key === 'priority')) {
             const property: 'rage' | 'evasion' | 'priority' = key
@@ -1208,7 +1210,10 @@ const operatorFactories: typeof C.ops = {
         throw new Error('Invalid effect damage policy')
     }
     const proposal = { damageType, element, policy: { ...policy } }
-    return numeric(amount, (ctx, pet, n) => pet.damage(DamageContext.fromEffect(engine(ctx), pet, n, proposal)))
+    return numeric(amount, (ctx, pet, n) => {
+      const source = engine(ctx)
+      source.battle.phaseManager.run(new DamagePhase(DamageContext.fromEffect(source, pet, n, proposal)))
+    })
   },
   addRage: amount =>
     numeric(amount, (ctx, target, n) => {

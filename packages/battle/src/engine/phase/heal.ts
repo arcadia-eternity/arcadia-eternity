@@ -17,7 +17,8 @@ export class HealPhase extends ContextPhase<HealContext> {
 
 export function prepareHeal(context: HealContext, battle: Battle): number | undefined {
   battle.applyEffects(context, EffectTrigger.OnBeforeHeal)
-  context.updateHealResult()
+  const [percent, delta] = context.modified
+  context.healResult = Math.floor(Math.max(0, context.baseHeal * (1 + percent / 100) + delta))
 
   if (!context.available || !context.target.isActive() || context.target.currentHp <= 0) {
     battle.emitMessage(BattleMessageType.HealFail, {

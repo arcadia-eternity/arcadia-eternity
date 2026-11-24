@@ -1,4 +1,4 @@
-import { readDeferredDamage } from './deferredDamage'
+import { readDeferredDamage } from './phase/skill'
 import { validateEffectStateSnapshot } from './content/effect-state'
 import { markParameterContract, normalizeMarkInstanceParams, sameMarkInstanceParams } from './content/mark-parameters'
 import mitt from 'mitt'

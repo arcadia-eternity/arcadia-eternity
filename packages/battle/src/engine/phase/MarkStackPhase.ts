@@ -1,10 +1,9 @@
-import { StackStrategy, EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
+import { StackStrategy, EffectTrigger, BattleMessageType, type markId } from '@arcadia-eternity/const'
 import type { Battle } from '../battle'
 import { RemoveMarkContext, type StackContext } from '../context'
-import { StatLevelMarkInstanceImpl } from '../mark'
+import { CreateStatStageMark, StatLevelMarkInstanceImpl } from '../mark'
 import { Pet } from '../pet'
 import { SynchronousPhase } from './base'
-import { executeStatLevelMarkStacking } from './mark'
 
 export class MarkStackPhase extends SynchronousPhase<StackContext> {
   constructor(battle: Battle, stackContext: StackContext, id?: string) {
@@ -36,7 +35,34 @@ export class MarkStackPhase extends SynchronousPhase<StackContext> {
 
     // Handle StatLevel marks with special logic
     if (existingMark instanceof StatLevelMarkInstanceImpl && newMark instanceof StatLevelMarkInstanceImpl) {
-      executeStatLevelMarkStacking(existingMark, newMark, context, battle)
+      const level = Math.max(-6, Math.min(6, existingMark.level + newMark.level))
+      if (level === 0) {
+        battle.removeMark(new RemoveMarkContext(context, existingMark))
+        return
+      }
+      const owner = existingMark.owner
+      let updated = existingMark
+      if (Math.sign(existingMark.level) === Math.sign(level)) {
+        existingMark.level = level
+      } else {
+        if (!owner) return
+        const base = CreateStatStageMark(existingMark.base.statType, level)
+        updated = base.createInstance({ id: battle.allocateEventId('mark') as markId })
+        updated.level = level
+        updated.duration = existingMark.duration
+        updated.config = { ...existingMark.config }
+        if (existingMark.emitter) updated.setOwner(owner, existingMark.emitter)
+        const index = owner.marks.indexOf(existingMark)
+        if (index !== -1) owner.marks[index] = updated
+        existingMark.detach()
+        updated.attachTo(owner)
+        existingMark.isActive = false
+        battle.configSystem.releaseScope(existingMark)
+      }
+      battle.emitMessage(BattleMessageType.MarkUpdate, {
+        target: owner instanceof Pet ? owner.id : 'battle',
+        mark: updated.toMessage(),
+      })
       return
     }
 

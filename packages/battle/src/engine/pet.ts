@@ -179,10 +179,6 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     context.battle.removeMark(context)
   }
 
-  public getShieldMark() {
-    return this.marks.filter(m => m.config.isShield && m.isActive && !m.isSuppressed)
-  }
-
   private calculateStat(type: StatTypeOnBattle): number {
     if (type in StatTypeOnlyBattle) {
       return this.calculateStatOnlyBattle(type)

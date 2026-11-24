@@ -1,4 +1,4 @@
-import type { DeferredDamage } from './deferredDamage'
+import type { DeferredDamage } from './phase/skill'
 import { ConsumeStackPhase } from './phase/consumeStack'
 import { getCleanupBinding } from './snapshotBindings'
 import { initializeOwnerRelations } from './values/relations'
@@ -15,7 +15,7 @@ import {
 } from '@arcadia-eternity/const'
 import { nanoid } from 'nanoid'
 
-import { Battle } from './battle'
+import type { Battle } from './battle'
 import { AddMarkContext, DamageContext, EffectContext, SwitchPetContext } from './context'
 import { Effect, type EffectContainer, type TemporaryEffect } from './effect'
 import { type Instance, type MarkOwner, type OwnedEntity, type Prototype } from './entity'

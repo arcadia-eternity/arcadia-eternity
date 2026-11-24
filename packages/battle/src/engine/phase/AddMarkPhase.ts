@@ -1,8 +1,8 @@
-import { matchesMarkApplication } from '../deferredDamage'
+import type { DeferredDamage } from './skill'
 import { markParameterContract, normalizeMarkInstanceParams, sameMarkInstanceParams } from '../content/mark-parameters'
 import { EffectTrigger, StackStrategy, BattleMessageType, type markId } from '@arcadia-eternity/const'
 import { AddMarkContext, RemoveMarkContext, StackContext } from '../context'
-import { StatLevelMarkInstanceImpl, BaseStatLevelMark } from '../mark'
+import { StatLevelMarkInstanceImpl, BaseStatLevelMark, type BaseMark, type MarkInstance } from '../mark'
 import { Pet } from '../pet'
 import { ContextPhase } from './base'
 import { MarkStackPhase } from './MarkStackPhase'
@@ -113,4 +113,9 @@ export class AddMarkPhase extends ContextPhase<AddMarkContext> {
       return
     }
   }
+}
+
+/** Ordinary marks and separate field positions can coexist on a battle. */
+export function matchesMarkApplication(mark: MarkInstance, base: BaseMark, pending?: DeferredDamage): boolean {
+  return mark.baseId === base.id && mark.deferredDamage?.target.playerId === pending?.target.playerId
 }

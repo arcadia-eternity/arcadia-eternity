@@ -1,5 +1,5 @@
 import { EffectTrigger } from '@arcadia-eternity/const'
-import { getDamageEvaluation } from '../damageEvaluation'
+import { getDamageEvaluation } from '../phase/damage'
 import { Battle } from '../battle'
 import { EffectContext } from '../context'
 import { MarkInstanceImpl, type MarkInstance } from '../mark'

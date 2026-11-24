@@ -1,10 +1,10 @@
 import type { Events, InstanceId, PrototypeId } from '@arcadia-eternity/const'
-import { Battle } from './battle'
-import { AddMarkContext, RemoveMarkContext } from './context'
+import type { Battle } from './battle'
+import type { AddMarkContext, RemoveMarkContext } from './context'
 import type { MarkInstance } from './mark'
-import { Pet } from './pet'
-import { Player } from './player'
-import { SkillInstance } from './skill'
+import type { Pet } from './pet'
+import type { Player } from './player'
+import type { SkillInstance } from './skill'
 import type { Emitter } from 'mitt'
 
 //Pet,Skill,Mark,Effect

@@ -13,7 +13,7 @@ import {
   type UseSkillSelection,
   type playerId,
 } from '@arcadia-eternity/const'
-import { Battle } from './battle'
+import type { Battle } from './battle'
 import { publicBattleMessage } from './messageVisibility'
 import { RageContext } from './context'
 import { Pet } from './pet'

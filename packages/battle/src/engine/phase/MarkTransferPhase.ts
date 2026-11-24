@@ -1,4 +1,4 @@
-import { matchesMarkApplication } from '../deferredDamage'
+import { matchesMarkApplication } from './AddMarkPhase'
 import { EffectTrigger, StackStrategy } from '@arcadia-eternity/const'
 import type { Battle } from '../battle'
 import { SwitchPetContext, EffectContext, AddMarkContext, StackContext } from '../context'

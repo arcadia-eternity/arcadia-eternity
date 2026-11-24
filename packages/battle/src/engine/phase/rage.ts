@@ -11,7 +11,7 @@ export class RagePhase extends ContextPhase<RageContext> {
 
     switch (context.modifiedType) {
       case 'setting':
-        context.target.settingRage(context.value)
+        context.target.currentRage = context.value
         break
       case 'add':
         battle.applyEffects(context, EffectTrigger.BeforeRageGain)
@@ -19,8 +19,8 @@ export class RagePhase extends ContextPhase<RageContext> {
           context.rageChangeResult = 0
           return
         }
-        context.updateRageChangeResult()
-        context.target.settingRage(context.target.currentRage + context.rageChangeResult)
+        context.rageChangeResult = calculateRageChange(context)
+        context.target.currentRage += context.rageChangeResult
         battle.applyEffects(context, EffectTrigger.OnRageGain)
         break
       case 'reduce': {
@@ -29,9 +29,9 @@ export class RagePhase extends ContextPhase<RageContext> {
           context.rageChangeResult = 0
           return
         }
-        context.updateRageChangeResult()
+        context.rageChangeResult = calculateRageChange(context)
         const rageBeforePayment = context.target.currentRage
-        context.target.settingRage(rageBeforePayment - context.rageChangeResult)
+        context.target.currentRage = rageBeforePayment - context.rageChangeResult
         context.rageSpent = Math.max(0, rageBeforePayment - context.target.currentRage)
         battle.applyEffects(context, EffectTrigger.OnRageLoss)
         break
@@ -46,4 +46,11 @@ export class RagePhase extends ContextPhase<RageContext> {
       reason: context.reason,
     })
   }
+}
+
+function calculateRageChange(context: RageContext): number {
+  const [percent, delta] = context.modified
+  const amount = context.value * (1 + percent / 100) + delta
+  const limited = context.modifiedType === 'add' ? Math.min(amount, context.gainLimit) : amount
+  return context.rounding === 'floor' ? Math.floor(limited) : limited
 }
