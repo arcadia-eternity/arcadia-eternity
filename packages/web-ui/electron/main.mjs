@@ -589,6 +589,7 @@ async function loadLocalContentRuntime() {
       host: node.emptyNpmContentHost,
       prepareNpmProject: node.prepareNpmProject,
       gameplayRevision: native.gameplayRevision,
+      environmentVersion: native.environmentVersion,
       buildDisplayCatalog: native.buildDisplayCatalog,
       buildDisplayLocales: native.buildDisplayLocales,
     }
@@ -992,7 +993,11 @@ function setupIpcHandlers() {
     try {
       if (!input || typeof input.action !== 'string') throw new Error('作者操作无效')
       if (input.action === 'terminal-command-paths') {
-        if (!app.isPackaged) throw new Error('请在已安装的桌面客户端中查看终端命令。')
+        if (!app.isPackaged) {
+          const windows = process.platform === 'win32'
+          const cli = path.join(projectRoot, 'node_modules/.bin', windows ? 'arcadia-content.cmd' : 'arcadia-content')
+          return { result: { shell: windows ? 'powershell' : 'posix', commandPaths: { 'arcadia-content': cli } } }
+        }
         const modulePath = path.join(process.resourcesPath, 'arcadia-server/bin/desktop-author-cli.mjs')
         const { getDesktopCommandPaths } = await import(pathToFileURL(modulePath).href)
         return { result: await getDesktopCommandPaths(path.join(app.getPath('userData'), 'cli')) }

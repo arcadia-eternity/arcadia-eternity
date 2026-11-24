@@ -34,8 +34,11 @@ afterEach(async () => {
   for (const battle of battles.splice(0)) await battle.cleanup()
 })
 
-function setup(skills: string[], gender: 'Male' | 'Female' = 'Male', emblem?: string) {
+function setup(skills: string[], gender: 'Male' | 'Female' = 'Male', emblem?: string, maluiEmblem = false) {
   const defaults = { level: 100, nature: 'Hardy', ivs: stats, evs: stats }
+  const opponent = maluiEmblem
+    ? { species: 'pet_batu', skills: ['skill_kuaigong'], emblem: 'mark_emblem_malui' }
+    : { species: 'pet_dilan', skills: ['skill_zhuangji'] }
   const [a, b] = catalog.parsePlayers([
     {
       name: 'A',
@@ -44,7 +47,7 @@ function setup(skills: string[], gender: 'Male' | 'Female' = 'Male', emblem?: st
         { ...defaults, name: 'A2', species: 'pet_shifeng', gender, skills: [poisonSkill] },
       ],
     },
-    { name: 'B', team: [{ ...defaults, name: 'B1', species: 'pet_dilan', skills: ['skill_zhuangji'] }] },
+    { name: 'B', team: [{ ...defaults, name: 'B1', ...opponent }] },
   ])
   const battle = catalog.createBattle(a, b, { rngSeed: 'shifeng', timerConfig: { enabled: false } })
   battles.push(battle)
@@ -108,9 +111,20 @@ it('spends three independent charges on hits, then blocks both classes of abnorm
   attack(battle, a, paralysisSkill, true)
   expect(mark(a.activePet, needles)?.stack).toBe(1)
   expect(mark(b.activePet, paralysis)).toBeDefined()
+  const observeDamage = vi.fn(() => mark(b.activePet, 'stat_stage_spe_down')?.stack)
+  skillUse(battle, a, slowSkill).skill.effects.push(
+    defineNativeEffect({
+      id: 'fixture/observe-speed-stage' as effectId,
+      triggers: [EffectTrigger.OnBeforeCalculateDamage],
+      priority: 0,
+      apply: () => {
+        observeDamage()
+      },
+    }),
+  )
   attack(battle, a, slowSkill, true)
   expect(mark(a.activePet, needles)?.stack).toBe(0)
-  expect(mark(b.activePet, 'stat_stage_spe_down')?.stack).toBe(1)
+  expect(observeDamage).toHaveReturnedWith(1)
 
   for (const pet of [a.team[1], a.team[0]]) {
     const phase = new SwitchPetPhase(battle, a, pet, new TurnContext(battle))
@@ -137,6 +151,26 @@ it.each([
   attack(battle, a, poisonSkill, true)
   expect(mark(a.activePet, needles)?.stack).toBe(0)
   expect(Boolean(mark(b.activePet, poison))).toBe(expected)
+})
+
+it.each([
+  ['neither pet', false, false],
+  ['the defender', false, true],
+  ['the attacker', true, false],
+] as const)('resolves a 42%% draw with the paralysis emblem on %s', (_, attackerEmblem, defenderEmblem) => {
+  const { battle, a, b } = setup(
+    [slowSkill, paralysisSkill],
+    'Male',
+    attackerEmblem ? 'mark_emblem_malui' : undefined,
+    defenderEmblem,
+  )
+  addMark(battle, b, b, 'mark_hanbinghujia', 1000)
+  const rng = vi.spyOn(battle, 'random').mockReturnValue(0.99)
+  for (let i = 0; i < 3; i++) attack(battle, a, slowSkill, true)
+  expect(mark(a.activePet, needles)?.stack).toBe(0)
+  rng.mockReturnValue(0.42)
+  attack(battle, a, paralysisSkill, true)
+  expect(Boolean(mark(b.activePet, paralysis))).toBe(attackerEmblem)
 })
 
 it.each([

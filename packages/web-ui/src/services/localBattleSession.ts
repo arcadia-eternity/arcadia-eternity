@@ -5,7 +5,12 @@ import { isNavigationFailure, type NavigationFailure } from 'vue-router'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
 import type { useBattleStore } from '@/stores/battle'
 import type { useGameDataStore } from '@/stores/gameData'
-import { createSandboxWebBattleSession, type NativeWebPlayer, type NativeWebBattleConfig } from './nativeBattleFactory'
+import {
+  createSandboxWebBattleSession,
+  type NativeWebPlayer,
+  type NativeWebBattleConfig,
+  type WebBattleHost,
+} from './nativeBattleFactory'
 import { acquireLocalContent } from './localContent'
 
 type SessionState = 'configuring' | 'starting' | 'routing' | 'active' | 'disposed'
@@ -23,7 +28,7 @@ type Content = NonNullable<Awaited<ReturnType<typeof acquireLocalContent>>>
 export type LocalBattleEnvironment = Pick<Content, 'gameplayRevision' | 'draftRevision' | 'rules'>
 interface Attempt {
   native: Prepared['system']
-  system: IBattleSystem
+  system: IBattleSystem & Pick<WebBattleHost, 'runTrainingCommand'>
   stopped?: Promise<void>
 }
 const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T
@@ -56,7 +61,13 @@ export class LocalBattleSession {
       if (!content) return
       const { rules, effectMarkRelations, draftRevision, gameplayRevision } = content
       try {
-        this.#restoreDisplay = data.useLocalBattleContent(content.content, rules, false, effectMarkRelations)
+        this.#restoreDisplay = data.useLocalBattleContent(content.content, {
+          environmentId: content.environmentId,
+          environmentVersion: content.environmentVersion,
+          pinned: true,
+          rules,
+          effectMarkRelations,
+        })
       } catch (error) {
         await content.release()
         throw error
@@ -125,6 +136,7 @@ export class LocalBattleSession {
           target.data,
           {
             ...options,
+            training: true,
             ...resolveEnvironmentBattleOptions(rules),
             skillParameters: rules?.skillParameters,
             matchups: rules?.matchups,
@@ -147,7 +159,7 @@ export class LocalBattleSession {
       if (!current()) return false
       const player = initial.players[0]?.id
       if (!player) throw new Error('战斗初始化失败：无法解析玩家 ID')
-      await target.battle.initBattle(attempt.system, player, current)
+      await target.battle.initBattle(attempt.system, player, 'local', current)
       if (!current()) return false
       this.#state = 'routing'
       const navigation = await target.navigate()
@@ -226,6 +238,7 @@ export class LocalBattleSession {
       native,
       system: {
         ready: native.ready.bind(native),
+        runTrainingCommand: command => native.runTrainingCommand(command),
         getState: native.getState.bind(native),
         getAvailableSelection: native.getAvailableSelection.bind(native),
         submitAction: native.submitAction.bind(native),

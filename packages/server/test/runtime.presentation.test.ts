@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { ServerEnvironmentRegistry } from '../src/runtime/environments'
 import { createSingleProcessApp } from '../src/runtime/app'
 import { createNpmFixture } from './fixtures/npm'
 
@@ -60,6 +61,26 @@ it('publishes remote URLs without downloading and streams package files without 
     expect(app.environments.descriptor(first.id).id).toBe(first.id)
   } finally {
     await app.stop()
+    await fixture.dispose()
+  }
+}, 30_000)
+
+it('identifies identical publications and separates same-size media edits even when gameplay is unchanged', async () => {
+  const fixture = await createNpmFixture({ presentation: true })
+  const registry = new ServerEnvironmentRegistry()
+  try {
+    const first = await registry.prepareNpm(fixture.directory)
+    const copy = await registry.prepareNpm(fixture.directory)
+    expect(copy.id).not.toBe(first.id)
+    expect(copy.environmentVersion).toBe(first.environmentVersion)
+    const changed = Buffer.from(fixture.asset)
+    changed[0] ^= 1
+    await writeFile(join(fixture.installedDirectory, 'assets/icon.png'), changed)
+    const edited = await registry.prepareNpm(fixture.directory)
+    expect(edited.gameplayRevision).toBe(first.gameplayRevision)
+    expect(edited.environmentVersion).not.toBe(first.environmentVersion)
+  } finally {
+    await registry.stop()
     await fixture.dispose()
   }
 }, 30_000)

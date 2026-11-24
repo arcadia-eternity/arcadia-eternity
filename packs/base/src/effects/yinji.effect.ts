@@ -5,6 +5,7 @@ import {
   contexts,
   defineEffects,
   EffectTrigger,
+  numberParam,
   ops,
   targets,
   values,
@@ -16,11 +17,12 @@ import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle
 const ZHUILUO = 'mark_zhuiluo'
 const ZHIKONG = 'mark_zhikong'
 const LIUXIE = 'mark_liuxie'
-const LIANJI = 'mark_lianji'
 const FANGONG = 'mark_fangong'
 
 const MOON_TAG = 'moon'
 const EARTH_TAG = 'earth'
+
+const weakeningChance = numberParam({ default: 70, tags: ['skill_effect_probability'] })
 
 @effectGroup({ id: 'yinji' })
 export class YinjiEffects {
@@ -28,9 +30,8 @@ export class YinjiEffects {
     const zhuiluo = marks.get(ZHUILUO)
     const zhikong = marks.get(ZHIKONG)
     const liuxie = marks.get(LIUXIE)
-    const lianji = marks.get(LIANJI)
     const fangong = marks.get(FANGONG)
-    if (!zhuiluo || !zhikong || !liuxie || !lianji || !fangong) {
+    if (!zhuiluo || !zhikong || !liuxie || !fangong) {
       throw new Error('Missing yinji mark dependencies')
     }
 
@@ -55,13 +56,11 @@ export class YinjiEffects {
     const applyZhikong = targets.opponentActive.apply(ops.addMark(zhikong))
 
     const weakenAtk = targets.opponentActive.apply(ops.changeStatStage('atk', -1))
-    const weakenSpe = targets.opponentActive.apply(ops.changeStatStage('spe', -1))
     const weakenSpa = targets.opponentActive.apply(ops.changeStatStage('spa', -1))
 
     const boostAtk = targets.ownerPet.apply(ops.changeStatStage('atk', 1))
     const boostSpe = targets.ownerPet.apply(ops.changeStatStage('spe', 1))
 
-    const addLianji = targets.ownerPet.apply(ops.addMark(lianji, { stack: 1 }))
     const addFangong = targets.ownerPet.apply(ops.addMark(fangong, { stack: 1 }))
 
     const addStrongBleed = targets.opponentActive.apply(ops.addMark(liuxie, { stack: 50, duration: 3 }))
@@ -79,116 +78,111 @@ export class YinjiEffects {
     const setMultihit3to5 = contexts.skillUse.apply(ops.setMultihit(values.randomInt(3, 5)))
 
     const roll10 = conditions.chance(10)
-    const roll20 = conditions.chance(20)
-    const roll70 = conditions.chance(70)
+    const roll70 = conditions.chance(weakeningChance)
 
     const firstMoveDamageBoost: Action = contexts.damage.apply(ops.modifyDamage({ percent: 25, delta: 0 }))
 
     return defineEffects({
-      effect_mark_zhuiluo_speed: {
+      effect_mark_reduce_spe_45_on_create: {
         triggers: [EffectTrigger.OnMarkCreated],
         priority: 0,
         apply: targets.ownerPet.apply(ops.addAttributeModifier('spe', 'delta', -45)),
       },
-      effect_mark_zhikong_cannot_dodge: {
+      effect_mark_make_targeted_skill_sure_hit_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.ownerIsSkillTarget,
         apply: contexts.skillUse.apply(ops.setSureHit()),
       },
-      effect_mark_fangong_counter: {
+      effect_mark_deal_35_damage_to_attacker_70_percent_on_attack_damage: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, attackDamage, conditions.chance(70)),
         apply: targets.damageOriginPet.apply(ops.dealDamage(35)),
       },
-      effect_yinji_ability_moon_zhuiluo: {
+      effect_ability_add_mark_opponent_zhuiluo_on_moon_skill_hit: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, moonSkill),
         apply: applyZhuiluo,
       },
-      effect_yinji_ability_earth_zhikong: {
+      effect_ability_add_mark_opponent_zhikong_on_earth_skill_hit: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, earthSkill),
         apply: applyZhikong,
       },
-      effect_yinji_emblem_first_move_damage: {
+      effect_emblem_amplify_outgoing_attack_damage_25_percent_if_first: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn, attackDamage),
         apply: firstMoveDamageBoost,
       },
-      effect_yinji_skill_ningshenbeizhan_fangong: {
+      effect_skill_add_mark_self_fangong_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: addFangong,
       },
-      effect_yinji_skill_podijiaoren_weaken_spe: {
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, roll20),
-        apply: weakenSpe,
-      },
-      effect_yinji_skill_podishengteng_power: {
+      effect_skill_add_power_35_if_opponent_has_zhuiluo_on_calculate_damage: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentHasZhuiluo),
         apply: addPower35,
       },
-      effect_yinji_skill_cangyuekongzhan_bleed: {
+      effect_skill_add_mark_opponent_liuxie_50_for_3_turns_if_zhikong: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentHasZhikong),
         apply: addStrongBleed,
       },
-      effect_yinji_skill_podibeixi_ignore_def: {
+      effect_skill_ignore_opponent_positive_stages_if_zhuiluo: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentHasZhuiluo),
         apply: ignoreDefenseStages,
       },
-      effect_yinji_skill_cangyuexuanren_sure_crit: {
-        triggers: [EffectTrigger.BeforeHit],
+      effect_skill_sure_crit_if_opponent_has_zhikong: {
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentHasZhikong),
         apply: sureCrit,
       },
-      effect_yinji_skill_cangyuejirenzhan_lianji: {
+      effect_skill_add_1_hit_10_percent: {
         triggers: [EffectTrigger.BeforeMultiHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, roll10),
-        apply: addLianji,
+        apply: contexts.skillUse.apply(ops.addMultihitResult(1)),
       },
-      effect_yinji_skill_podijuexici_weight_damage: {
+      effect_skill_deal_effect_damage_equal_to_opponent_weight_if_zhuiluo: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentHasZhuiluo),
         apply: addWeightDamage,
       },
-      effect_yinji_skill_cangyueliankongzhan_multihit: {
+      effect_skill_set_3_to_5_hits_if_opponent_has_zhikong: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentHasZhikong),
         apply: setMultihit3to5,
       },
-      effect_yinji_skill_liqi_boost: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
+      effect_skill_raise_atk_spe_1_stage: {
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: actions.sequence(boostAtk, boostSpe),
       },
-      effect_yinji_skill_guyuedishazhan_weaken: {
-        triggers: [EffectTrigger.OnHit],
+      effect_skill_reduce_opponent_atk_1_stage_70_percent_if_zhuiluo: {
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
+        parameters: { chance: weakeningChance },
         when: conditions.all(conditions.selfUsesSkill, opponentHasZhuiluo, roll70),
         apply: weakenAtk,
       },
-      effect_yinji_skill_guyuedishazhan_weaken_spa: {
-        triggers: [EffectTrigger.OnHit],
+      effect_skill_reduce_opponent_spa_1_stage_70_percent_if_zhikong: {
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
+        parameters: { chance: weakeningChance },
         when: conditions.all(conditions.selfUsesSkill, opponentHasZhikong, roll70),
         apply: weakenSpa,
       },

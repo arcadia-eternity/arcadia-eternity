@@ -33,7 +33,7 @@ export class HemaEffects {
     })
 
     return defineEffects({
-      effect_skill_ganjuebaoli: {
+      effect_skill_add_random_sense_loss_to_opponent: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
@@ -45,14 +45,14 @@ export class HemaEffects {
         when: conditions.all(conditions.selfUsesSkill, opponentLostAnySense),
         apply: contexts.skillUse.apply(ops.addPower(50)),
       },
-      effect_skill_reduce_spe_if_opponent_lost_hearing: {
-        triggers: [EffectTrigger.OnHit],
+      effect_skill_reduce_opponent_spe_1_stage_if_opponent_lost_hearing: {
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentLostSense(hearing)),
         apply: targets.opponentActive.apply(ops.changeStatStage('spe', -1)),
       },
-      effect_skill_beiheyimi: {
-        triggers: [EffectTrigger.OnHit],
+      effect_skill_raise_self_spe_spd_def_1_stage_for_opponent_sense_losses: {
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: actions.sequence(
@@ -61,7 +61,7 @@ export class HemaEffects {
           actions.choose(opponentLostSense(taste), targets.ownerPet.apply(ops.changeStatStage('def', 1))),
         ),
       },
-      effect_skill_chaogansangshibo: {
+      effect_skill_add_all_sense_losses_to_opponent: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
@@ -85,14 +85,14 @@ export class HemaEffects {
         ),
         apply: contexts.skillUse.apply(ops.setSureHit(2)),
       },
-      effect_ability_ganjue_add_rage: {
+      effect_ability_add_rage_5_on_hit_if_opponent_lost_sense: {
         triggers: [EffectTrigger.OnHit],
         // Test the opponent's existing marks before this hit can apply another one.
         priority: 1,
         when: conditions.all(conditions.ownerUsesSkill, opponentLostAnySense),
         apply: targets.ownerPet.apply(ops.addRage(5)),
       },
-      effect_emblem_tingjue_prevent_hearing_loss: {
+      effect_emblem_prevent_hearing_loss: {
         triggers: [EffectTrigger.OnBeforeAddMark],
         priority: 0,
         when: conditions.all(

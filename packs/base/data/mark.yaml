@@ -2662,11 +2662,8 @@
     keepOnSwitchOut: true
   effect:
     - effect_mark_reduce_opponent_atk_1_stage_when_fainted
-# 帕拉丁技能印记（原作 moves.xml 11572-11586 / buffs.xml 3314 神圣、3315 公正、3317 征伐、
-# 3320 庇护、3322 救赎）。神圣为永续印记；“每回合恢复体力”的 1/16 与半血以下 1/8 只有 4399
-# 帕拉丁解析给出，属社区资料，客户端 buff 表 3314 无描述。庇护/圣佑的回血按每回合 1/8 建模：
-# 该解析写明“带一个的话半血以下一回合恢复四分之一”（神圣 1/8 + 庇护或圣佑 1/8），因此不是使用
-# 当次的一次性回血。
+# 神圣（3314）每回合回复 1/16 体力，半血以下回复 1/8，取自 4399 帕拉丁解析。
+# 庇护之火与圣佑之火的 1/8 回复在技能命中时结算一次；格挡（3316）与庇护（3320）提供五回合减伤。
 - id: mark_shensheng
   config:
     duration: -1
@@ -2677,7 +2674,7 @@
     destroyable: true
     keepOnSwitchOut: true
   effect:
-    - effect_mark_shensheng_heal_turn_end
+    - effect_mark_heal_self_sixteenth_or_eighth_below_half_turn_end
 - id: mark_bihu
   config:
     duration: 5
@@ -2688,8 +2685,7 @@
     destroyable: true
     keepOnSwitchOut: true
   effect:
-    - effect_mark_heal_self_1_8_turnEnd
-    - effect_mark_bihu_block_damage_50
+    - effect_mark_reduce_physical_damage_50_or_special_with_bihu_emblem
 - id: mark_shengyou
   config:
     duration: 5
@@ -2700,8 +2696,7 @@
     destroyable: true
     keepOnSwitchOut: true
   effect:
-    - effect_mark_heal_self_1_8_turnEnd
-    - effect_mark_shengyou_halve_special_damage
+    - effect_mark_reduce_special_damage_50_percent
 - id: mark_gongzheng
   config:
     duration: 3
@@ -2712,7 +2707,7 @@
     destroyable: true
     keepOnSwitchOut: true
   effect:
-    - effect_mark_gongzheng_block_positive_stage
+    - effect_mark_block_positive_stat_stages
 - id: mark_zhengfa
   config:
     duration: 3
@@ -2724,7 +2719,7 @@
     keepOnSwitchOut: true
   effect:
     - effect_mark_increase_damage_dealt_35_percent
-    - effect_mark_zhengfa_lifesteal_35
+    - effect_mark_heal_self_35_percent_damage_dealt
 - id: mark_mingshi
   config:
     duration: 5
@@ -2746,8 +2741,8 @@
     destroyable: true
     keepOnSwitchOut: true
   effect:
-    - effect_mark_jiushu_heal_at_low_hp
-    - effect_mark_jiushu_heal_on_apply_if_low
+    - effect_mark_heal_self_100_below_eighth_hp_when_damaged_then_remove_self
+    - effect_mark_heal_self_100_below_eighth_hp_on_jiushu_created_then_remove_self
 - id: mark_hongxinyinji
   config:
     duration: -1
@@ -2805,8 +2800,8 @@
     inheritOnFaint: false
   tags: []
   effect:
-    - effect_bingchuantun_hanbingjianren_reduce_physical
-    - effect_bingchuantun_hanbingjianren_reduce_special
+    - effect_mark_reduce_incoming_physical_damage_25_percent
+    - effect_mark_reduce_incoming_special_damage_15_percent
 - id: mark_shiquxiujue
   config: *lost_sense_config
   effect:
@@ -2830,8 +2825,8 @@
     keepOnSwitchOut: false
     persistent: true
   effect:
-    - effect_tiaotiaoshu_mark_biansu_priority
-    - effect_tiaotiaoshu_mark_biansu_consume
+    - effect_mark_add_1_priority_except_biansutuji
+    - effect_mark_remove_self_after_check_except_biansutuji
 - id: mark_yishouzhuangong
   config:
     duration: 2
@@ -2840,22 +2835,22 @@
     keepOnSwitchOut: false
     persistent: false
   effect:
-    - effect_tiaotiaoshu_mark_yishouzhuangong_defense
-    - effect_tiaotiaoshu_mark_yishouzhuangong_offense
+    - effect_mark_reduce_incoming_attack_damage_50_percent_before_last_turn
+    - effect_mark_amplify_outgoing_attack_damage_50_percent_on_last_turn
 - id: mark_shanduo
   config:
     duration: 1
     keepOnSwitchOut: false
     persistent: false
   effect:
-    - effect_tiaotiaoshu_mark_shanduo_evade
+    - effect_mark_evade_targeted_physical_skill_after_check
 - id: mark_qitiao
   config:
     duration: 1
     keepOnSwitchOut: false
     persistent: false
   effect:
-    - effect_tiaotiaoshu_mark_qitiao_evade
+    - effect_mark_evade_targeted_special_skill_after_check
 - id: mark_weizui
   config:
     duration: 3
@@ -2869,7 +2864,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_pangpang_lanzui_end_hunmi
+    - effect_mark_add_mark_self_hunmi_for_2_turns_on_duration_end
 - id: mark_meijiuyouhuo
   config:
     duration: 2
@@ -2879,7 +2874,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_pangpang_meijiu_apply_lanzui
+    - effect_mark_add_lanzui_to_physical_attacker_and_remove_self_on_last_turn
 - id: mark_bengdaitishen
   config:
     duration: -1
@@ -2887,7 +2882,7 @@
     maxStacks: 1
     persistent: true
   effect:
-    - effect_abu_bandage_substitute_double_rage
+    - effect_mark_double_damage_rage_gain_and_consume
 - id: mark_abuzhiyuan
   config:
     stackable: true
@@ -2897,9 +2892,9 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_abu_resentment_rage_shield
-    - effect_abu_resentment_spend_rage
-    - effect_abu_resentment_no_rage_cost
+    - effect_mark_prevent_direct_attack_damage_twice_current_rage_consume_1_stack
+    - effect_mark_restore_1_stack_spend_ceil_half_prevented_damage_as_rage
+    - effect_mark_waive_non_climax_skill_rage_cost_if_has_abuzhiyuan
 - id: mark_anfu
   config:
     stackable: false
@@ -2908,7 +2903,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_mark_anfu_block_boost
+    - effect_mark_block_positive_stat_stages
 - id: mark_xuezhiwaiyi
   config:
     stackable: true
@@ -2919,7 +2914,7 @@
     persistent: true
     stackStrategy: stack
   effect:
-    - effect_mark_xuezhiwaiyi_absorb
+    - effect_mark_heal_self_half_shield_stacks_consumed
 - id: mark_bingfengjiyi
   config:
     stackable: true
@@ -2935,7 +2930,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_boli_ancestor_block_heal
+    - effect_mark_prevent_owner_healing
 - id: mark_huohuayinji
   config:
     duration: -1
@@ -2943,7 +2938,7 @@
     maxStacks: 1
     persistent: true
   effect:
-    - effect_huohuali_mark_spark_crit
+    - effect_mark_incoming_non_status_skill_sure_crit
     - effect_mark_consume_on_incoming_attack_hit
 - id: mark_huohuaquti
   config:
@@ -2952,7 +2947,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_huohuali_mark_flame_body_burn
+    - effect_mark_add_mark_attacker_shaoshang_30_percent_on_damage
 - id: mark_shiqieshi
   config:
     duration: 2
@@ -2961,14 +2956,14 @@
     keepOnSwitchOut: false
     persistent: false
   effect:
-    - effect_xiaojie_mark_shiqieshi_damage
+    - effect_mark_amplify_outgoing_attack_damage_40_percent_on_last_turn
 - id: mark_chenshoushi
   config:
     duration: -1
     keepOnSwitchOut: false
     persistent: true
   effect:
-    - effect_xiaojie_mark_chenshoushi_block
+    - effect_mark_prevent_physical_damage_50_percent_consume_1_stack
     - effect_mark_reflect_prevented_attack_damage
 - id: mark_dunjushi
   config:
@@ -2976,7 +2971,7 @@
     keepOnSwitchOut: false
     persistent: true
   effect:
-    - effect_xiaojie_mark_dunjushi_block
+    - effect_mark_prevent_special_damage_50_percent_consume_1_stack
     - effect_mark_reflect_prevented_attack_damage
 - id: mark_wushuangshi
   config:
@@ -2984,7 +2979,7 @@
     keepOnSwitchOut: false
     persistent: true
   effect:
-    - effect_xiaojie_mark_wushuangshi_absorb
+    - effect_mark_add_mark_self_wushuangli_by_half_attack_hp_loss_and_remove_wushuangshi
 - id: mark_wushuangli
   config:
     duration: -1
@@ -2995,7 +2990,7 @@
     stackStrategy: stack
   effect:
     - effect_mark_add_power_stack
-    - effect_xiaojie_mark_wushuangli_consume
+    - effect_mark_remove_self_after_attack_check
 - id: mark_shafenshen_lulu
   config:
     duration: -1
@@ -3013,7 +3008,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_lulu_mark_jueduifangyu_halve
+    - effect_mark_reduce_damage_taken_50_percent
 - id: mark_lanbo
   config:
     duration: -1
@@ -3029,9 +3024,9 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_qiaoba_berserk_damage_out
-    - effect_qiaoba_berserk_damage_in
-    - effect_qiaoba_berserk_end_clear
+    - effect_mark_amplify_outgoing_skill_damage_100_percent
+    - effect_mark_amplify_incoming_skill_damage_50_percent
+    - effect_mark_remove_self_lanbo_on_baozou_duration_end
 - id: mark_haixiuduobi
   config:
     duration: 1
@@ -3039,7 +3034,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_qiaoba_shy_dodge_evade
+    - effect_mark_evade_targeted_skill_after_check
 - id: mark_jiaodianfushi
   config:
     stackable: true
@@ -3049,7 +3044,7 @@
     persistent: true
     stackStrategy: stack
   effect:
-    - effect_dayandujiao_ability_focus_drain
+    - effect_ability_heal_25_percent_damage_dealt_if_owner_has_jiaodianfushi
 - id: mark_fengwen
   config:
     duration: -1
@@ -3067,19 +3062,19 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_qingfengzhiwu_evasion
+    - effect_mark_increase_owner_evasion_50_percent_before_damage
 - id: mark_zhuiluo
   config:
     duration: 3
     mutexGroup: yinji_airborne
   effect:
-    - effect_mark_zhuiluo_speed
+    - effect_mark_reduce_spe_45_on_create
 - id: mark_zhikong
   config:
     duration: 3
     mutexGroup: yinji_airborne
   effect:
-    - effect_mark_zhikong_cannot_dodge
+    - effect_mark_make_targeted_skill_sure_hit_after_check
 - id: mark_fangong
   config:
     duration: 3
@@ -3087,7 +3082,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_mark_fangong_counter
+    - effect_mark_deal_35_damage_to_attacker_70_percent_on_attack_damage
 - id: mark_tanli
   config:
     duration: -1
@@ -3112,7 +3107,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_mimi_mark_tizhi_reflect
+    - effect_mark_deal_30_fixed_damage_to_attacker_when_tanhuangtizhi_takes_attack_damage
 - id: mark_tanhuangbaozha
   config:
     duration: -1
@@ -3121,7 +3116,7 @@
     maxStacks: 1
     persistent: true
   effect:
-    - effect_mimi_mark_baozha_trigger
+    - effect_mark_consume_tanhuangbaozha_and_deal_damage_equal_to_tanli_spent_on_damage_taken
 - id: mark_emoqiyue
   config:
     duration: -1
@@ -3129,7 +3124,7 @@
     maxStacks: 1
     persistent: true
   effect:
-    - effect_mark_emoqiyue_heal
+    - effect_mark_heal_self_30_on_non_crit_damage_taken
 - id: mark_guozai_atongtie
   config:
     stackable: false
@@ -3138,8 +3133,8 @@
     maxStacks: 1
     persistent: true
   effect:
-    - effect_atongtie_mark_guozai_lock_rage
-    - effect_atongtie_mark_guozai_end_on_climax
+    - effect_mark_prevent_rage_changes_except_climax_cost
+    - effect_mark_remove_self_after_climax_check
 - id: mark_wulixishou_atongtie
   config:
     stackable: false
@@ -3148,7 +3143,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_atongtie_mark_wulixishou_absorb
+    - effect_mark_replace_physical_attack_damage_below_max_hp_sixth_with_heal
 - id: mark_teshufanshe_atongtie
   config:
     stackable: false
@@ -3157,8 +3152,8 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_atongtie_mark_teshufanshe_reflect
-    - effect_atongtie_mark_teshufanshe_return
+    - effect_mark_prevent_special_attack_damage_above_max_hp_half_and_consume_1
+    - effect_mark_return_prevented_damage_capped_at_owner_max_hp_on_rule_consume
 - id: mark_tefongfantan_atongtie
   config:
     stackable: true
@@ -3168,7 +3163,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_atongtie_mark_tefongfantan_rebound
+    - effect_mark_return_half_special_attack_hp_loss_max_182_next_turn
 - id: mark_wugongjianban_atongtie
   config:
     stackable: true
@@ -3178,7 +3173,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_atongtie_mark_wugongjianban_halve
+    - effect_mark_reduce_outgoing_physical_damage_50_percent_next_turn
 - id: mark_shuxingshixiao_atongtie
   config:
     stackable: true
@@ -3188,7 +3183,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_atongtie_mark_shuxingshixiao_miss
+    - effect_mark_sure_miss_for_status_skills_next_turn
 - id: mark_jinu_atongtie
   config:
     stackable: false
@@ -3197,7 +3192,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_atongtie_mark_jinu_rage
+    - effect_mark_add_opponent_rage_30_after_owner_status_skill_check
 - id: mark_guangzhidun
   config:
     duration: 1
@@ -3214,7 +3209,7 @@
     maxStacks: 1
     persistent: true
   effect:
-    - effect_mika_mark_huixuanguangren_power
+    - effect_mark_double_huixuanguangren_power_and_consume
 - id: mark_guangxiansuoding
   config:
     duration: 3
@@ -3222,14 +3217,14 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_mika_mark_guangxiansuoding_surehit
+    - effect_mark_set_non_status_skills_sure_hit
 - id: mark_jiancijiaqiao
   config:
     duration: -1
     keepOnSwitchOut: false
     persistent: true
   effect:
-    - effect_qiuding_mark_spike_shell_rage
+    - effect_mark_reflect_half_attack_hp_loss_max_284_add_15_rage_and_remove_self
 - id: mark_daocijiaqiao
   config:
     duration: -1
@@ -3237,14 +3232,14 @@
     persistent: true
   effect:
     - effect_mark_reduce_next_skill_damage_50_percent
-    - effect_qiuding_mark_barb_shell_bleed
+    - effect_mark_add_attacker_liuxie_30_on_rule_stack_consumption
 - id: mark_baonujiaqiao
   config:
     duration: -1
     keepOnSwitchOut: false
     persistent: true
   effect:
-    - effect_qiuding_mark_rage_shell_consume
+    - effect_mark_prevent_attack_damage_percent_equal_to_rage_consume_1_stack
     - effect_mark_spend_half_rage_on_damage_prevention
 - id: mark_fanjiyizhi
   config:
@@ -3260,7 +3255,7 @@
     keepOnSwitchOut: false
     persistent: true
   effect:
-    - effect_qiuding_mark_spike_burst_crit
+    - effect_mark_add_50_crit_rate_to_attacks_targeting_owner
     - effect_mark_consume_on_incoming_attack_hit
 - id: mark_shazhili
   config:
@@ -3268,7 +3263,7 @@
     keepOnSwitchOut: false
     persistent: true
   effect:
-    - effect_qiuding_mark_sand_severity_amplify
+    - effect_mark_amplify_incoming_desert_damage_50_percent
 - id: mark_badu_shihunlinggui
   config:
     duration: -1
@@ -3276,7 +3271,7 @@
     maxStacks: 1
     persistent: true
   effect:
-    - effect_badu_mark_shihunlinggui_trigger
+    - effect_mark_reflect_half_attack_hp_loss_max_284_drain_opponent_rage_10_and_consume
 - id: mark_badu_youhunlinggui
   config:
     duration: -1
@@ -3292,7 +3287,7 @@
     maxStacks: 1
     persistent: true
   effect:
-    - effect_badu_mark_lihunlinggui_shield
+    - effect_mark_prevent_attack_damage_twice_current_rage_consume_1_stack
     - effect_mark_spend_half_rage_on_damage_prevention
 - id: mark_badu_fankangyishi
   config:
@@ -3302,7 +3297,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_badu_mark_fankangyishi_rage
+    - effect_mark_add_rage_10_on_hit_while_active
 - id: mark_badu_linghunsuiji
   config:
     duration: -1
@@ -3310,8 +3305,8 @@
     maxStacks: 1
     persistent: true
   effect:
-    - effect_badu_mark_linghunsuiji_weaken
-    - effect_badu_mark_linghunsuiji_consume
+    - effect_mark_reduce_damage_50_percent
+    - effect_mark_remove_self_on_owner_skill_damage
 - id: mark_badu_dizhishang
   config:
     duration: -1
@@ -3319,7 +3314,7 @@
     maxStacks: 1
     persistent: true
   effect:
-    - effect_badu_mark_dizhishang_amplify
+    - effect_mark_increase_ground_attack_damage_taken_50_percent
 - id: mark_zuogu
   config:
     duration: 2
@@ -3329,7 +3324,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_feide_mark_zuogu_power
+    - effect_mark_add_power_35_to_youpan_next_turn
 - id: mark_youpan
   config:
     duration: 2
@@ -3339,7 +3334,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_feide_mark_youpan_power
+    - effect_mark_add_power_35_to_zuogu_next_turn
 - id: mark_zhanqian
   config:
     duration: 2
@@ -3349,7 +3344,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_feide_mark_zhanqian_sure_hit
+    - effect_mark_sure_hit_for_yanghou_next_turn
 - id: mark_yanghou
   config:
     duration: 2
@@ -3359,7 +3354,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_feide_mark_yanghou_sure_hit
+    - effect_mark_sure_hit_for_zhanqian_next_turn
 - id: mark_fengkuangdaocao
   config:
     stackable: true
@@ -3369,7 +3364,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_feide_mark_mad_straw_vulnerable
+    - effect_mark_increase_attack_damage_received_75_percent_next_turn
 - id: mark_kuanghuanqu
   config:
     stackable: true
@@ -3379,8 +3374,8 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_feide_mark_cancel_carnival_on_switch
-    - effect_feide_mark_carnival_end
+    - effect_mark_remove_self_on_owner_switch_out
+    - effect_mark_deal_opponent_max_hp_half_to_owner_on_expiry
 - id: mark_shanbitisheng
   config:
     duration: 1
@@ -3388,7 +3383,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_feide_mark_shanbitisheng_evasion
+    - effect_mark_add_owner_evasion_35_on_created
 - id: mark_manhuinuqi
   config:
     duration: 1
@@ -3396,7 +3391,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_feide_mark_rage_refill_on_evade
+    - effect_mark_set_owner_rage_100_on_dodge
 - id: mark_nuoji_njihua
   config:
     duration: -1
@@ -3405,7 +3400,7 @@
     maxStacks: 1
     persistent: true
   effect:
-    - effect_nuoji_mark_njihua_damage
+    - effect_mark_increase_attack_damage_dealt_20_percent
 - id: mark_nuoji_bjihua
   config:
     duration: -1
@@ -3423,8 +3418,8 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_nuoji_mark_nbjihua_damage
-    - effect_nuoji_mark_nbjihua_reduction
+    - effect_mark_increase_attack_damage_dealt_20_percent_without_n_plan
+    - effect_mark_reduce_damage_taken_20_percent_without_b_plan
 - id: mark_nuoji_wanshijubei
   config:
     duration: -1
@@ -3433,7 +3428,7 @@
     maxStacks: 1
     persistent: true
   effect:
-    - effect_nuoji_mark_wanshi_consume
+    - effect_mark_consume_dongfeng_at_turn_end_to_prepare_switch_in_heal
 - id: mark_nuoji_dongfeng_heal
   config:
     duration: -1
@@ -3441,7 +3436,7 @@
     maxStacks: 1
     stackable: false
   effect:
-    - effect_nuoji_mark_dongfeng_heal
+    - effect_mark_heal_other_nuojibo_half_max_hp_on_switch_in_and_consume
 - id: mark_nuoji_dongfeng
   config:
     duration: -1
@@ -3450,7 +3445,7 @@
     maxStacks: 1
     persistent: true
   effect:
-    - effect_nuoji_mark_dongfeng_speed
+    - effect_mark_add_speed_50_on_creation
 - id: mark_nuoji_dongfeng_countdown
   config:
     duration: 3
@@ -3459,7 +3454,7 @@
     stackStrategy: refresh
     keepOnSwitchOut: false
   effect:
-    - effect_nuoji_dongfeng_countdown
+    - effect_mark_add_dongfeng_on_duration_end
 - id: mark_huomiao
   config:
     duration: -1
@@ -3469,7 +3464,7 @@
     stackable: true
     stackStrategy: stack
   effect:
-    - effect_kaise_mark_huomiao_explode
+    - effect_mark_consume_self_2_stacks_deal_100_fixed_damage_on_stack
 - id: mark_chubeixiang
   config:
     duration: -1
@@ -3479,7 +3474,7 @@
     stackable: true
     stackStrategy: stack
   effect:
-    - effect_kelipu_ability_reserve_rage
+    - effect_ability_reduce_special_skill_rage_cost_5_per_chubeixiang_stack
 - id: mark_zhaomingdan
   config:
     duration: 5
@@ -3487,7 +3482,7 @@
     maxStacks: 1
     persistent: false
   effect:
-    - effect_kelipu_mark_zhaomingdan_reduce
+    - effect_mark_reduce_shadow_attack_damage_taken_35_percent
 - id: mark_qiandidan
   config:
     duration: -1
@@ -3496,7 +3491,7 @@
     maxStacks: 1
     persistent: true
   effect:
-    - effect_kelipu_mark_qiandidan_switch
+    - effect_mark_damage_owner_150_on_switch_in
 - id: mark_caixiazhixin
   config:
     duration: -1
@@ -3507,8 +3502,8 @@
     stackable: true
     stackStrategy: stack
   effect:
-    - effect_mark_caixiazhixin_crit
-    - effect_mark_caixiazhixin_consume
+    - effect_mark_increase_crit_rate_15_percent_per_stack_before_check
+    - effect_mark_remove_self_on_crit_damage_dealt
 - id: mark_xuanguangqidian
   config:
     duration: -1
@@ -3519,4 +3514,4 @@
     stackable: true
     stackStrategy: stack
   effect:
-    - effect_mark_xuanguangqidian_critdmg
+    - effect_mark_increase_crit_damage_50_percent

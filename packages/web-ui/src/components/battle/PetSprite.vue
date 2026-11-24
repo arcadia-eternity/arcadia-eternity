@@ -37,6 +37,7 @@ const availableState = ref<ActionState[]>([])
 const inited = computed(() => availableState.value.length > 0)
 const ready = ref<Promise<void>>(Promise.resolve())
 const originalSwfUrl = computed(() => (props.imageOnly || props.imageUrl ? '' : props.swfUrl))
+const mediaScope = computed(() => mediaEnvironment().scope)
 const usesPlaceholder = computed(() => !props.swfUrl && !props.imageUrl)
 const portrait = computed(() => props.imageUrl || props.fallbackImageUrl || unknownPet)
 const { url: portraitUrl, error: portraitLoadError } = useMediaImage(() => portrait.value)
@@ -47,7 +48,7 @@ let resolveReady: (() => void) | undefined
 let rejectReady: ((error: Error) => void) | undefined
 
 watch(
-  () => [props.swfUrl, props.imageUrl, props.imageOnly, props.fallbackImageUrl, mediaEnvironment().scope],
+  [() => props.swfUrl, () => props.imageUrl, () => props.imageOnly, () => props.fallbackImageUrl, mediaScope],
   () => {
     generation++
     rejectReady?.(new Error('精灵资源已切换'))
@@ -67,7 +68,7 @@ watch(
 )
 
 watch(
-  () => [originalSwfUrl.value, petRenderRef.value, props.imageUrl, props.imageOnly, mediaEnvironment().scope] as const,
+  [originalSwfUrl, petRenderRef, () => props.imageUrl, () => props.imageOnly, mediaScope],
   async ([url, element]) => {
     loadAbort?.abort()
     player?.dispose()

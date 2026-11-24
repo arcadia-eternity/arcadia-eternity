@@ -9,20 +9,20 @@ export interface EffectModuleArtifact {
   readonly source: string
 }
 export const sandboxPolicy = Object.freeze({
-  memoryBytes: 128 * 1024 * 1024,
+  memoryBytes: 192 * 1024 * 1024,
   wasmBytes: 256 * 1024 * 1024,
   stackBytes: 512 * 1024,
-  prepareMs: 10_000,
-  callMs: 500,
-  callsPerRoot: 50_000,
-  callsPerSession: 5_000_000,
-  retainedObjects: 50_000,
+  prepareMs: 15_000,
+  callMs: 2_000,
+  callsPerRoot: 100_000,
+  callsPerSession: 10_000_000,
+  retainedObjects: 100_000,
   sourceBytes: 4 * 1024 * 1024,
   packagesPerBattle: 32,
   outputBytes: 4 * 1024 * 1024,
 })
-export const browserSandboxPolicy = Object.freeze({ ...sandboxPolicy, callMs: 2_000 })
-export const browserSandboxStartup = Object.freeze({ catalogMs: 25_000, initializeMs: 35_000 })
+export const browserSandboxPolicy = Object.freeze({ ...sandboxPolicy, callMs: 4_000 })
+export const browserSandboxStartup = Object.freeze({ catalogMs: 40_000, initializeMs: 60_000 })
 export type SandboxPolicy = { readonly [K in keyof typeof sandboxPolicy]: number }
 export type SandboxFaultCode = 'artifact' | 'execution' | 'permission' | 'budget' | 'disposed' | 'worker'
 export class SandboxFault extends Error {

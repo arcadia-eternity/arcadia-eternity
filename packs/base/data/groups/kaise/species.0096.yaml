@@ -78,7 +78,7 @@
     - skill_id: skill_huoyanpenshe
       level: 31
       hidden: false
-    - skill_id: skill_lieyanzhiqu_chijiumianyi
+    - skill_id: skill_lieyanzhiqu
       level: 36
       hidden: false
     - skill_id: skill_chiretuji_yanre

@@ -112,6 +112,175 @@ it('trial display restores exact prior records and text, including the connected
   expect(store.species).toBe(official)
 })
 
+it('keeps local battle content visible when the underlying server environment is cleared', async () => {
+  const store = useGameDataStore()
+  await store.initialize()
+  const original = store.species
+  const content = (id: string) => ({ species: [{ ...data.species[0], id, name: id }], skills: [], marks: [] })
+  store.applyServerEnvironment(content('room:pet'))
+  const release = store.useLocalBattleContent(content('local:pet'))
+  store.clearServerEnvironment()
+  expect(store.species.allIds).toEqual(['local:pet'])
+  expect(serverText('species', 'local:pet', 'name')).toBe('local:pet')
+  release()
+  expect(store.species).toBe(original)
+  expect(store.serverFallback).toBeNull()
+  expect(serverText('species', 'room:pet', 'name')).toBeUndefined()
+})
+
+it('retains a merged environment across source acquisition and independent releases', async () => {
+  const store = useGameDataStore()
+  await store.initialize()
+  const original = store.species
+  const content = (id: string) => ({ species: [{ ...data.species[0], id, name: id }], skills: [], marks: [] })
+  const environmentId = 'training-120'
+  const environmentVersion = 'same-version'
+  const local = store.useLocalBattleContent(content('local:pet'), { environmentId, environmentVersion })
+  const pinned = store.species
+  store.applyServerEnvironment(content('local:pet'), { environmentId: 'different-server-id', environmentVersion })
+  expect(store.species).toBe(pinned)
+  await store.clearServerEnvironment()
+  expect(store.species).toBe(pinned)
+  expect(serverText('species', 'local:pet', 'name')).toBe('local:pet')
+  store.applyServerEnvironment(content('local:pet'), { environmentId: 'different-server-id', environmentVersion })
+  local()
+  expect(store.species).not.toBe(pinned)
+  expect(store.species.allIds).toEqual(['local:pet'])
+  local()
+  expect(isRemoteContentActive()).toBe(true)
+  await store.clearServerEnvironment()
+  expect(store.species).toBe(original)
+})
+
+it('uses an installed non-default copy of the same version after the server source disappears', async () => {
+  const store = useGameDataStore()
+  await store.initialize()
+  const environmentId = 'training-120'
+  const environmentVersion = 'same-version'
+  const content = (id: string) => ({
+    species: [
+      { ...data.species[0], id, name: id, inheritance: { skills: [] }, learnable_skills: [], ability: [], emblem: [] },
+    ],
+    skills: [],
+    marks: [],
+  })
+  const releaseLocalContent = vi.fn()
+  const prepareLocalContent = vi.fn(async () => ({
+    token: 'selected',
+    environmentId,
+    environmentVersion,
+    content: content('local:pet'),
+  }))
+  const localEnvironment = async () => ({
+    result: { installations: [{ environmentId, environmentVersion, status: 'ready' }] },
+  })
+  vi.stubGlobal('window', { arcadiaDesktop: { prepareLocalContent, releaseLocalContent, localEnvironment } })
+  store.applyServerEnvironment(content('local:pet'), { environmentId: 'server-alias', environmentVersion })
+  await store.clearServerEnvironment()
+  await store.clearServerEnvironment()
+  expect(prepareLocalContent).toHaveBeenCalledExactlyOnceWith(environmentId)
+  expect(store.species.allIds).toEqual(['local:pet'])
+  expect(isRemoteContentActive()).toBe(false)
+  expect(releaseLocalContent).not.toHaveBeenCalled()
+  store.reconcileLocalInstallations([
+    {
+      status: 'ready',
+      environmentId: 'second-local-copy',
+      environmentVersion,
+      installationId: 'second-local-copy',
+      workspaceId: 'local',
+      document: {
+        id: 'second-local-copy',
+        name: 'Local',
+        schemaVersion: 2,
+        rules: { schemaVersion: 1 },
+        packages: {},
+        sources: [],
+        requires: {},
+      },
+      draftRevision: 'draft',
+      contentRevision: 'material',
+      packages: [],
+      createdAt: 0,
+    },
+  ])
+  expect(store.environmentId).toBe(environmentId)
+  store.reconcileLocalInstallations([])
+  expect(store.environmentId).not.toBe(environmentId)
+  expect(store.getSpecies('local:pet')).toBeUndefined()
+  expect(releaseLocalContent).toHaveBeenCalledExactlyOnceWith('selected')
+})
+
+it('keeps the newer publication when a local handover finishes after reconnection', async () => {
+  const store = useGameDataStore()
+  const environmentId = 'training-120'
+  const environmentVersion = 'same-version'
+  const content = { species: [], skills: [], marks: [] }
+  const local = { token: 'late', environmentId, environmentVersion, content }
+  let finish!: (result: typeof local) => void
+  const prepareLocalContent = vi.fn(
+    () =>
+      new Promise<typeof local>(resolve => {
+        finish = resolve
+      }),
+  )
+  const releaseLocalContent = vi.fn()
+  vi.stubGlobal('window', { arcadiaDesktop: { prepareLocalContent, releaseLocalContent } })
+  store.applyServerEnvironment(content, { environmentId, environmentVersion })
+  const previous = store.species
+  const first = store.clearServerEnvironment()
+  const repeated = store.clearServerEnvironment()
+  expect(store.species).toBe(previous)
+  store.applyServerEnvironment(content, { environmentId, environmentVersion })
+  const recovered = store.species
+  finish(local)
+  await Promise.all([first, repeated])
+  expect(prepareLocalContent).toHaveBeenCalledExactlyOnceWith(environmentId)
+  expect(releaseLocalContent).toHaveBeenCalledExactlyOnceWith('late')
+  expect(store.species).toBe(recovered)
+  expect(isRemoteContentActive()).toBe(true)
+})
+
+it('withdraws room and matchmaking sources independently for one environment ID', () => {
+  const store = useGameDataStore()
+  const content = { species: [], skills: [], marks: [] }
+  const environmentId = 'training-120'
+  const environmentVersion = 'same-version'
+  store.applyServerEnvironment(content, { environmentId, environmentVersion, owner: 'matchmaking' })
+  const preview = store.species
+  store.applyServerEnvironment(content, { environmentId, environmentVersion })
+  store.clearServerEnvironment()
+  expect(store.species).toBe(preview)
+  store.clearServerEnvironment('matchmaking')
+  expect(store.serverFallback).toBeNull()
+  expect(store.environmentId).toBeUndefined()
+})
+
+it.each(['different-version', undefined])(
+  'does not hand a server catalog to a same-ID installation with version %s',
+  async localVersion => {
+    const store = useGameDataStore()
+    const content = { species: [], skills: [], marks: [] }
+    const environmentId = 'training'
+    const releaseLocalContent = vi.fn()
+    vi.stubGlobal('window', {
+      arcadiaDesktop: {
+        prepareLocalContent: async () => ({
+          token: 'candidate',
+          environmentId,
+          environmentVersion: localVersion,
+          content,
+        }),
+        releaseLocalContent,
+      },
+    })
+    store.applyServerEnvironment(content, { environmentId, environmentVersion: 'server-version' })
+    await store.clearServerEnvironment()
+    expect(store.environmentId).toBeUndefined()
+    expect(releaseLocalContent).toHaveBeenCalledExactlyOnceWith('candidate')
+  },
+)
+
 it('overlapping trials released out of order never resurrect disposed content', async () => {
   const store = useGameDataStore()
   await store.initialize()

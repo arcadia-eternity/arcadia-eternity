@@ -4,7 +4,6 @@ import { BaseMark } from '@arcadia-eternity/battle/engine'
 import {
   defineEffects,
   EffectTrigger,
-  selectFrom,
   conditions,
   contexts,
   targets,
@@ -449,7 +448,7 @@ export class CompoundActionsGeneratedEffects {
           targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').condition(checks.exists()),
         ),
         apply: actions.sequence(
-          contexts.skillUse.apply(ops.setMultihit(selectFrom([4, 5]).all())),
+          contexts.skillUse.apply(ops.setMultihit(values.randomInt(4, 5))),
           targets.ownerMarks.where(mark => mark.baseId === 'mark_huanxiang').apply(ops.consumeStacks(1)),
         ),
       },

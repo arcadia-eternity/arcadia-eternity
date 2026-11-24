@@ -42,6 +42,7 @@ export interface ArcadiaDesktopApi {
   listContentPackages?: () => Promise<import('./contentPackages').ContentLibrarySnapshot>
   prepareLocalContent?: (environmentId?: string) => Promise<{
     packages?: { name: string; version: string }[]
+    environmentVersion?: string
     gameplayRevision?: string
     environmentId?: string
     environmentName?: string

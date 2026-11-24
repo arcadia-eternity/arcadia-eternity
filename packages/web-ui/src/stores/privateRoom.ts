@@ -356,7 +356,11 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       if (!personal || personal.reference.descriptor.id !== descriptor.id)
         throw new Error('请先导入房主分享的环境，确认后再准备')
       preparedPeerEnvironment = personal.environment
-      gameDataStore.applyServerEnvironment(personal.content, { rules: personal.reference.rules })
+      gameDataStore.applyServerEnvironment(personal.content, {
+        environmentId: descriptor.environmentId ?? descriptor.id,
+        environmentVersion: descriptor.environmentVersion,
+        rules: personal.reference.rules,
+      })
       roomCatalog.value = { id: descriptor.id, content: personal.content }
       return { ...personal.acceptance, challengeGeneration: room.challengeGeneration }
     }
@@ -391,7 +395,11 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     if (environmentKey() !== key || preparedEnvironment !== entry) throw new Error('房间环境已变化，请重新准备')
     if (!isCurrent()) throw new DOMException('Room recovery cancelled', 'AbortError')
     preparedPeerEnvironment = 'environment' in prepared ? prepared.environment : undefined
-    gameDataStore.applyServerEnvironment(prepared.content, { rules: descriptor.rules })
+    gameDataStore.applyServerEnvironment(prepared.content, {
+      environmentId: descriptor.environmentId ?? descriptor.id,
+      environmentVersion: descriptor.environmentVersion,
+      rules: descriptor.rules,
+    })
     roomCatalog.value = { id: descriptor.id, content: prepared.content }
     return prepared.acceptance
   }
@@ -422,7 +430,11 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     }
     if (!isCurrent() || editorCatalog !== entry || roomEditorKey.value !== key)
       throw new DOMException('Room preview closed', 'AbortError')
-    gameDataStore.applyServerEnvironment(catalog.content, { rules: room.environment.rules })
+    gameDataStore.applyServerEnvironment(catalog.content, {
+      environmentId: room.environment.environmentId ?? room.environment.id,
+      environmentVersion: room.environment.environmentVersion,
+      rules: room.environment.rules,
+    })
     roomCatalog.value = { id: room.environment.id, content: catalog.content }
   }
 
@@ -604,7 +616,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       const hadBattle = currentRoom.value?.status === 'started' || hadPendingBattleStart || !!battleStartInFlight
       if (currentRoom.value) await leaveRoom()
       if (generation !== serverSwitchGeneration) return
-      if (hadBattle) await useBattleStore().resetBattleWithoutSurrender()
+      if (hadBattle && !useBattleStore().isOfflineBattle) await useBattleStore().resetBattleWithoutSurrender()
       if (generation !== serverSwitchGeneration) return
       cleanup()
       const oldSocket = battleClientStore.serverUrl
@@ -815,7 +827,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
           throw new Error('BattleClient 实例尚未初始化')
         }
 
-        await battleStore.initBattle(new RemoteBattleSystem(client), battleClientStore.playerId)
+        await battleStore.initBattle(new RemoteBattleSystem(client), battleClientStore.playerId, 'online')
       } else {
         // 如果已有连接，只需要确保后端知道当前session在观战
         await battleClientStore.joinSpectateBattle(currentRoom.value.battleRoomId)
@@ -981,9 +993,11 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
     const battleStore = useBattleStore()
     const errorMessage = 'P2P 房主已断开连接，对战已中断'
-    battleStore.errorMessage = errorMessage
+    const room = currentRoom.value
     markPeerFailed(errorMessage)
     await teardownPeerTransport()
+    if (battleStore.isOfflineBattle || currentRoom.value?.id !== room.id) return
+    battleStore.errorMessage = errorMessage
     ElNotification({
       title: '对战中断',
       message: errorMessage,
@@ -991,7 +1005,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       duration: 5000,
       position: 'top-right',
     })
-    await router.push(`/room/${currentRoom.value.config.roomCode}`)
+    await router.push(`/room/${room.config.roomCode}`)
   }
 
   const sendPeerSignal = async (
@@ -1232,7 +1246,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       })
     }
 
-    await battleStore.initBattle(battleInterface, localPlayerId, isCurrent)
+    await battleStore.initBattle(battleInterface, localPlayerId, 'online', isCurrent)
     if (!isCurrent()) return
 
     if (peerSession.value.role === 'host') {
@@ -1351,7 +1365,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
           recoveredState,
           isCurrent,
         )
-      else await battleStore.initBattle(new RemoteBattleSystem(client), battleClientStore.playerId, isCurrent)
+      else await battleStore.initBattle(new RemoteBattleSystem(client), battleClientStore.playerId, 'online', isCurrent)
       if (!isCurrent()) return false
 
       if (isSwitchingServer.value || !environmentReady) return false
@@ -1408,6 +1422,8 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     recoveredState?: BattleState,
     shouldResume: () => boolean = () => true,
   ): Promise<void> => {
+    const battle = useBattleStore()
+    if (battle.isOfflineBattle) return
     if (isSwitchingServer.value || !currentRoom.value || (battleStartInfo.battleMode === 'p2p' && isSpectator.value))
       return
     const roomId = battleStartInfo.battleRoomId ?? currentRoom.value?.battleRoomId ?? ''
@@ -1415,7 +1431,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
       await battleStartInFlight.task
       return
     }
-    if (roomId && initializedBattleRoomId === roomId && useBattleStore().battleInterface) return
+    if (roomId && initializedBattleRoomId === roomId && battle.battleInterface) return
     cancelPendingBattleStart()
     const controller = new AbortController()
     battleStartController = controller
@@ -1424,6 +1440,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     const roomCode = currentRoom.value.config.roomCode
     const isCurrent = () =>
       !controller.signal.aborted &&
+      !battle.isOfflineBattle &&
       generation === battleStartGeneration &&
       scope === serverScope() &&
       currentRoom.value?.config.roomCode === roomCode &&
@@ -1452,6 +1469,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
     }
 
     const battleStore = useBattleStore()
+    if (battleStore.isOfflineBattle) return
     const currentRoute = router.currentRoute.value
     if (currentRoute.name === 'Battle' && battleStore.battleInterface) {
       const scope = serverScope(),
@@ -1664,7 +1682,12 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
         )
           break
         cancelPendingBattleStart()
-        await Promise.all([useBattleStore().resetBattleWithoutSurrender(), teardownPeerTransport()])
+        const battle = useBattleStore()
+        if (battle.isOfflineBattle) {
+          await teardownPeerTransport()
+          break
+        }
+        await Promise.all([battle.resetBattleWithoutSurrender(), teardownPeerTransport()])
         if (
           currentRoom.value?.id !== room.id ||
           (currentRoom.value.battleRoomId && currentRoom.value.battleRoomId !== result.battleRoomId)
@@ -1692,7 +1715,7 @@ export const usePrivateRoomStore = defineStore('privateRoom', () => {
 
       case 'roomClosed':
         cleanup()
-        if (event.data.reason === 'MATCH_FINISHED') break
+        if (event.data.reason === 'MATCH_FINISHED' || useBattleStore().isOfflineBattle) break
         if (event.data.reason === 'ADMIN_TERMINATED')
           ElNotification({ title: '对战已中断', message: '服务器管理员终止了这场对战，不计胜负。', type: 'info' })
         router.push('/')

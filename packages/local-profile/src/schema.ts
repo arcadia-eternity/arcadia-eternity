@@ -75,7 +75,9 @@ export const DataSchema = object({
         name: text,
         ruleSetId: text,
         revision,
-        environmentPreference: Type.Optional(object({ source: text, environmentId: text })),
+        environmentPreference: Type.Optional(
+          object({ source: text, environmentId: text, environmentVersion: Type.Optional(text) }),
+        ),
         memberIds: Type.Array(instanceId, { uniqueItems: true, maxItems: MAX_STORED_TEAM_MEMBERS }),
       }),
       { minItems: 1, maxItems: 1000 },

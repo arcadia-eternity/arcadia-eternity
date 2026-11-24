@@ -1,9 +1,13 @@
-import type { ManagedEnvironment } from '@/types/management'
+import type { ManagedEnvironment, ManagedEnvironmentInstallation } from '@/types/management'
 
-export function groupEnvironments<T>(entries: readonly T[], idOf: (entry: T) => string) {
+export function environmentGroupKey(entry: { key: string; environmentVersion?: string }) {
+  return entry.environmentVersion ? 'version/' + entry.environmentVersion : 'source/' + entry.key
+}
+
+export function groupEnvironments<T extends EnvironmentLocation>(entries: readonly T[]) {
   const groups = new Map<string, [T, ...T[]]>()
   for (const entry of entries) {
-    const id = idOf(entry)
+    const id = environmentGroupKey(entry)
     const group = groups.get(id)
     if (group) group.push(entry)
     else groups.set(id, [entry])
@@ -13,6 +17,7 @@ export function groupEnvironments<T>(entries: readonly T[], idOf: (entry: T) => 
 
 export interface EnvironmentLocation {
   id: string
+  environmentVersion?: string
   name: string
   key: string
   source: string
@@ -25,10 +30,10 @@ export interface EnvironmentLocation {
 
 export function resolveEnvironmentEntry<T extends EnvironmentLocation>(
   entries: readonly T[],
-  id?: string,
+  groupKey?: string,
   currentKey?: string,
 ) {
-  const matching = entries.filter(entry => entry.id === id)
+  const matching = entries.filter(entry => environmentGroupKey(entry) === groupKey)
   const current = matching.find(entry => entry.key === currentKey)
   if (current?.editable) return current
   return (
@@ -39,7 +44,17 @@ export function resolveEnvironmentEntry<T extends EnvironmentLocation>(
   )
 }
 
-export function managedLocation(environment: ManagedEnvironment, prefix: string, source: string) {
+export function managedLocation(
+  environment: ManagedEnvironment,
+  prefix: string,
+  source: string,
+  installations: ManagedEnvironmentInstallation[],
+) {
   const { id, name } = environment.document
-  return { id, name, source, key: prefix + '/' + id, editable: !environment.builtin, environment }
+  const installation = installations.find(item => item.environmentId === id && item.status === 'ready')
+  const environmentVersion =
+    installation?.status === 'ready' && installation.draftRevision === environment.revision
+      ? installation.environmentVersion
+      : undefined
+  return { id, name, environmentVersion, source, key: prefix + '/' + id, editable: !environment.builtin, environment }
 }

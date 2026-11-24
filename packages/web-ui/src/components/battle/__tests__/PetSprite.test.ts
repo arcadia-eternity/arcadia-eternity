@@ -4,6 +4,7 @@ import PetSprite from '../PetSprite.vue'
 import { setServerContentText } from '@/i18n/serverContent'
 import unknownPet from '@/assets/images/unknown-pet.svg'
 import { createSwfPlayer } from '@/services/swf/adapter'
+import { registerMediaEnvironment } from '@/services/mediaLoader'
 import { readResourceBytes } from '@/services/resourceTransport'
 const pending = vi.hoisted(() => ({
   resolve: undefined as ((states: string[]) => void) | undefined,
@@ -124,6 +125,22 @@ describe('isolated PetSprite readiness', () => {
     expect(readResourceBytes).not.toHaveBeenCalled()
     await sprite.get('img').trigger('load')
     await sprite.vm.ready
+    sprite.unmount()
+  })
+  it('keeps the loaded portrait ready when another catalog uses the same media scope', async () => {
+    const original = { species: [], skills: [], marks: [] }
+    const replacement = { species: [], skills: [], marks: [] }
+    registerMediaEnvironment(original, 'same-environment-version')
+    registerMediaEnvironment(replacement, 'same-environment-version')
+    setServerContentText(original)
+    const sprite = mount(PetSprite, { props: { imageOnly: true } })
+    await sprite.get('img').trigger('load')
+    const ready = sprite.vm.ready
+    await ready
+
+    setServerContentText(replacement)
+    await flushPromises()
+    expect(sprite.vm.ready).toBe(ready)
     sprite.unmount()
   })
   it('clears recovered states after a live player failure', async () => {

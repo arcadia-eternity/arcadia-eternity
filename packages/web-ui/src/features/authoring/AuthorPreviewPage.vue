@@ -290,7 +290,11 @@ async function launch(reconfigure = false) {
       battle.errorMessage = cause.message
     })
     ownedSystem = prepared.system
-    const restore = data.useLocalBattleContent(prepared.content, prepared.rules)
+    const restore = data.useLocalBattleContent(prepared.content, {
+      environmentId: prepared.environmentId,
+      pinned: true,
+      rules: prepared.rules,
+    })
     const stop = prepared.system.cleanup.bind(prepared.system)
     prepared.system.cleanup = async () => {
       restore()
@@ -304,7 +308,7 @@ async function launch(reconfigure = false) {
     const state = await prepared.system.getState(undefined, true)
     const player = state.players[0]?.id
     if (!player) throw new Error('试玩队伍为空，请检查项目默认配置。')
-    await battle.initBattle(prepared.system, player, () => !disposed || transferred)
+    await battle.initBattle(prepared.system, player, 'local', () => !disposed || transferred)
     if (battle.isBattleEnd) battle.victor = prepared.outcome?.winner ?? null
     if (disposed) {
       await cleanup()
@@ -341,7 +345,10 @@ onMounted(async () => {
     }
     const setup = await loadAuthorPreviewSetup(endpoint)
     if (disposed) return
-    restoreSetup = data.useLocalBattleContent(setup.content, setup.rules)
+    restoreSetup = data.useLocalBattleContent(setup.content, {
+      environmentId: setup.candidate.environmentId,
+      rules: setup.rules,
+    })
     await loadEnvironments()
     environmentId.value = setup.candidate.environmentId
     preparedEnvironmentId.value = environmentId.value

@@ -66,13 +66,13 @@ export function petBattle(
   battle.phaseManager.registerPhase(start)
   expect(battle.phaseManager.executePhase(start.id).success).toBe(true)
 
-  function use(id: string, actor: Player = owner, willHit = true) {
+  function use(id: string, actor: Player = owner, willHit: boolean | null = true) {
     const skill = actor.activePet.skills.find(candidate => candidate.baseId === id)
     if (!skill) throw new Error(`Missing equipped skill ${id}`)
     actor.currentRage = actor.maxRage
     const turn = new TurnContext(battle)
     const context = new UseSkillContext(turn, actor, actor.activePet, skill.target, skill)
-    context.hitOverrides.push({ willHit, priority: 1000 })
+    if (willHit !== null) context.hitOverrides.push({ willHit, priority: 1000 })
     const phase = new SkillPhase(battle, actor, actor.activePet, skill.target, skill, turn, context)
     battle.phaseManager.registerPhase(phase)
     expect(battle.phaseManager.executePhase(phase.id).success).toBe(true)

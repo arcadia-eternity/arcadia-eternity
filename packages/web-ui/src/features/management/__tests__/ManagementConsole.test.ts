@@ -138,10 +138,16 @@ describe('shared management console', () => {
       }
       const personal = draft('个人')
       const managed = shared ? personal : { ...draft('开服'), revision: 'host-revision' }
+      const installed = (env: ManagedEnvironment) => ({
+        ...version(),
+        environmentId: env.document.id,
+        draftRevision: env.revision,
+        environmentVersion: 'version-' + env.document.id,
+      })
       const request = vi.fn(async (input: ManagementIpcRequest) => ({
         status: 200,
         body: input.path.endsWith('/environments')
-          ? { environments: [builtin, extended, managed], installations: [version()] }
+          ? { environments: [builtin, extended, managed], installations: [builtin, extended, managed].map(installed) }
           : response(input.path),
       }))
       const localEnvironment = vi.fn(async (input: Record<string, unknown>) => ({
@@ -151,7 +157,7 @@ describe('shared management console', () => {
                 workspaceId: shared ? 'workspace-local' : 'personal',
                 selectedEnvironmentId: 'builtin',
                 environments: [builtin, extended, personal],
-                installations: [],
+                installations: [builtin, extended, personal].map(installed),
                 operations: [{ id: 'local-apply', kind: 'environment.apply', status: 'succeeded' }],
               }
             : { operationId: 'local-apply' },

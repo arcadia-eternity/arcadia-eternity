@@ -139,13 +139,8 @@ const emitter = mitt<AnimationEvents>()
 const route = useRoute()
 const router = useRouter()
 const previewReturnLabel = window.arcadiaAuthorPreview ? '返回编辑器' : '返回内容包'
-const isLocalBattle = computed(
-  () =>
-    !props.replayMode &&
-    (props.enableDeveloperMode || typeof route.query.authorPreview === 'string') &&
-    route.query.privateRoom !== 'true',
-)
 const store = useBattleStore()
+const isLocalBattle = computed(() => store.battleSource === 'local')
 const battleReportStore = useBattleReportStore()
 const gameDataStore = useGameDataStore()
 const resourceStore = useResourceStore()
@@ -326,50 +321,9 @@ const climaxEffectRef = useTemplateRef('climaxEffectRef') // climax特效组件�
 const battleViewScale = computed(() => battleViewStore.scale)
 provide(battleTooltipPortalKey, { container: battleContainerRef, scale: battleViewScale })
 
-// 训练模式配置
-const trainingModeConfig = computed(() => {
-  return {
-    // 基础条件检查
-    isExplicitlyEnabled: props.enableDeveloperMode === true,
-
-    // 模式排除检查
-    isNotReplayMode: !isReplayMode.value && !props.replayMode,
-    isNotBattleReport: !props.localReportId,
-
-    // 获取当前模式描述
-    get currentMode() {
-      if (props.replayMode || isReplayMode.value) return 'replay'
-      if (props.localReportId) return 'local-battle-report'
-      if (props.enableDeveloperMode) return 'local-battle'
-      return 'normal-battle'
-    },
-
-    // 检查是否应该启用训练模式（移除开发环境限制）
-    get shouldEnable() {
-      return this.isExplicitlyEnabled && this.isNotReplayMode && this.isNotBattleReport
-    },
-  }
-})
-
-// 训练模式检测
-const isTrainingMode = computed(() => {
-  const config = trainingModeConfig.value
-
-  // 在开发环境下提供调试信息
-  if (import.meta.env.DEV && props.enableDeveloperMode) {
-    console.debug('Training mode check:', {
-      mode: config.currentMode,
-      enabled: config.shouldEnable,
-      conditions: {
-        isExplicitlyEnabled: config.isExplicitlyEnabled,
-        isNotReplayMode: config.isNotReplayMode,
-        isNotBattleReport: config.isNotBattleReport,
-      },
-    })
-  }
-
-  return config.shouldEnable
-})
+const isTrainingMode = computed(
+  () => props.enableDeveloperMode && !props.replayMode && !props.localReportId && !!store.trainingSystem,
+)
 
 // 训练面板状态
 const isTrainingPanelOpen = ref(false)
@@ -784,7 +738,7 @@ let opponentReconnectedHandler: ((data: { reconnectedPlayerId: string }) => void
 
 // 设置掉线重连事件处理
 const setupDisconnectHandlers = () => {
-  if (props.replayMode) return // 回放模式不需要处理掉线
+  if (store.battleSource !== 'online') return
 
   // 防止重复注册
   if (opponentDisconnectedHandler || opponentReconnectedHandler) {
@@ -2196,6 +2150,7 @@ const setupMessageSubscription = async () => {
 
 onUnmounted(async () => {
   const departingBattle = store.battleInterface
+  const wasOnlineBattle = store.battleSource === 'online'
   battleDisposed = true
   releaseBattleStateWait?.()
   cancelSpriteWaits()
@@ -2240,7 +2195,7 @@ onUnmounted(async () => {
   cleanupDisconnectHandlers()
 
   // 如果是观战模式，主动通知后端离开观战
-  if (isSpectatorMode.value && !props.replayMode) {
+  if (wasOnlineBattle && isSpectatorMode.value) {
     try {
       await battleClientStore.leaveSpectateBattle()
     } catch (err) {
@@ -2255,7 +2210,7 @@ onUnmounted(async () => {
     } else {
       await store.resetBattle()
     }
-    battleClientStore.resetState()
+    if (wasOnlineBattle && !store.battleInterface) battleClientStore.resetState()
   }
 })
 
@@ -2287,7 +2242,7 @@ watch(
 watch(
   () => battleClientStore.currentState.status,
   async (newStatus, oldStatus) => {
-    if (props.replayMode || isSpectatorMode.value) return // 回放模式和观战模式不需要处理掉线
+    if (store.battleSource !== 'online' || isSpectatorMode.value) return
 
     if (newStatus === 'disconnected' && oldStatus === 'connected') {
       // 从连接状态变为断线状态
@@ -2330,7 +2285,7 @@ watch(
 watch(
   () => battleClientStore.currentState.battle,
   async newBattleState => {
-    if (props.replayMode || isSpectatorMode.value) return
+    if (store.battleSource !== 'online' || isSpectatorMode.value) return
 
     if (newBattleState === 'ended') {
       await exitBattleBecauseServerClosed('state-ended')
@@ -2838,7 +2793,7 @@ watch(
         </Transition>
 
         <!-- 训练面板 -->
-        <TrainingPanel :is-developer-mode="isTrainingMode" v-model:is-open="isTrainingPanelOpen" />
+        <TrainingPanel v-if="isTrainingMode && isTrainingPanelOpen" @close="isTrainingPanelOpen = false" />
       </div>
     </div>
   </div>

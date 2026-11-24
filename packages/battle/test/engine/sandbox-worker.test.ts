@@ -23,26 +23,23 @@ function manager(
   overrides: Partial<ConstructorParameters<typeof BattleWorkerManager>[1]> = {},
   workerUrl = new URL('../../dist/sandbox-node-worker.js', import.meta.url),
 ) {
-  const result = new BattleWorkerManager(
-    () => {
-      const worker = new Worker(workerUrl)
-      return {
-        endpoint: nodeEndpoint(worker),
-        terminate: () => worker.terminate(),
-        onFailure(handler) {
-          const error = (value: Error) => handler(value.message),
-            exit = (code: number) => handler(`exit ${code}`)
-          worker.on('error', error)
-          worker.on('exit', exit)
-          return () => {
-            worker.off('error', error)
-            worker.off('exit', exit)
-          }
-        },
-      }
-    },
-    { maxBattles: 4, initializeMs: 20_000, requestMs: 5_000, cleanupMs: 1_000, heartbeatMs: 1000, ...overrides },
-  )
+  const result = new BattleWorkerManager(() => {
+    const worker = new Worker(workerUrl)
+    return {
+      endpoint: nodeEndpoint(worker),
+      terminate: () => worker.terminate(),
+      onFailure(handler) {
+        const error = (value: Error) => handler(value.message),
+          exit = (code: number) => handler(`exit ${code}`)
+        worker.on('error', error)
+        worker.on('exit', exit)
+        return () => {
+          worker.off('error', error)
+          worker.off('exit', exit)
+        }
+      },
+    }
+  }, overrides)
   managers.push(result)
   return result
 }
@@ -191,7 +188,7 @@ function small(source = 'export function createEffects(){return []}'): SandboxBa
 }
 it('terminates a stuck startup and preserves another active battle', async () => {
   // Allow a real cold WASM startup; the stuck module still hits the Worker
-  // deadline before its own 10-second VM preparation budget.
+  // deadline before its own VM preparation budget.
   const host = manager({ initializeMs: 5000 }),
     healthy = await host.create(small())
   const before = await healthy.getState(undefined, true)

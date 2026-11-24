@@ -70,6 +70,7 @@ export interface ManagedReadyEnvironmentInstallation {
   document: ManagedEnvironmentDocument
   draftRevision: string
   contentRevision: string
+  environmentVersion?: string
   ruleComposition?: {
     requiredCapabilities?: string[]
     rules: import('./environment').EnvironmentRules

@@ -3,6 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
 import assert from 'node:assert/strict'
+import { readChromeProbe } from './read-chrome-probe.mjs'
 const dir = resolve('packages/battle/dist/battle-host-check')
 await mkdir(dir, { recursive: true })
 const graphs = {}
@@ -81,13 +82,14 @@ await writeFile(`${dir}/node-result.json`, JSON.stringify(result, null, 2))
 await writeFile(
   `${dir}/index.html`,
   `<!doctype html><meta charset="utf-8"><title>Battle Core host check</title><pre id="result">Running</pre><script type="module">
-import { verifyBattle, resumeCheckpointProbe } from './browser.mjs';
-try { const result = await verifyBattle();
+try {
+const { verifyBattle, resumeCheckpointProbe } = await import('./browser.mjs');
+const result = await verifyBattle();
 const checkpoint = await (await fetch('./checkpoint.json')).json();
 const crossHost = await resumeCheckpointProbe(checkpoint);
 if (JSON.stringify(crossHost) !== JSON.stringify(result.checkpoint)) throw new Error('Node checkpoint differs in Browser');
 document.querySelector('#result').textContent = JSON.stringify(result); }
-catch (error) { document.querySelector('#result').textContent = String(error); }
+catch (error) { document.querySelector('#result').textContent = String(error.stack ?? error); }
 </script>`,
 )
 console.log(
@@ -98,11 +100,7 @@ console.log(
 )
 if (process.argv.includes('--browser')) {
   const { createServer } = await import('node:http')
-  const { readFile, mkdtemp, rm } = await import('node:fs/promises')
-  const { tmpdir } = await import('node:os')
-  const { execFile } = await import('node:child_process')
-  const { promisify } = await import('node:util')
-  const profile = await mkdtemp(`${tmpdir()}/ae-battle-chrome-`)
+  const { readFile } = await import('node:fs/promises')
   const server = createServer(async (request, response) => {
     const file =
       request.url === '/'
@@ -122,27 +120,11 @@ if (process.argv.includes('--browser')) {
   })
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
   try {
-    const chrome =
-      process.env.BATTLE_CHROME ??
-      (process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : 'google-chrome')
-    const { stdout } = await promisify(execFile)(
-      chrome,
-      [
-        '--headless=new',
-        '--disable-gpu',
-        ...(process.platform === 'linux' ? ['--no-sandbox', '--disable-dev-shm-usage'] : []),
-        '--no-first-run',
-        `--user-data-dir=${profile}`,
-        '--dump-dom',
-        '--virtual-time-budget=5000',
-        `http://127.0.0.1:${server.address().port}/`,
-      ],
-      { timeout: 30000, maxBuffer: 1024 * 1024 },
-    )
-    await writeFile(`${dir}/browser-dom.html`, stdout)
-    assert.ok(
-      stdout.includes(`<pre id="result">${JSON.stringify(result)}</pre>`),
-      'Real browser result differs from Node; inspect browser-dom.html',
+    const browserResult = await readChromeProbe(`http://127.0.0.1:${server.address().port}/`, `${dir}/browser-dom.html`)
+    assert.equal(
+      browserResult,
+      JSON.stringify(result),
+      'Real browser result differs from Node. Inspect browser-dom.html.',
     )
     console.log(
       JSON.stringify({
@@ -154,6 +136,5 @@ if (process.argv.includes('--browser')) {
     )
   } finally {
     await new Promise(resolve => server.close(resolve))
-    await rm(profile, { recursive: true, force: true, maxRetries: 3 })
   }
 }

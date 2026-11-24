@@ -112,10 +112,7 @@ export class MimiEffects {
     const tanshe = {
       triggers: [EffectTrigger.AfterUseSkillCheck] as const,
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        contexts.skillUse.condition((_, events) => events.some(event => event.skill.baseId === 'skill_tanshe')),
-      ),
+      when: conditions.selfUsesSkill,
       apply: (ctx => {
         const stacks = ctx.read(tanliStacks) ?? 0
         if (stacks >= 40) {
@@ -128,10 +125,7 @@ export class MimiEffects {
     const xulitanshe = {
       triggers: [EffectTrigger.AfterUseSkillCheck] as const,
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        contexts.skillUse.condition((_, events) => events.some(event => event.skill.baseId === 'skill_xulitanshe')),
-      ),
+      when: conditions.selfUsesSkill,
       apply: (ctx => {
         const stacks = ctx.read(tanliStacks) ?? 0
         if (stacks >= 50) {
@@ -144,20 +138,14 @@ export class MimiEffects {
     const tanhuangtizhi = {
       triggers: [EffectTrigger.AfterUseSkillCheck] as const,
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        contexts.skillUse.condition((_, events) => events.some(event => event.skill.baseId === 'skill_tanhuangtizhi')),
-      ),
+      when: conditions.selfUsesSkill,
       apply: targets.ownerPet.apply(ops.addMark(tizhi, { stack: 1 })),
     }
 
     const zhongyatanshe = {
       triggers: [EffectTrigger.AfterUseSkillCheck] as const,
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        contexts.skillUse.condition((_, events) => events.some(event => event.skill.baseId === 'skill_zhongyatanshe')),
-      ),
+      when: conditions.selfUsesSkill,
       apply: (ctx => {
         const stacks = ctx.read(tanliStacks) ?? 0
         if (stacks >= 50) {
@@ -170,10 +158,7 @@ export class MimiEffects {
     const dantiaolianji = {
       triggers: [EffectTrigger.BeforeMultiHit] as const,
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        contexts.skillUse.condition((_, events) => events.some(event => event.skill.baseId === 'skill_dantiaolianji')),
-      ),
+      when: conditions.selfUsesSkill,
       apply: (ctx => {
         const stacks = ctx.read(tanliStacks) ?? 0
         const extra = Math.min(5, Math.floor(stacks / 40))
@@ -187,10 +172,7 @@ export class MimiEffects {
     const tanhuangtujin = {
       triggers: [EffectTrigger.AfterUseSkillCheck] as const,
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        contexts.skillUse.condition((_, events) => events.some(event => event.skill.baseId === 'skill_tanhuangtujin')),
-      ),
+      when: conditions.selfUsesSkill,
       apply: contexts.skillUse.apply(
         ops.addPower(contexts.skillUse.select(event => Math.min(2, event.pet.lastSkillUsedTimes - 1) * 50).first()),
       ),
@@ -199,47 +181,21 @@ export class MimiEffects {
     const tanhuangbaozha = {
       triggers: [EffectTrigger.AfterUseSkillCheck] as const,
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        contexts.skillUse.condition((_, events) => events.some(event => event.skill.baseId === 'skill_tanhuangbaozha')),
-      ),
+      when: conditions.selfUsesSkill,
       apply: targets.ownerPet.apply(ops.addMark(baozha, { stack: 1 })),
-    }
-
-    const benghuaizhongquan = {
-      triggers: [EffectTrigger.AfterUseSkillCheck] as const,
-      priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        contexts.skillUse.condition((_, events) =>
-          events.some(event => event.skill.baseId === 'skill_benghuaizhongquan'),
-        ),
-      ),
-      apply: (ctx => {
-        selfLossHp(50)(ctx)
-      }) satisfies Action<EffectTrigger.AfterUseSkillCheck>,
     }
 
     const benghuaizhongquanKill = {
       triggers: [EffectTrigger.OnDefeat] as const,
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        hasBenghuai,
-        contexts.skillUse.condition((_, events) =>
-          events.some(event => event.skill.baseId === 'skill_benghuaizhongquan'),
-        ),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, hasBenghuai),
       apply: healOnKill(0.17),
     }
 
     const benghuaizhinu = {
       triggers: [EffectTrigger.AfterUseSkillCheck] as const,
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        contexts.skillUse.condition((_, events) => events.some(event => event.skill.baseId === 'skill_benghuaizhinu')),
-      ),
+      when: conditions.selfUsesSkill,
       apply: (ctx => {
         selfLossHp(50)(ctx)
         if (hasBenghuai(ctx)) {
@@ -248,38 +204,10 @@ export class MimiEffects {
       }) satisfies Action<EffectTrigger.AfterUseSkillCheck>,
     }
 
-    const benghuaituji = {
-      triggers: [EffectTrigger.AfterUseSkillCheck] as const,
-      priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        contexts.skillUse.condition((_, events) => events.some(event => event.skill.baseId === 'skill_benghuaituji')),
-      ),
-      apply: (ctx => {
-        selfLossHp(50)(ctx)
-      }) satisfies Action<EffectTrigger.AfterUseSkillCheck>,
-    }
-
-    const benghuaiyanmie = {
-      triggers: [EffectTrigger.AfterUseSkillCheck] as const,
-      priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        contexts.skillUse.condition((_, events) => events.some(event => event.skill.baseId === 'skill_benghuaiyanmie')),
-      ),
-      apply: (ctx => {
-        selfLossHp(50)(ctx)
-      }) satisfies Action<EffectTrigger.AfterUseSkillCheck>,
-    }
-
     const benghuaiyanmieKill = {
       triggers: [EffectTrigger.OnDefeat] as const,
       priority: 0,
-      when: conditions.all(
-        conditions.selfUsesSkill,
-        hasBenghuai,
-        contexts.skillUse.condition((_, events) => events.some(event => event.skill.baseId === 'skill_benghuaiyanmie')),
-      ),
+      when: conditions.all(conditions.selfUsesSkill, hasBenghuai),
       apply: targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
     }
 
@@ -316,31 +244,34 @@ export class MimiEffects {
     }
 
     return defineEffects({
-      effect_mimi_ability_tanli_on_hp_loss: tanliGainOnHpLoss,
-      effect_mimi_ability_benghuai_power: benghuaiPower,
-      effect_mimi_emblem_benghuai_reduction: emblemReduction,
-      effect_mimi_emblem_benghuai_selfloss_reduction: emblemSelfLossReduction,
-      effect_mimi_skill_tanshe: tanshe,
-      effect_mimi_skill_xulitanshe: xulitanshe,
-      effect_mimi_skill_tanhuangtizhi: tanhuangtizhi,
-      effect_mimi_skill_zhongyatanshe: zhongyatanshe,
-      effect_mimi_skill_dantiaolianji: dantiaolianji,
-      effect_mimi_skill_tanhuangtujin: tanhuangtujin,
-      effect_mimi_skill_tanhuangbaozha: tanhuangbaozha,
-      effect_mimi_skill_benghuaizhongquan: benghuaizhongquan,
-      effect_mimi_skill_benghuaizhongquan_kill: benghuaizhongquanKill,
-      effect_mimi_skill_benghuaizhinu: benghuaizhinu,
-      effect_mimi_skill_benghuaituji: benghuaituji,
-      effect_mimi_skill_benghuaituji_priority: {
+      effect_ability_gain_tanli_on_hp_loss_and_add_benghuai_at_200: tanliGainOnHpLoss,
+      effect_ability_double_benghuai_skill_power_with_benghuai_mark: benghuaiPower,
+      effect_emblem_reduce_attack_damage_taken_25_with_benghuai: emblemReduction,
+      effect_emblem_reduce_self_inflicted_effect_damage_25_with_benghuai: emblemSelfLossReduction,
+      effect_skill_consume_40_tanli_to_double_power_after_check: tanshe,
+      effect_skill_consume_50_tanli_to_double_power_after_check: xulitanshe,
+      effect_skill_add_mark_self_tanhuangtizhi_after_check: tanhuangtizhi,
+      effect_skill_consume_50_tanli_to_set_sure_hit_after_check: zhongyatanshe,
+      effect_skill_consume_40_tanli_per_extra_hit_up_to_5: dantiaolianji,
+      effect_skill_add_power_50_per_consecutive_use_up_to_100_after_check: tanhuangtujin,
+      effect_skill_add_mark_self_tanhuangbaozha_after_check: tanhuangbaozha,
+      effect_skill_deal_self_50_effect_damage_with_skill_modifiers_after_check: {
+        triggers: [EffectTrigger.AfterUseSkillCheck],
+        priority: 0,
+        when: conditions.selfUsesSkill,
+        apply: selfLossHp(50),
+      },
+      effect_skill_heal_self_17_percent_max_hp_on_defeat_if_benghuai: benghuaizhongquanKill,
+      effect_skill_deal_self_50_effect_damage_then_set_sure_hit_if_benghuai_after_check: benghuaizhinu,
+      effect_skill_raise_priority_1_with_benghuai: {
         triggers: [EffectTrigger.BeforeSort],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, hasBenghuai),
         apply: contexts.skillUse.property('priority').apply(ops.add(1)),
       },
-      effect_mimi_skill_benghuaiyanmie: benghuaiyanmie,
-      effect_mimi_skill_benghuaiyanmie_kill: benghuaiyanmieKill,
-      effect_mimi_mark_tizhi_reflect: tizhiReflect,
-      effect_mimi_mark_baozha_trigger: baozhaTrigger,
+      effect_skill_raise_spa_1_stage_on_defeat_if_benghuai: benghuaiyanmieKill,
+      effect_mark_deal_30_fixed_damage_to_attacker_when_tanhuangtizhi_takes_attack_damage: tizhiReflect,
+      effect_mark_consume_tanhuangbaozha_and_deal_damage_equal_to_tanli_spent_on_damage_taken: baozhaTrigger,
     })
   }
 }

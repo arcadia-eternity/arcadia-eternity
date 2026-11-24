@@ -45,8 +45,10 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/creation',
     name: 'Creation',
-    component: isDesktop ? () => import('@/features/content/CreationPage.vue') : LocalContentOnlyPage,
-    meta: { title: '内容包与创作' },
+    component: isDesktop
+      ? () => import('@/features/content/CreationPage.vue')
+      : () => import('@/features/content/CreationStart.vue'),
+    meta: { title: '创作工坊' },
   },
   {
     path: '/environments',

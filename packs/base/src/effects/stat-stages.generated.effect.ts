@@ -536,12 +536,6 @@ export const generatedStatStageCandidates = Object.freeze({
       ),
       apply: targets.ownerPet.apply(ops.changeStatStage('atk', 2)),
     },
-    effect_skill_raise_atk_2_stages: {
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when: selfUsesSkill,
-      apply: targets.ownerPet.apply(ops.changeStatStage('atk', 2)),
-    },
     effect_skill_raise_atk_20_percent: {
       priority: 0,
       triggers: [EffectTrigger.BeforeHit],
@@ -597,20 +591,15 @@ export const generatedStatStageCandidates = Object.freeze({
       ),
       apply: targets.ownerPet.apply(ops.changeStatStage('def', 1)),
     },
-    effect_skill_raise_def_2_stages: {
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when: selfUsesSkill,
-      apply: targets.ownerPet.apply(ops.changeStatStage('def', 2)),
-    },
     effect_skill_raise_self_spa_1_stage_if_3_hits: {
-      triggers: [EffectTrigger.BeforeMultiHit],
+      triggers: [EffectTrigger.BeforeHit],
       priority: 0,
-      when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
-        const left = ctx.read(contexts.skillUse.select(event => event.multihitResult).first())
-        const right = 3
-        return left !== undefined && right !== undefined && left === right
-      }),
+      when: conditions.all(
+        conditions.selfUsesSkill,
+        contexts.skillUse.condition((_, uses) =>
+          uses.some(use => use.multihitResult === 3 && use.currentHitCount === 1),
+        ),
+      ),
       apply: targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
     },
     effect_skill_raise_self_spa_2_stage_if_has_shijianfaze: {
@@ -697,12 +686,6 @@ export const generatedStatStageCandidates = Object.freeze({
       ),
       apply: targets.ownerPet.apply(ops.changeStatStage('spa', 2)),
     },
-    effect_skill_raise_spa_2_stages: {
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when: selfUsesSkill,
-      apply: targets.ownerPet.apply(ops.changeStatStage('spa', 2)),
-    },
     effect_skill_raise_spd_1_stage: {
       priority: 0,
       triggers: [EffectTrigger.BeforeHit],
@@ -741,12 +724,6 @@ export const generatedStatStageCandidates = Object.freeze({
         ),
       ),
       apply: targets.ownerPet.apply(ops.changeStatStage('spd', 1)),
-    },
-    effect_skill_raise_spd_2_stages: {
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when: selfUsesSkill,
-      apply: targets.ownerPet.apply(ops.changeStatStage('spd', 2)),
     },
     effect_skill_raise_spe_1_stage: {
       priority: 0,
@@ -831,12 +808,6 @@ export const generatedStatStageCandidates = Object.freeze({
         targets.ownerMarks.where(mark => mark.baseId === 'mark_zhandoulingyu').condition(checks.exists()),
       ),
       apply: targets.ownerPet.apply(ops.changeStatStage('spe', 1)),
-    },
-    effect_skill_raise_spe_2_stages: {
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when: selfUsesSkill,
-      apply: targets.ownerPet.apply(ops.changeStatStage('spe', 2)),
     },
     effect_skill_raise_spe_20_percent: {
       priority: 0,
@@ -1013,7 +984,7 @@ export const generatedStatStageCandidates = Object.freeze({
       apply: targets.opponentActive.apply(ops.changeStatStage('spa', -1)),
     },
     effect_skill_reduce_opponent_spa_1_stage_if_bingdong: {
-      triggers: [EffectTrigger.OnHit],
+      triggers: [EffectTrigger.BeforeHit],
       priority: 0,
       when: conditions.all(
         conditions.selfUsesSkill,
@@ -1168,24 +1139,6 @@ export const generatedStatStageCandidates = Object.freeze({
       ),
       apply: targets.opponentActive.apply(ops.changeStatStage('spe', -2)),
     },
-    effect_skill_reduce_opponent_stat_1_stage: {
-      priority: 0,
-      triggers: [EffectTrigger.BeforeHit],
-      when: selfUsesSkill,
-      apply: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
-    },
-    effect_skill_reduce_stat_5_percent: (() => {
-      const parameters = {
-        condition_1_percent: numberParam({ default: 5, tags: ['skill_effect_probability'], legacyAliases: [] }),
-      }
-      return {
-        triggers: [EffectTrigger.BeforeHit] as const,
-        priority: 0,
-        parameters,
-        when: conditions.all(conditions.selfUsesSkill, conditions.chance(parameters.condition_1_percent)),
-        apply: targets.opponentActive.apply(ops.changeStatStage('def', -1)),
-      }
-    })(),
     effect_skill_set_self_spa_to_atk: {
       triggers: [EffectTrigger.BeforeHit],
       priority: 0,

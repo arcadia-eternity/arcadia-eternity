@@ -129,7 +129,6 @@ const team = computed<{ id?: string; name: string; pets: unknown[] } | null>({
 })
 const valid = ref(false)
 const environmentReady = ref(false)
-let previewSpecies: typeof gameData.species | undefined
 const preview = shallowRef<ServerEnvironmentContent>()
 const previewMedia = createMediaPreloader('匹配预览')
 const settings = useGameSettingStore()
@@ -146,9 +145,13 @@ async function prepareEnvironment() {
   try {
     const { content, descriptor } = await rooms.prepareMatchmakingEnvironment(environmentId.value)
     if (attempt === generation) {
-      gameData.applyServerEnvironment(content, { rules: descriptor.rules })
+      gameData.applyServerEnvironment(content, {
+        environmentId: descriptor.environmentId ?? descriptor.id,
+        environmentVersion: descriptor.environmentVersion,
+        rules: descriptor.rules,
+        owner: 'matchmaking',
+      })
       preview.value = content
-      previewSpecies = gameData.species
       environmentReady.value = true
     }
   } catch (cause) {
@@ -199,7 +202,10 @@ function start() {
 watch(
   () => [matchmaking.unavailable, matchmaking.waiting, client.serverUrl] as const,
   ([unavailable, waiting]) => {
-    if (unavailable && !waiting) preview.value = undefined
+    if (unavailable && !waiting) {
+      preview.value = undefined
+      void gameData.clearServerEnvironment('matchmaking')
+    }
     if (!unavailable && !waiting) void loadEnvironments()
     else {
       ++generation
@@ -212,6 +218,6 @@ onBeforeUnmount(() => {
   previewMedia.stop()
   ++generation
   if (loading.value && !matchmaking.waiting) rooms.cancelMatchmakingPreparation()
-  if (previewSpecies && gameData.species === previewSpecies && !rooms.currentRoom) gameData.clearServerEnvironment()
+  void gameData.clearServerEnvironment('matchmaking')
 })
 </script>

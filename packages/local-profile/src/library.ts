@@ -21,6 +21,7 @@ export interface OwnedPet extends ShareablePet {
 }
 
 export interface EnvironmentPreference {
+  environmentVersion?: string
   source: string
   environmentId: string
 }

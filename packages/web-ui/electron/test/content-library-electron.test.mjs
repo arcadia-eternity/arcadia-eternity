@@ -177,7 +177,7 @@ test(
         await (await import(path)).useBattleStore().resetBattleWithoutSurrender()
       })
       await page.goto(rendererUrl + '/environments?target=local')
-      await page.getByRole('button', { name: '内容包与创作', exact: true }).click()
+      await page.locator('main').getByRole('button', { name: '创作工坊', exact: true }).click()
       await page.locator('.package-select').filter({ hasText: pkg.title }).click()
       await page.screenshot({ path: join(output, 'installed.png'), fullPage: true })
       const current = await page.evaluate(() => window.arcadiaDesktop.listContentPackages())

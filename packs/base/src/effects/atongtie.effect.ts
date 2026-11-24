@@ -74,7 +74,7 @@ export class AtongtieEffects {
       actions.choose(conditions.selfUsesSkill, action)
 
     return defineEffects({
-      effect_atongtie_ability_overload: {
+      effect_ability_add_mark_self_guozai_at_100_rage_on_gain_or_turn_start: {
         triggers: [EffectTrigger.OnRageGain, EffectTrigger.TurnStart] as const,
         priority: 0,
         when: (ctx => {
@@ -89,78 +89,61 @@ export class AtongtieEffects {
           if (pet.currentRage >= 100) addOverload(ctx)
         }) satisfies Action<EffectTrigger.OnRageGain | EffectTrigger.TurnStart>,
       },
-      effect_atongtie_emblem_overload_defeat: {
+      effect_emblem_deal_opponent_fixed_damage_100_if_defeated_with_guozai: {
         triggers: [EffectTrigger.OnDefeat] as const,
         priority: 0,
         when: conditions.all(conditions.ownerIsSkillTarget, ownerHasOverload),
         apply: targets.opponentActive.apply(ops.dealDamage(100)),
       },
-      effect_atongtie_skill_wajietuji: {
+      effect_skill_add_mark_opponent_wugongjianban_100_percent_on_apply: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.OnHit] as const,
         priority: 0,
         apply: secondaryOnHit(100, addAtkHalf),
       },
-      effect_atongtie_skill_wulixishou: {
+      effect_skill_add_mark_self_wulixishou: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.OnHit] as const,
         priority: 0,
         apply: statusSkillAction(addPhysicalAbsorb),
       },
-      effect_atongtie_skill_ganghuatuji: {
+      effect_skill_add_mark_self_tefongfantan_100_percent_on_apply: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.OnHit] as const,
         priority: 0,
         apply: secondaryOnHit(100, addSpecialRebound),
       },
-      effect_atongtie_skill_teshufanshe: {
+      effect_skill_add_mark_self_teshufanshe: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.OnHit] as const,
         priority: 0,
         apply: statusSkillAction(addSpecialReflect),
       },
-      effect_atongtie_skill_zhandouchengxu: {
-        when: conditions.selfUsesSkill,
-        triggers: [EffectTrigger.OnHit] as const,
-        priority: 0,
-        apply: statusSkillAction(
-          actions.sequence(
-            targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
-            targets.ownerPet.apply(ops.changeStatStage('spa', 1)),
-          ),
-        ),
-      },
-      effect_atongtie_skill_chenmentuji: {
+      effect_skill_add_mark_opponent_shuxingshixiao_100_percent_on_apply: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.OnHit] as const,
         priority: 0,
         apply: secondaryOnHit(100, addPropertyFail),
       },
-      effect_atongtie_skill_shengnu: {
+      effect_skill_add_mark_opponent_jinu: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.OnHit] as const,
         priority: 0,
         apply: statusSkillAction(addEnrage),
       },
-      effect_atongtie_skill_chaopinyunzhuan: {
-        when: conditions.selfUsesSkill,
-        triggers: [EffectTrigger.OnHit] as const,
-        priority: 0,
-        apply: statusSkillAction(targets.ownerPet.apply(ops.changeStatStage('spe', 1))),
-      },
-      effect_atongtie_skill_qianghuatouchui: {
+      effect_skill_sure_hit_if_self_hp_below_quarter_before_check: {
         triggers: [EffectTrigger.BeforeUseSkillCheck] as const,
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, ownerHpBelowQuarter),
         apply: contexts.skillUse.apply(ops.setSureHit()),
       },
-      effect_atongtie_skill_atonggangtiepao: {
+      effect_skill_add_rage_20_10_percent_on_hit: {
         triggers: [EffectTrigger.OnHit] as const,
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, rollSecondary(10)),
         apply: targets.ownerPet.apply(ops.addRage(20)),
       },
-      effect_atongtie_mark_guozai_lock_rage: {
+      effect_mark_prevent_rage_changes_except_climax_cost: {
         triggers: [EffectTrigger.BeforeRageGain, EffectTrigger.BeforeRageLoss] as const,
         priority: 0,
         when: conditions.all(conditions.ownerIsActive, conditions.ownerReceivesRage),
@@ -174,7 +157,7 @@ export class AtongtieEffects {
           }
         }) satisfies Action<EffectTrigger.BeforeRageGain | EffectTrigger.BeforeRageLoss>,
       },
-      effect_atongtie_mark_guozai_end_on_climax: {
+      effect_mark_remove_self_after_climax_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck] as const,
         priority: 0,
         when: conditions.all(
@@ -183,7 +166,7 @@ export class AtongtieEffects {
         ),
         apply: targets.sourceMark.apply(ops.removeMark()),
       },
-      effect_atongtie_mark_wulixishou_absorb: {
+      effect_mark_replace_physical_attack_damage_below_max_hp_sixth_with_heal: {
         triggers: [EffectTrigger.OnDamageReplacement],
         when: conditions.all(
           conditions.selfBeDamaged,
@@ -194,7 +177,7 @@ export class AtongtieEffects {
         ),
         apply: contexts.damage.apply(ops.replaceDamageWithHeal(1, 1)),
       },
-      effect_atongtie_mark_teshufanshe_reflect: {
+      effect_mark_prevent_special_attack_damage_above_max_hp_half_and_consume_1: {
         triggers: [EffectTrigger.OnDamageReplacement],
         when: conditions.all(
           conditions.selfBeDamaged,
@@ -205,7 +188,7 @@ export class AtongtieEffects {
         ),
         apply: contexts.damage.apply(ops.preventDamage({ stacks: 1 })),
       },
-      effect_atongtie_mark_teshufanshe_return: {
+      effect_mark_return_prevented_damage_capped_at_owner_max_hp_on_rule_consume: {
         triggers: [EffectTrigger.OnConsumeStack],
         when: ctx => ctx.parent.mark === ctx.read(targets.sourceMark.first()) && ctx.parent.reason === 'rule',
         apply: ctx => {
@@ -214,7 +197,7 @@ export class AtongtieEffects {
           targets.damageOriginPet.apply(ops.dealDamage(Math.min(prevented, cap)))(ctx)
         },
       },
-      effect_atongtie_mark_tefongfantan_rebound: {
+      effect_mark_return_half_special_attack_hp_loss_max_182_next_turn: {
         triggers: [EffectTrigger.OnDamage] as const,
         priority: 0,
         when: conditions.all(
@@ -230,13 +213,13 @@ export class AtongtieEffects {
             targets.damageOriginPet.apply(ops.dealDamage(reflected, { damageType: DamageType.Special }))(ctx)
         }) satisfies Action<EffectTrigger.OnDamage>,
       },
-      effect_atongtie_mark_wugongjianban_halve: {
+      effect_mark_reduce_outgoing_physical_damage_50_percent_next_turn: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage] as const,
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, nextTurn, physicalDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -50, delta: 0 })),
       },
-      effect_atongtie_mark_shuxingshixiao_miss: {
+      effect_mark_sure_miss_for_status_skills_next_turn: {
         triggers: [EffectTrigger.BeforeUseSkillCheck] as const,
         priority: 0,
         when: conditions.all(
@@ -246,7 +229,7 @@ export class AtongtieEffects {
         ),
         apply: contexts.skillUse.apply(ops.setSureMiss()),
       },
-      effect_atongtie_mark_jinu_rage: {
+      effect_mark_add_opponent_rage_30_after_owner_status_skill_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck] as const,
         priority: 0,
         when: conditions.all(

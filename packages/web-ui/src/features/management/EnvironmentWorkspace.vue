@@ -10,7 +10,7 @@ import type {
   EnvironmentExportPreview,
   EnvironmentExportSelection,
 } from '@arcadia-eternity/content-sdk/management-workspace'
-import type { EnvironmentLocation } from '@/features/content/environmentGroups'
+import { managedLocation, type EnvironmentLocation } from '@/features/content/environmentGroups'
 import { Plus } from '@element-plus/icons-vue'
 import EnvironmentLayout from '@/features/content/EnvironmentLayout.vue'
 import EnvironmentPanel from '@/features/content/EnvironmentPanel.vue'
@@ -164,12 +164,9 @@ const entries = computed(
   () =>
     props.navigation?.entries ??
     props.environments.map(environment => ({
+      ...managedLocation(environment, '', props.heading ?? '', props.installations),
       key: environment.document.id,
-      id: environment.document.id,
-      name: environment.document.name,
-      source: props.heading ?? '',
       editable: props.canEdit && !environment.builtin,
-      environment,
       current: environment.document.id === props.currentEnvironmentId,
     })),
 )

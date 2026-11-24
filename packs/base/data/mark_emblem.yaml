@@ -375,18 +375,18 @@
   tags:
     - emblem
   effect:
-    - effect_bingchuantun_emblem_jianren_flat_reduction
+    - effect_emblem_reduce_incoming_attack_damage_20_if_hanbingjianren
 - id: mark_emblem_tingjue
   config: *emblem_config
   tags: [emblem]
   effect:
-    - effect_emblem_tingjue_prevent_hearing_loss
+    - effect_emblem_prevent_hearing_loss
 - id: mark_emblem_zhenci
   config: *emblem_config
   tags: [emblem]
   effect:
-    - effect_shifeng_emblem_male_damage
-    - effect_shifeng_emblem_female_reduction
+    - effect_emblem_increase_attack_damage_5_percent_if_male
+    - effect_emblem_reduce_incoming_attack_damage_5_percent_if_female
 - id: mark_emblem_tiaotiaoshu
   config:
     persistent: true
@@ -397,7 +397,7 @@
   tags:
     - emblem
   effect:
-    - effect_tiaotiaoshu_emblem_weaken_immune_duration
+    - effect_emblem_extend_mianyiruohua_applied_by_owner_2_turns
 - id: mark_emblem_pangpang
   config:
     persistent: true
@@ -408,7 +408,7 @@
   tags:
     - emblem
   effect:
-    - effect_pangpang_emblem_lanzui_duration
+    - effect_emblem_set_received_lanzui_duration_3
 - id: mark_emblem_abu
   config:
     persistent: true
@@ -419,7 +419,7 @@
   tags:
     - emblem
   effect:
-    - effect_abu_emblem_curse_reduction
+    - effect_emblem_set_applied_zuzhou_duration_2_turns
 - id: mark_emblem_niya
   config:
     persistent: true
@@ -430,7 +430,7 @@
   tags:
     - emblem
   effect:
-    - effect_niya_emblem_anfu_power
+    - effect_emblem_add_power_10_if_opponent_has_anfu
 - id: mark_emblem_boli
   config:
     persistent: true
@@ -441,7 +441,7 @@
   tags:
     - emblem
   effect:
-    - effect_boli_emblem_sure_hit
+    - effect_emblem_sure_hit_for_guaixiao_skills
 - id: mark_emblem_huohuali
   config:
     persistent: true
@@ -452,7 +452,7 @@
   tags:
     - emblem
   effect:
-    - effect_huohuali_emblem_mark_crit
+    - effect_emblem_add_crit_rate_5_percent_for_huohuakeyin_and_chirekeyin
 - id: mark_emblem_xiaojie
   config:
     persistent: true
@@ -463,7 +463,7 @@
   tags:
     - emblem
   effect:
-    - effect_xiaojie_emblem_stance_next_attack
+    - effect_emblem_add_mark_self_shanghaizengjia_10_after_stance_skill
 - id: mark_emblem_lulu
   config:
     persistent: true
@@ -474,7 +474,7 @@
   tags:
     - emblem
   effect:
-    - effect_lulu_emblem_sandbunshin_reduction
+    - effect_emblem_reduce_attack_damage_5_percent_per_shafenshen_stack
 - id: mark_emblem_qiaoba
   config:
     persistent: true
@@ -485,7 +485,7 @@
   tags:
     - emblem
   effect:
-    - effect_qiaoba_emblem_berserk_extra_turn
+    - effect_emblem_extend_received_baozou_1_turn
 - id: mark_emblem_dayandujiao
   config:
     persistent: true
@@ -496,7 +496,7 @@
   tags:
     - emblem
   effect:
-    - effect_dayandujiao_emblem_heal_boost
+    - effect_emblem_increase_healing_received_5_percent
 - id: mark_emblem_fengyong
   config:
     persistent: true
@@ -507,7 +507,7 @@
   tags:
     - emblem
   effect:
-    - effect_fengyong_emblem_heal_on_fengwen
+    - effect_emblem_heal_10_percent_damage_dealt_to_opponent_if_has_fengwen
 - id: mark_emblem_azi
   config:
     persistent: true
@@ -518,7 +518,7 @@
   tags:
     - emblem
   effect:
-    - effect_azi_emblem_taunt_rage
+    - effect_emblem_add_self_rage_20_when_using_tiaoxin
 - id: mark_emblem_mimi
   config:
     persistent: true
@@ -529,8 +529,8 @@
   tags:
     - emblem
   effect:
-    - effect_mimi_emblem_benghuai_reduction
-    - effect_mimi_emblem_benghuai_selfloss_reduction
+    - effect_emblem_reduce_attack_damage_taken_25_with_benghuai
+    - effect_emblem_reduce_self_inflicted_effect_damage_25_with_benghuai
 - id: mark_emblem_xiaoxiaoemo
   config:
     persistent: true
@@ -541,7 +541,7 @@
   tags:
     - emblem
   effect:
-    - effect_xiaoxiaoemo_emblem_last_ally_crit_reduction
+    - effect_emblem_reduce_incoming_crit_damage_20_percent_if_last_ally_alive
 - id: mark_emblem_kadunjiujiu_171
   config:
     persistent: true
@@ -552,7 +552,7 @@
   tags:
     - emblem
   effect:
-    - effect_kadunjiujiu_171_emblem_sure_hit
+    - effect_emblem_set_xinlingsuo_sure_hit
 - id: mark_emblem_atongtie
   config:
     persistent: true
@@ -563,7 +563,7 @@
   tags:
     - emblem
   effect:
-    - effect_atongtie_emblem_overload_defeat
+    - effect_emblem_deal_opponent_fixed_damage_100_if_defeated_with_guozai
 - id: mark_emblem_mika
   config:
     persistent: true
@@ -574,7 +574,7 @@
   tags:
     - emblem
   effect:
-    - effect_mika_emblem_climax_min_effect
+    - effect_emblem_set_climax_min_type_multiplier_1
 - id: mark_emblem_qiuding
   config:
     persistent: true
@@ -585,7 +585,7 @@
   tags:
     - emblem
   effect:
-    - effect_qiuding_emblem_shell_reduction
+    - effect_emblem_reduce_incoming_damage_5_percent_if_shell_mark
 - id: mark_emblem_badu
   config:
     persistent: true
@@ -596,7 +596,7 @@
   tags:
     - emblem
   effect:
-    - effect_badu_emblem_linggui_reduction
+    - effect_emblem_reduce_damage_5_percent_if_any_linggui
 - id: mark_emblem_feide
   config:
     persistent: true
@@ -607,7 +607,7 @@
   tags:
     - emblem
   effect:
-    - effect_feide_emblem_sure_hit_vs_terror
+    - effect_emblem_sure_hit_if_opponent_has_kongju
 - id: mark_emblem_nuoji
   config:
     persistent: true
@@ -618,7 +618,7 @@
   tags:
     - emblem
   effect:
-    - effect_nuoji_emblem_dongfeng
+    - effect_emblem_add_dongfeng_countdown_on_battle_start_and_switch_in
 - id: mark_emblem_kaise
   config:
     persistent: true
@@ -629,7 +629,7 @@
   tags:
     - emblem
   effect:
-    - effect_kaise_emblem_burn_damage
+    - effect_emblem_increase_damage_10_percent_if_opponent_has_mark_shaoshang
 - id: mark_emblem_kelipu
   config:
     persistent: true
@@ -640,7 +640,7 @@
   tags:
     - emblem
   effect:
-    - effect_kelipu_emblem_reserve_cap
+    - effect_emblem_set_chubeixiang_max_stacks_4
 - id: mark_emblem_aisa
   config:
     persistent: true
@@ -651,7 +651,7 @@
   tags:
     - emblem
   effect:
-    - effect_aisa_emblem_accuracy
+    - effect_emblem_add_accuracy_5_percent_if_has_mark_caixiazhixin
 - id: mark_emblem_moumou
   config:
     persistent: true
@@ -671,9 +671,9 @@
   tags:
     - emblem
   effect:
-    - effect_langpu_emblem_crit_damage
+    - effect_emblem_increase_critical_attack_damage_dealt_15_percent
 - id: mark_emblem_jisha
   config: *emblem_config
   tags: [emblem]
   effect:
-    - effect_yinji_emblem_first_move_damage
+    - effect_emblem_amplify_outgoing_attack_damage_25_percent_if_first

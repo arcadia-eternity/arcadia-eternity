@@ -6,7 +6,12 @@ import { fileURLToPath } from 'node:url'
 import { createSingleProcessApp } from '../../server/src/runtime/app'
 import { createNpmFixture } from '../../server/test/fixtures/npm'
 import { emptyNpmContentHost, prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
-import { gameplayRevision, buildDisplayCatalog, buildDisplayLocales } from '@arcadia-eternity/pack-loader/native'
+import {
+  environmentVersion,
+  gameplayRevision,
+  buildDisplayCatalog,
+  buildDisplayLocales,
+} from '@arcadia-eternity/pack-loader/native'
 import { createLocalContentSessions } from '../electron/local-content-sessions.mjs'
 import { createPersonalEnvironmentBundle, encodePersonalEnvironmentBundle } from '../src/services/personalEnvironment'
 
@@ -30,6 +35,7 @@ async function makeSharedEnvironment(directory: string, installedDirectory: stri
     load: async () => ({
       host: emptyNpmContentHost,
       prepareNpmProject,
+      environmentVersion,
       gameplayRevision,
       buildDisplayCatalog,
       buildDisplayLocales,

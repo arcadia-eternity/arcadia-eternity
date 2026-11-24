@@ -38,7 +38,6 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_dongshang',
   'mark_exin',
   'mark_fanshe',
-  'mark_fansheguike',
   'mark_fantan',
   'mark_fasibilei',
   'mark_feixuanzhen',
@@ -58,7 +57,6 @@ export const generatedMarkApplicationDependencies = Object.freeze([
   'mark_guangwulingtong',
   'mark_guangwushentong',
   'mark_haipa',
-  'mark_hanbinghujia',
   'mark_hanbingjia',
   'mark_hanshuangpingzhang',
   'mark_heianwuzhi',
@@ -515,24 +513,6 @@ export class MarkApplicationsGeneratedEffects {
         when: conditions.all(conditions.selfUsesSkill),
         apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_fanshe')!)),
       },
-      effect_skill_add_mark_fansheguike: {
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
-          const left = ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first())
-          const right = 500
-          return left !== undefined && right !== undefined && left > right
-        }),
-        apply: targets.ownerPet.apply(
-          ops.addMark(resolved.get('mark_fansheguike')!, {
-            stack: targets.ownerPet
-              .select(pet => pet.stat.maxHp)
-              .first()
-              .map(n => n + -500)
-              .map(n => Math.max(n, 0)),
-          }),
-        ),
-      },
       effect_skill_add_mark_fantan: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
@@ -580,25 +560,6 @@ export class MarkApplicationsGeneratedEffects {
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_guangwushentong')!, { stack: 1 })),
-      },
-      effect_skill_add_mark_hanbinghujia_2x_self_max_hp_minus_500: {
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
-          const left = ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first())
-          const right = 500
-          return left !== undefined && right !== undefined && left > right
-        }),
-        apply: targets.ownerPet.apply(
-          ops.addMark(resolved.get('mark_hanbinghujia')!, {
-            stack: targets.ownerPet
-              .select(pet => pet.stat.maxHp)
-              .first()
-              .map(n => n + -500)
-              .map(n => Math.max(n, 0))
-              .map(n => Math.floor(n * 2)),
-          }),
-        ),
       },
       effect_skill_add_mark_hanbingjia: {
         triggers: [EffectTrigger.OnHit],
@@ -2083,12 +2044,6 @@ export class MarkApplicationsGeneratedEffects {
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanbi')!, { stack: 1 })),
-      },
-      effect_skill_add_mark_shanbi_2: {
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: targets.ownerPet.apply(ops.addMark(resolved.get('mark_shanbi')!, { stack: 2 })),
       },
       effect_skill_add_mark_shanbi_below_1_8_hp: {
         triggers: [EffectTrigger.OnHit],

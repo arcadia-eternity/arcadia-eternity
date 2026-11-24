@@ -60,14 +60,16 @@ it.each([
   expect(damage[0]).toBeGreaterThan(damage[1])
 })
 
-it('诅咒绷带连续命中时在本击伤害前降物防，落空会中断连续命中', () => {
-  const skill = 'skill_zuzhoubengdai'
+it.each([
+  ['skill_zuzhoubengdai', 'stat_stage_def_down'],
+  ['skill_bengdaichanrao', 'stat_stage_spe_down'],
+])('%s 连续命中时在本击伤害前弱化，落空会中断连续命中', (skill, markId) => {
   const { battle, opponent, use } = petBattle('pet_abubu', [skill])
   const startingHp = opponent.activePet.currentHp
   const duringDamage: boolean[] = []
   battle.registerListener(message => {
     if (message.type === BattleMessageType.Damage && message.data.target === opponent.activePet.id) {
-      duringDamage.push(opponent.activePet.marks.some(mark => mark.baseId === 'stat_stage_def_down'))
+      duringDamage.push(opponent.activePet.marks.some(mark => mark.baseId === markId))
     }
   })
   for (const hit of [true, false, true, true]) {
@@ -75,6 +77,62 @@ it('诅咒绷带连续命中时在本击伤害前降物防，落空会中断连�
     use(skill, undefined, hit)
   }
   expect(duringDamage).toEqual([false, false, true])
+})
+
+it('毒粉冲击命中时按 10% 概率先提升物攻，再计算本击伤害', () => {
+  const skill = 'skill_dufenchongji'
+  const damage: number[] = []
+  for (const [roll, expected] of [
+    [0.099, true],
+    [0.1, false],
+  ] as const) {
+    const { battle, owner, opponent, use } = petBattle('pet_yingguangdie', [skill])
+    vi.spyOn(battle, 'random').mockReturnValue(roll)
+    const boosted = () => owner.activePet.marks.some(mark => mark.baseId === 'stat_stage_atk_up')
+    const boostsDuringDamage: boolean[] = []
+    battle.registerListener(message => {
+      if (message.type === BattleMessageType.Damage && message.data.target === opponent.activePet.id) {
+        boostsDuringDamage.push(boosted())
+        damage.push(message.data.damage)
+      }
+    })
+    use(skill, owner, false)
+    expect(boosted()).toBe(false)
+    expect(boostsDuringDamage).toEqual([])
+    use(skill)
+    expect(boostsDuringDamage).toEqual([expected])
+    expect(boosted()).toBe(expected)
+  }
+  expect(damage).toHaveLength(2)
+  expect(damage[0]).toBeGreaterThan(damage[1])
+})
+
+it('衰弱只在确认命中后降低对手物攻和特防，即使技能没有伤害', () => {
+  const skill = 'skill_shuairuo'
+  const { battle, owner, opponent, use } = petBattle('pet_xiaoshugen', [skill])
+  const stages = () =>
+    opponent.activePet.marks
+      .filter(mark => mark.baseId.startsWith('stat_stage_'))
+      .map(mark => mark.baseId)
+      .sort()
+  const afterBeforeHit: string[][] = []
+  const applyEffects = battle.applyEffects.bind(battle)
+  const spy = vi.spyOn(battle, 'applyEffects').mockImplementation((context, trigger, ...sources) => {
+    const result = applyEffects(context, trigger, ...sources)
+    if (trigger === EffectTrigger.BeforeHit) afterBeforeHit.push(stages())
+    return result
+  })
+  const hp = opponent.activePet.currentHp
+  try {
+    use(skill, owner, false)
+    expect(stages()).toEqual([])
+    expect(afterBeforeHit).toEqual([])
+    use(skill)
+    expect(afterBeforeHit).toEqual([['stat_stage_atk_down', 'stat_stage_spd_down']])
+    expect(opponent.activePet.currentHp).toBe(hp)
+  } finally {
+    spy.mockRestore()
+  }
 })
 
 it('卡尼娅使用冰封记忆时结算自身的印记', () => {
@@ -156,6 +214,16 @@ it('小恶魔使用恶魔之吻时结算对手的印记', () => {
   expect(opponent.activePet.marks.map(entry => entry.baseId)).toEqual(expect.arrayContaining(['stat_stage_atk_down']))
 })
 
+it.each([
+  [undefined, false],
+  ['mark_emblem_huizhi', true],
+] as const)('暗夜索魂曲装备 %s 时按纹章修正后的概率施加恐惧', (emblem, expected) => {
+  const { battle, opponent, use } = petBattle('pet_xiaoemo', ['skill_anyesuohunqu'], emblem)
+  vi.spyOn(battle, 'random').mockReturnValue(0.22)
+  use('skill_anyesuohunqu')
+  expect(opponent.activePet.marks.some(mark => mark.baseId === 'mark_kongju')).toBe(expected)
+})
+
 it('卡顿啾啾使用轻盈身姿时结算自身的印记', () => {
   const { owner, use } = petBattle('pet_kadunjiujiu_171', ['skill_qingyingshenzi'], 'mark_emblem_kadunjiujiu_171')
   use('skill_qingyingshenzi')
@@ -187,7 +255,7 @@ it.each([
   { max: 120, ivs: { hp: 10, atk: 9, def: 8, spa: 7, spd: 6, spe: 5 }, expected: 2 },
   { max: 120, ivs: individualValueSpread(31), ivMax: individualValueSpread(31), expected: 36 },
 ])('米咔在 $max 资质环境攻击命中时附加 $expected 点潜能固伤', ({ max, ivs, ivMax, expected }) => {
-  const attack = 'skill_guangxiangongji_jiangtefang'
+  const attack = 'skill_guangxiangongji'
   const { battle, opponent, use } = petBattle('pet_mika', [attack, 'skill_baohuzitai'], undefined, {
     individualValueMax: max,
     ivs,
@@ -279,6 +347,15 @@ it('克里普特使用分析报告时结算对手的印记', () => {
   expect(opponent.activePet.marks.map(entry => entry.baseId)).toEqual(
     expect.arrayContaining(['stat_stage_def_down', 'stat_stage_spd_down']),
   )
+})
+
+it.each([
+  [undefined, 15],
+  ['mark_emblem_yingguang', 20],
+] as const)('星光反攻弹装备 %s 时施加 %i 层命中下降', (emblem, stacks) => {
+  const { opponent, use } = petBattle('pet_kelipute', ['skill_xingguangfangongdan'], emblem)
+  use('skill_xingguangfangongdan')
+  expect(opponent.activePet.marks.find(mark => mark.baseId === 'mark_mingzhongxiajiang')?.stack).toBe(stacks)
 })
 
 it('艾萨卡使用祥云之术时结算自身的印记', () => {
@@ -401,4 +478,99 @@ it('弹簧体质持续五回合，受到物攻时反弹固定 30 点', () => {
   const before = opponent.activePet.currentHp
   use('skill_paida', opponent)
   expect(before - opponent.activePet.currentHp).toBe(30)
+})
+
+it('穿透电球自带必中和穿盾，起跳仍能回避这次特攻', () => {
+  const { owner, opponent, use } = petBattle(
+    'pet_zidian',
+    ['skill_chuantoudianqiu'],
+    undefined,
+    undefined,
+    [],
+    [{ species: 'pet_bengbengshu', skills: ['skill_qitiao'] }],
+  )
+  const attack = use('skill_chuantoudianqiu', owner, null)
+  expect(attack.hitResult).toBe(true)
+  expect(attack.ignoreShield).toBe(true)
+  use('skill_qitiao', opponent)
+  const hp = opponent.activePet.currentHp
+  expect(use('skill_chuantoudianqiu', owner, null).hitResult).toBe(false)
+  expect(opponent.activePet.currentHp).toBe(hp)
+})
+
+it.each([
+  [49, 3],
+  [50, 2],
+])('紫电连斩在对手怒气 %i 时打 %i 击', (rage, hits) => {
+  const { battle, opponent, use } = petBattle('pet_zidian', ['skill_zidianlianzhan'])
+  vi.spyOn(battle, 'randomInt').mockImplementation((_, high) => high)
+  opponent.currentRage = rage
+  expect(use('skill_zidianlianzhan').multihitResult).toBe(hits)
+})
+
+it.each(['min', 'max'] as const)('手舞足蹈按清醒、微醉、烂醉分别结算连击（%s）', endpoint => {
+  const { battle, opponent, use } = petBattle('pet_pangpangtuo', ['skill_shouwuzudao', 'skill_yinjiu'])
+  vi.spyOn(battle, 'randomInt').mockImplementation((low, high) => (endpoint === 'min' ? low : high))
+  const hp = opponent.activePet.currentHp
+  for (const [index, hits] of (endpoint === 'min' ? [1, 2, 3] : [1, 3, 5]).entries()) {
+    if (index > 0) use('skill_yinjiu')
+    opponent.activePet.currentHp = hp
+    expect(use('skill_shouwuzudao').multihitResult).toBe(hits)
+  }
+})
+
+it.each([
+  [0.099, 2],
+  [0.1, 1],
+])('苍月极刃斩在随机值 %f 时打 %i 击', (roll, hits) => {
+  const { battle, owner, use } = petBattle('pet_yinkasite', ['skill_cangyuejirenzhan'])
+  vi.spyOn(battle, 'random').mockReturnValue(roll)
+  expect(use('skill_cangyuejirenzhan').multihitResult).toBe(hits)
+  expect(owner.activePet.marks.some(mark => mark.baseId === 'mark_lianji')).toBe(false)
+})
+
+it.each([
+  ['pet_abubu', 'skill_beishangfanji', -1],
+  ['pet_moumouwang', 'skill_chaojihailiu', 1],
+] as const)('%s 的 %s 在出手排序时只计算一次固有先后制', (species, skillId, priority) => {
+  const { battle, owner } = petBattle(species, [skillId])
+  const skill = owner.activePet.skills[0]!
+  const cast = new UseSkillContext(new TurnContext(battle), owner, owner.activePet, skill.target, skill)
+  battle.applyEffects(cast, EffectTrigger.BeforeSort)
+  expect(cast.priority).toBe(priority)
+})
+
+it('逆水行舟仅在持有逆流时跳过命中检定', () => {
+  const { battle, owner, use } = petBattle('pet_naiputulong', ['skill_nishuixingzhou', 'skill_shuiqiang'])
+  vi.spyOn(battle, 'random').mockReturnValue(0.999)
+  expect(use('skill_nishuixingzhou', owner, null).hitResult).toBe(false)
+  use('skill_shuiqiang')
+  expect(owner.activePet.marks.some(mark => mark.baseId === 'mark_niliu')).toBe(true)
+  expect(use('skill_nishuixingzhou', owner, null).hitResult).toBe(true)
+})
+
+it.each([
+  ['pet_kadunqiujiu', 'skill_xinzhiyinji', 'skill_hongxinyu', 1, 8],
+  ['pet_yiluxin', 'skill_huanxiangshijie', 'skill_huawu', 1, 5],
+  ['pet_xiaoemo', 'skill_emoqiyue', 'skill_diyuzhiyu', 2, 4],
+] as const)('%s 使用 %s 后，%s 能打出条件连击上限', (species, setup, move, baseHits, hits) => {
+  const { battle, opponent, use } = petBattle(species, [setup, move])
+  vi.spyOn(battle, 'randomInt').mockImplementation((_, high) => high)
+  const hp = opponent.activePet.currentHp
+  expect(use(move).multihitResult).toBe(baseHits)
+  opponent.activePet.currentHp = hp
+  use(setup)
+  expect(use(move).multihitResult).toBe(hits)
+})
+
+it('砂瀑送葬在命中判定前消耗两个砂分身，一层时照常判定', () => {
+  const { battle, owner, use } = petBattle('pet_lubohali', ['skill_shafenshen', 'skill_shapusongzang'])
+  vi.spyOn(battle, 'random').mockReturnValue(0.99)
+  const stacks = () => owner.activePet.marks.find(mark => mark.baseId === 'mark_shafenshen_lulu')?.stack ?? 0
+  use('skill_shafenshen')
+  expect(use('skill_shapusongzang', owner, null).hitResult).toBe(false)
+  expect(stacks()).toBe(1)
+  use('skill_shafenshen')
+  expect(use('skill_shapusongzang', owner, null).hitResult).toBe(true)
+  expect(stacks()).toBe(0)
 })

@@ -10,7 +10,9 @@ import { allEnvironmentAssets, preloadMedia } from '@/services/environmentMedia'
 import { usePrivateRoomStore } from '@/stores/privateRoom'
 import { useBattleClientStore } from '@/stores/battleClient'
 
-const props = defineProps<{ selection: { id: string; location: 'web' | 'local' | 'server' | 'room'; key: string } }>()
+const props = defineProps<{
+  selection: { id: string; environmentVersion?: string; location: 'web' | 'local' | 'server' | 'room'; key: string }
+}>()
 const busy = ref(false)
 const status = ref('')
 const usage = ref<{ files: number; bytes: number }>()
@@ -21,11 +23,15 @@ let usageRequest = 0
 onBeforeUnmount(() => operation?.abort())
 
 async function capture(signal: AbortSignal) {
-  const { id, location, key } = props.selection
+  const { id, location, key, environmentVersion } = props.selection
   const hosted = location === 'local' && key.startsWith('host/')
   if (location === 'web' || (location === 'local' && !hosted)) {
     const captured = await acquireLocalContent(id)
     if (!captured) throw new Error('当前环境内容不可用')
+    if (environmentVersion && captured.environmentVersion !== environmentVersion) {
+      await captured.release()
+      throw new Error('本地环境版本已变更')
+    }
     return captured
   }
   const room = location === 'room' ? usePrivateRoomStore() : undefined
@@ -42,7 +48,11 @@ async function capture(signal: AbortSignal) {
   }
   const descriptor = room
     ? room.currentRoom?.environment
-    : (await listServerEnvironments(server, fetch, signal)).find(row => (row.environmentId ?? row.id) === id)
+    : (await listServerEnvironments(server, fetch, signal)).find(
+        row =>
+          (key.startsWith('publication/') ? key === 'publication/' + row.id : (row.environmentId ?? row.id) === id) &&
+          (!environmentVersion || row.environmentVersion === environmentVersion),
+      )
   if (!descriptor || (room && descriptor.id !== key)) throw new Error('此环境尚未发布或已变更')
   return prepareServerEnvironment(server, descriptor, fetch, signal)
 }

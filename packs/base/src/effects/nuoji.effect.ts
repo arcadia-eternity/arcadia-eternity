@@ -59,84 +59,84 @@ export class NuojiEffects {
     const incoming = contexts.switchPet.select(event => event.switchInPet)
 
     return defineEffects({
-      effect_nuoji_ability_plan_rage: {
+      effect_ability_add_rage_self_5_at_turn_end_with_any_plan: {
         triggers: [EffectTrigger.TurnEnd],
         priority: 0,
         when: conditions.all(conditions.ownerIsActive, planActive),
         apply: ownerPet.apply(ops.addRage(5)),
       },
-      effect_nuoji_emblem_dongfeng: {
+      effect_emblem_add_dongfeng_countdown_on_battle_start_and_switch_in: {
         triggers: [EffectTrigger.OnBattleStart, EffectTrigger.OnOwnerSwitchIn],
         priority: 0,
         when: conditions.ownerIsActive,
         apply: ownerPet.apply(ops.addMark(countdown, { duration: 3 })),
       },
-      effect_nuoji_dongfeng_countdown: {
+      effect_mark_add_dongfeng_on_duration_end: {
         triggers: [EffectTrigger.OnMarkDurationEnd],
         priority: 0,
         apply: ownerPet.apply(ops.addMark(dongFeng)),
       },
-      effect_nuoji_skill_njihua: {
+      effect_skill_replace_b_or_nb_plan_with_n_plan: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: actions.sequence(removeB, removeNB, ownerPet.apply(ops.addMark(nPlan, { stack: 1 }))),
       },
-      effect_nuoji_skill_bjihua: {
+      effect_skill_replace_n_or_nb_plan_with_b_plan: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: actions.sequence(removeN, removeNB, ownerPet.apply(ops.addMark(bPlan, { stack: 1 }))),
       },
-      effect_nuoji_skill_nbjihua: {
+      effect_skill_add_mark_self_nb_plan_for_3_turns: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: ownerPet.apply(ops.addMark(nbPlan, { stack: 1, duration: 3 })),
       },
-      effect_nuoji_skill_qianglisaowei_power: {
+      effect_skill_add_power_40_with_n_or_nb_plan: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, nPlanActive),
         apply: contexts.skillUse.apply(ops.addPower(40)),
       },
-      effect_nuoji_skill_qianglisaowei_sure: {
+      effect_skill_set_sure_hit_with_b_or_nb_plan: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, bPlanActive),
         apply: contexts.skillUse.apply(ops.setSureHit()),
       },
-      effect_nuoji_skill_feiyuliantu_multihit: {
+      effect_skill_set_2_hits_with_n_plan_without_nb_plan: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, nActive, conditions.not(nbActive)),
         apply: contexts.skillUse.apply(ops.setMultihit(2)),
       },
-      effect_nuoji_skill_feiyuliantu_nb_multihit: {
+      effect_skill_set_3_hits_with_nb_plan: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, nbActive),
         apply: contexts.skillUse.apply(ops.setMultihit(3)),
       },
-      effect_nuoji_skill_feiyuliantu_nb_priority: {
+      effect_skill_raise_priority_1_with_nb_plan: {
         triggers: [EffectTrigger.BeforeSort],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, nbActive),
         apply: contexts.skillUse.property('priority').apply(ops.add(1)),
       },
-      effect_nuoji_skill_feiyuliantu_priority: {
+      effect_skill_raise_priority_1_with_b_plan_without_nb_plan: {
         triggers: [EffectTrigger.BeforeSort],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, bActive, conditions.not(nbActive)),
         apply: contexts.skillUse.property('priority').apply(ops.add(1)),
       },
-      effect_nuoji_skill_feiyuyaji_sure: {
+      effect_skill_set_sure_hit_with_n_or_nb_plan: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, nPlanActive),
         apply: contexts.skillUse.apply(ops.setSureHit()),
       },
-      effect_nuoji_skill_feiyuyaji_bonus: {
+      effect_skill_deal_80_fixed_damage_on_hit_with_b_or_nb_plan: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, bPlanActive),
@@ -144,26 +144,26 @@ export class NuojiEffects {
           .flatMap(event => (event.actualTarget ? [event.actualTarget] : []))
           .apply(ops.dealDamage(80)),
       },
-      effect_nuoji_skill_lianxusaowei_priority: {
+      effect_skill_raise_priority_1_with_n_or_nb_plan: {
         triggers: [EffectTrigger.BeforeSort],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, nPlanActive),
         apply: contexts.skillUse.property('priority').apply(ops.add(1)),
       },
-      effect_nuoji_skill_lianxusaowei_multihit: {
+      effect_skill_set_2_hits_with_b_or_nb_plan: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, bPlanActive),
         apply: contexts.skillUse.apply(ops.setMultihit(2)),
       },
-      effect_nuoji_skill_jihuapochan: {
+      effect_skill_remove_all_plans_and_heal_self_150: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: actions.sequence(removeN, removeB, removeNB, ownerPet.apply(ops.heal(150))),
       },
-      effect_nuoji_skill_jihuamibu: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
+      effect_skill_raise_atk_1_stage_plus_spa_1_without_any_plan: {
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: actions.choose(
@@ -175,37 +175,37 @@ export class NuojiEffects {
           ),
         ),
       },
-      effect_nuoji_skill_wanshijubei: {
+      effect_skill_add_mark_self_wanshijubei_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: ownerPet.apply(ops.addMark(wanshi, { stack: 1 })),
       },
-      effect_nuoji_skill_feiyiliancixi_floor: {
+      effect_skill_min_attack_damage_165_with_any_plan: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, planActive, attackDamage),
         apply: contexts.damage.apply(ops.setDamageThreshold({ min: 165 })),
       },
-      effect_nuoji_skill_dongfeng: {
+      effect_skill_add_mark_self_dongfeng_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: ownerPet.apply(ops.addMark(dongFeng, { stack: 1 })),
       },
-      effect_nuoji_skill_guailisaowei_power: {
+      effect_skill_add_power_25_with_n_or_nb_plan: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, nPlanActive),
         apply: contexts.skillUse.apply(ops.addPower(25)),
       },
-      effect_nuoji_skill_guailisaowei_rage: {
+      effect_skill_add_rage_self_20_on_hit_with_b_or_nb_plan: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, bPlanActive),
         apply: ownerPet.apply(ops.addRage(20)),
       },
-      effect_nuoji_skill_feiyuxiji_bonus: {
+      effect_skill_deal_65_fixed_damage_on_hit_with_b_or_nb_plan: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, bPlanActive),
@@ -213,30 +213,30 @@ export class NuojiEffects {
           .flatMap(event => (event.actualTarget ? [event.actualTarget] : []))
           .apply(ops.dealDamage(65)),
       },
-      effect_nuoji_mark_njihua_damage: {
+      effect_mark_increase_attack_damage_dealt_20_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, attackDamage),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 20, delta: 0 })),
       },
-      effect_nuoji_mark_nbjihua_damage: {
+      effect_mark_increase_attack_damage_dealt_20_percent_without_n_plan: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, attackDamage, conditions.not(nActive)),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 20, delta: 0 })),
       },
-      effect_nuoji_mark_nbjihua_reduction: {
+      effect_mark_reduce_damage_taken_20_percent_without_b_plan: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, conditions.not(bActive)),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -20, delta: 0 })),
       },
-      effect_nuoji_mark_dongfeng_speed: {
+      effect_mark_add_speed_50_on_creation: {
         triggers: [EffectTrigger.OnMarkCreated],
         priority: 0,
         apply: ownerPet.apply(ops.addAttributeModifier('spe', 'delta', 50)),
       },
-      effect_nuoji_mark_wanshi_consume: {
+      effect_mark_consume_dongfeng_at_turn_end_to_prepare_switch_in_heal: {
         triggers: [EffectTrigger.TurnEnd],
         priority: 0,
         when: conditions.all(
@@ -245,7 +245,7 @@ export class NuojiEffects {
         ),
         apply: actions.sequence(windMarks.apply(ops.removeMark()), ownerPet.apply(ops.addMark(pendingHeal))),
       },
-      effect_nuoji_mark_dongfeng_heal: {
+      effect_mark_heal_other_nuojibo_half_max_hp_on_switch_in_and_consume: {
         triggers: [EffectTrigger.OnSwitchIn],
         priority: 0,
         when: ctx => {

@@ -1,6 +1,58 @@
-import { expect, test, type Page } from 'playwright/test'
+import { expect, test, type Page, type WebSocketRoute } from 'playwright/test'
+import { prepareLocalBattle } from './helpers/local-battle-fixture'
 
 test.setTimeout(120_000)
+
+test('a local battle keeps playing when the lobby connection drops and reconnects', async ({ page }) => {
+  let socket: WebSocketRoute | undefined
+  let unavailable = false
+  await page.route('**/socket.io/**', route => (unavailable ? route.abort() : route.continue()))
+  await page.routeWebSocket(/\/socket\.io\//, route => {
+    if (unavailable) return route.close()
+    socket = route
+    route.connectToServer()
+  })
+  await prepareLocalBattle(page)
+  await page.goto('/local-battle')
+  const start = page.getByRole('button', { name: '开始本地对战', exact: true })
+  await expect(start).toBeEnabled()
+  const isConnected = () =>
+    page.evaluate(async () => {
+      const path = '/src/stores/battleClient.ts'
+      const { useBattleClientStore } = await import(path)
+      return useBattleClientStore().isConnected
+    })
+  await page.evaluate(async () => {
+    const path = '/src/stores/battleClient.ts'
+    const { useBattleClientStore } = await import(path)
+    const client = useBattleClientStore()
+    client.initialize()
+    await client.connect()
+  })
+  await page.getByPlaceholder('留空使用随机种子').fill('208')
+  await start.click()
+  const skill = page.getByTestId('skill-button').filter({ hasText: '奋力突破' })
+  await expect(skill).toBeEnabled({ timeout: 60_000 })
+  expect(await isConnected()).toBe(true)
+  expect(socket).toBeDefined()
+  unavailable = true
+  await socket!.close()
+  const currentTurn = () =>
+    page.evaluate(async () => {
+      const path = '/src/stores/battle.ts'
+      const { useBattleStore } = await import(path)
+      return useBattleStore().battleState.currentTurn as number
+    })
+  for (const connected of [false, true]) {
+    unavailable = !connected
+    await expect.poll(isConnected).toBe(connected)
+    await expect(page.getByText('连接已断开，请检查网络连接', { exact: true })).toHaveCount(0)
+    const before = await currentTurn()
+    await skill.click()
+    await expect.poll(currentTurn).toBeGreaterThan(before)
+    await expect(skill).toBeEnabled()
+  }
+})
 
 async function openLobby(page: Page, name: string) {
   await page.addInitScript(name => {

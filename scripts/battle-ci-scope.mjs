@@ -32,6 +32,7 @@ const sharedFiles = new Set([
 const jobFiles = {
   headless: [
     /^eslint\.config\.battle\.js$/,
+    /^scripts\/read-chrome-probe\.mjs$/,
     /^scripts\/verify-battle-hosts\.mjs$/,
     /^scripts\/verify-waiting-snapshots\.mjs$/,
     /^scripts\/verify-behavior-uses\.mjs$/,
@@ -41,6 +42,7 @@ const jobFiles = {
     /^bin\//,
     /^packages\/web-ui\/electron\//,
     /^eslint\.config\.server\.js$/,
+    /^scripts\/read-chrome-probe\.mjs$/,
     /^scripts\/verify-native-pack\.mjs$/,
   ],
   browser: [

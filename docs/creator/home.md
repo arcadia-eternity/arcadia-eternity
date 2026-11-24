@@ -26,9 +26,12 @@ features:
     link: /make/singles-cup
 ---
 
+## 用 AI 创作
+
+- [连接 AI 助手](/start/assistant)，从点子创建项目，或让它读到工作台中的对象和草稿。
+
 ## 已有项目
 
-- [连接 AI 助手](/start/assistant)，让它读到当前对象和项目草稿。
 - [给机制写场景测试](/test/scenarios)，检查首次触发、重复触发和到期的结果。
 - [排查试玩问题](/test/troubleshooting)，从草稿、环境版本和战斗状态中定位原因。
 - [生成并分享发行归档](/publish/release)，让其他玩家安装同一版本。

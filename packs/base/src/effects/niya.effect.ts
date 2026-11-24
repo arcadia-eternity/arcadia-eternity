@@ -43,62 +43,62 @@ export class NiyaEffects {
     }
 
     return defineEffects({
-      effect_niya_ability_normal_boost: {
+      effect_ability_increase_normal_attack_damage_dealt_25_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, normalDamage, normalSkill),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 25, delta: 0 })),
       },
-      effect_niya_emblem_anfu_power: {
+      effect_emblem_add_power_10_if_opponent_has_anfu: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, ctx => ctx.read(opponentHasAnfu) === true),
         apply: contexts.skillUse.apply(ops.addPower(10)),
       },
-      effect_niya_skill_anfuzhichu: {
+      effect_skill_add_mark_opponent_anfu_on_hit: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.opponentActive.apply(ops.addMark(anfu)),
       },
-      effect_niya_skill_feixue: {
+      effect_skill_add_mark_opponent_dongshang_if_anfu: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, ctx => ctx.read(opponentHasAnfu) === true),
         apply: targets.opponentActive.apply(ops.addMark(dongshang)),
       },
-      effect_niya_skill_hanlengzhichu: {
+      effect_skill_add_mark_opponent_xinlingzhiyue_if_first_skill: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
         apply: targets.opponentActive.apply(ops.addMark(xinling, { stack: 1 })),
       },
-      effect_niya_skill_xuehuafeiwu: {
+      effect_skill_set_sure_hit_if_opponent_has_anfu: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, ctx => ctx.read(opponentHasAnfu) === true),
         apply: contexts.skillUse.apply(ops.setSureHit()),
       },
-      effect_niya_skill_xuezhiwaiyi: {
+      effect_skill_add_mark_self_xuezhiwaiyi_100_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(xuezhiwaiyi, { stack: 100 })),
       },
-      effect_niya_skill_bingdongzhichu: {
+      effect_skill_add_mark_opponent_shoudaoshanghaizengjia_50_on_hit: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.opponentActive.apply(ops.addMark(shanghai, { stack: 50 })),
       },
-      effect_niya_skill_xiubaixue: {
+      effect_skill_deal_50_fixed_damage_to_opponent_with_anfu_on_hit: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, ctx => ctx.read(opponentHasAnfu) === true),
         apply: targets.opponentActive.apply(ops.dealDamage(50)),
       },
-      effect_niya_skill_bingfengjiyi: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
+      effect_skill_raise_spe_1_stage_and_store_or_restore_positive_stages_with_bingfengjiyi: {
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: ctx => {
@@ -130,26 +130,20 @@ export class NiyaEffects {
           targets.ownerPet.apply(ops.addMark(bingfeng, { stack: encoded + 1 }))(ctx)
         },
       },
-      effect_niya_skill_baofengxue: {
+      effect_skill_set_field_baofengxue_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: contexts.battle.apply(ops.addMark(baofengxue)),
       },
-      effect_mark_anfu_block_boost: {
-        triggers: [EffectTrigger.OnBeforeAddMark],
-        priority: 0,
-        when: conditions.all(conditions.ownerReceivesMark, conditions.statStageChange(undefined, 'up')),
-        apply: contexts.addMark.apply(ops.disableContext()),
-      },
-      effect_mark_baofengxue_ice_boost: {
+      effect_mark_increase_ice_skill_damage_dealt_by_ice_pet_35_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: ctx =>
           ctx.parent.origin.skillElement === 'Ice' && ctx.read(targets.damageOriginPet.first())?.element === 'Ice',
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 35, delta: 0 })),
       },
-      effect_mark_xuezhiwaiyi_absorb: {
+      effect_mark_heal_self_half_shield_stacks_consumed: {
         triggers: [EffectTrigger.OnConsumeStack],
         priority: 0,
         when: ctx => ctx.parent.mark === ctx.read(targets.sourceMark.first()) && ctx.parent.reason === 'shield',

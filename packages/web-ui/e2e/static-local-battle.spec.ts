@@ -5,13 +5,21 @@ async function useStaticRules(page: Page, rules: import('@arcadia-eternity/proto
   await page.route('**/environment/catalog.json', async route => {
     const response = await route.fetch()
     const catalog = await response.json()
-    const { digestJson } = await import('@arcadia-eternity/pack-loader/native')
+    const { digestJson, environmentVersion } = await import('@arcadia-eternity/pack-loader/native')
     const gameplayRevision = await digestJson({
       runtime: catalog.runtimeIdentity,
       material: catalog.runtimeRevision,
       rules,
     })
-    await route.fulfill({ response, json: { ...catalog, rules, gameplayRevision } })
+    await route.fulfill({
+      response,
+      json: {
+        ...catalog,
+        rules,
+        gameplayRevision,
+        environmentVersion: environmentVersion(gameplayRevision, catalog.presentationRevision),
+      },
+    })
   })
 }
 
@@ -281,6 +289,7 @@ test('the web team editor selects shipped environments without a server and rest
   const picker = page
     .locator('.el-select')
     .filter({ has: page.getByRole('combobox', { name: '对战环境', exact: true }) })
+  const environment = (name: string) => page.getByRole('option').filter({ has: page.getByText(name, { exact: true }) })
   const iv = page.getByRole('spinbutton', { name: '体力个体值' })
   await page.locator('.team-member').first().click()
   await expect(iv).toHaveValue('31')
@@ -292,8 +301,8 @@ test('the web team editor selects shipped environments without a server and rest
   await speed.fill('0')
   await speed.blur()
   await picker.click()
-  await expect(page.getByRole('option', { name: '默认环境', exact: true })).toBeVisible()
-  await page.getByRole('option', { name: '120 资质 · 神魔化与二代', exact: true }).click()
+  await expect(environment('默认环境')).toBeVisible()
+  await environment('120 资质 · 神魔化与二代').click()
   await expect(iv).toHaveValue('120')
   await expect(attack).toHaveValue('58')
   await expect(speed).toHaveValue('0')
@@ -322,7 +331,7 @@ test('the web team editor selects shipped environments without a server and rest
   await expect(defense).toHaveValue('59')
   await expect(stage).toContainText('神化一星')
   await picker.click()
-  await page.getByRole('option', { name: '默认环境', exact: true }).click()
+  await environment('默认环境').click()
   await expect(iv).toHaveAttribute('max', '31')
   await expect(stage).toContainText('本局不生效')
   await expect(iv).toHaveValue('31')
@@ -331,7 +340,7 @@ test('the web team editor selects shipped environments without a server and rest
   await expect(hp).toHaveText(baseHp)
   await expect(defense).toHaveValue('15')
   await picker.click()
-  await page.getByRole('option', { name: '120 资质 · 神魔化与二代', exact: true }).click()
+  await environment('120 资质 · 神魔化与二代').click()
   await expect(defense).toHaveValue('59')
   await page.goto('./#/environments')
   const builtins = page.getByRole('navigation', { name: '选择环境' })

@@ -5,22 +5,26 @@ export interface EffectMarkRelation {
 }
 
 export const officialEffectMarkRelations: Readonly<Record<string, readonly EffectMarkRelation[]>> = {
-  effect_shifeng_ability_init_needles: [{ markId: 'mark_fenghuangzhen', relationType: 'adds' }],
-  effect_shifeng_skill_fenghuangduzhen: [
+  effect_ability_add_mark_self_fenghuangzhen_3_on_battle_start: [
+    { markId: 'mark_fenghuangzhen', relationType: 'adds' },
+  ],
+  effect_skill_add_mark_opponent_zhongdu_40_percent_or_consume_fenghuangzhen: [
     { markId: 'mark_fenghuangzhen', relationType: 'consumes' },
     { markId: 'mark_zhongdu', relationType: 'adds' },
   ],
-  effect_shifeng_skill_fenghuangjinzhen: [
+  effect_skill_add_mark_opponent_mabi_40_percent_or_consume_fenghuangzhen: [
     { markId: 'mark_fenghuangzhen', relationType: 'consumes' },
     { markId: 'mark_mabi', relationType: 'adds' },
   ],
-  effect_shifeng_skill_fenghuangmizhen: [{ markId: 'mark_fenghuangzhen', relationType: 'consumes' }],
-  effect_skill_ganjuebaoli: [
+  effect_skill_reduce_opponent_spe_1_stage_40_percent_or_consume_fenghuangzhen: [
+    { markId: 'mark_fenghuangzhen', relationType: 'consumes' },
+  ],
+  effect_skill_add_random_sense_loss_to_opponent: [
     { markId: 'mark_shiqutingjue', relationType: 'adds' },
     { markId: 'mark_shiquxiujue', relationType: 'adds' },
     { markId: 'mark_shiquweijue', relationType: 'adds' },
   ],
-  effect_skill_chaogansangshibo: [
+  effect_skill_add_all_sense_losses_to_opponent: [
     { markId: 'mark_shiqutingjue', relationType: 'adds' },
     { markId: 'mark_shiquxiujue', relationType: 'adds' },
     { markId: 'mark_shiquweijue', relationType: 'adds' },
@@ -534,12 +538,6 @@ export const officialEffectMarkRelations: Readonly<Record<string, readonly Effec
     },
   ],
   effect_skill_add_mark_shanbi: [
-    {
-      markId: 'mark_shanbi',
-      relationType: 'adds',
-    },
-  ],
-  effect_skill_add_mark_shanbi_2: [
     {
       markId: 'mark_shanbi',
       relationType: 'adds',
@@ -1972,18 +1970,6 @@ export const officialEffectMarkRelations: Readonly<Record<string, readonly Effec
   effect_skill_add_mark_opponent_liuxie_30_if_max_hp_gt_opponent: [
     {
       markId: 'mark_liuxie',
-      relationType: 'adds',
-    },
-  ],
-  effect_skill_add_mark_fansheguike: [
-    {
-      markId: 'mark_fansheguike',
-      relationType: 'adds',
-    },
-  ],
-  effect_skill_add_mark_hanbinghujia_2x_self_max_hp_minus_500: [
-    {
-      markId: 'mark_hanbinghujia',
       relationType: 'adds',
     },
   ],

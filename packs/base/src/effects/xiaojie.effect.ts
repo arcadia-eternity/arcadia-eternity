@@ -1,5 +1,4 @@
 import {
-  actions,
   conditions,
   contexts,
   DamageType,
@@ -29,12 +28,6 @@ const attackDamage = contexts.damage.condition((_, events) =>
   events.some(event => event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
 )
 
-const selfSpeUp = targets.ownerPet.apply(ops.changeStatStage('spe', 1))
-
-function secondaryDebuff(roll: number, debuff: Action): Action {
-  return actions.choose(conditions.chance(roll), debuff)
-}
-
 function weightPower(base: number): Action {
   return contexts.skillUse.apply(
     ops.addPower(
@@ -61,7 +54,7 @@ export class XiaojieEffects {
     }
 
     return defineEffects({
-      effect_xiaojie_ability_spe_down_atk_up: {
+      effect_ability_raise_atk_1_stage_before_receiving_spe_drop: {
         triggers: [EffectTrigger.OnBeforeAddMark],
         priority: -1,
         when: conditions.all(
@@ -71,7 +64,7 @@ export class XiaojieEffects {
         ),
         apply: targets.ownerPet.apply(ops.changeStatStage('atk', 1)),
       },
-      effect_xiaojie_emblem_stance_next_attack: {
+      effect_emblem_add_mark_self_shanghaizengjia_10_after_stance_skill: {
         triggers: [EffectTrigger.SkillUseEnd],
         priority: 0,
         when: conditions.all(
@@ -86,67 +79,49 @@ export class XiaojieEffects {
         ),
         apply: targets.ownerPet.apply(ops.addMark(shanghaizengjia, { stack: 10 })),
       },
-      effect_xiaojie_skill_shiqieshi: {
+      effect_skill_add_mark_self_shiqieshi_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(shiqieshi, { stack: 1 })),
       },
-      effect_xiaojie_skill_bailietui: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: contexts.skillUse.apply(ops.setMultihit(values.randomInt(3, 5))),
-      },
-      effect_xiaojie_skill_baiguanluo: {
+      effect_skill_add_power_65_if_weight_above_100: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: weightPower(65),
       },
-      effect_xiaojie_skill_chenshoushi: {
+      effect_skill_add_mark_self_chenshoushi_if_first: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
         apply: targets.ownerPet.apply(ops.addMark(chenshoushi, { stack: 1 })),
       },
-      effect_xiaojie_skill_dunjushi: {
+      effect_skill_add_mark_self_dunjushi_if_first: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.firstSkillThisTurn),
         apply: targets.ownerPet.apply(ops.addMark(dunjushi, { stack: 1 })),
       },
-      effect_xiaojie_skill_lishizhan: {
-        triggers: [EffectTrigger.BeforeHit],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: contexts.skillUse.apply(ops.setIgnoreShield()),
-      },
-      effect_xiaojie_skill_guiwushuang: {
+      effect_skill_add_mark_self_shanghaizengjia_40_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(shanghaizengjia, { stack: 40 })),
       },
-      effect_xiaojie_skill_lishitu: {
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: secondaryDebuff(20, selfSpeUp),
-      },
-      effect_xiaojie_skill_chaojibaiguanluo: {
+      effect_skill_add_power_70_if_weight_above_100: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: weightPower(70),
       },
-      effect_xiaojie_skill_wushuangshi: {
+      effect_skill_add_mark_self_wushuangshi_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(wushuangshi, { stack: 1 })),
       },
-      effect_xiaojie_mark_shiqieshi_damage: {
+      effect_mark_amplify_outgoing_attack_damage_40_percent_on_last_turn: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
@@ -156,19 +131,19 @@ export class XiaojieEffects {
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 40, delta: 0 })),
       },
-      effect_xiaojie_mark_chenshoushi_block: {
+      effect_mark_prevent_physical_damage_50_percent_consume_1_stack: {
         triggers: [EffectTrigger.OnDamageReplacement],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, physicalDamage),
         apply: contexts.damage.apply(ops.preventDamage({ fraction: 0.5, stacks: 1 })),
       },
-      effect_xiaojie_mark_dunjushi_block: {
+      effect_mark_prevent_special_damage_50_percent_consume_1_stack: {
         triggers: [EffectTrigger.OnDamageReplacement],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, specialDamage),
         apply: contexts.damage.apply(ops.preventDamage({ fraction: 0.5, stacks: 1 })),
       },
-      effect_xiaojie_mark_wushuangshi_absorb: {
+      effect_mark_add_mark_self_wushuangli_by_half_attack_hp_loss_and_remove_wushuangshi: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, attackDamage),
@@ -179,7 +154,7 @@ export class XiaojieEffects {
           targets.ownerMarks.where(mark => mark.baseId === WUSHUANGSHI && mark.isActive).apply(ops.removeMark())(ctx)
         }) satisfies Action<EffectTrigger.OnDamage>,
       },
-      effect_xiaojie_mark_wushuangli_consume: {
+      effect_mark_remove_self_after_attack_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: -1,
         when: conditions.all(

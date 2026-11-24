@@ -3212,6 +3212,7 @@
   ignoreShield: false
   effect:
     - effect_skill_consume_xinzhiyinji_sure_hit
+    - effect_skill_consume_xinzhiyinji_multihit_consume
   tags: ['consume_xinzhiyinji']
 - id: skill_jianren
   element: Normal
@@ -5586,7 +5587,6 @@
   sureHit: false
   ignoreShield: false
   tags: ['consume_shazhidanke']
-  multihit: 2
   effect:
     - effect_skill_add_multihit_1_consume_shazhidanke
 - id: skill_shazhisuike
@@ -7949,10 +7949,9 @@
   accuracy: 95
   sureHit: false
   ignoreShield: false
-  priority: 1
   tags: [yutu]
   effect:
-    - effect_skill_priority_plus_1_if_atk_over_500 # TODO: 自身物攻值＞500时先制+1
+    - effect_skill_priority_plus_1_if_atk_over_500
 - id: skill_yutulingshi
   element: Flying
   category: Physical
@@ -7960,7 +7959,7 @@
   power: 100
   rage: 20
   accuracy: 100
-  sureHit: true
+  sureHit: false
   ignoreShield: false
   tags: [yutu]
   effect:
@@ -9027,7 +9026,7 @@
   accuracy: 95
   rage: 20
   target: opponent
-  sureHit: true
+  sureHit: false
   effect:
     - effect_skill_set_sure_hit_if_has_niliu
 - id: skill_shuiguangsiqi
@@ -9883,7 +9882,6 @@
   power: 75
   accuracy: 95
   rage: 15
-  priority: 2
   effect:
     - effect_skill_priority_plus_2_if_has_mark_chaojipenti
 - id: skill_shachenhoutuiti
@@ -11345,16 +11343,6 @@
   tags: []
   effect:
     - effect_skill_heal_self_quarter_if_opponent_has_kaowen_on_defeat_opponent
-- id: skill_chongzhuang_palading
-  element: Normal
-  category: Physical
-  target: opponent
-  power: 35
-  rage: 0
-  accuracy: 100
-  sureHit: false
-  ignoreShield: false
-  tags: []
 - id: skill_guangxiangongji
   element: Light
   category: Special
@@ -11365,6 +11353,8 @@
   sureHit: false
   ignoreShield: false
   tags: []
+  effect:
+    - effect_skill_reduce_opponent_spd_1_stage_5_percent
 - id: skill_zhengyizhihuo
   element: Normal
   category: Status
@@ -11376,7 +11366,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_palading_zhengyizhihuo
+    - effect_skill_raise_def_1_stage
+    - effect_skill_raise_spd_1_stage_if_shensheng
 - id: skill_shengguangzhiming
   element: Light
   category: Physical
@@ -11389,7 +11380,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_palading_shengguangzhiming
+    - effect_skill_add_mark_self_shensheng
 - id: skill_shiziguangchong
   element: Light
   category: Special
@@ -11401,7 +11392,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_palading_shiziguangchong
+    - effect_skill_increase_damage_50_percent_if_shensheng
 - id: skill_chengjiezhiguang
   element: Light
   category: Physical
@@ -11413,7 +11404,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_palading_chengjiezhiguang
+    - effect_skill_add_damage_15_percent_spa_if_shensheng
 - id: skill_bihuzhihuo
   element: Normal
   category: Status
@@ -11425,7 +11416,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_palading_bihuzhihuo
+    - effect_skill_heal_self_eighth
+    - effect_skill_add_mark_self_bihu
 - id: skill_shengguangxili
   element: Light
   category: Physical
@@ -11449,7 +11441,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_palading_gongzhengguangchong
+    - effect_skill_add_mark_opponent_gongzheng
 - id: skill_fuchouguangchong
   element: Light
   category: Special
@@ -11461,7 +11453,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_palading_fuchouguangchong
+    - effect_skill_double_power_if_all_allies_fainted
 - id: skill_zhengfazhihuo
   element: Normal
   category: Status
@@ -11473,7 +11465,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_palading_zhengfazhihuo
+    - effect_skill_add_mark_self_zhengfa
 - id: skill_shengyouzhihuo
   element: Normal
   category: Status
@@ -11485,7 +11477,8 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_palading_shengyouzhihuo
+    - effect_skill_heal_self_eighth
+    - effect_skill_add_mark_self_shengyou
 - id: skill_rongyaodeshengzhan
   element: Light
   category: Climax
@@ -11497,7 +11490,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_palading_rongyaodeshengzhan
+    - effect_skill_raise_def_or_spd_1_stage_if_shensheng
 - id: skill_shimingzhihuo
   element: Normal
   category: Status
@@ -11509,7 +11502,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_palading_shimingzhihuo
+    - effect_skill_add_mark_self_mingshi
 - id: skill_shenpanguangchong
   element: Normal
   category: Special
@@ -11521,7 +11514,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_palading_shenpanguangchong
+    - effect_skill_add_damage_15_percent_atk_if_shensheng
 - id: skill_zhengjiuzhihuo
   element: Normal
   category: Status
@@ -11533,7 +11526,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_palading_zhengjiuzhihuo
+    - effect_skill_heal_opponent_100_and_reduce_opponent_rage_35
 - id: skill_jiushuzhihuo
   element: Normal
   category: Status
@@ -11545,7 +11538,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_palading_jiushuzhihuo
+    - effect_skill_add_mark_self_jiushu
 - id: skill_hongxinyinji
   element: Normal
   category: Special
@@ -11681,7 +11674,7 @@
     - effect_skill_kadundudu_hongxin_lianjie
   tags: []
 
-- id: skill_quanliyiji_kadundudu
+- id: skill_quanliyiji_shenggong_10
   element: Normal
   category: Physical
   target: opponent
@@ -11701,7 +11694,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_bingchuantun_skill_bingbao_power
+    - effect_skill_add_power_60_if_consume_hanbingjianren
   tags: []
 - id: skill_bingdongchongzhuang
   element: Ice
@@ -11722,7 +11715,7 @@
   sureHit: true
   target: opponent
   effect:
-    - effect_bingchuantun_skill_add_hanbingjianren
+    - effect_skill_add_mark_self_hanbingjianren
   tags: []
 - id: skill_binglengpifu
   element: Ice
@@ -11732,7 +11725,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_bingchuantun_skill_add_mianyibuliang
+    - effect_skill_add_mark_mianyibuliang
   tags: []
 - id: skill_binglengyiji
   element: Ice
@@ -11742,8 +11735,8 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_bingchuantun_skill_binglengyiji_fixed_damage
-    - effect_bingchuantun_skill_consume_hanbingjianren
+    - effect_skill_add_fixed_damage_60_if_hanbingjianren
+    - effect_skill_consume_hanbingjianren_on_hit
   tags: []
 - id: skill_bingyu
   element: Ice
@@ -11783,7 +11776,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_bingchuantun_skill_dongqi_chongzhuang
+    - effect_skill_consume_hanbingjianren_add_mark_opponent_dongshang
   tags: []
 - id: skill_hanbingjianren
   element: Ice
@@ -11793,7 +11786,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_bingchuantun_skill_add_hanbingjianren
+    - effect_skill_add_mark_self_hanbingjianren
   tags: []
 - id: skill_hanlengzhiqi
   element: Ice
@@ -11803,7 +11796,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_bingchuantun_skill_hanlengzhiqi_power
+    - effect_skill_power_2x_if_opponent_has_mark_dongshang
   tags: []
 - id: skill_jisubingzhui
   element: Ice
@@ -11813,7 +11806,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_bingchuantun_skill_jisubingzhui_priority
+    - effect_skill_add_priority_1_if_consume_hanbingjianren
   tags: []
 - id: skill_duzhenlianshe
   element: Bug
@@ -11824,7 +11817,7 @@
   accuracy: 95
   multihit: 2
   effect:
-    - effect_skill_duzhenlianshe
+    - effect_skill_add_2_hits_if_opponent_has_zhongdu
 - id: skill_jinzhensheji
   element: Bug
   category: Special
@@ -11833,7 +11826,7 @@
   rage: 15
   accuracy: 95
   effect:
-    - effect_skill_jinzhensheji
+    - effect_skill_add_power_50_if_opponent_has_mabi
 - id: skill_zhenchituji
   element: Normal
   category: Physical
@@ -11842,7 +11835,7 @@
   rage: 15
   accuracy: 95
   effect:
-    - effect_skill_zhenchituji
+    - effect_skill_add_power_50_if_first
 - id: skill_mizhenlianshe
   element: Bug
   category: Special
@@ -11852,7 +11845,7 @@
   accuracy: 85
   multihit: 2
   effect:
-    - effect_skill_mizhenlianshe
+    - effect_skill_add_crit_rate_95_if_first
 - id: skill_guaiyichongji
   element: Flying
   category: Physical
@@ -11861,7 +11854,7 @@
   rage: 15
   accuracy: 95
   effect:
-    - effect_skill_guaiyichongji
+    - effect_skill_reduce_opponent_def_1_stage_if_opponent_has_shiquxiujue
 - id: skill_kusechouda
   element: Flying
   category: Special
@@ -11870,8 +11863,8 @@
   rage: 20
   accuracy: 95
   effect:
-    - effect_skill_kusechouda
-- id: skill_chouda_hema
+    - effect_skill_reduce_opponent_spd_1_stage_if_opponent_has_shiquweijue
+- id: skill_chouda_jiangwufang
   element: Normal
   category: Physical
   target: opponent
@@ -11888,7 +11881,7 @@
   rage: 10
   accuracy: 95
   effect:
-    - effect_skill_ganjuebaoli
+    - effect_skill_add_random_sense_loss_to_opponent
 - id: skill_huiwuchouda
   element: Flying
   category: Special
@@ -11906,7 +11899,7 @@
   rage: 15
   accuracy: 95
   effect:
-    - effect_skill_reduce_spe_if_opponent_lost_hearing
+    - effect_skill_reduce_opponent_spe_1_stage_if_opponent_lost_hearing
 - id: skill_beiheyimi
   element: Normal
   category: Status
@@ -11915,7 +11908,7 @@
   rage: 10
   accuracy: 100
   effect:
-    - effect_skill_beiheyimi
+    - effect_skill_raise_self_spe_spd_def_1_stage_for_opponent_sense_losses
 - id: skill_chaohema
   element: Normal
   category: Status
@@ -11943,7 +11936,7 @@
   accuracy: 100
   sureHit: true
   effect:
-    - effect_skill_chaogansangshibo
+    - effect_skill_add_all_sense_losses_to_opponent
 - id: skill_jianxiaochandou
   element: Normal
   category: Physical
@@ -11952,7 +11945,7 @@
   rage: 20
   accuracy: 95
   effect:
-    - effect_skill_reduce_spe_if_opponent_lost_hearing
+    - effect_skill_reduce_opponent_spe_1_stage_if_opponent_lost_hearing
 - id: skill_jianxiaochongji
   element: Normal
   category: Physical
@@ -11961,7 +11954,7 @@
   rage: 20
   accuracy: 95
   effect:
-    - effect_skill_guaiyichongji
+    - effect_skill_reduce_opponent_def_1_stage_if_opponent_has_shiquxiujue
 - id: skill_fuyou
   element: Normal
   category: Status
@@ -11979,7 +11972,7 @@
   rage: 20
   accuracy: 95
   effect:
-    - effect_skill_kusechouda
+    - effect_skill_reduce_opponent_spd_1_stage_if_opponent_has_shiquweijue
 - id: skill_fenghuangduzhen
   element: Bug
   category: Special
@@ -11988,7 +11981,7 @@
   rage: 15
   accuracy: 95
   effect:
-    - effect_shifeng_skill_fenghuangduzhen
+    - effect_skill_add_mark_opponent_zhongdu_40_percent_or_consume_fenghuangzhen
 - id: skill_fenghuangjinzhen
   element: Bug
   category: Special
@@ -11997,7 +11990,7 @@
   rage: 15
   accuracy: 95
   effect:
-    - effect_shifeng_skill_fenghuangjinzhen
+    - effect_skill_add_mark_opponent_mabi_40_percent_or_consume_fenghuangzhen
 - id: skill_fenghuangmizhen
   element: Bug
   category: Special
@@ -12006,7 +11999,7 @@
   rage: 15
   accuracy: 95
   effect:
-    - effect_shifeng_skill_fenghuangmizhen
+    - effect_skill_reduce_opponent_spe_1_stage_40_percent_or_consume_fenghuangzhen
 - id: skill_zhenchihuiji
   element: Normal
   category: Physical
@@ -12024,7 +12017,7 @@
   accuracy: 100
   sureHit: true
   effect:
-    - effect_shifeng_skill_fenghuangzhenwu
+    - effect_skill_add_power_10_if_female
 - id: skill_xiongfengtuxi
   element: Bug
   category: Physical
@@ -12033,7 +12026,7 @@
   rage: 20
   accuracy: 95
   effect:
-    - effect_shifeng_skill_xiongfengtuxi
+    - effect_skill_add_power_50_if_male
 - id: skill_fenghuangchuji
   element: Bug
   category: Physical
@@ -12042,7 +12035,7 @@
   rage: 20
   accuracy: 95
   effect:
-    - effect_shifeng_skill_fenghuangchuji
+    - effect_skill_add_power_50_if_female
 - id: skill_xiongfengzhici
   element: Bug
   category: Special
@@ -12051,7 +12044,7 @@
   rage: 20
   accuracy: 95
   effect:
-    - effect_shifeng_skill_xiongfengzhici
+    - effect_skill_drain_hp_50_if_male
 - id: skill_fenghuangjuezhen
   element: Bug
   category: Special
@@ -12060,7 +12053,7 @@
   rage: 20
   accuracy: 95
   effect:
-    - effect_shifeng_skill_fenghuangjuezhen
+    - effect_skill_drain_hp_65_if_female
 - id: skill_biansutuji
   element: Normal
   category: Physical
@@ -12069,7 +12062,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_tiaotiaoshu_skill_biansutuji
+    - effect_skill_add_mark_self_biansu_after_check
 - id: skill_suishalianji
   element: Desert
   category: Physical
@@ -12078,8 +12071,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_tiaotiaoshu_skill_suishalianji
-    - effect_tiaotiaoshu_skill_suishalianji_first
+    - effect_skill_power_2x_if_first_after_check_priority_0
   multihit:
     - 2
     - 4
@@ -12091,7 +12083,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_tiaotiaoshu_skill_shazhiqiu
+    - effect_skill_reduce_opponent_spd_1_stage_if_first
 - id: skill_yishouzhuangong
   element: Normal
   category: Status
@@ -12100,7 +12092,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_tiaotiaoshu_skill_yishouzhuangong
+    - effect_skill_add_mark_self_yishouzhuangong_after_check
 - id: skill_yapo_jiansu
   element: Normal
   category: Physical
@@ -12109,7 +12101,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_tiaotiaoshu_skill_yapo
+    - effect_skill_reduce_opponent_spe_1_stage_if_first
 - id: skill_shazhidaoren
   element: Desert
   category: Special
@@ -12118,7 +12110,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_tiaotiaoshu_skill_shazhidaoren
+    - effect_skill_deal_35_effect_damage_if_first_on_hit
 - id: skill_suishazhongji
   element: Desert
   category: Physical
@@ -12127,7 +12119,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_tiaotiaoshu_skill_suishalianji_first
+    - effect_skill_power_2x_if_first_after_check_priority_0
 - id: skill_huixin
   element: Normal
   category: Status
@@ -12136,7 +12128,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_tiaotiaoshu_skill_huixin
+    - effect_skill_add_mark_self_huixin_for_1_turn_after_check
 - id: skill_suishaboji
   element: Desert
   category: Physical
@@ -12145,7 +12137,7 @@
   accuracy: 80
   target: opponent
   effect:
-    - effect_tiaotiaoshu_skill_suishalianji_first
+    - effect_skill_power_2x_if_first_after_check_priority_0
 - id: skill_kuangshatupo
   element: Desert
   category: Climax
@@ -12153,8 +12145,6 @@
   rage: 100
   accuracy: 100
   target: opponent
-  effect:
-    - effect_skill_sure_hit_before_check
   sureHit: true
 - id: skill_shanduo
   element: Normal
@@ -12164,7 +12154,7 @@
   accuracy: 95
   target: self
   effect:
-    - effect_tiaotiaoshu_skill_shanduo
+    - effect_skill_add_mark_self_shanduo_for_1_turn_if_first
 - id: skill_fangshoufanji
   element: Normal
   category: Physical
@@ -12173,7 +12163,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_tiaotiaoshu_skill_fangshoufanji
+    - effect_skill_add_mark_self_shoudaoshanghaijianshao_50_after_check
   priority: -2
 - id: skill_qitiao
   element: Normal
@@ -12183,7 +12173,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_tiaotiaoshu_skill_qitiao
+    - effect_skill_add_mark_self_qitiao_for_1_turn_if_first
 - id: skill_pingheng
   element: Normal
   category: Status
@@ -12192,7 +12182,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_tiaotiaoshu_skill_pingheng
+    - effect_skill_add_mark_self_mianyiruohua_after_check
 - id: skill_fangun
   element: Normal
   category: Physical
@@ -12201,7 +12191,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_skill_lower_spe_5_percent_on_hit
+    - effect_skill_reduce_opponent_spe_1_stage_5_percent
 - id: skill_yinjiu
   element: Normal
   category: Status
@@ -12210,7 +12200,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_pangpang_skill_yinjiu_drink
+    - effect_skill_add_mark_self_weizui_or_upgrade_to_lanzui
 - id: skill_yuntouzhuanxiang
   element: Normal
   category: Physical
@@ -12219,7 +12209,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_pangpang_skill_yuntouzhuanxiang_crit
+    - effect_skill_add_50_crit_rate_if_weizui_or_95_if_lanzui
 - id: skill_xingjiu
   element: Normal
   category: Status
@@ -12228,7 +12218,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_pangpang_skill_xingjiu_heal
+    - effect_skill_consume_drunk_to_add_self_huifu_1_16_for_5_turns
 - id: skill_exin
   element: Normal
   category: Special
@@ -12237,7 +12227,7 @@
   accuracy: 0
   target: opponent
   effect:
-    - effect_pangpang_skill_exin_effect
+    - effect_skill_consume_drunk_to_set_accuracy_95_and_add_exin_to_both_for_3_turns
 - id: skill_manmianhongguang
   element: Normal
   category: Status
@@ -12246,7 +12236,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_pangpang_skill_manmianhongguang_buff
+    - effect_skill_raise_atk_1_stage_and_spa_1_stage_if_lanzui
 - id: skill_xilihutu
   element: Normal
   category: Physical
@@ -12255,7 +12245,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_pangpang_skill_xilihutu_power
+    - effect_skill_add_power_50_if_weizui_or_100_if_lanzui
   sureHit: true
 - id: skill_fanwei
   element: Normal
@@ -12265,7 +12255,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_pangpang_skill_fanwei_effect
+    - effect_skill_consume_drunk_to_reduce_both_spd_1_stage
 - id: skill_jiuqixunren
   element: Normal
   category: Status
@@ -12283,10 +12273,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_pangpang_skill_shouwuzudao_multihit
-  multihit:
-    - 2
-    - 5
+    - effect_skill_set_2_to_3_hits_if_weizui_or_3_to_5_if_lanzui
 - id: skill_fali
   element: Normal
   category: Special
@@ -12295,7 +12282,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_pangpang_skill_fali_effect
+    - effect_skill_consume_drunk_to_reduce_both_spe_1_stage
 - id: skill_jiuguidaluanda
   element: Normal
   category: Climax
@@ -12304,7 +12291,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_pangpang_skill_jiuguidaluanda_clear
+    - effect_skill_clear_self_negative_stage
   sureHit: true
 - id: skill_fennu
   element: Normal
@@ -12314,7 +12301,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_pangpang_skill_fennu_rage
+    - effect_skill_reduce_rage_cost_15_if_weizui_or_30_if_lanzui
 - id: skill_xingzhigaoang
   element: Normal
   category: Status
@@ -12323,7 +12310,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_pangpang_skill_xingzhigaoang_buff
+    - effect_skill_raise_spa_1_stage_and_spe_1_stage_if_lanzui
 - id: skill_penxue
   element: Normal
   category: Special
@@ -12332,7 +12319,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_pangpang_skill_penxue_immunity
+    - effect_skill_add_mark_self_mianyiyichang_for_3_turns_after_check
 - id: skill_quanjiu
   element: Normal
   category: Status
@@ -12341,7 +12328,7 @@
   accuracy: 95
   target: self
   effect:
-    - effect_pangpang_skill_quanjiu_meijiu
+    - effect_skill_add_mark_self_meijiuyouhuo_after_check
 - id: skill_paida_mingzhong100
   element: Normal
   category: Physical
@@ -12359,7 +12346,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_abu_skill_zuzhoubengdai
+    - effect_skill_reduce_opponent_def_1_stage_after_repeated_use_without_miss
 - id: skill_bengdaichanrao
   element: Psychic
   category: Physical
@@ -12368,7 +12355,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_abu_skill_bengdaichanrao
+    - effect_skill_reduce_opponent_spe_1_stage_after_repeated_use_without_miss
 - id: skill_jianrenbengdai
   element: Psychic
   category: Status
@@ -12377,7 +12364,8 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_def_spd_after_check
+    - effect_skill_raise_def_1_stage
+    - effect_skill_raise_spd_1_stage
 - id: skill_bengdaitishen
   element: Psychic
   category: Status
@@ -12386,7 +12374,7 @@
   accuracy: 95
   target: self
   effect:
-    - effect_abu_skill_bengdaitishen
+    - effect_skill_add_mark_self_bengdaitishen_after_check
 - id: skill_zuzhouzhichu
   element: Psychic
   category: Special
@@ -12404,7 +12392,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_abu_skill_abuzuzhou
+    - effect_skill_add_mark_opponent_zuzhou_after_check
 - id: skill_beishangfanji
   element: Normal
   category: Physical
@@ -12412,8 +12400,6 @@
   rage: 20
   accuracy: 95
   target: opponent
-  effect:
-    - effect_abu_skill_beishangfanji
   priority: -1
 - id: skill_tongkuzhichu
   element: Psychic
@@ -12441,7 +12427,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_abu_skill_abuzhiyuan
+    - effect_skill_add_mark_self_abuzhiyuan_after_check
   sureHit: true
 - id: skill_abuhaoku
   element: Psychic
@@ -12451,7 +12437,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_abu_skill_abuhaoku
+    - effect_skill_add_mark_self_xinlingzhiyue_after_check
 - id: skill_juewangzhichu
   element: Psychic
   category: Special
@@ -12478,7 +12464,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_abu_skill_yuanqixiaosan
+    - effect_skill_consume_abuzhiyuan_deal_100_effect_damage_ignoring_shields
 - id: skill_bingqiu
   element: Ice
   category: Special
@@ -12496,7 +12482,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_niya_skill_anfuzhichu
+    - effect_skill_add_mark_opponent_anfu_on_hit
 - id: skill_feixue
   element: Ice
   category: Special
@@ -12505,7 +12491,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_niya_skill_feixue
+    - effect_skill_add_mark_opponent_dongshang_if_anfu
 - id: skill_hushen
   element: Normal
   category: Status
@@ -12514,7 +12500,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_spd_after_check
+    - effect_skill_raise_spd_1_stage
 - id: skill_hanlengzhichu
   element: Ice
   category: Physical
@@ -12523,7 +12509,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_niya_skill_hanlengzhichu
+    - effect_skill_add_mark_opponent_xinlingzhiyue_if_first_skill
 - id: skill_xuehuafeiwu
   element: Ice
   category: Special
@@ -12532,7 +12518,7 @@
   accuracy: 90
   target: opponent
   effect:
-    - effect_niya_skill_xuehuafeiwu
+    - effect_skill_set_sure_hit_if_opponent_has_anfu
 - id: skill_xuezhiwaiyi
   element: Ice
   category: Status
@@ -12541,7 +12527,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_niya_skill_xuezhiwaiyi
+    - effect_skill_add_mark_self_xuezhiwaiyi_100_after_check
 - id: skill_bingdongzhichu
   element: Ice
   category: Physical
@@ -12550,7 +12536,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_niya_skill_bingdongzhichu
+    - effect_skill_add_mark_opponent_shoudaoshanghaizengjia_50_on_hit
 - id: skill_xiubaixue
   element: Ice
   category: Special
@@ -12559,7 +12545,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_niya_skill_xiubaixue
+    - effect_skill_deal_50_fixed_damage_to_opponent_with_anfu_on_hit
 - id: skill_bingfengjiyi
   element: Ice
   category: Status
@@ -12568,7 +12554,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_niya_skill_bingfengjiyi
+    - effect_skill_raise_spe_1_stage_and_store_or_restore_positive_stages_with_bingfengjiyi
 - id: skill_bingxueshiji
   element: Ice
   category: Climax
@@ -12577,7 +12563,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_skill_lower_spe_20_percent_on_hit_on_apply
+    - effect_skill_reduce_opponent_spe_1_stage_20_percent
   sureHit: true
 - id: skill_baofengxue
   element: Ice
@@ -12587,7 +12573,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_niya_skill_baofengxue
+    - effect_skill_set_field_baofengxue_after_check
 - id: skill_lieshantuji
   element: Normal
   category: Physical
@@ -12632,7 +12618,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_boli_skill_hanbingpaoxiao
+    - effect_skill_add_mark_opponent_hunmi_50_percent_if_opponent_hp_below_half
 - id: skill_yemanchongji
   element: Normal
   category: Physical
@@ -12641,7 +12627,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_boli_skill_yemanchongji
+    - effect_skill_double_power_if_opponent_has_hunmi_after_check
 - id: skill_hanbingshigu
   element: Ice
   category: Physical
@@ -12650,7 +12636,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_boli_skill_hanbingshigu
+    - effect_skill_deal_opponent_current_hp_13_percent_max_400
   sureHit: true
 - id: skill_guaixiao
   tags: [guaixiao]
@@ -12670,7 +12656,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_boli_skill_suiliepaiji
+    - effect_skill_double_power_if_opponent_hp_below_quarter_after_check
 - id: skill_xianzubinghun
   element: Ice
   category: Special
@@ -12679,7 +12665,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_boli_skill_xianzubinghun
+    - effect_skill_add_mark_opponent_xianzubinghun
 - id: skill_hanbingtuxi
   element: Ice
   category: Special
@@ -12688,7 +12674,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_boli_skill_hanbingtuxi
+    - effect_skill_add_mark_opponent_dongshang_50_percent
 - id: skill_bingqinxuemai
   element: Ice
   category: Status
@@ -12697,7 +12683,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_boli_skill_bingqinxuemai
+    - effect_skill_heal_self_60_90_120_by_hp_ratio
 - id: skill_fengkuangmengji
   element: Normal
   category: Physical
@@ -12706,7 +12692,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_boli_skill_suiliepaiji
+    - effect_skill_double_power_if_opponent_hp_below_quarter_after_check
 - id: skill_bingyuansuilieji
   element: Ice
   category: Climax
@@ -12725,7 +12711,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_boli_skill_hanbingxiaohun
+    - effect_skill_add_mark_opponent_haipa_50_percent_if_opponent_hp_below_half
 - id: skill_manxiongzhili
   element: Ice
   category: Physical
@@ -12734,7 +12720,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_boli_skill_manxiongzhili
+    - effect_skill_double_power_if_opponent_has_haipa_after_check
 - id: skill_julijianta
   element: Normal
   category: Physical
@@ -12743,7 +12729,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_boli_skill_manxiongzhili
+    - effect_skill_double_power_if_opponent_has_haipa_after_check
 - id: skill_guaixiaobenxi
   tags: [guaixiao]
   element: Normal
@@ -12753,7 +12739,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_boli_skill_guaixiaobenxi
+    - effect_skill_reduce_opponent_def_1_stage_if_opponent_hp_below_half_before_hit
 - id: skill_juhuo
   element: Normal
   category: Status
@@ -12762,7 +12748,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_spa_after_check
+    - effect_skill_raise_spa_1_stage
 - id: skill_huohuakeyin
   element: Fire
   category: Physical
@@ -12771,7 +12757,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_huohuali_skill_huohuakeyin
+    - effect_skill_add_mark_opponent_shaoshang_on_crit
 - id: skill_huohuayinbao
   element: Fire
   category: Special
@@ -12780,7 +12766,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_huohuali_skill_huohuayinbao
+    - effect_skill_consume_opponent_shaoshang_deal_100_fixed_damage
 - id: skill_huoyanchongji
   element: Fire
   category: Physical
@@ -12798,7 +12784,7 @@
   accuracy: 90
   target: opponent
   effect:
-    - effect_huohuali_skill_xuanmuhuoguang
+    - effect_skill_add_mark_opponent_hunmi_if_opponent_has_mark_shaoshang
 - id: skill_huohuanengliang
   element: Fire
   category: Status
@@ -12807,7 +12793,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_huohuali_skill_huohuanengliang
+    - effect_skill_add_mark_self_shanghaizengjia_90_after_check
 - id: skill_huohuatuxi
   element: Fire
   category: Physical
@@ -12824,7 +12810,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_huohuali_skill_huohuayinji
+    - effect_skill_add_mark_opponent_huohuayinji_after_check
 - id: skill_huohuaquti
   element: Fire
   category: Status
@@ -12833,7 +12819,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_huohuali_skill_huohuaquti
+    - effect_skill_add_mark_self_huohuaquti_after_check
 - id: skill_huolongjianglin
   element: Fire
   category: Climax
@@ -12842,7 +12828,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_huohuali_skill_huolongjianglin
+    - effect_skill_add_mark_opponent_shaoshang_15_percent_any_element
   sureHit: true
 - id: skill_chirekeyin
   element: Fire
@@ -12852,7 +12838,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_huohuali_skill_huohuakeyin
+    - effect_skill_add_mark_opponent_shaoshang_on_crit
 - id: skill_chirelieyan
   element: Fire
   category: Special
@@ -12861,7 +12847,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_huohuali_skill_chirelieyan
+    - effect_skill_power_2x_if_opponent_has_mark_shaoshang_before_check
 - id: skill_chireyandan
   element: Fire
   category: Special
@@ -12869,8 +12855,6 @@
   rage: 20
   accuracy: 90
   target: opponent
-  effect:
-    - effect_huohuali_skill_chireyandan
   multihit:
     - 2
     - 3
@@ -12882,7 +12866,7 @@
   accuracy: 60
   target: opponent
   effect:
-    - effect_huohuali_skill_chiretuji
+    - effect_skill_sure_hit_if_opponent_has_mark_shaoshang_before_check
 - id: skill_zhangshou
   element: Fighting
   category: Special
@@ -12900,7 +12884,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_xiaojie_skill_shiqieshi
+    - effect_skill_add_mark_self_shiqieshi_after_check
 - id: skill_siguta
   element: Fighting
   category: Physical
@@ -12917,8 +12901,6 @@
   rage: 15
   accuracy: 95
   target: opponent
-  effect:
-    - effect_xiaojie_skill_bailietui
   multihit:
     - 3
     - 5
@@ -12930,7 +12912,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_spe_after_check
+    - effect_skill_raise_spe_1_stage
 - id: skill_baiguanluo
   element: Fighting
   category: Physical
@@ -12939,7 +12921,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_xiaojie_skill_baiguanluo
+    - effect_skill_add_power_65_if_weight_above_100
 - id: skill_chenshoushi
   element: Fighting
   category: Status
@@ -12948,7 +12930,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_xiaojie_skill_chenshoushi
+    - effect_skill_add_mark_self_chenshoushi_if_first
 - id: skill_tuzhang
   element: Normal
   category: Physical
@@ -12975,7 +12957,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_xiaojie_skill_dunjushi
+    - effect_skill_add_mark_self_dunjushi_if_first
 - id: skill_lishizhan
   element: Fighting
   category: Special
@@ -12983,8 +12965,6 @@
   rage: 20
   accuracy: 95
   target: opponent
-  effect:
-    - effect_xiaojie_skill_lishizhan
   ignoreShield: true
 - id: skill_guiwushuang
   element: Fighting
@@ -12994,7 +12974,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_xiaojie_skill_guiwushuang
+    - effect_skill_add_mark_self_shanghaizengjia_40_after_check
   sureHit: true
 - id: skill_lishitu
   element: Fighting
@@ -13004,7 +12984,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_xiaojie_skill_lishitu
+    - effect_skill_raise_spe_1_stage_20_percent
   sureHit: true
 - id: skill_chaojibaiguanluo
   element: Fighting
@@ -13014,7 +12994,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_xiaojie_skill_chaojibaiguanluo
+    - effect_skill_add_power_70_if_weight_above_100
 - id: skill_chaojibailietui
   element: Fighting
   category: Special
@@ -13022,8 +13002,6 @@
   rage: 20
   accuracy: 95
   target: opponent
-  effect:
-    - effect_xiaojie_skill_bailietui
   multihit:
     - 3
     - 5
@@ -13035,7 +13013,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_xiaojie_skill_wushuangshi
+    - effect_skill_add_mark_self_wushuangshi_after_check
 - id: skill_shaquan
   element: Desert
   category: Physical
@@ -13053,7 +13031,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_lulu_skill_shazhikaijia
+    - effect_skill_raise_def_1_stage
 - id: skill_shafenshen
   element: Desert
   category: Special
@@ -13062,7 +13040,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_lulu_skill_shafenshen
+    - effect_skill_add_mark_self_shafenshen_1_stack
 - id: skill_shazhimao
   element: Desert
   category: Physical
@@ -13070,7 +13048,7 @@
   rage: 15
   accuracy: 95
   effect:
-    - effect_lulu_skill_shazhimao
+    - effect_skill_consume_shafenshen_1_add_crit_rate_60
   target: opponent
 - id: skill_shapuqiangzang
   element: Desert
@@ -13079,7 +13057,7 @@
   rage: 15
   accuracy: 100
   effect:
-    - effect_lulu_skill_shapuqiangzang
+    - effect_skill_consume_shafenshen_1_double_power_before_hit
   target: opponent
 - id: skill_shaluanpo
   element: Desert
@@ -13087,8 +13065,6 @@
   power: 30
   rage: 20
   accuracy: 95
-  effect:
-    - effect_lulu_skill_shaluanpo
   multihit:
     - 3
     - 5
@@ -13101,7 +13077,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_lulu_skill_shazhishouhu
+    - effect_skill_raise_spd_1_stage
 - id: skill_shachenshuangji
   element: Desert
   category: Physical
@@ -13109,7 +13085,7 @@
   rage: 20
   accuracy: 95
   effect:
-    - effect_lulu_skill_shachenshuangji
+    - effect_skill_consume_shafenshen_2_add_mark_opponent_liuxie_50_before_hit
   target: opponent
 - id: skill_shaliuzang
   element: Desert
@@ -13119,7 +13095,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_lulu_skill_shaliuzang
+    - effect_skill_add_mark_opponent_zhixi_10_percent_on_hit_on_apply
 - id: skill_shapusongzang
   element: Desert
   category: Physical
@@ -13127,7 +13103,7 @@
   rage: 20
   accuracy: 50
   effect:
-    - effect_lulu_skill_shapusongzang
+    - effect_skill_consume_shafenshen_2_set_sure_hit
   target: opponent
 - id: skill_mieshapuzang
   element: Desert
@@ -13137,7 +13113,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_lulu_skill_mieshapuzang
+    - effect_skill_reduce_opponent_spe_1_stage_15_percent
 - id: skill_fenshenshaluanzang
   element: Desert
   category: Climax
@@ -13146,7 +13122,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_lulu_skill_fenshenshaluanzang
+    - effect_skill_add_mark_self_shafenshen_1_stack
   sureHit: true
 - id: skill_shabaojianmao
   element: Desert
@@ -13155,7 +13131,7 @@
   rage: 15
   accuracy: 95
   effect:
-    - effect_lulu_skill_shabaojianmao
+    - effect_skill_consume_shafenshen_1_add_crit_rate_60
   target: opponent
 - id: skill_jueduifangyu
   element: Desert
@@ -13165,7 +13141,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_lulu_skill_jueduifangyu
+    - effect_skill_consume_shafenshen_3_add_mark_self_jueduifangyu_after_check
 - id: skill_shapudazang
   element: Desert
   category: Special
@@ -13173,7 +13149,7 @@
   rage: 25
   accuracy: 55
   effect:
-    - effect_lulu_skill_shapudazang
+    - effect_skill_consume_shafenshen_2_set_sure_hit
   target: opponent
 - id: skill_shafulao
   element: Desert
@@ -13182,7 +13158,7 @@
   rage: 20
   accuracy: 95
   effect:
-    - effect_lulu_skill_shafulao
+    - effect_skill_consume_shafenshen_3_add_mark_opponent_zhixi_before_hit
   target: opponent
 - id: skill_chongji
   element: Normal
@@ -13192,7 +13168,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_qiaoba_skill_chongji_atk
+    - effect_skill_raise_atk_1_stage_5_percent
 - id: skill_jiaopao
   element: Normal
   category: Physical
@@ -13201,7 +13177,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_qiaoba_skill_jiaopao_spa
+    - effect_skill_raise_spa_1_stage_5_percent
 - id: skill_qianglizhijiao
   element: Flying
   category: Physical
@@ -13210,7 +13186,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_qiaoba_skill_qianglizhijiao_power
+    - effect_skill_add_power_35_if_lanbo
 - id: skill_maopiqianghua
   element: Normal
   category: Status
@@ -13219,8 +13195,8 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_def_after_check
-    - effect_qiaoba_skill_maopiqianghua_spd
+    - effect_skill_raise_def_1_stage
+    - effect_skill_raise_spd_1_stage_if_lanbo
 - id: skill_hongbo
   element: Normal
   category: Status
@@ -13229,7 +13205,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_qiaoba_skill_hongbo_heal
+    - effect_skill_heal_self_1_4_max_hp_and_add_lanbo
 - id: skill_zhonglitieti
   element: Flying
   category: Special
@@ -13238,7 +13214,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_qiaoba_skill_zhonglitieti_bleed
+    - effect_skill_add_mark_opponent_liuxie_50_if_lanbo_2_stacks
 - id: skill_jiaoliqianghua
   element: Normal
   category: Status
@@ -13247,8 +13223,8 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_spe_after_check
-    - effect_qiaoba_skill_jiaoliqianghua_free
+    - effect_skill_raise_spe_1_stage
+    - effect_skill_set_rage_cost_0_if_lanbo_2_stacks
 - id: skill_tiaoyuechongzhuang
   element: Normal
   category: Physical
@@ -13257,7 +13233,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_qiaoba_skill_tiaoyuechongzhuang_first
+    - effect_skill_power_2x_if_first_before_sort
 - id: skill_wanliqianghua
   element: Normal
   category: Status
@@ -13266,8 +13242,8 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_atk_after_check
-    - effect_qiaoba_skill_wanliqianghua_spa
+    - effect_skill_raise_atk_1_stage
+    - effect_skill_raise_spa_1_stage_if_lanbo
 - id: skill_ketichongpo
   element: Flying
   category: Special
@@ -13276,7 +13252,7 @@
   accuracy: 85
   target: opponent
   effect:
-    - effect_qiaoba_skill_ketichongpo_surehit
+    - effect_skill_sure_hit_if_lanbo_2_stacks
 - id: skill_naoliqianghua
   element: Normal
   category: Status
@@ -13285,7 +13261,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_qiaoba_skill_naoliqianghua_vulnerable
+    - effect_skill_add_mark_opponent_yishang_50_if_lanbo_2_stacks
 - id: skill_luoyingbinfenti
   element: Flying
   category: Climax
@@ -13304,7 +13280,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_qiaoba_skill_chuixuezhiti_multihit
+    - effect_skill_set_4_hits_if_lanbo_3_stacks
   multihit: 2
 - id: skill_shizipaoti
   element: Flying
@@ -13314,7 +13290,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_qiaoba_skill_shizipaoti_confusion
+    - effect_skill_add_mark_opponent_hunmi_50_percent_if_lanbo_3_stacks
 - id: skill_haixiuduobi
   element: Normal
   category: Status
@@ -13323,7 +13299,7 @@
   accuracy: 50
   target: self
   effect:
-    - effect_qiaoba_skill_haixiuduobi_mark
+    - effect_skill_add_mark_self_haixiuduobi_on_hit
 - id: skill_wuxianpohuai
   element: Flying
   category: Special
@@ -13332,7 +13308,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_qiaoba_skill_wuxianpohuai_fear
+    - effect_skill_add_mark_opponent_kongju_if_lanbo_3_stacks
 - id: skill_jiaotu
   element: Normal
   category: Physical
@@ -13350,7 +13326,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_dayandujiao_skill_jiaodianfushi
+    - effect_skill_add_mark_self_jiaodianfushi_after_check
 - id: skill_yingjiazhongji
   element: Normal
   category: Physical
@@ -13368,7 +13344,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_dayandujiao_skill_bujiuzhongji
+    - effect_skill_double_power_if_last_missed_yingjiazhongji_before_check
 - id: skill_lingduzhongji
   element: Bug
   category: Special
@@ -13377,7 +13353,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_dayandujiao_skill_lingduzhongji
+    - effect_skill_add_mark_self_jiaodianfushi_if_last_missed_yingjiazhongji
 - id: skill_chongqunqianfu
   element: Bug
   category: Status
@@ -13386,7 +13362,8 @@
   accuracy: 100
   target: self
   effect:
-    - effect_dayandujiao_skill_chongqunqianfu
+    - effect_skill_raise_def_1_stage
+    - effect_skill_raise_spd_1_stage_if_chongqun
 - id: skill_zhongjiachuanci
   element: Normal
   category: Physical
@@ -13404,7 +13381,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_dayandujiao_skill_bujiuchuanci
+    - effect_skill_double_power_if_last_missed_zhongjiachuanci_before_check
 - id: skill_lingduchuanci
   element: Bug
   category: Special
@@ -13413,7 +13390,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_dayandujiao_skill_lingduchuanci
+    - effect_skill_add_mark_self_jiaodianfushi_if_last_missed_zhongjiachuanci
 - id: skill_chongqunexi
   element: Bug
   category: Status
@@ -13422,7 +13399,8 @@
   accuracy: 95
   target: self
   effect:
-    - effect_dayandujiao_skill_chongqunexi
+    - effect_skill_raise_atk_1_stage
+    - effect_skill_raise_spa_1_stage_if_chongqun
 - id: skill_luoxuanchongjizuan
   element: Bug
   category: Climax
@@ -13442,7 +13420,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_dayandujiao_skill_pojiaxuruo
+    - effect_skill_increase_damage_50_percent_if_opponent_hp_below_quarter
 - id: skill_wuxianzhuiji
   element: Bug
   category: Special
@@ -13451,7 +13429,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_dayandujiao_skill_wuxianzhuiji
+    - effect_skill_add_power_50_per_consecutive_use_max_100
 - id: skill_duyefushi
   element: Bug
   category: Special
@@ -13460,7 +13438,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_dayandujiao_skill_duyefushi
+    - effect_skill_increase_damage_300_percent_if_opponent_has_zhongdu
 - id: skill_xueyetunshi
   element: Bug
   category: Special
@@ -13469,7 +13447,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_dayandujiao_skill_xueyetunshi
+    - effect_skill_heal_100_percent_damage_dealt_if_opponent_has_liuxie
 - id: skill_weizhen
   element: Bug
   category: Physical
@@ -13487,7 +13465,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_fengyong_skill_fengwenzhike
+    - effect_skill_add_mark_opponent_fengwen
 - id: skill_judufengzhen
   element: Bug
   category: Special
@@ -13505,7 +13483,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_fengyong_skill_mabifengzhen
+    - effect_skill_consume_opponent_fengwen_1_to_add_mabi
 - id: skill_qunfengjijie
   element: Bug
   category: Status
@@ -13514,7 +13492,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_fengyong_skill_qunfengjijie
+    - effect_skill_consume_opponent_fengwen_1_to_raise_spe_1_stage_else_raise_spa_1_stage
 - id: skill_fengwenfushi
   element: Bug
   category: Status
@@ -13523,7 +13501,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_fengyong_skill_fengwenfushi
+    - effect_skill_heal_self_60_per_opponent_fengwen_and_consume_all
 - id: skill_judafengci
   element: Normal
   category: Physical
@@ -13532,7 +13510,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_fengyong_skill_judafengci
+    - effect_skill_consume_opponent_fengwen_1_to_deal_fixed_damage_50
 - id: skill_qingfengzhichu
   element: Bug
   category: Physical
@@ -13541,7 +13519,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_fengyong_skill_qingfengzhichu
+    - effect_skill_heal_50_percent_damage_dealt
 - id: skill_qingfengduomingci
   element: Bug
   category: Climax
@@ -13550,7 +13528,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_fengyong_skill_fengwenzhike
+    - effect_skill_add_mark_opponent_fengwen
   sureHit: true
 - id: skill_fengwenxuanwu
   element: Bug
@@ -13560,7 +13538,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_fengyong_skill_fengwenxuanwu
+    - effect_skill_add_multihit_per_opponent_fengwen_and_consume_all
   multihit: 3
 - id: skill_qingfengzhiwu
   element: Bug
@@ -13570,7 +13548,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_fengyong_skill_qingfengzhiwu
+    - effect_skill_add_mark_self_qingfengzhiwu_after_check
 - id: skill_qingfengzhike
   element: Bug
   category: Physical
@@ -13579,7 +13557,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_fengyong_skill_qingfengzhike
+    - effect_skill_raise_existing_opponent_fengwen_to_3
 - id: skill_qingchaoerchu
   element: Bug
   category: Special
@@ -13587,8 +13565,6 @@
   rage: 30
   accuracy: 100
   target: opponent
-  effect:
-    - effect_fengyong_skill_qingchaoerchu
   sureHit: true
   multihit:
     - 9
@@ -13601,7 +13577,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_azi_skill_zidianguang_priority
+    - effect_skill_add_priority_1_if_opponent_rage_above_50
 - id: skill_zidianpo
   element: Electric
   category: Physical
@@ -13610,7 +13586,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_azi_skill_zidianpo_priority
+    - effect_skill_add_priority_1_if_opponent_rage_below_50
 - id: skill_ziguangbo
   element: Electric
   category: Special
@@ -13619,7 +13595,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_azi_skill_ziguangbo_power
+    - effect_skill_add_power_40_if_opponent_rage_above_50
 - id: skill_ziguangzhan
   element: Electric
   category: Physical
@@ -13628,7 +13604,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_azi_skill_ziguangzhan_power
+    - effect_skill_add_power_40_if_opponent_rage_below_50
 - id: skill_zidiantongti
   element: Electric
   category: Status
@@ -13637,8 +13613,8 @@
   accuracy: 100
   target: self
   effect:
-    - effect_azi_skill_zidiantongti_atk
-    - effect_azi_skill_zidiantongti_spd
+    - effect_skill_raise_atk_1_stage
+    - effect_skill_raise_spd_1_stage_if_opponent_rage_below_50
 - id: skill_chuantoudianqiu
   element: Electric
   category: Special
@@ -13646,9 +13622,6 @@
   rage: 20
   accuracy: 100
   target: opponent
-  effect:
-    - effect_azi_skill_chuantoudianqiu_surehit
-    - effect_azi_skill_chuantoudianqiu_ignore_shield
   sureHit: true
   ignoreShield: true
 - id: skill_zidianchongji
@@ -13659,7 +13632,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_azi_skill_zidianchongji_paralysis
+    - effect_skill_add_mark_opponent_mabi_40_percent
 - id: skill_zidianguantong
   element: Electric
   category: Status
@@ -13668,8 +13641,8 @@
   accuracy: 100
   target: self
   effect:
-    - effect_azi_skill_zidianguantong_spa
-    - effect_azi_skill_zidianguantong_def
+    - effect_skill_raise_spa_1_stage
+    - effect_skill_raise_def_1_stage_if_opponent_rage_above_50
 - id: skill_zidianleimingqiang
   element: Electric
   category: Climax
@@ -13677,9 +13650,6 @@
   rage: 100
   accuracy: 100
   target: opponent
-  effect:
-    - effect_azi_skill_zidianleimingqiang_surehit
-    - effect_azi_skill_zidianleimingqiang_ignore_shield
   sureHit: true
   ignoreShield: true
 - id: skill_juedianzhiqiang
@@ -13690,8 +13660,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_azi_skill_juedianzhiqiang_surehit
-    - effect_azi_skill_juedianzhiqiang_min_damage
+    - effect_skill_min_physical_special_damage_100
   sureHit: true
 - id: skill_zidianlianzhan
   element: Electric
@@ -13701,10 +13670,8 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_azi_skill_zidianlianzhan_multihit
-  multihit:
-    - 2
-    - 3
+    - effect_skill_add_multihit_1_if_opponent_rage_below_50
+  multihit: 2
 - id: skill_zidianjueguang
   element: Electric
   category: Special
@@ -13713,7 +13680,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_azi_skill_zidianjueguang_extra
+    - effect_skill_deal_75_fixed_damage_to_skill_target_if_opponent_rage_above_50_on_hit
 - id: skill_tiaoxin
   element: Normal
   category: Status
@@ -13722,8 +13689,8 @@
   accuracy: 100
   target: self
   effect:
-    - effect_azi_skill_tiaoxin_heal
-    - effect_azi_skill_tiaoxin_opponent_rage
+    - effect_skill_heal_self_25_percent_max_hp_after_check
+    - effect_skill_add_opponent_rage_20_after_check
 - id: skill_lizhua_mingzhong100
   element: Normal
   category: Physical
@@ -13732,7 +13699,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_skill_lower_atk_5_percent_on_hit
+    - effect_skill_reduce_opponent_atk_1_stage_5_percent
 - id: skill_renqi
   element: Fighting
   category: Special
@@ -13750,7 +13717,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_atk_after_check
+    - effect_skill_raise_atk_1_stage
 - id: skill_ningshenbeizhan
   element: Fighting
   category: Physical
@@ -13759,7 +13726,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_yinji_skill_ningshenbeizhan_fangong
+    - effect_skill_add_mark_self_fangong_after_check
 - id: skill_podijiaoren
   tags: [earth]
   element: Fighting
@@ -13769,7 +13736,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_yinji_skill_podijiaoren_weaken_spe
+    - effect_skill_reduce_opponent_spe_1_stage_20_percent
 - id: skill_cangyueshuangshan
   tags: [moon]
   element: Fighting
@@ -13788,7 +13755,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_yinji_skill_podishengteng_power
+    - effect_skill_add_power_35_if_opponent_has_zhuiluo_on_calculate_damage
 - id: skill_cangyuekongzhan
   tags: [moon]
   element: Fighting
@@ -13798,7 +13765,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_yinji_skill_cangyuekongzhan_bleed
+    - effect_skill_add_mark_opponent_liuxie_50_for_3_turns_if_zhikong
 - id: skill_podibeixi
   tags: [earth]
   element: Fighting
@@ -13808,7 +13775,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_yinji_skill_podibeixi_ignore_def
+    - effect_skill_ignore_opponent_positive_stages_if_zhuiluo
 - id: skill_cangyuexuanren
   tags: [moon]
   element: Fighting
@@ -13818,7 +13785,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_yinji_skill_cangyuexuanren_sure_crit
+    - effect_skill_sure_crit_if_opponent_has_zhikong
 - id: skill_yingwu
   element: Fighting
   category: Status
@@ -13827,7 +13794,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_spe_after_check
+    - effect_skill_raise_spe_1_stage
 - id: skill_yishan
   element: Fighting
   category: Physical
@@ -13846,7 +13813,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_yinji_skill_cangyuejirenzhan_lianji
+    - effect_skill_add_1_hit_10_percent
   sureHit: true
 - id: skill_podijuexici
   tags: [earth]
@@ -13857,7 +13824,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_yinji_skill_podijuexici_weight_damage
+    - effect_skill_deal_effect_damage_equal_to_opponent_weight_if_zhuiluo
 - id: skill_cangyueliankongzhan
   tags: [moon]
   element: Fighting
@@ -13867,7 +13834,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_yinji_skill_cangyueliankongzhan_multihit
+    - effect_skill_set_3_to_5_hits_if_opponent_has_zhikong
   multihit: 1
 - id: skill_liqi
   element: Fighting
@@ -13877,7 +13844,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_yinji_skill_liqi_boost
+    - effect_skill_raise_atk_spe_1_stage
 - id: skill_guyuedishazhan
   element: Fighting
   category: Physical
@@ -13886,8 +13853,8 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_yinji_skill_guyuedishazhan_weaken
-    - effect_yinji_skill_guyuedishazhan_weaken_spa
+    - effect_skill_reduce_opponent_atk_1_stage_70_percent_if_zhuiluo
+    - effect_skill_reduce_opponent_spa_1_stage_70_percent_if_zhikong
 - id: skill_tanshe
   element: Normal
   category: Physical
@@ -13896,7 +13863,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_mimi_skill_tanshe
+    - effect_skill_consume_40_tanli_to_double_power_after_check
 - id: skill_xulitanshe
   element: Normal
   category: Physical
@@ -13905,7 +13872,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_mimi_skill_xulitanshe
+    - effect_skill_consume_50_tanli_to_double_power_after_check
 - id: skill_tanhuangtizhi
   element: Normal
   category: Status
@@ -13914,7 +13881,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_mimi_skill_tanhuangtizhi
+    - effect_skill_add_mark_self_tanhuangtizhi_after_check
 - id: skill_zhongyatanshe
   element: Normal
   category: Special
@@ -13923,7 +13890,7 @@
   accuracy: 70
   target: opponent
   effect:
-    - effect_mimi_skill_zhongyatanshe
+    - effect_skill_consume_50_tanli_to_set_sure_hit_after_check
 - id: skill_dantiaolianji
   element: Normal
   category: Physical
@@ -13932,7 +13899,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_mimi_skill_dantiaolianji
+    - effect_skill_consume_40_tanli_per_extra_hit_up_to_5
 - id: skill_tanhuangtujin
   element: Normal
   category: Physical
@@ -13941,7 +13908,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_mimi_skill_tanhuangtujin
+    - effect_skill_add_power_50_per_consecutive_use_up_to_100_after_check
 - id: skill_tanhuangbaozha
   element: Normal
   category: Status
@@ -13950,7 +13917,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_mimi_skill_tanhuangbaozha
+    - effect_skill_add_mark_self_tanhuangbaozha_after_check
 - id: skill_tanhuangdiyu
   element: Normal
   category: Climax
@@ -13969,8 +13936,8 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_mimi_skill_benghuaizhongquan
-    - effect_mimi_skill_benghuaizhongquan_kill
+    - effect_skill_deal_self_50_effect_damage_with_skill_modifiers_after_check
+    - effect_skill_heal_self_17_percent_max_hp_on_defeat_if_benghuai
 - id: skill_benghuaizhinu
   element: Normal
   category: Special
@@ -13979,7 +13946,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_mimi_skill_benghuaizhinu
+    - effect_skill_deal_self_50_effect_damage_then_set_sure_hit_if_benghuai_after_check
 - id: skill_benghuaituji
   element: Normal
   category: Special
@@ -13988,8 +13955,8 @@
   accuracy: 90
   target: opponent
   effect:
-    - effect_mimi_skill_benghuaituji
-    - effect_mimi_skill_benghuaituji_priority
+    - effect_skill_deal_self_50_effect_damage_with_skill_modifiers_after_check
+    - effect_skill_raise_priority_1_with_benghuai
 - id: skill_benghuaiyanmie
   element: Normal
   category: Special
@@ -13998,8 +13965,8 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_mimi_skill_benghuaiyanmie
-    - effect_mimi_skill_benghuaiyanmie_kill
+    - effect_skill_deal_self_50_effect_damage_with_skill_modifiers_after_check
+    - effect_skill_raise_spa_1_stage_on_defeat_if_benghuai
 - id: skill_emozhiwen
   element: Normal
   category: Status
@@ -14008,7 +13975,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_xiaoxiaoemo_skill_emozhiwen
+    - effect_skill_reduce_opponent_atk_1_stage_and_spa_1_stage_if_opponent_has_mark_emoqiyue
 - id: skill_emoqiyue
   element: Shadow
   category: Special
@@ -14017,7 +13984,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_xiaoxiaoemo_skill_emoqiyue
+    - effect_skill_add_mark_opponent_emoqiyue
 - id: skill_diyuchongji
   element: Shadow
   category: Physical
@@ -14026,7 +13993,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_xiaoxiaoemo_skill_diyuchongji_surehit
+    - effect_skill_sure_hit_if_opponent_has_mark_emoqiyue_before_check
 - id: skill_xuweizhihun
   element: Shadow
   category: Special
@@ -14035,7 +14002,7 @@
   accuracy: 50
   target: opponent
   effect:
-    - effect_xiaoxiaoemo_skill_xuweizhihun_miss_spa
+    - effect_skill_raise_spa_1_stage_on_miss
 - id: skill_diyuzhiyu
   element: Shadow
   category: Physical
@@ -14044,10 +14011,8 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_xiaoxiaoemo_skill_diyuzhiyu_multihit
-  multihit:
-    - 2
-    - 4
+    - effect_skill_add_multihit_2_if_opponent_has_mark_emoqiyue
+  multihit: 2
 - id: skill_emozhiai
   element: Normal
   category: Status
@@ -14056,7 +14021,8 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_xiaoxiaoemo_skill_emozhiai
+    - effect_skill_reduce_opponent_spa_1_stage
+    - effect_skill_add_opponent_rage_10_on_hit
 - id: skill_shouhuzhihun
   element: Shadow
   category: Special
@@ -14065,7 +14031,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_xiaoxiaoemo_skill_shouhuzhihun_heal
+    - effect_skill_heal_self_60_if_hp_lt_opponent_on_hit
 - id: skill_diyuaihao
   element: Shadow
   category: Physical
@@ -14074,7 +14040,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_xiaoxiaoemo_skill_diyuaihao_fear
+    - effect_skill_add_mark_opponent_kongju_20_percent_if_opponent_has_mark_emoqiyue
 - id: skill_guduzhihun
   element: Shadow
   category: Special
@@ -14083,7 +14049,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_xiaoxiaoemo_skill_guduzhihun_crit
+    - effect_skill_add_crit_rate_30_percent_if_hp_lt_opponent
 - id: skill_diyushenyuan
   element: Shadow
   category: Physical
@@ -14092,7 +14058,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_xiaoxiaoemo_skill_diyushenyuan_power
+    - effect_skill_add_power_30_if_opponent_has_mark_emoqiyue
 - id: skill_anyesuohunqu
   element: Shadow
   category: Climax
@@ -14101,7 +14067,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_xiaoxiaoemo_skill_anyesuohunqu_fear
+    - effect_skill_add_mark_opponent_kongju_20_percent
   sureHit: true
 - id: skill_chongshengzhihun
   element: Shadow
@@ -14111,7 +14077,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_xiaoxiaoemo_skill_chongshengzhihun_heal
+    - effect_skill_heal_self_25_percent_max_hp_if_hp_below_12_5_percent_on_hit
 - id: skill_juewangzhihun
   element: Shadow
   category: Special
@@ -14120,7 +14086,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_xiaoxiaoemo_skill_juewangzhihun_cost
+    - effect_skill_deal_self_25_percent_max_hp_damage_and_add_rage_35
 - id: skill_taobizhihun
   element: Shadow
   category: Special
@@ -14129,7 +14095,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_xiaoxiaoemo_skill_taobizhihun_priority
+    - effect_skill_add_priority_1_if_opponent_has_mark_emoqiyue
 - id: skill_diyupaoxiao
   element: Shadow
   category: Physical
@@ -14138,16 +14104,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_xiaoxiaoemo_skill_diyupaoxiao_damage
-- id: skill_xinlianxin_haoyin
-  element: Normal
-  category: Special
-  power: 95
-  rage: 15
-  accuracy: 60
-  target: opponent
-  effect:
-    - effect_kadunjiujiu_171_skill_xinlianxin
+    - effect_skill_increase_damage_50_percent_if_opponent_has_mark_emoqiyue
 - id: skill_xinsushanyao
   element: Normal
   category: Special
@@ -14164,7 +14121,8 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_atk_spa_after_check
+    - effect_skill_raise_atk_1_stage
+    - effect_skill_raise_spa_1_stage
 - id: skill_qingyingshenzi
   element: Normal
   category: Status
@@ -14173,16 +14131,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_kadunjiujiu_171_skill_qingyingshenzi
-- id: skill_quanlichongfeng_2
-  element: Normal
-  category: Physical
-  power: 110
-  rage: 20
-  accuracy: 80
-  target: opponent
-  effect:
-    - effect_kadunjiujiu_171_skill_quanlichongfeng
+    - effect_skill_raise_spe_1_stage_and_halve_weight_before_hit
 - id: skill_fanxincuican
   element: Normal
   category: Climax
@@ -14191,7 +14140,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_kadunjiujiu_171_skill_fanxincuican
+    - effect_skill_raise_spa_1_stage_15_percent
   sureHit: true
 - id: skill_xinlingsuo
   element: Normal
@@ -14201,25 +14150,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_kadunjiujiu_171_skill_xinlingsuo
-- id: skill_xuehongyinji_sanhuihe
-  element: Normal
-  category: Status
-  power: 0
-  rage: 15
-  accuracy: 95
-  target: opponent
-  effect:
-    - effect_kadunjiujiu_171_skill_xuehongyinji
-- id: skill_xinyuan_2
-  element: Normal
-  category: Status
-  power: 0
-  rage: 20
-  accuracy: 100
-  target: self
-  effect:
-    - effect_kadunjiujiu_171_skill_xinyuan
+    - effect_skill_add_mark_opponent_shoudaoshanghaijianshao_50_for_3_turns
 - id: skill_wajietuji
   element: Fighting
   category: Physical
@@ -14228,7 +14159,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_atongtie_skill_wajietuji
+    - effect_skill_add_mark_opponent_wugongjianban_100_percent_on_apply
 - id: skill_wulixishou
   element: Fighting
   category: Status
@@ -14237,7 +14168,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_atongtie_skill_wulixishou
+    - effect_skill_add_mark_self_wulixishou
   priority: 1
 - id: skill_ganghuatuji
   element: Fighting
@@ -14247,7 +14178,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_atongtie_skill_ganghuatuji
+    - effect_skill_add_mark_self_tefongfantan_100_percent_on_apply
 - id: skill_teshufanshe
   element: Fighting
   category: Status
@@ -14256,7 +14187,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_atongtie_skill_teshufanshe
+    - effect_skill_add_mark_self_teshufanshe
   priority: 1
 - id: skill_zhandouchengxu
   element: Fighting
@@ -14266,7 +14197,8 @@
   accuracy: 100
   target: self
   effect:
-    - effect_atongtie_skill_zhandouchengxu
+    - effect_skill_raise_atk_1_stage
+    - effect_skill_raise_spa_1_stage
 - id: skill_chenmentuji
   element: Fighting
   category: Physical
@@ -14275,7 +14207,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_atongtie_skill_chenmentuji
+    - effect_skill_add_mark_opponent_shuxingshixiao_100_percent_on_apply
 - id: skill_shengnu
   element: Fighting
   category: Status
@@ -14284,7 +14216,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_atongtie_skill_shengnu
+    - effect_skill_add_mark_opponent_jinu
   priority: 1
 - id: skill_chaopinyunzhuan
   element: Fighting
@@ -14294,7 +14226,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_atongtie_skill_chaopinyunzhuan
+    - effect_skill_raise_spe_1_stage
 - id: skill_qianghuatouchui
   element: Fighting
   category: Physical
@@ -14303,7 +14235,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_atongtie_skill_qianghuatouchui
+    - effect_skill_sure_hit_if_self_hp_below_quarter_before_check
 - id: skill_atonggangtiepao
   element: Fighting
   category: Climax
@@ -14312,7 +14244,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_atongtie_skill_atonggangtiepao
+    - effect_skill_add_rage_20_10_percent_on_hit
   sureHit: true
 - id: skill_zhuizongbaodan
   element: Fighting
@@ -14321,8 +14253,6 @@
   rage: 40
   accuracy: 100
   target: opponent
-  effect:
-    - effect_skill_sure_hit_before_check
   sureHit: true
 - id: skill_feidanlianshe
   element: Fighting
@@ -14331,8 +14261,6 @@
   rage: 40
   accuracy: 95
   target: opponent
-  effect:
-    - effect_skill_multihit_3_to_4_after_check
   multihit:
     - 3
     - 4
@@ -14353,16 +14281,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_skill_lower_spe_20_percent_on_hit_on_apply
-- id: skill_guangxiangongji_jiangtefang
-  element: Light
-  category: Special
-  power: 60
-  rage: 5
-  accuracy: 100
-  target: opponent
-  effect:
-    - effect_skill_reduce_opponent_spd_1_stage_5_percent
+    - effect_skill_reduce_opponent_spe_1_stage_20_percent
 - id: skill_gaosuzitai
   element: Normal
   category: Status
@@ -14371,7 +14290,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_spe_after_check
+    - effect_skill_raise_spe_1_stage
 - id: skill_guangshufanchong
   element: Light
   category: Special
@@ -14380,7 +14299,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_mika_skill_guangshufanchong
+    - effect_skill_add_rage_20_if_hp_loss_below_100
 - id: skill_guangjiangongji
   element: Light
   category: Special
@@ -14389,7 +14308,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_mika_skill_guangjiangongji
+    - effect_skill_min_damage_85
 - id: skill_guangsutuji
   element: Light
   category: Physical
@@ -14406,7 +14325,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_mika_skill_fenlituji
+    - effect_skill_reduce_opponent_def_1_stage_25_percent
 - id: skill_guangxianchuantou
   element: Light
   category: Special
@@ -14414,8 +14333,6 @@
   rage: 20
   accuracy: 95
   target: opponent
-  effect:
-    - effect_mika_skill_guangxianchuantou
   ignoreShield: true
 - id: skill_guangxiansuoding
   element: Light
@@ -14425,7 +14342,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_mika_skill_guangxiansuoding
+    - effect_skill_raise_spa_1_stage_add_mark_self_guangxiansuoding_before_hit
 - id: skill_guangxianchongzhuang
   element: Light
   category: Physical
@@ -14443,7 +14360,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_mika_skill_guangshuchongji
+    - effect_skill_raise_spa_1_stage_if_hp_loss_below_100
 - id: skill_yangguangpuzhao
   element: Light
   category: Special
@@ -14451,8 +14368,6 @@
   rage: 50
   accuracy: 100
   target: opponent
-  effect:
-    - effect_skill_sure_hit_before_check
   sureHit: true
 - id: skill_amadisiguang
   element: Light
@@ -14462,7 +14377,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_mika_skill_amadisiguang
+    - effect_skill_add_mark_opponent_shiming_20_percent_on_hit
   sureHit: true
 - id: skill_guangzhidun
   element: Light
@@ -14472,7 +14387,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_mika_skill_guangzhidun
+    - effect_skill_add_mark_self_guangzhidun_if_first_after_check
 - id: skill_xiaotaiyang
   element: Light
   category: Special
@@ -14481,7 +14396,7 @@
   accuracy: 85
   target: opponent
   effect:
-    - effect_mika_skill_xiaotaiyang
+    - effect_skill_heal_self_quarter_max_hp_on_miss
 - id: skill_huixuanguangren
   element: Light
   category: Special
@@ -14490,7 +14405,7 @@
   accuracy: 85
   target: opponent
   effect:
-    - effect_mika_skill_huixuanguangren
+    - effect_skill_add_mark_self_huixuanguangren_on_miss
 - id: skill_baohuzitai
   element: Normal
   category: Status
@@ -14499,7 +14414,8 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_def_spd_after_check
+    - effect_skill_raise_def_1_stage
+    - effect_skill_raise_spd_1_stage
 - id: skill_jianci
   element: Ground
   category: Special
@@ -14508,7 +14424,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_skill_lower_spe_5_percent_on_hit
+    - effect_skill_reduce_opponent_spe_1_stage_5_percent
 - id: skill_jiagu
   element: Ground
   category: Status
@@ -14517,7 +14433,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_def_after_check
+    - effect_skill_raise_def_1_stage
 - id: skill_jiancijiaqiao
   element: Ground
   category: Status
@@ -14526,7 +14442,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_qiuding_skill_jiancijiaqiao
+    - effect_skill_add_mark_self_jiancijiaqiao_after_check
   priority: 1
 - id: skill_jiancichongzhuang
   element: Ground
@@ -14536,7 +14452,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_qiuding_skill_jiancichongzhuang
+    - effect_skill_add_power_by_def_div_5_max_100_pre_damage
 - id: skill_jiancibaofa
   element: Ground
   category: Special
@@ -14545,7 +14461,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_qiuding_skill_jiancibaofa
+    - effect_skill_add_mark_opponent_jiancibaofa_on_hit
 - id: skill_jiancifangun
   element: Ground
   category: Physical
@@ -14554,7 +14470,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_qiuding_skill_jiancifangun
+    - effect_skill_set_hits_by_def_div_100_min_1_max_6
 - id: skill_jiancituji
   element: Normal
   category: Physical
@@ -14563,7 +14479,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_qiuding_skill_jiancituji
+    - effect_skill_raise_def_1_stage_10_percent
 - id: skill_jiancisushe
   element: Ground
   category: Special
@@ -14571,8 +14487,6 @@
   rage: 15
   accuracy: 95
   target: opponent
-  effect:
-    - effect_skill_multihit_2_to_3_after_check
   multihit:
     - 2
     - 3
@@ -14584,7 +14498,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_qiuding_skill_daocijiaqiao
+    - effect_skill_add_mark_self_daocijiaqiao_after_check
   priority: 1
 - id: skill_shazhili
   element: Desert
@@ -14594,7 +14508,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_qiuding_skill_shazhili
+    - effect_skill_add_mark_opponent_shazhili_on_hit
 - id: skill_pojiatuji
   element: Ground
   category: Physical
@@ -14602,8 +14516,6 @@
   rage: 20
   accuracy: 100
   target: opponent
-  effect:
-    - effect_qiuding_skill_pojiatuji
   ignoreShield: true
 - id: skill_didongshanyao
   element: Ground
@@ -14613,7 +14525,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_qiuding_skill_didongshanyao
+    - effect_skill_raise_def_1_stage_20_percent
   sureHit: true
 - id: skill_licitujin
   element: Ground
@@ -14623,7 +14535,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_qiuding_skill_licitujin
+    - effect_skill_add_power_by_def_div_10_max_100_pre_damage
 - id: skill_licifangun
   element: Ground
   category: Physical
@@ -14632,7 +14544,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_qiuding_skill_jiancifangun
+    - effect_skill_set_hits_by_def_div_100_min_1_max_6
 - id: skill_fanjiyizhi
   element: Normal
   category: Status
@@ -14641,7 +14553,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_qiuding_skill_fanjiyizhi
+    - effect_skill_add_mark_self_fanjiyizhi_after_check
 - id: skill_baonujiaqiao
   element: Ground
   category: Status
@@ -14650,7 +14562,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_qiuding_skill_baonujiaqiao
+    - effect_skill_add_mark_self_baonujiaqiao_after_check
   priority: 1
 - id: skill_hunya
   element: Desert
@@ -14669,7 +14581,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_spd_after_check
+    - effect_skill_raise_spd_1_stage
 - id: skill_shihunlinggui
   element: Desert
   category: Status
@@ -14678,7 +14590,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_badu_skill_shihunlinggui
+    - effect_skill_add_mark_self_shihunlinggui_after_check
   priority: 1
 - id: skill_linghunzhifa
   element: Desert
@@ -14688,7 +14600,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_badu_skill_linghunzhifa
+    - effect_skill_add_power_1_per_5_spd_max_100
 - id: skill_linghunsuiji
   element: Desert
   category: Physical
@@ -14697,7 +14609,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_badu_skill_linghunsuiji
+    - effect_skill_add_mark_opponent_linghunsuiji_on_hit
 - id: skill_linghunlianda
   element: Desert
   category: Special
@@ -14706,10 +14618,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_badu_skill_linghunlianda
-  multihit:
-    - 1
-    - 6
+    - effect_skill_multihit_1_per_100_spd_max_6
 - id: skill_hunguituji
   element: Normal
   category: Special
@@ -14718,7 +14627,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_badu_skill_hunguituji
+    - effect_skill_raise_spd_1_stage_10_percent
 - id: skill_zhuhunyiji
   element: Desert
   category: Special
@@ -14726,8 +14635,7 @@
   rage: 20
   accuracy: 85
   target: opponent
-  effect:
-    - effect_badu_skill_zhuhunyiji
+  ignoreOpponentStageStrategy: positive
 - id: skill_youhunlinggui
   element: Desert
   category: Status
@@ -14736,7 +14644,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_badu_skill_youhunlinggui
+    - effect_skill_heal_self_13_percent_max_hp_add_youhunlinggui_after_check
   priority: 1
 - id: skill_dizhishang
   element: Ground
@@ -14746,7 +14654,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_badu_skill_dizhishang
+    - effect_skill_add_mark_opponent_dizhishang_on_hit
 - id: skill_linghunzhuanzhu
   element: Desert
   category: Physical
@@ -14754,8 +14662,6 @@
   rage: 20
   accuracy: 100
   target: opponent
-  effect:
-    - effect_badu_skill_linghunzhuanzhu
   sureHit: true
 - id: skill_linghunjidang
   element: Desert
@@ -14765,7 +14671,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_badu_skill_linghunjidang
+    - effect_skill_raise_spd_1_stage_20_percent
   sureHit: true
 - id: skill_lihunsuiji
   element: Desert
@@ -14775,7 +14681,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_badu_skill_lihunsuiji
+    - effect_skill_add_power_1_per_10_spd_max_100
 - id: skill_lihunlianda
   element: Desert
   category: Special
@@ -14784,10 +14690,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_badu_skill_lihunlianda
-  multihit:
-    - 1
-    - 6
+    - effect_skill_multihit_1_per_100_spd_max_6
 - id: skill_fankangyishi
   element: Normal
   category: Status
@@ -14796,7 +14699,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_badu_skill_fankangyishi
+    - effect_skill_add_mark_self_fankangyishi_after_check
 - id: skill_lihunlinggui
   element: Desert
   category: Status
@@ -14805,7 +14708,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_badu_skill_lihunlinggui
+    - effect_skill_add_mark_self_lihunlinggui_after_check
   priority: 1
 - id: skill_zaoyin_tegong
   element: Normal
@@ -14824,7 +14727,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_feide_skill_zuogu
+    - effect_skill_add_mark_self_zuogu
 - id: skill_youpan
   element: Grass
   category: Special
@@ -14833,7 +14736,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_feide_skill_youpan
+    - effect_skill_add_mark_self_youpan
 - id: skill_zhanqian
   element: Grass
   category: Physical
@@ -14842,7 +14745,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_feide_skill_zhanqian
+    - effect_skill_add_mark_self_zhanqian
 - id: skill_yanghou
   element: Grass
   category: Special
@@ -14851,7 +14754,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_feide_skill_yanghou
+    - effect_skill_add_mark_self_yanghou
 - id: skill_kongjuguangbo
   element: Normal
   category: Special
@@ -14860,8 +14763,8 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_feide_skill_kongjuguangbo_power
-    - effect_feide_skill_kongjuguangbo_fear
+    - effect_skill_double_power_if_level_above_target_after_check
+    - effect_skill_add_mark_opponent_kongju_10_percent
 - id: skill_kongjushengbo
   element: Normal
   category: Status
@@ -14870,8 +14773,8 @@
   accuracy: 25
   target: opponent
   effect:
-    - effect_feide_skill_kongjushengbo_fear
-    - effect_feide_skill_kongjushengbo_accuracy
+    - effect_skill_add_mark_opponent_kongju
+    - effect_skill_increase_accuracy_50_if_level_above_target_before_check
 - id: skill_linghunxiqu
   element: Grass
   category: Special
@@ -14879,7 +14782,7 @@
   rage: 20
   accuracy: 95
   effect:
-    - effect_feide_skill_linghunxiqu_drain
+    - effect_skill_heal_50_percent_damage_dealt
 - id: skill_linghunchenji
   element: Normal
   category: Special
@@ -14888,7 +14791,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_feide_skill_linghunchenji_silence
+    - effect_skill_add_mark_opponent_chenmo_10_percent
   multihit:
     - 2
     - 3
@@ -14900,7 +14803,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_feide_skill_nixianlaiba_crit
+    - effect_skill_sure_crit_if_acting_after_first_before_check
 - id: skill_woxianlaiba
   element: Grass
   category: Special
@@ -14909,7 +14812,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_feide_skill_woxianlaiba_crit
+    - effect_skill_sure_crit_if_acting_first_before_check
 - id: skill_tianyuankuanghuanqu
   element: Grass
   category: Climax
@@ -14918,7 +14821,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_feide_skill_tianyuankuanghuanqu
+    - effect_skill_add_mark_self_fengkuangdaocao_and_opponent_kuanghuanqu
   sureHit: true
 - id: skill_dengzheqiaoba
   element: Normal
@@ -14928,7 +14831,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_feide_skill_dengzheqiaoba
+    - effect_skill_add_mark_self_shanbitisheng_and_manhuinuqi
   priority: 1
 - id: skill_buyaobiwo
   element: Grass
@@ -14948,7 +14851,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_feide_skill_wopawuya_reduction
+    - effect_skill_add_mark_shoudaoshanghaijianshao_30
   priority: 1
 - id: skill_wochaoshenle
   element: Grass
@@ -14958,7 +14861,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_feide_skill_wochaoshenle_heal
+    - effect_skill_heal_self_17_percent_max_hp_on_defeat_opponent
   priority: 1
 - id: skill_baiwei
   element: Normal
@@ -14977,7 +14880,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_nuoji_skill_njihua
+    - effect_skill_replace_b_or_nb_plan_with_n_plan
 - id: skill_qianglisaowei
   element: Normal
   category: Physical
@@ -14986,8 +14889,8 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_nuoji_skill_qianglisaowei_power
-    - effect_nuoji_skill_qianglisaowei_sure
+    - effect_skill_add_power_40_with_n_or_nb_plan
+    - effect_skill_set_sure_hit_with_b_or_nb_plan
 - id: skill_feiyuliantu
   element: Flying
   category: Special
@@ -14996,10 +14899,10 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_nuoji_skill_feiyuliantu_multihit
-    - effect_nuoji_skill_feiyuliantu_nb_multihit
-    - effect_nuoji_skill_feiyuliantu_priority
-    - effect_nuoji_skill_feiyuliantu_nb_priority
+    - effect_skill_set_2_hits_with_n_plan_without_nb_plan
+    - effect_skill_set_3_hits_with_nb_plan
+    - effect_skill_raise_priority_1_with_b_plan_without_nb_plan
+    - effect_skill_raise_priority_1_with_nb_plan
 - id: skill_bjihua
   element: Flying
   category: Physical
@@ -15008,7 +14911,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_nuoji_skill_bjihua
+    - effect_skill_replace_n_or_nb_plan_with_b_plan
 - id: skill_feiyuyaji
   element: Flying
   category: Special
@@ -15017,8 +14920,8 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_nuoji_skill_feiyuyaji_sure
-    - effect_nuoji_skill_feiyuyaji_bonus
+    - effect_skill_set_sure_hit_with_n_or_nb_plan
+    - effect_skill_deal_80_fixed_damage_on_hit_with_b_or_nb_plan
 - id: skill_lianxusaowei
   element: Flying
   category: Physical
@@ -15027,8 +14930,8 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_nuoji_skill_lianxusaowei_priority
-    - effect_nuoji_skill_lianxusaowei_multihit
+    - effect_skill_raise_priority_1_with_n_or_nb_plan
+    - effect_skill_set_2_hits_with_b_or_nb_plan
 - id: skill_jihuapochan
   element: Flying
   category: Status
@@ -15037,7 +14940,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_nuoji_skill_jihuapochan
+    - effect_skill_remove_all_plans_and_heal_self_150
 - id: skill_jihuamibu
   element: Flying
   category: Status
@@ -15046,7 +14949,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_nuoji_skill_jihuamibu
+    - effect_skill_raise_atk_1_stage_plus_spa_1_without_any_plan
 - id: skill_wanshijubei
   element: Normal
   category: Physical
@@ -15055,7 +14958,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_nuoji_skill_wanshijubei
+    - effect_skill_add_mark_self_wanshijubei_after_check
 - id: skill_feiyiliancixi
   element: Flying
   category: Climax
@@ -15064,7 +14967,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_nuoji_skill_feiyiliancixi_floor
+    - effect_skill_min_attack_damage_165_with_any_plan
   sureHit: true
 - id: skill_nbjihua
   element: Flying
@@ -15074,7 +14977,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_nuoji_skill_nbjihua
+    - effect_skill_add_mark_self_nb_plan_for_3_turns
 - id: skill_dongfeng
   element: Flying
   category: Status
@@ -15083,7 +14986,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_nuoji_skill_dongfeng
+    - effect_skill_add_mark_self_dongfeng_after_check
 - id: skill_guailisaowei
   element: Flying
   category: Physical
@@ -15092,8 +14995,8 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_nuoji_skill_guailisaowei_power
-    - effect_nuoji_skill_guailisaowei_rage
+    - effect_skill_add_power_25_with_n_or_nb_plan
+    - effect_skill_add_rage_self_20_on_hit_with_b_or_nb_plan
 - id: skill_feiyuxiji
   element: Flying
   category: Special
@@ -15102,8 +15005,8 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_nuoji_skill_feiyuyaji_sure
-    - effect_nuoji_skill_feiyuxiji_bonus
+    - effect_skill_set_sure_hit_with_n_or_nb_plan
+    - effect_skill_deal_65_fixed_damage_on_hit_with_b_or_nb_plan
 - id: skill_chongfeng_mingzhong100
   element: Normal
   category: Physical
@@ -15112,7 +15015,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_skill_lower_atk_5_percent_on_hit
+    - effect_skill_reduce_opponent_atk_1_stage_5_percent
 - id: skill_chirehuoyan
   element: Fire
   category: Special
@@ -15121,7 +15024,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_kaise_skill_chirehuoyan_burn
+    - effect_skill_add_mark_opponent_shaoshang_in_field_yanre
 - id: skill_chirehuomiao
   element: Fire
   category: Special
@@ -15130,7 +15033,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_kaise_skill_chirehuomiao_flame
+    - effect_skill_add_mark_opponent_huomiao_1_in_field_yanre
 - id: skill_zhuoreyiji
   element: Fire
   category: Physical
@@ -15139,7 +15042,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_kaise_skill_zhuoreyiji_spa
+    - effect_skill_raise_spa_1_stage_10_percent
 - id: skill_huoyanpenshe
   element: Fire
   category: Special
@@ -15148,16 +15051,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_kaise_skill_huoyanpenshe_burn
-- id: skill_lieyanzhiqu_chijiumianyi
-  element: Fire
-  category: Status
-  power: 0
-  rage: 15
-  accuracy: 100
-  target: self
-  effect:
-    - effect_kaise_skill_lieyanzhiqu_immune
+    - effect_skill_add_mark_opponent_shaoshang_10_percent_any_element
 - id: skill_chiretuji_yanre
   element: Fire
   category: Physical
@@ -15166,7 +15060,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_kaise_skill_chiretuji_power
+    - effect_skill_add_power_30_in_field_yanre_before_damage
 - id: skill_huoqiulianxi
   element: Fire
   category: Special
@@ -15174,8 +15068,6 @@
   rage: 20
   accuracy: 95
   target: opponent
-  effect:
-    - effect_skill_multihit_3_to_4_after_check
   multihit:
     - 3
     - 4
@@ -15186,8 +15078,6 @@
   rage: 20
   accuracy: 100
   target: opponent
-  effect:
-    - effect_skill_sure_hit_before_check
   sureHit: true
 - id: skill_yehuoliaoyuan
   element: Fire
@@ -15197,7 +15087,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_kaise_skill_yehuoliaoyuan_burn
+    - effect_skill_add_mark_opponent_shaoshang_15_percent_any_element
   sureHit: true
 - id: skill_zhuorehuoyan
   element: Fire
@@ -15207,7 +15097,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_kaise_skill_chirehuoyan_burn
+    - effect_skill_add_mark_opponent_shaoshang_in_field_yanre
 - id: skill_zhuorehuomiao
   element: Fire
   category: Special
@@ -15216,7 +15106,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_kaise_skill_chirehuomiao_flame
+    - effect_skill_add_mark_opponent_huomiao_1_in_field_yanre
 - id: skill_huoyanzhiwu
   element: Fire
   category: Status
@@ -15225,7 +15115,7 @@
   accuracy: 50
   target: opponent
   effect:
-    - effect_kaise_skill_huoyanzhiwu_confuse
+    - effect_skill_add_mark_opponent_hunmi_in_field_yanre
 - id: skill_feidan
   element: Flying
   category: Special
@@ -15243,7 +15133,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_kelipu_skill_xitongqianghua
+    - effect_skill_raise_spa_1_stage
 - id: skill_chubeidan
   element: Flying
   category: Special
@@ -15252,7 +15142,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_kelipu_skill_chubeidan
+    - effect_skill_add_mark_self_chubeixiang_1_on_hit
 - id: skill_kongkongdan
   element: Flying
   category: Special
@@ -15261,7 +15151,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_kelipu_skill_kongkongdan
+    - effect_skill_deal_40_fixed_damage_to_flying_opponent_on_hit
 - id: skill_rejiasu
   element: Flying
   category: Status
@@ -15270,7 +15160,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_kelipu_skill_rejiasu
+    - effect_skill_raise_spe_1_stage
 - id: skill_kongdidan
   element: Flying
   category: Special
@@ -15279,7 +15169,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_kelipu_skill_kongdidan
+    - effect_skill_deal_40_fixed_damage_to_ground_opponent_on_hit
 - id: skill_ranshaodan
   element: Flying
   category: Special
@@ -15288,7 +15178,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_kelipu_skill_ranshaodan
+    - effect_skill_add_mark_opponent_shaoshang_if_grass
 - id: skill_fenxibaogao
   element: Normal
   category: Status
@@ -15307,7 +15197,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_kelipu_skill_konghangdan
+    - effect_skill_deal_40_fixed_damage_to_water_opponent_on_hit
 - id: skill_lengningdan
   element: Flying
   category: Special
@@ -15316,7 +15206,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_kelipu_skill_lengningdan
+    - effect_skill_add_mark_opponent_dongshang_if_fire
 - id: skill_sanshedan
   element: Flying
   category: Special
@@ -15325,7 +15215,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_kelipu_skill_sanshedan
+    - effect_skill_add_multihit_per_chubeixiang_stack
   multihit: 2
 - id: skill_xingguangfangongdan
   element: Flying
@@ -15335,7 +15225,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_kelipu_skill_xingguangfangongdan
+    - effect_skill_add_mark_opponent_mingzhongxiajiang_15
   sureHit: true
 - id: skill_zhaomingdan
   element: Flying
@@ -15345,7 +15235,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_kelipu_skill_zhaomingdan
+    - effect_skill_add_mark_self_zhaomingdan_on_hit
 - id: skill_jiangyudan
   element: Water
   category: Status
@@ -15354,7 +15244,7 @@
   accuracy: 95
   target: self
   effect:
-    - effect_kelipu_skill_jiangyudan
+    - effect_skill_set_field_yutian_after_check
 - id: skill_daijizhuangtai
   element: Normal
   category: Status
@@ -15363,7 +15253,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_kelipu_skill_daijizhuangtai
+    - effect_skill_add_mark_self_chubeixiang_2_after_check
 - id: skill_qiandidan
   element: Flying
   category: Status
@@ -15372,7 +15262,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_kelipu_skill_qiandidan
+    - effect_skill_add_mark_opponent_qiandidan_after_check
 - id: skill_xuanguang
   element: Normal
   category: Status
@@ -15381,7 +15271,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_spa_after_check
+    - effect_skill_raise_spa_1_stage
 - id: skill_caixiazhixin
   element: Flying
   category: Special
@@ -15390,7 +15280,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_aisa_skill_caixiazhixin
+    - effect_skill_add_mark_self_caixiazhixin_3_after_check
 - id: skill_xuancaiguangshu
   element: Flying
   category: Special
@@ -15399,7 +15289,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_aisa_skill_xuancaiguangshu
+    - effect_skill_heal_16_percent_max_hp_on_crit_damage
 - id: skill_xuancaibaopo
   element: Flying
   category: Special
@@ -15408,7 +15298,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_aisa_skill_xuancaibaopo
+    - effect_skill_add_rage_15_on_crit_damage
 - id: skill_xuancaishanguang
   element: Flying
   category: Special
@@ -15417,7 +15307,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_aisa_skill_xuancaishanguang
+    - effect_skill_add_mark_opponent_shiming_50_percent_on_crit_damage
 - id: skill_fuchongzhuangji
   element: Flying
   category: Physical
@@ -15433,8 +15323,6 @@
   rage: 20
   accuracy: 95
   target: opponent
-  effect:
-    - effect_skill_sure_hit_before_check
   sureHit: true
 - id: skill_feiyanlianji
   element: Flying
@@ -15443,8 +15331,6 @@
   rage: 15
   accuracy: 95
   target: opponent
-  effect:
-    - effect_skill_multihit_2_to_3_after_check
   multihit:
     - 2
     - 3
@@ -15456,7 +15342,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_spe_after_check
+    - effect_skill_raise_spe_1_stage
 - id: skill_xiangyunzhishu
   element: Flying
   category: Status
@@ -15465,7 +15351,8 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_atk_spa_after_check
+    - effect_skill_raise_atk_1_stage
+    - effect_skill_raise_spa_1_stage
 - id: skill_huancaiguangyun
   element: Flying
   category: Climax
@@ -15474,7 +15361,8 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_aisa_skill_huancaiguangyun
+    - effect_skill_raise_atk_1_stage_15_percent
+    - effect_skill_raise_spa_1_stage_15_percent
   sureHit: true
 - id: skill_xuanguangqidian
   element: Normal
@@ -15484,7 +15372,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_aisa_skill_xuanguangqidian
+    - effect_skill_add_mark_self_xuanguangqidian_1_after_check
 - id: skill_xuancaishexian
   element: Flying
   category: Special
@@ -15493,7 +15381,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_aisa_skill_xuancaiguangshu
+    - effect_skill_heal_16_percent_max_hp_on_crit_damage
 - id: skill_xuanguangbaopo
   element: Flying
   category: Special
@@ -15502,7 +15390,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_aisa_skill_xuanguangbaopo
+    - effect_skill_add_rage_20_on_crit_damage
 - id: skill_xuanmushanguang
   element: Flying
   category: Special
@@ -15511,7 +15399,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_aisa_skill_xuancaishanguang
+    - effect_skill_add_mark_opponent_shiming_50_percent_on_crit_damage
 - id: skill_jilang
   element: Water
   category: Special
@@ -15521,15 +15409,6 @@
   target: opponent
   effect:
     - effect_skill_reduce_opponent_spd_1_stage_5_percent
-- id: skill_niliu_2
-  element: Water
-  category: Status
-  power: 0
-  rage: 10
-  accuracy: 95
-  target: opponent
-  effect:
-    - effect_moumou_skill_niliu
 - id: skill_hailangzhenpao
   element: Water
   category: Special
@@ -15538,7 +15417,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_moumou_skill_hailangzhenpao
+    - effect_skill_add_mark_self_bizhong_2_turns_after_check
 - id: skill_niujiaochongzhuang
   element: Normal
   category: Physical
@@ -15556,7 +15435,7 @@
   accuracy: 50
   target: opponent
   effect:
-    - effect_moumou_skill_jilangchongzhuang
+    - effect_skill_reduce_opponent_atk_1_stage_10_percent
 - id: skill_chaojihailiu
   element: Water
   category: Special
@@ -15564,8 +15443,6 @@
   rage: 15
   accuracy: 95
   target: opponent
-  effect:
-    - effect_moumou_skill_chaojihailiu
   priority: 1
 - id: skill_hainiupolang
   element: Water
@@ -15575,7 +15452,7 @@
   accuracy: 50
   target: opponent
   effect:
-    - effect_moumou_skill_hainiupolang
+    - effect_skill_raise_atk_1_stage_15_percent
 - id: skill_buxieyiji
   element: Normal
   category: Physical
@@ -15584,7 +15461,7 @@
   accuracy: 50
   target: opponent
   effect:
-    - effect_moumou_skill_buxieyiji
+    - effect_skill_raise_def_1_stage_15_percent
 - id: skill_moushenhuti
   element: Water
   category: Status
@@ -15593,7 +15470,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_moumou_skill_moushenhuti
+    - effect_skill_add_mark_self_yinghua_50_5_turns_after_check
 - id: skill_chaohailiupo
   element: Water
   category: Special
@@ -15602,7 +15479,7 @@
   accuracy: 50
   target: opponent
   effect:
-    - effect_moumou_skill_chaohailiupo
+    - effect_skill_min_physical_special_damage_95
 - id: skill_nishichongzhuang
   element: Water
   category: Physical
@@ -15611,7 +15488,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_moumou_skill_nishichongzhuang
+    - effect_skill_double_damage_against_grass_water_desert_trait
 - id: skill_mouwangjunshi
   element: Water
   category: Climax
@@ -15620,8 +15497,8 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_moumou_skill_mouwangjunshi_atk
-    - effect_moumou_skill_mouwangjunshi_def
+    - effect_skill_raise_atk_1_stage_20_percent
+    - effect_skill_raise_def_1_stage_20_percent
   sureHit: true
 - id: skill_mouwangshenji
   element: Water
@@ -15631,7 +15508,7 @@
   accuracy: 50
   target: opponent
   effect:
-    - effect_moumou_skill_mouwangshenji
+    - effect_skill_reduce_opponent_spe_1_stage_20_percent
 - id: skill_mouwangzhenpao
   element: Water
   category: Special
@@ -15640,7 +15517,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_moumou_skill_hailangzhenpao
+    - effect_skill_add_mark_self_bizhong_2_turns_after_check
 - id: skill_moumoumoumou
   element: Normal
   category: Status
@@ -15649,7 +15526,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_moumou_skill_moumoumoumou
+    - effect_skill_raise_atk_1_stage_heal_self_17_percent_max_hp_before_hit
 - id: skill_mouwangzhinu
   element: Normal
   category: Status
@@ -15658,7 +15535,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_moumou_skill_mouwangzhinu
+    - effect_skill_add_rage_50_if_previous_skill_missed
 - id: skill_bingjia
   element: Ice
   category: Status
@@ -15667,7 +15544,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_spd_after_check
+    - effect_skill_raise_spd_1_stage
 - id: skill_bingbao_huinu
   element: Ice
   category: Special
@@ -15676,7 +15553,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_langpu_skill_bingbao
+    - effect_skill_add_rage_self_15_on_noncritical_damage
 - id: skill_suibing
   element: Ice
   category: Physical
@@ -15685,7 +15562,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_langpu_skill_suibing
+    - effect_skill_double_power_against_ice_opponent_after_check
 - id: skill_bingdun
   element: Ice
   category: Status
@@ -15694,7 +15571,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_def_after_check
+    - effect_skill_raise_def_1_stage
 - id: skill_guaili
   element: Ice
   category: Status
@@ -15703,7 +15580,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_atk_after_check
+    - effect_skill_raise_atk_1_stage
 - id: skill_hanbingzhiti
   element: Ice
   category: Physical
@@ -15712,7 +15589,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_langpu_skill_hanbingzhiti
+    - effect_skill_add_power_35_unless_critical_damage_after_check
 - id: skill_hanguang
   element: Ice
   category: Status
@@ -15721,7 +15598,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_langpu_skill_hanguang
+    - effect_skill_heal_self_25_percent_max_hp_after_check
 - id: skill_xuebeng
   element: Ice
   category: Physical
@@ -15730,7 +15607,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_langpu_skill_xuebeng
+    - effect_skill_deal_40_fixed_damage_on_noncritical_damage
 - id: skill_weihegongji
   element: Normal
   category: Physical
@@ -15747,8 +15624,6 @@
   rage: 25
   accuracy: 95
   target: opponent
-  effect:
-    - effect_skill_sure_hit_before_check
   sureHit: true
 - id: skill_xuerenpaoxiao
   element: Ice
@@ -15758,7 +15633,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_langpu_skill_xuerenpaoxiao
+    - effect_skill_raise_atk_1_stage_20_percent
   sureHit: true
 - id: skill_xuezhifeiteng
   element: Ice
@@ -15768,7 +15643,8 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_raise_def_spd_after_check
+    - effect_skill_raise_def_1_stage
+    - effect_skill_raise_spd_1_stage
 - id: skill_hanbingfanshi
   element: Ice
   category: Special
@@ -15777,7 +15653,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_langpu_skill_hanbingfanshi
+    - effect_skill_min_attack_damage_95_if_not_first_skill
   priority: -1
 - id: skill_hanbingzhenji
   element: Ice
@@ -15787,7 +15663,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_langpu_skill_hanbingzhenji
+    - effect_skill_add_power_40_unless_critical_damage_after_check
 - id: skill_daxuebeng
   element: Ice
   category: Physical
@@ -15796,4 +15672,4 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_langpu_skill_daxuebeng
+    - effect_skill_deal_50_fixed_damage_on_noncritical_damage

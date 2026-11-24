@@ -91,10 +91,8 @@ jobs:
 
   # 当创建release时，自动合并到production分支
   merge-to-production:
-    needs: [release, publish-content]
-    if: >-
-      !cancelled() && needs.release.outputs.client_release != '' &&
-      (needs.release.outputs.base_tag == '' || needs.publish-content.result == 'success')
+    needs: release
+    if: needs.release.outputs.client_release != ''
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

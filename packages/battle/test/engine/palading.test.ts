@@ -209,12 +209,7 @@ function collectCombat(battle: Battle) {
   return { damage, rage }
 }
 
-const paladingSkills = [
-  'skill_chongzhuang_palading',
-  'skill_shengguangzhiming',
-  'skill_bihuzhihuo',
-  'skill_jiushuzhihuo',
-]
+const paladingSkills = ['skill_chongzhuang', 'skill_shengguangzhiming', 'skill_bihuzhihuo', 'skill_jiushuzhihuo']
 
 it('loads the paladin species, skills and battle-start ability/emblem marks for every team member', async () => {
   const directory = createOfficialContent(baseData, 'palading/catalog')
@@ -223,7 +218,7 @@ it('loads the paladin species, skills and battle-start ability/emblem marks for 
   expect(species.baseStats).toEqual({ hp: 182, atk: 166, spa: 169, def: 172, spd: 170, spe: 159 })
 
   const { battle, a } = start(baseData, [
-    team('A', [paladinPet(palading, paladingSkills), paladinPet('pet_pala', ['skill_chongzhuang_palading'])]),
+    team('A', [paladinPet(palading, paladingSkills), paladinPet('pet_pala', ['skill_chongzhuang'])]),
     team('B', [pet('pet_dilan', ['skill_daqiliu'], { maxHp: 9999 })]),
   ])
   const ready = prompt(battle)
@@ -256,7 +251,7 @@ it('heals 1/8 below half HP and 1/16 above half HP from the permanent 神圣 mar
   expect(a.activePet.currentHp).toBe(320 + Math.floor(800 / 8))
 
   await runTurn(battle, () => {
-    use(battle, a, 'skill_chongzhuang_palading')
+    use(battle, a, 'skill_chongzhuang')
     use(battle, b, 'skill_daqiliu')
   })
 
@@ -288,7 +283,7 @@ it('blocks critical hits while the 神圣 mark is up (sure-crit attacker control
 
   async function attack(paladinSkill: string) {
     const { battle, a, b } = start(data, [
-      team('A', [paladinPet(palading, [paladinSkill, 'skill_chongzhuang_palading'], { maxHp: 800 })]),
+      team('A', [paladinPet(palading, [paladinSkill, 'skill_chongzhuang'], { maxHp: 800 })]),
       team('B', [pet('pet_dilan', ['skill_test_sure_crit'], { maxHp: 9999 })]),
     ])
     a.currentRage = 100
@@ -307,7 +302,7 @@ it('blocks critical hits while the 神圣 mark is up (sure-crit attacker control
   expect(protectedRun.length).toBeGreaterThan(0)
   expect(protectedRun.every(entry => entry.isCrit === false)).toBe(true)
 
-  const controlRun = await attack('skill_chongzhuang_palading')
+  const controlRun = await attack('skill_chongzhuang')
   expect(controlRun.length).toBeGreaterThan(0)
   expect(controlRun.some(entry => entry.isCrit === true)).toBe(true)
 })
@@ -353,7 +348,7 @@ it('reduces physical damage by a flat 50 for 庇护 and widens it to special dam
 
   async function hit(species: string, paladinSkill: string, attackSkill: string, withEmblem: boolean) {
     const { battle, a, b } = start(data, [
-      team('A', [paladinPet(species, [paladinSkill, 'skill_chongzhuang_palading'], { maxHp: 800 }, withEmblem)]),
+      team('A', [paladinPet(species, [paladinSkill, 'skill_chongzhuang'], { maxHp: 800 }, withEmblem)]),
       team('B', [pet('pet_dilan', [attackSkill], { maxHp: 9999 })]),
     ])
     a.currentRage = 100
@@ -449,7 +444,7 @@ it('raises physical defence from 正义之火 and adds special defence only whil
 it('heals 1/16 at exactly half HP and 1/8 strictly below half from the 神圣 mark', async () => {
   async function healOnce(maxHp: number, hp: number) {
     const { battle, a, b } = start(baseData, [
-      team('A', [paladinPet(palading, ['skill_shengguangzhiming', 'skill_chongzhuang_palading'], { maxHp })]),
+      team('A', [paladinPet(palading, ['skill_shengguangzhiming', 'skill_chongzhuang'], { maxHp })]),
       team('B', [pet('pet_dilan', ['skill_daqiliu'], { maxHp: 9999 })]),
     ])
     a.currentRage = 100
@@ -465,7 +460,7 @@ it('heals 1/16 at exactly half HP and 1/8 strictly below half from the 神圣 ma
     a.activePet.currentHp = hp
     await runTurn(battle, () => {
       a.currentRage = 100
-      use(battle, a, 'skill_chongzhuang_palading')
+      use(battle, a, 'skill_chongzhuang')
       use(battle, b, 'skill_daqiliu')
     })
     return a.activePet.currentHp - hp
@@ -477,9 +472,9 @@ it('heals 1/16 at exactly half HP and 1/8 strictly below half from the 神圣 ma
   expect(await healOnce(801, 400)).toBe(Math.floor(801 / 8))
 })
 
-it('keeps the 庇护 1/8 turn-end heal for five turns', async () => {
+it('heals once on using 庇护之火 and keeps 格挡 for five turns', async () => {
   const { battle, a, b } = start(baseData, [
-    team('A', [paladinPet(palading, ['skill_bihuzhihuo', 'skill_chongzhuang_palading'], { maxHp: 8000 })]),
+    team('A', [paladinPet(palading, ['skill_bihuzhihuo', 'skill_chongzhuang'], { maxHp: 8000 })]),
     team('B', [pet('pet_dilan', ['skill_daqiliu'], { maxHp: 99999 })]),
   ])
   a.currentRage = 100
@@ -499,23 +494,23 @@ it('keeps the 庇护 1/8 turn-end heal for five turns', async () => {
   for (let turn = 2; turn <= 5; turn++) {
     await runTurn(battle, () => {
       a.currentRage = 100
-      use(battle, a, 'skill_chongzhuang_palading')
+      use(battle, a, 'skill_chongzhuang')
       use(battle, b, 'skill_daqiliu')
     })
-    expect(a.activePet.currentHp).toBe(100 + 1000 * turn)
+    expect(a.activePet.currentHp).toBe(1100)
   }
   // The mark lasts the five turns it was applied on and expires at the end of the fifth.
   expect(hasMark(a.activePet, 'mark_bihu')).toBe(false)
 
   await runTurn(battle, () => {
     a.currentRage = 100
-    use(battle, a, 'skill_chongzhuang_palading')
+    use(battle, a, 'skill_chongzhuang')
     use(battle, b, 'skill_daqiliu')
   })
-  expect(a.activePet.currentHp).toBe(5100)
+  expect(a.activePet.currentHp).toBe(1100)
 })
 
-it('halves special damage with 圣佑 and heals 1/8 per turn while it lasts', async () => {
+it('heals once on using 圣佑之火 and halves special damage with 庇护', async () => {
   async function run(withShengyou: boolean) {
     const { battle, a, b } = start(testData, [
       team('A', [paladinPet(palading, ['skill_shengyouzhihuo', 'skill_test_physical_120'], { maxHp: 8000 })]),
@@ -526,14 +521,15 @@ it('halves special damage with 圣佑 and heals 1/8 per turn while it lasts', as
     const ready = prompt(battle)
     running.push(battle.startBattle().catch(() => {}))
     await ready
+    a.activePet.currentHp = 4000
     await runTurn(battle, () => {
       a.currentRage = 100
       use(battle, a, 'skill_shengyouzhihuo')
       use(battle, b, 'skill_daqiliu')
     })
     expect(hasMark(a.activePet, 'mark_shengyou')).toBe(true)
+    expect(a.activePet.currentHp).toBe(5000)
     if (!withShengyou) stripMark(a.activePet, 'mark_shengyou')
-    a.activePet.currentHp = 4000
     await runTurn(battle, () => {
       a.currentRage = 100
       use(battle, a, 'skill_test_physical_120')
@@ -547,13 +543,12 @@ it('halves special damage with 圣佑 and heals 1/8 per turn while it lasts', as
   const control = await run(false)
   expect(control.damage).toBeGreaterThan(0)
   expect(Math.abs(shielded.damage - control.damage / 2)).toBeLessThanOrEqual(1)
-  // The mark heals 1/8 (1000) at turn end; the control lost only the incoming damage.
-  expect(shielded.hp - control.hp).toBe(control.damage - shielded.damage + 1000)
+  expect(shielded.hp - control.hp).toBe(control.damage - shielded.damage)
 })
 
 it('blocks opponent stat boosts with 公正 for three turns', async () => {
   const { battle, a, b } = start(testData, [
-    team('A', [paladinPet(palading, ['skill_gongzhengguangchong', 'skill_chongzhuang_palading'], { maxHp: 8000 })]),
+    team('A', [paladinPet(palading, ['skill_gongzhengguangchong', 'skill_chongzhuang'], { maxHp: 8000 })]),
     team('B', [pet('pet_dilan', ['skill_test_raise_atk'], { maxHp: 99999 })]),
   ])
   a.currentRage = 100
@@ -573,7 +568,7 @@ it('blocks opponent stat boosts with 公正 for three turns', async () => {
   for (let turn = 2; turn <= 3; turn++) {
     await runTurn(battle, () => {
       a.currentRage = 100
-      use(battle, a, 'skill_chongzhuang_palading')
+      use(battle, a, 'skill_chongzhuang')
       use(battle, b, 'skill_test_raise_atk')
     })
     expect(b.activePet.stat.atk).toBe(atk)
@@ -581,7 +576,7 @@ it('blocks opponent stat boosts with 公正 for three turns', async () => {
 
   await runTurn(battle, () => {
     a.currentRage = 100
-    use(battle, a, 'skill_chongzhuang_palading')
+    use(battle, a, 'skill_chongzhuang')
     use(battle, b, 'skill_test_raise_atk')
   })
   expect(hasMark(b.activePet, 'mark_gongzheng')).toBe(false)
@@ -591,7 +586,7 @@ it('blocks opponent stat boosts with 公正 for three turns', async () => {
 it('blocks abnormal states with 使命 for five turns', async () => {
   async function run(withMingshi: boolean) {
     const { battle, a, b } = start(testData, [
-      team('A', [paladinPet(palading, ['skill_shimingzhihuo', 'skill_chongzhuang_palading'], { maxHp: 99999 })]),
+      team('A', [paladinPet(palading, ['skill_shimingzhihuo', 'skill_chongzhuang'], { maxHp: 99999 })]),
       team('B', [pet('pet_dilan', ['skill_test_paralyze', 'skill_daqiliu'], { maxHp: 99999 })]),
     ])
     a.currentRage = 100
@@ -600,7 +595,7 @@ it('blocks abnormal states with 使命 for five turns', async () => {
     await ready
     await runTurn(battle, () => {
       a.currentRage = 100
-      use(battle, a, withMingshi ? 'skill_shimingzhihuo' : 'skill_chongzhuang_palading')
+      use(battle, a, withMingshi ? 'skill_shimingzhihuo' : 'skill_chongzhuang')
       use(battle, b, 'skill_daqiliu')
     })
     expect(hasMark(a.activePet, 'mark_mingshi')).toBe(withMingshi)
@@ -608,7 +603,7 @@ it('blocks abnormal states with 使命 for five turns', async () => {
     for (let turn = 2; turn <= 6; turn++) {
       await runTurn(battle, () => {
         a.currentRage = 100
-        use(battle, a, 'skill_chongzhuang_palading')
+        use(battle, a, 'skill_chongzhuang')
         use(battle, b, 'skill_test_paralyze')
       })
       seen.push(hasMark(a.activePet, 'mark_mabi'))
@@ -664,7 +659,7 @@ it('doubles 复仇光冲 power only when every partner has fainted', async () =>
     const { battle, a, b } = start(baseData, [
       team('A', [
         paladinPet(palading, ['skill_fuchouguangchong'], { maxHp: 8000 }),
-        paladinPet(palading, ['skill_chongzhuang_palading'], { maxHp: 8000 }),
+        paladinPet(palading, ['skill_chongzhuang'], { maxHp: 8000 }),
       ]),
       team('B', [pet('pet_dilan', ['skill_daqiliu'], { maxHp: 99999 })]),
     ])
@@ -692,7 +687,7 @@ it('doubles 复仇光冲 power only when every partner has fainted', async () =>
 it('resolves 救赎 only strictly below 1/8 HP and consumes the mark when it heals', async () => {
   async function apply(maxHp: number, hp: number) {
     const { battle, a, b } = start(testData, [
-      team('A', [paladinPet(palading, ['skill_jiushuzhihuo', 'skill_chongzhuang_palading'], { maxHp })]),
+      team('A', [paladinPet(palading, ['skill_jiushuzhihuo', 'skill_chongzhuang'], { maxHp })]),
       team('B', [pet('pet_dilan', ['skill_daqiliu'], { maxHp: 99999 })]),
     ])
     a.currentRage = 100
@@ -716,7 +711,7 @@ it('resolves 救赎 only strictly below 1/8 HP and consumes the mark when it hea
 
 it('triggers 救赎 when incoming damage drops the owner below 1/8 HP', async () => {
   const { battle, a, b } = start(testData, [
-    team('A', [paladinPet(palading, ['skill_jiushuzhihuo', 'skill_chongzhuang_palading'], { maxHp: 800 })]),
+    team('A', [paladinPet(palading, ['skill_jiushuzhihuo', 'skill_chongzhuang'], { maxHp: 800 })]),
     team('B', [pet('pet_dilan', ['skill_test_physical_120', 'skill_daqiliu'], { maxHp: 99999 })]),
   ])
   a.currentRage = 100
@@ -734,7 +729,7 @@ it('triggers 救赎 when incoming damage drops the owner below 1/8 HP', async ()
   a.activePet.currentHp = 105
   await runTurn(battle, () => {
     a.currentRage = 100
-    use(battle, a, 'skill_chongzhuang_palading')
+    use(battle, a, 'skill_chongzhuang')
     use(battle, b, 'skill_test_physical_120')
   })
   const taken = received.filter(entry => entry.target === a.activePet.id)
@@ -744,7 +739,7 @@ it('triggers 救赎 when incoming damage drops the owner below 1/8 HP', async ()
   expect(hasMark(a.activePet, 'mark_jiushu')).toBe(false)
 })
 
-it('raises exactly one defence stat from 荣耀的圣战 only in 神圣', async () => {
+it('raises exactly one defence stat before 荣耀的圣战 deals damage only in 神圣', async () => {
   async function climax(withShensheng: boolean) {
     const { battle, a, b } = start(baseData, [
       team('A', [paladinPet(palading, ['skill_shengguangzhiming', 'skill_rongyaodeshengzhan'], { maxHp: 8000 })]),
@@ -762,15 +757,22 @@ it('raises exactly one defence stat from 荣耀的圣战 only in 神圣', async 
     expect(hasMark(a.activePet, 'mark_shensheng')).toBe(true)
     if (!withShensheng) stripMark(a.activePet, 'mark_shensheng')
     const before = { def: a.activePet.stat.def, spd: a.activePet.stat.spd }
+    const changesAtDamage: Array<{ def: number; spd: number }> = []
+    battle.registerListener(message => {
+      if (message.type === BattleMessageType.Damage && message.data.target === b.activePet.id) {
+        changesAtDamage.push({
+          def: a.activePet.stat.def - before.def,
+          spd: a.activePet.stat.spd - before.spd,
+        })
+      }
+    })
     await runTurn(battle, () => {
       a.currentRage = 100
       use(battle, a, 'skill_rongyaodeshengzhan')
       use(battle, b, 'skill_daqiliu')
     })
-    return {
-      def: a.activePet.stat.def - before.def,
-      spd: a.activePet.stat.spd - before.spd,
-    }
+    expect(changesAtDamage).toHaveLength(1)
+    return changesAtDamage[0]
   }
 
   const control = await climax(false)
@@ -782,7 +784,7 @@ it('raises exactly one defence stat from 荣耀的圣战 only in 神圣', async 
 it('resolves 圣光之名 before a faster opponent because of 先制+1', async () => {
   async function order(paladinSkill: string) {
     const { battle, a, b } = start(testData, [
-      team('A', [paladinPet(palading, ['skill_shengguangzhiming', 'skill_chongzhuang_palading'], { maxHp: 8000 })]),
+      team('A', [paladinPet(palading, ['skill_shengguangzhiming', 'skill_chongzhuang'], { maxHp: 8000 })]),
       team('B', [pet('pet_leiyi', ['skill_test_physical_120'], { maxHp: 99999 })]),
     ])
     a.currentRage = 100
@@ -803,10 +805,7 @@ it('resolves 圣光之名 before a faster opponent because of 先制+1', async (
     return used
   }
 
-  expect((await order('skill_chongzhuang_palading')).slice(0, 2)).toEqual([
-    'skill_test_physical_120',
-    'skill_chongzhuang_palading',
-  ])
+  expect((await order('skill_chongzhuang')).slice(0, 2)).toEqual(['skill_test_physical_120', 'skill_chongzhuang'])
   expect((await order('skill_shengguangzhiming')).slice(0, 2)).toEqual([
     'skill_shengguangzhiming',
     'skill_test_physical_120',
@@ -908,11 +907,11 @@ it('heals the opponent 100 and removes 35 of their rage with 拯救之火', asyn
   expect(drained).toHaveLength(1)
 })
 
-it('keeps the 庇护 state and the battle-start marks across a switch out and back', async () => {
+it('keeps 格挡 and the battle-start marks across a switch out and back', async () => {
   const { battle, a, b } = start(baseData, [
     team('A', [
-      paladinPet(palading, ['skill_bihuzhihuo', 'skill_chongzhuang_palading'], { maxHp: 8000 }),
-      paladinPet(palading, ['skill_chongzhuang_palading'], { maxHp: 8000 }),
+      paladinPet(palading, ['skill_bihuzhihuo', 'skill_chongzhuang'], { maxHp: 8000 }),
+      paladinPet(palading, ['skill_chongzhuang'], { maxHp: 8000 }),
     ]),
     team('B', [pet('pet_dilan', ['skill_daqiliu'], { maxHp: 99999 })]),
   ])
@@ -937,11 +936,11 @@ it('keeps the 庇护 state and the battle-start marks across a switch out and ba
     use(battle, b, 'skill_daqiliu')
   })
   expect(a.activePet).toBe(backup)
-  expect(paladin.currentHp).toBe(5000) // the heal only runs while the owner is active
+  expect(paladin.currentHp).toBe(5000)
 
   await runTurn(battle, () => {
     a.currentRage = 100
-    use(battle, a, 'skill_chongzhuang_palading')
+    use(battle, a, 'skill_chongzhuang')
     use(battle, b, 'skill_daqiliu')
   })
   expect(paladin.currentHp).toBe(5000)
@@ -952,7 +951,7 @@ it('keeps the 庇护 state and the battle-start marks across a switch out and ba
     use(battle, b, 'skill_daqiliu')
   })
   expect(a.activePet).toBe(paladin)
-  expect(paladin.currentHp).toBe(6000)
+  expect(paladin.currentHp).toBe(5000)
   expect(paladin.marks.filter(mark => mark.baseId === 'mark_bihu')).toHaveLength(1)
   expect(paladin.marks.filter(mark => mark.baseId === 'mark_ability_shensheng')).toHaveLength(1)
   expect(paladin.marks.filter(mark => mark.baseId === 'mark_emblem_bihu')).toHaveLength(1)

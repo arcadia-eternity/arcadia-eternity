@@ -191,6 +191,11 @@ export function gameplayRevision(...input: Parameters<typeof gameplayIdentity>) 
   return digestBytes(new TextEncoder().encode(gameplayIdentity(...input)))
 }
 
+/** Cross-source identity of an applied environment, including its presentation materials. */
+export function environmentVersion(gameplay: string, presentation: string) {
+  return sha256Hex(canonical({ gameplay, presentation }))
+}
+
 export async function digestBytes(bytes: Uint8Array): Promise<string> {
   return sha256Hex(bytes)
 }

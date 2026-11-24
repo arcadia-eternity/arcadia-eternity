@@ -15,11 +15,7 @@ export class TaggedParametersEffects {
       effect_emblem_increase_skill_trigger_rate_5_percent: owner('skill_effect_probability', 5),
       effect_emblem_add_yinbo_stack_config_5: owner('skill_effect_yinbo_stack', 5),
       effect_emblem_yingguanghuafen_extra_accuracy_reduction_5: owner('skill_effect_mingzhongxiajiang_stack', 5),
-      effect_emblem_add_mark_mabi_chance_5: {
-        triggers: [EffectTrigger.OnBattleStart],
-        priority: 0,
-        apply: targets.opponentPlayer.apply(ops.addTaggedParameterModifier('mark_mabi_chance', 'delta', 5)),
-      },
+      effect_emblem_add_mark_mabi_chance_5: owner('mark_mabi_chance', 5),
     })
   }
 }

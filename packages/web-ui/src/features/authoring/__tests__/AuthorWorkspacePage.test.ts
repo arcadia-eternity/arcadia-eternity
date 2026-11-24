@@ -175,8 +175,11 @@ it('edits the opened project range, preserves conflicting input and supports cle
 })
 
 it('opens a standalone environment source with its own debug action and AI connection', async () => {
-  const { wrapper, button, author } = await openWorkspace([], { kind: 'environment', id: 'league' })
+  const { wrapper, router, button, author } = await openWorkspace([], { kind: 'environment', id: 'league' })
   try {
+    await router.push({ query: { view: 'editor' } })
+    await flushPromises()
+    expect(wrapper.get('a[href$="view=settings"]').attributes('aria-current')).toBe('page')
     expect(wrapper.get('.project-metadata').text()).toContain('league')
     expect(wrapper.find('a[href$="view=editor"]').exists()).toBe(false)
     expect(wrapper.find('a[href$="view=release"]').exists()).toBe(false)

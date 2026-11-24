@@ -17,14 +17,14 @@ const emit = defineEmits<{ catalog: [rows: EnvironmentLocation[]] }>()
 const heading = computed(() => (props.bundled ? '网页内置环境' : '公开环境'))
 type EnvironmentRow = Pick<
   ServerEnvironmentDescriptor,
-  'id' | 'environmentId' | 'environmentName' | 'isDefault' | 'executionPolicy'
+  'id' | 'environmentVersion' | 'environmentId' | 'environmentName' | 'isDefault' | 'executionPolicy'
 > & {
   packages: { name: string; version: string }[]
 }
 const environments = ref<EnvironmentRow[]>([])
 const selectedId = ref('')
 const logicalId = (row: EnvironmentRow) => row.environmentId ?? row.id
-const sourceKey = (row: EnvironmentRow) => (props.bundled ? row.id : 'server/' + logicalId(row))
+const sourceKey = (row: EnvironmentRow) => (props.bundled ? row.id : 'publication/' + row.id)
 const selected = computed(() =>
   props.selection
     ? environments.value.find(item => sourceKey(item) === props.selection)
@@ -40,6 +40,7 @@ const name = (environment: EnvironmentRow) =>
 const entries = computed(() =>
   environments.value.map(row => ({
     id: logicalId(row),
+    environmentVersion: row.environmentVersion,
     name: name(row),
     key: sourceKey(row),
     source: props.bundled ? '网页内置' : '服务器',
@@ -60,6 +61,7 @@ async function refresh() {
       result = (catalog.builtins ?? []).map(doc => ({
         id: doc.id,
         environmentName: doc.name,
+        environmentVersion: doc.environmentVersion,
         packages: doc.packages,
         isDefault: doc.id === catalog.defaultEnvironment,
       }))

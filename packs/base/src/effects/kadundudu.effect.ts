@@ -94,7 +94,7 @@ export class KadunduduEffects {
 
     return defineEffects({
       effect_skill_kadundudu_reduce_spe_10_percent: {
-        triggers: [EffectTrigger.OnHit],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.chance(10)),
         apply: targets.opponentActive.apply(ops.changeStatStage('spe', -1)),
@@ -143,7 +143,7 @@ export class KadunduduEffects {
       },
       /** 红心强化 (move 10418): ATK+1 normally, ATK+2 and consume 红心印记 when present. */
       effect_skill_kadundudu_hongxin_qianghua: {
-        triggers: [EffectTrigger.OnHit],
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: actions.choose(

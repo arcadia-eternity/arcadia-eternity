@@ -214,6 +214,7 @@ export async function validateWorkspaceProject(
       },
       ruleComposition,
       contentRevision: descriptor.runtime.contentRevision,
+      environmentVersion: temporary.versionsForRules(descriptor.id, ruleComposition.rules).environmentVersion,
       packages: descriptor.packages,
       elementCatalog: readElementCatalog(catalog),
       skillParameters: catalog.skillParameters,
@@ -559,6 +560,7 @@ export class ManagementService {
         version.createdAt,
         version.draftRevision,
         version.contentRevision,
+        version.environmentVersion,
       ])
     const existing = this.runtimes.get(this.activeRuntimes.get(bindingId) ?? '')
     if (!force && existing?.installationKey === instanceKey(version)) return existing.runtimeId

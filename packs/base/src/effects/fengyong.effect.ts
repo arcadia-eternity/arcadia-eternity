@@ -64,13 +64,6 @@ export class FengyongEffects {
       )
     }
 
-    function drainOnHit(fraction: number): Action {
-      const restore = targets.ownerPet.apply(
-        ops.heal(contexts.damageResult.select(result => Math.floor(result.hpLoss * fraction)).first()),
-      )
-      return actions.choose(conditions.selfUsesSkill, restore)
-    }
-
     function statusSelfBuffWithFengwenBonus(
       baseStat: 'atk' | 'def' | 'spa' | 'spd' | 'spe',
       baseAmount: number,
@@ -100,20 +93,6 @@ export class FengyongEffects {
       return actions.choose(conditions.selfUsesSkill, apply)
     }
 
-    function multihitWithFengwenBonus(baseHits: number): Action {
-      return ctx => {
-        const stacks = ctx.read(opponentFengwenStack) ?? 0
-        contexts.skillUse.apply(ops.setMultihit(baseHits + stacks))(ctx)
-        if (stacks > 0) spendAllFengwen(ctx)
-      }
-    }
-
-    function multihitRandom(min: number, max: number): Action {
-      const hits = values.randomInt(min, max)
-      const setHits = contexts.skillUse.apply(ops.setMultihit(hits))
-      return actions.choose(conditions.selfUsesSkill, setHits)
-    }
-
     function raiseFengwenToThree(): Action {
       const current = opponentFengwenStack
       const target = values.combine(current, values.choose(opponentHasFengwen, 1, 0), (stack, present) =>
@@ -124,7 +103,7 @@ export class FengyongEffects {
     }
 
     return defineEffects({
-      effect_fengyong_ability_refresh_poison: {
+      effect_ability_refresh_opponent_zhongdu_duration_on_damage: {
         triggers: [EffectTrigger.OnDamage] as const,
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, opponentHasZhongdu),
@@ -133,7 +112,7 @@ export class FengyongEffects {
           .where(mark => mark.baseId === ZHONGDU && mark.isActive)
           .apply(ops.refreshMarkDuration()),
       },
-      effect_fengyong_emblem_heal_on_fengwen: {
+      effect_emblem_heal_10_percent_damage_dealt_to_opponent_if_has_fengwen: {
         triggers: [EffectTrigger.OnDamage] as const,
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, conditions.damageTargetBelongsToOtherPlayer, opponentHasFengwen),
@@ -141,67 +120,54 @@ export class FengyongEffects {
           ops.heal(contexts.damageResult.select(result => Math.floor(result.hpLoss * 0.1)).first()),
         ),
       },
-      effect_fengyong_skill_fengwenzhike: {
+      effect_skill_add_mark_opponent_fengwen: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.OnHit] as const,
         priority: 0,
         apply: onHitAddFengwen(),
       },
-      effect_fengyong_skill_mabifengzhen: {
+      effect_skill_consume_opponent_fengwen_1_to_add_mabi: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.OnHit] as const,
         priority: 0,
         apply: onHitConsumeFengwenForMabi(),
       },
-      effect_fengyong_skill_qunfengjijie: {
+      effect_skill_consume_opponent_fengwen_1_to_raise_spe_1_stage_else_raise_spa_1_stage: {
         when: conditions.selfUsesSkill,
-        triggers: [EffectTrigger.AfterUseSkillCheck] as const,
+        triggers: [EffectTrigger.BeforeHit] as const,
         priority: 0,
         apply: statusSelfBuffWithFengwenBonus('spa', 1, 'spe', 1),
       },
-      effect_fengyong_skill_fengwenfushi: {
+      effect_skill_heal_self_60_per_opponent_fengwen_and_consume_all: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.AfterUseSkillCheck] as const,
         priority: 0,
         apply: statusHealPerFengwen(60),
       },
-      effect_fengyong_skill_judafengci: {
+      effect_skill_consume_opponent_fengwen_1_to_deal_fixed_damage_50: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.OnHit] as const,
         priority: 0,
         apply: onHitConsumeFengwenForFixedDamage(50),
       },
-      effect_fengyong_skill_qingfengzhichu: {
-        when: conditions.selfUsesSkill,
-        triggers: [EffectTrigger.OnDamage] as const,
-        priority: 0,
-        apply: drainOnHit(0.5),
+      effect_skill_add_multihit_per_opponent_fengwen_and_consume_all: {
+        triggers: [EffectTrigger.BeforeMultiHit],
+        when: conditions.all(conditions.selfUsesSkill, opponentHasFengwen),
+        apply: actions.sequence(contexts.skillUse.apply(ops.addMultihitResult(opponentFengwenStack)), spendAllFengwen),
       },
-      effect_fengyong_skill_fengwenxuanwu: {
-        when: conditions.selfUsesSkill,
-        triggers: [EffectTrigger.AfterUseSkillCheck] as const,
-        priority: 0,
-        apply: multihitWithFengwenBonus(3),
-      },
-      effect_fengyong_skill_qingfengzhiwu: {
+      effect_skill_add_mark_self_qingfengzhiwu_after_check: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.AfterUseSkillCheck] as const,
         priority: 0,
         apply: statusSelfMark(qingfengzhiwu),
       },
-      effect_fengyong_skill_qingfengzhike: {
+      effect_skill_raise_existing_opponent_fengwen_to_3: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.OnHit] as const,
         priority: 0,
         apply: raiseFengwenToThree(),
       },
-      effect_fengyong_skill_qingchaoerchu: {
-        when: conditions.selfUsesSkill,
-        triggers: [EffectTrigger.AfterUseSkillCheck] as const,
-        priority: 0,
-        apply: multihitRandom(9, 15),
-      },
-      effect_qingfengzhiwu_evasion: {
+      effect_mark_increase_owner_evasion_50_percent_before_damage: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage] as const,
         priority: 0,
         apply: targets.ownerPet.apply(ops.addAttributeModifier('evasion', 'percent', 50)),

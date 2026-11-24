@@ -5,6 +5,7 @@ import {
   DamageType,
   defineEffects,
   EffectTrigger,
+  numberParam,
   ops,
   type Condition,
   targets,
@@ -18,6 +19,8 @@ const COUNTER_WILL = 'mark_fanjiyizhi'
 const SPIKE_BURST = 'mark_jiancibaofa'
 const SAND_SEVERITY = 'mark_shazhili'
 const BLEED = 'mark_liuxie'
+
+const defenseBoostChance = numberParam({ default: 10, tags: ['skill_effect_probability'] })
 
 const physicalDamage = contexts.damage.condition((_, events) =>
   events.some(event => event.damageType === DamageType.Physical),
@@ -75,13 +78,13 @@ export class QiudingEffects {
     const defUp = targets.ownerPet.apply(ops.changeStatStage('def', 1))
 
     return defineEffects({
-      effect_qiuding_ability_def_reduction: {
+      effect_ability_reduce_incoming_physical_damage_10_percent_if_def_above_500: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, physicalDamage, ctx => (ctx.read(defValue) ?? 0) > 500),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -10, delta: 0 })),
       },
-      effect_qiuding_emblem_shell_reduction: {
+      effect_emblem_reduce_incoming_damage_5_percent_if_shell_mark: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(
@@ -93,79 +96,68 @@ export class QiudingEffects {
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: -5, delta: 0 })),
       },
-      effect_qiuding_skill_jiancijiaqiao: {
+      effect_skill_add_mark_self_jiancijiaqiao_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: addSpikeShell,
       },
-      effect_qiuding_skill_jiancichongzhuang: {
+      effect_skill_add_power_by_def_div_5_max_100_pre_damage: {
         triggers: [EffectTrigger.PreDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: contexts.skillUse.apply(ops.addPower(defBonusDamage)),
       },
-      effect_qiuding_skill_jiancibaofa: {
+      effect_skill_add_mark_opponent_jiancibaofa_on_hit: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: addSpikeBurst,
       },
-      effect_qiuding_skill_jiancifangun: {
+      effect_skill_set_hits_by_def_div_100_min_1_max_6: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: contexts.skillUse.apply(ops.setMultihit(defHits)),
       },
-      effect_qiuding_skill_jiancituji: {
-        triggers: [EffectTrigger.OnHit],
+      effect_skill_raise_def_1_stage_10_percent: {
+        triggers: [EffectTrigger.BeforeHit],
         priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, conditions.chance(10)),
+        parameters: { chance: defenseBoostChance },
+        when: conditions.all(conditions.selfUsesSkill, conditions.chance(defenseBoostChance)),
         apply: defUp,
       },
-      effect_qiuding_skill_daocijiaqiao: {
+      effect_skill_add_mark_self_daocijiaqiao_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: addBarbShell,
       },
-      effect_qiuding_skill_shazhili: {
+      effect_skill_add_mark_opponent_shazhili_on_hit: {
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: addSandSeverity,
       },
-      effect_qiuding_skill_pojiatuji: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: contexts.skillUse.apply(ops.setIgnoreShield()),
-      },
-      effect_qiuding_skill_didongshanyao: {
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, conditions.chance(20)),
-        apply: defUp,
-      },
-      effect_qiuding_skill_licitujin: {
+      effect_skill_add_power_by_def_div_10_max_100_pre_damage: {
         triggers: [EffectTrigger.PreDamage],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: contexts.skillUse.apply(ops.addPower(defBonusPower)),
       },
-      effect_qiuding_skill_fanjiyizhi: {
+      effect_skill_add_mark_self_fanjiyizhi_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: addCounterWill,
       },
-      effect_qiuding_skill_baonujiaqiao: {
+      effect_skill_add_mark_self_baonujiaqiao_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: addRageShell,
       },
-      effect_qiuding_mark_spike_shell_rage: {
+      effect_mark_reflect_half_attack_hp_loss_max_284_add_15_rage_and_remove_self: {
         triggers: [EffectTrigger.OnDamage],
         priority: 0,
         when: incomingAttack,
@@ -177,12 +169,12 @@ export class QiudingEffects {
           targets.sourceMark.apply(ops.removeMark()),
         ),
       },
-      effect_qiuding_mark_barb_shell_bleed: {
+      effect_mark_add_attacker_liuxie_30_on_rule_stack_consumption: {
         triggers: [EffectTrigger.OnConsumeStack],
         when: shellPaid,
         apply: targets.damageOriginPet.apply(ops.addMark(bleed, { stack: 30 })),
       },
-      effect_qiuding_mark_rage_shell_consume: {
+      effect_mark_prevent_attack_damage_percent_equal_to_rage_consume_1_stack: {
         triggers: [EffectTrigger.OnDamageReplacement],
         when: incomingAttack,
         apply: contexts.damage.apply(
@@ -192,12 +184,12 @@ export class QiudingEffects {
           }),
         ),
       },
-      effect_qiuding_mark_spike_burst_crit: {
+      effect_mark_add_50_crit_rate_to_attacks_targeting_owner: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         when: targetsMarkedPet,
         apply: contexts.skillUse.apply(ops.addCritRate(50)),
       },
-      effect_qiuding_mark_sand_severity_amplify: {
+      effect_mark_amplify_incoming_desert_damage_50_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, desertDamage),

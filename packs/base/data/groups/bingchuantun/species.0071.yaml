@@ -80,7 +80,7 @@
     - skill_id: skill_jianren
       level: 31
       hidden: false
-    - skill_id: skill_quanliyiji_kadundudu
+    - skill_id: skill_quanliyiji_shenggong_10
       level: 36
       hidden: false
 - id: pet_bingchuantun
@@ -128,7 +128,7 @@
     - skill_id: skill_jianren
       level: 31
       hidden: false
-    - skill_id: skill_quanliyiji_kadundudu
+    - skill_id: skill_quanliyiji_shenggong_10
       level: 36
       hidden: false
     - skill_id: skill_jisubingzhui

@@ -540,7 +540,6 @@ onBeforeUnmount(() => {
             aria-label="搜索内容包"
             placeholder="搜索内容包名称或作者"
           />
-          <slot name="toolbar" />
           <template v-if="local && !readonly"
             ><button class="primary" :disabled="busy" @click="adding = true">
               {{ projects ? '安装内容包' : '添加内容包' }}</button
@@ -614,7 +613,11 @@ onBeforeUnmount(() => {
               "
               class="list-note"
             >
-              没有符合条件的内容包。
+              {{
+                projects && !query && filter === 'all'
+                  ? '本机还没有创作项目或已安装的内容包。'
+                  : '没有符合条件的内容包。'
+              }}
             </p>
           </div>
           <aside v-if="selected" class="package-detail" aria-label="内容包详情">

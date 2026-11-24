@@ -12,8 +12,10 @@ import type { Battle } from '../engine/battle'
 import type { BattleSnapshot } from '../engine/snapshot'
 import { ReconnectGrace, readReconnectWindows, type ReconnectWindow } from './reconnect-grace'
 import { NativeTeamSelection, type NativeTeamSelectionOptions } from './team-selection'
+import { runTrainingCommand, type TrainingCommand } from './training'
 
 export interface NativeBattleHostOptions {
+  training?: boolean
   teamSelection?: NativeTeamSelectionOptions
 }
 
@@ -164,6 +166,11 @@ export class LocalBattleSystem implements IBattleSystem {
     this.assertOpen()
     const state = this.battle.getState(viewerId, showHidden ?? (viewerId ? false : this.battle.showHidden))
     return structuredClone({ ...state, sequenceId: (state.sequenceId ?? 0) - 1 })
+  }
+  async runTrainingCommand(command: TrainingCommand) {
+    this.assertOpen()
+    if (!this.options.training) throw new Error('Training is disabled for this battle')
+    return runTrainingCommand(this.battle, command)
   }
   async getAvailableSelection(playerId: playerId) {
     this.assertOpen()

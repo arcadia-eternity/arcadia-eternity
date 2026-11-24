@@ -82,6 +82,7 @@ export interface EnvironmentInstallation {
   document: EnvironmentDocument
   draftRevision: string
   contentRevision: string
+  environmentVersion?: string
   ruleComposition?: PreparedRuleComposition
   skillParameters?: SkillParameterCatalog
   contentCatalog?: EnvironmentContentCatalog
@@ -117,6 +118,7 @@ export type StaticPreparer = (input: {
   signal?: AbortSignal
 }) => Promise<{
   contentRevision: string
+  environmentVersion?: string
   packages?: unknown[]
   ruleComposition?: PreparedRuleComposition
   skillParameters?: SkillParameterCatalog
@@ -295,6 +297,7 @@ export interface EnvironmentMember {
 }
 
 interface PreparationResult {
+  environmentVersion?: string
   ruleComposition?: PreparedRuleComposition
   skillParameters?: SkillParameterCatalog
   contentCatalog?: EnvironmentContentCatalog
@@ -337,6 +340,7 @@ async function checkedPreparation(
       throw contentError('ENVIRONMENT_SOURCE_MISSING', name)
   return {
     contentRevision: result.contentRevision,
+    ...(typeof result.environmentVersion === 'string' && { environmentVersion: result.environmentVersion }),
     packages,
     ...(result.contentCatalog !== undefined && { contentCatalog: contentCatalogSchema.parse(result.contentCatalog) }),
     ...(result.ruleComposition !== undefined && { ruleComposition: compositionSchema.parse(result.ruleComposition) }),
@@ -752,6 +756,7 @@ class ContentWorkspaceImplementation implements OwnedContentWorkspace {
           document,
           draftRevision: sha256Hex(text),
           contentRevision: result.contentRevision,
+          environmentVersion: result.environmentVersion,
           packages: result.packages,
           members: result.members,
           ruleComposition: result.ruleComposition,
@@ -1035,6 +1040,7 @@ class ContentWorkspaceImplementation implements OwnedContentWorkspace {
               ...entry.version,
               format: 'arcadia.environment-installation/1',
               contentRevision: result.contentRevision,
+              environmentVersion: result.environmentVersion,
               packages: result.packages ?? [],
               ruleComposition: result.ruleComposition,
               skillParameters: result.skillParameters,
@@ -1373,7 +1379,11 @@ export async function synchronizeShippedEnvironments(
     const current = drafts.find(item => item.document.id === id)
     if (current && isDeepStrictEqual(current.document, document)) {
       const [installed] = await workspace.listInstallations(id)
-      if (installed?.status === 'ready' && installed.draftRevision === current.revision) {
+      if (
+        installed?.status === 'ready' &&
+        (!officialBaseRoot || installed.environmentVersion) &&
+        installed.draftRevision === current.revision
+      ) {
         if (!selectedDigest || !Object.hasOwn(document.packages, hostBaseName)) continue
         const digest = await catalogMaterialDigest(join(installed.directory, 'node_modules', hostBaseName)).catch(
           () => null,

@@ -38,9 +38,9 @@ test(
       const views = page.getByRole('navigation', { name: '项目视图' })
       const firstView = views.getByRole('link').first()
       await expect(firstView).toHaveText('AI 助手')
-      await expect(firstView).toHaveAttribute('aria-current', 'page')
-      await expect(views.getByRole('link').nth(1)).toHaveText('内容编辑')
-      await expect(page).toHaveURL(/\/creation\/edit\/[^/?]+$/)
+      await expect(views.getByRole('link', { name: '内容编辑' })).toHaveAttribute('aria-current', 'page')
+      await expect(page).toHaveURL(/\/creation\/edit\/[^/?]+\?view=editor$/)
+      await firstView.click()
       await page.reload()
       const connection = page.getByRole('region', { name: '连接 AI 助手' })
       await page.evaluate(() => {

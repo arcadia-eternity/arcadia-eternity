@@ -6,7 +6,6 @@ import {
   EffectTrigger,
   ops,
   targets,
-  values,
   type Action,
   type Condition,
 } from '@arcadia-eternity/battle/authoring'
@@ -27,21 +26,6 @@ function hasSandbunshin(amount: number): Condition {
 const attackDamage = contexts.damage.condition((_, events) =>
   events.some(event => event.damageType === DamageType.Physical || event.damageType === DamageType.Special),
 )
-
-function secondaryStatDrop(stat: 'atk' | 'def' | 'spa' | 'spd' | 'spe', chance: number, amount: number): Action {
-  return ctx => {
-    if (!conditions.selfUsesSkill(ctx)) return
-    if (!conditions.chance(chance)(ctx)) return
-    targets.opponentActive.apply(ops.changeStatStage(stat, amount))(ctx)
-  }
-}
-
-function selfStatBoost(stat: 'atk' | 'def' | 'spa' | 'spd' | 'spe', amount: number): Action {
-  return ctx => {
-    if (!conditions.selfUsesSkill(ctx)) return
-    targets.ownerPet.apply(ops.changeStatStage(stat, amount))(ctx)
-  }
-}
 
 @effectGroup({ id: 'lulu' })
 export class LuluEffects {
@@ -124,13 +108,13 @@ export class LuluEffects {
     }
 
     return defineEffects({
-      effect_lulu_ability_sandbunshin_growth: {
+      effect_ability_add_shafenshen_1_stack_at_turn_end_while_active: {
         triggers: [EffectTrigger.TurnEnd],
         priority: 0,
         when: conditions.ownerIsActive,
         apply: targets.ownerPet.apply(ops.addMark(sandbunshinMark, { stack: 1 })),
       },
-      effect_lulu_emblem_sandbunshin_reduction: {
+      effect_emblem_reduce_attack_damage_5_percent_per_shafenshen_stack: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.all(conditions.selfBeDamaged, attackDamage),
@@ -141,97 +125,55 @@ export class LuluEffects {
           }
         }) satisfies Action,
       },
-      effect_lulu_skill_shazhikaijia: {
-        when: conditions.selfUsesSkill,
-        triggers: [EffectTrigger.AfterUseSkillCheck],
-        priority: 0,
-        apply: selfStatBoost('def', 1),
-      },
-      effect_lulu_skill_shafenshen: {
+      effect_skill_add_mark_self_shafenshen_1_stack: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         apply: gainSandbunshin(1),
       },
-      effect_lulu_skill_shazhimao: {
+      effect_skill_consume_shafenshen_1_add_crit_rate_60: {
         when: conditions.selfUsesSkill,
-        triggers: [EffectTrigger.BeforeHit],
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         apply: spendForCrit(1, 60),
       },
-      effect_lulu_skill_shapuqiangzang: {
+      effect_skill_consume_shafenshen_1_double_power_before_hit: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         apply: spendForPower(1, 2),
       },
-      effect_lulu_skill_shaluanpo: {
-        triggers: [EffectTrigger.BeforeHit],
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: contexts.skillUse.apply(ops.setMultihit(values.randomInt(3, 5))),
-      },
-      effect_lulu_skill_shazhishouhu: {
-        when: conditions.selfUsesSkill,
-        triggers: [EffectTrigger.AfterUseSkillCheck],
-        priority: 0,
-        apply: selfStatBoost('spd', 1),
-      },
-      effect_lulu_skill_shachenshuangji: {
+      effect_skill_consume_shafenshen_2_add_mark_opponent_liuxie_50_before_hit: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         apply: spendForBleed(2, 50),
       },
-      effect_lulu_skill_shaliuzang: {
+      effect_skill_add_mark_opponent_zhixi_10_percent_on_hit_on_apply: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.OnHit],
         priority: 0,
         apply: chanceSuffocate(10),
       },
-      effect_lulu_skill_shapusongzang: {
-        when: conditions.selfUsesSkill,
-        triggers: [EffectTrigger.BeforeHit],
-        priority: 0,
-        apply: spendForSureHit(2),
-      },
-      effect_lulu_skill_mieshapuzang: {
-        when: conditions.selfUsesSkill,
-        triggers: [EffectTrigger.OnHit],
-        priority: 0,
-        apply: secondaryStatDrop('spe', 15, -1),
-      },
-      effect_lulu_skill_fenshenshaluanzang: {
+      effect_skill_consume_shafenshen_2_set_sure_hit: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        apply: gainSandbunshin(1),
+        apply: spendForSureHit(2),
       },
-      effect_lulu_skill_shabaojianmao: {
-        when: conditions.selfUsesSkill,
-        triggers: [EffectTrigger.BeforeHit],
-        priority: 0,
-        apply: spendForCrit(1, 60),
-      },
-      effect_lulu_skill_jueduifangyu: {
+      effect_skill_consume_shafenshen_3_add_mark_self_jueduifangyu_after_check: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         apply: spendForAbsoluteDefense(3),
       },
-      effect_lulu_skill_shapudazang: {
-        when: conditions.selfUsesSkill,
-        triggers: [EffectTrigger.BeforeHit],
-        priority: 0,
-        apply: spendForSureHit(2),
-      },
-      effect_lulu_skill_shafulao: {
+      effect_skill_consume_shafenshen_3_add_mark_opponent_zhixi_before_hit: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
         apply: spendForSuffocate(3),
       },
-      effect_lulu_mark_jueduifangyu_halve: {
+      effect_mark_reduce_damage_taken_50_percent: {
         triggers: [EffectTrigger.OnBeforeCalculateDamage],
         priority: 0,
         when: conditions.selfBeDamaged,

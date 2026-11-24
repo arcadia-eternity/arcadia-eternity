@@ -107,7 +107,7 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.server == 'true') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       CI: true
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
@@ -201,30 +201,93 @@ jobs:
           pnpm lint:web
       - name: Verify shared native factory and actual P2P messages
         run: pnpm test:web-native
-      - name: Verify server account client and recovery flows
-        run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/serverSession.test.ts --maxWorkers=1
-      - name: Verify shared management transport, target isolation and environment controls
-        run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/managementClient.test.ts src/features/management/__tests__ --maxWorkers=1
-      - name: Verify server content environments in the browser client
-        run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/serverEnvironment.test.ts src/stores/__tests__/privateRoomEnvironment.test.ts src/stores/__tests__/authServerSwitch.test.ts src/stores/__tests__/battleClientSwitch.test.ts src/stores/__tests__/gameData.native.test.ts src/pages/__tests__/lobbyEnvironment.test.ts --maxWorkers=1
-      - name: Verify personal materials and resource lifetime through leave transitions
-        run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/personalEnvironment.test.ts src/services/__tests__/resourceTransport.test.ts src/services/__tests__/environmentMedia.test.ts src/composition/__tests__/useMediaImage.test.ts --maxWorkers=1
-      - name: Verify deployment connection defaults and user preferences
-        run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/bootstrap/__tests__/deployment.test.ts src/stores/__tests__/connectionSettings.test.ts src/pages/__tests__/downloadPage.test.ts --maxWorkers=1
-      - name: Verify local development workspace editing
-        run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/developmentWorkspace.test.ts src/features/development/__tests__/DevelopmentWorkspacePage.test.ts --maxWorkers=1
-      - name: Verify candidate preview transport and failed handoff cleanup
-        run: pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/authorPreview.test.ts src/features/authoring/__tests__/AuthorPreviewPage.test.ts --maxWorkers=1
+      - name: Verify browser account, management, environment and authoring units
+        run: >-
+          pnpm --filter @arcadia-eternity/web-ui run test:run
+          src/services/__tests__/serverSession.test.ts
+          src/services/__tests__/managementClient.test.ts src/features/management/__tests__
+          src/services/__tests__/serverEnvironment.test.ts src/stores/__tests__/privateRoomEnvironment.test.ts
+          src/stores/__tests__/authServerSwitch.test.ts src/stores/__tests__/battleClientSwitch.test.ts
+          src/stores/__tests__/gameData.native.test.ts src/pages/__tests__/lobbyEnvironment.test.ts
+          src/services/__tests__/personalEnvironment.test.ts src/services/__tests__/resourceTransport.test.ts
+          src/services/__tests__/environmentMedia.test.ts src/composition/__tests__/useMediaImage.test.ts
+          src/bootstrap/__tests__/deployment.test.ts src/stores/__tests__/connectionSettings.test.ts
+          src/pages/__tests__/downloadPage.test.ts src/services/__tests__/developmentWorkspace.test.ts
+          src/features/development/__tests__/DevelopmentWorkspacePage.test.ts
+          src/services/__tests__/authorPreview.test.ts src/features/authoring/__tests__/AuthorPreviewPage.test.ts
       - name: Verify desktop local host lifecycle
         run: node --test packages/web-ui/electron/test/local-battle-host.test.mjs packages/web-ui/electron/test/local-environments.test.mjs scripts/desktop-runtime-licenses.test.mjs scripts/stage-desktop-runtime.test.mjs
       - name: Install browser
         run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
-      - name: Verify native local page, selected teams and cold startup
-        run: pnpm test:web-native:e2e
-      - name: Verify content descriptions and connection policy in a real browser
-        run: pnpm --filter @arcadia-eternity/web-ui exec playwright test e2e/content-presentation.spec.ts e2e/connection-policy.spec.ts
+      - name: Verify local battles, team selection, content and connection policy
+        env:
+          PLAYWRIGHT_SKIP_DEPENDENCY_BUILD: '1'
+        run: pnpm test:web-native:e2e e2e/content-presentation.spec.ts e2e/connection-policy.spec.ts
+      - uses: actions/upload-artifact@v7.0.2
+        if: failure()
+        with:
+          name: native-browser-evidence
+          path: packages/web-ui/test-results/baseline/
+          if-no-files-found: ignore
+
+  native-browser-online:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.browser == 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: true
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.1
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build SQLite native driver for the online test server
+        run: pnpm --filter @arcadia-eternity/database rebuild better-sqlite3
+      - name: Build browser and server dependencies
+        run: pnpm --filter '@arcadia-eternity/web-ui^...' --filter '@arcadia-eternity/server...' run build
+      - name: Install browser
+        run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
       - name: Verify ordinary matchmaking and authoritative friend rooms
-        run: PLAYWRIGHT_ONLINE=1 pnpm --filter @arcadia-eternity/web-ui exec playwright test e2e/matchmaking-online.spec.ts e2e/server-room-online.spec.ts
+        env:
+          PLAYWRIGHT_ONLINE: '1'
+          PLAYWRIGHT_SKIP_DEPENDENCY_BUILD: '1'
+        run: pnpm --filter @arcadia-eternity/web-ui exec playwright test e2e/matchmaking-online.spec.ts e2e/server-room-online.spec.ts
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: online-browser-evidence
+          path: packages/web-ui/test-results/baseline/
+          if-no-files-found: ignore
+
+  static-browser-entry:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.browser == 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: true
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.1
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build browser dependencies
+        run: pnpm --filter @arcadia-eternity/web-ui run build:deps
       - uses: actions/cache@v6.1.0
         with:
           path: packages/web-ui/.static-assets-cache
@@ -236,6 +299,8 @@ jobs:
           pnpm --filter @arcadia-eternity/web-ui exec vitest run src/stores/__tests__/playerIdentity.test.ts src/stores/__tests__/offlineStorage.test.ts src/app/__tests__/bootstrap.test.ts src/app/__tests__/onlineSession.test.ts src/bootstrap/__tests__/ruffle.test.ts src/utils/__tests__/officialAssetUrl.test.ts src/components/__tests__/PetIcon.test.ts src/composition/__tests__/sound.test.ts --maxWorkers=1
       - name: Build self-contained static application
         run: pnpm --filter @arcadia-eternity/web-ui run build:static-only
+      - name: Install browser
+        run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
       - name: Verify production battles, offline reload and storage failures
         run: pnpm --filter @arcadia-eternity/web-ui run test:e2e:static
       - uses: actions/upload-artifact@v7.0.2
@@ -309,7 +374,6 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.cli == 'true') }}
     runs-on: ubuntu-latest
-    # Relocated CLI/replay alone takes about 7m on CI; loader and author-tool suites follow.
     timeout-minutes: 20
     env:
       CI: true
@@ -333,6 +397,28 @@ jobs:
         run: pnpm --filter @arcadia-eternity/local-profile test:run
       - name: Run relocated offline CLI and lifecycle regressions
         run: pnpm test:cli
+
+  content-tooling:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.cli == 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: true
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.1
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build loader and author SDK dependencies
+        run: pnpm --filter @arcadia-eternity/content-sdk... --filter @arcadia-eternity/data-pack-base... --filter @arcadia-eternity/protocol... run build
       - name: Verify standard npm artifacts, admission and content environments
         run: pnpm --filter @arcadia-eternity/pack-loader test:run
       - name: Verify shared content-pack development tooling

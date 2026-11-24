@@ -2208,8 +2208,8 @@
   sha256: 6c56244505e1666c08558001e5b5f5001b7debab1d633b20aa75a7013a81d3ab
 - id: skill:skill_xinlianxin
   kind: audio
-  source: https://seer2-resource.yuuinih.com/sound/skill/01_2_003.mp3
-  sha256: 23638c1cba1c15dafa876b66f56dc040daa8fa5d73146bbeb1dcd53d47f1dc8d
+  source: https://seer2-resource.yuuinih.com/sound/skill/01_2_001.mp3
+  sha256: fd2dc826c66f4dd181624a58222aade9fd8efce8c76093046cbc23d7738ddc32
 - id: skill:skill_jianren
   kind: audio
   source: https://seer2-resource.yuuinih.com/sound/skill/01_3_001.mp3
@@ -2240,8 +2240,8 @@
   sha256: 6c56244505e1666c08558001e5b5f5001b7debab1d633b20aa75a7013a81d3ab
 - id: skill:skill_xuehongyinji
   kind: audio
-  source: https://seer2-resource.yuuinih.com/sound/skill/01_2_002.mp3
-  sha256: 6c56244505e1666c08558001e5b5f5001b7debab1d633b20aa75a7013a81d3ab
+  source: https://seer2-resource.yuuinih.com/sound/skill/01_3_001.mp3
+  sha256: 5ebe767256c8b3142a2c7fa9c6b771da634f62bc2bfdb4a390413a7267d4a86d
 - id: skill:skill_xinyuan
   kind: audio
   source: https://seer2-resource.yuuinih.com/sound/skill/01_3_001.mp3
@@ -7366,12 +7366,12 @@
   sha256: 495933ba201a98af18cd475ddd2662d7e0180b56cd8265aa3c6af322d08ba536
 - id: mark:mark_bihu
   kind: image
-  source: https://seer2-resource.yuuinih.com/png/markImage/3320.png
-  sha256: d6a4bf55ca934ab7d40fe44a93a82a369739c5daed92545a65a9f08ae7587448
+  source: https://seer2-resource.yuuinih.com/png/markImage/3316.png
+  sha256: b785c2787d7782e1e3207fe091ff58caf9bdbf40700d2e441558d07ae0198952
 - id: mark:mark_shengyou
   kind: image
-  source: https://seer2-resource.yuuinih.com/png/markImage/3012.png
-  sha256: 04af4df2ae1a55ea26d301ba84171b1ebc92aa4ea0adf37316382be4561a93de
+  source: https://seer2-resource.yuuinih.com/png/markImage/3320.png
+  sha256: d6a4bf55ca934ab7d40fe44a93a82a369739c5daed92545a65a9f08ae7587448
 - id: mark:mark_gongzheng
   kind: image
   source: https://seer2-resource.yuuinih.com/png/markImage/3315.png
@@ -7384,10 +7384,6 @@
   kind: image
   source: https://seer2-resource.yuuinih.com/png/markImage/3322.png
   sha256: 872caf8a3af09f115ad02ac4ed94ac0cd34120749bfeeb1f0b3f9d7f50c7d99a
-- id: skill:skill_chongzhuang_palading
-  kind: audio
-  source: https://seer2-resource.yuuinih.com/sound/skill/12_1_001.mp3
-  sha256: 5a6755a9ea668aab7f61f6b0bbedccd022fea28baa7544ff66ead162d32a616e
 - id: skill:skill_guangxiangongji
   kind: audio
   source: https://seer2-resource.yuuinih.com/sound/skill/12_2_002.mp3

@@ -39,6 +39,7 @@ export type WebBattleHost = IBattleSystem &
   Pick<
     LocalBattleSystem,
     | 'BattleEvent'
+    | 'runTrainingCommand'
     | 'createRuntimeSnapshot'
     | 'restoreRuntimeSnapshot'
     | 'waitForPendingDecision'
@@ -83,7 +84,7 @@ export async function createSandboxWebBattleSession(
         showHidden: options.showHidden,
         timerConfig: options.timerConfig,
       },
-      hostOptions: { teamSelection: options.teamSelection },
+      hostOptions: { teamSelection: options.teamSelection, training: options.training },
     },
     signal,
   )

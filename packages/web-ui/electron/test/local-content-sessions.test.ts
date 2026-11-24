@@ -5,7 +5,12 @@ import { join } from 'node:path'
 import { createLocalContentSessions } from '../local-content-sessions.mjs'
 import { createNpmFixture } from '../../../server/test/fixtures/npm'
 import { emptyNpmContentHost, prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
-import { gameplayRevision, buildDisplayCatalog, buildDisplayLocales } from '@arcadia-eternity/pack-loader/native'
+import {
+  environmentVersion,
+  gameplayRevision,
+  buildDisplayCatalog,
+  buildDisplayLocales,
+} from '@arcadia-eternity/pack-loader/native'
 import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/sandbox/node'
 
 it('captures real npm display and resources, preserves prepared recipes across edits, and evaluates effects only in Workers', async () => {
@@ -29,6 +34,7 @@ it('captures real npm display and resources, preserves prepared recipes across e
     load: async () => ({
       host: emptyNpmContentHost,
       prepareNpmProject,
+      environmentVersion,
       gameplayRevision,
       buildDisplayCatalog,
       buildDisplayLocales,
@@ -55,6 +61,7 @@ it('captures real npm display and resources, preserves prepared recipes across e
     await sessions.prepareProject({ directory: fixture.directory })
     const first = await sessions.prepare()
     expect(first).toMatchObject({ environmentId: 'duel', environmentName: '双宠对战' })
+    expect(first.environmentVersion).toMatch(/^[a-f0-9]{64}$/)
     expect(first.rules).toEqual({ schemaVersion: 1, team: { maxSize: 2 } })
     expect(first.content.locales.bundles.en.species['example-slow:pet'].name).toBe('Display pet')
     expect(first.content.locales.bundles['zh-CN'].species.pet_dilan.name).toBe('迪兰')
@@ -144,6 +151,7 @@ it('captures real npm display and resources, preserves prepared recipes across e
     const capturedFile = sessions.assetFile(first.token, hash).file
     await sessions.prepareProject({ directory: fixture.directory })
     const updated = await sessions.prepare()
+    expect(updated.environmentVersion).not.toBe(first.environmentVersion)
     expect(updated.content.skills.find((row: { id: string }) => row.id === 'example-slow:strike').power).toBe(999)
     await sessions.release(updated.token)
     await sessions.release(first.token)
@@ -168,6 +176,7 @@ it('shares concurrent captures, refreshes without leaks, retries failures and cl
   const empty = { species: [], skills: [], marks: [] }
   const runtime = {
     host: {},
+    environmentVersion,
     gameplayRevision,
     buildDisplayCatalog,
     buildDisplayLocales,
@@ -258,6 +267,7 @@ it('releases document owners and rejects late preparation after document retirem
   const empty = { species: [], skills: [], marks: [] }
   const runtime = {
     host: {},
+    environmentVersion,
     gameplayRevision,
     buildDisplayCatalog,
     buildDisplayLocales,

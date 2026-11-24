@@ -1,6 +1,11 @@
 import { sha256Hex } from '@arcadia-eternity/const'
 import { prepareRulesForContent, validateEnvironmentRules } from '@arcadia-eternity/content-sdk/environment-rules'
-import { buildDisplayCatalog, buildDisplayLocales, gameplayIdentity } from '@arcadia-eternity/pack-loader/native'
+import {
+  buildDisplayCatalog,
+  buildDisplayLocales,
+  environmentVersion,
+  gameplayIdentity,
+} from '@arcadia-eternity/pack-loader/native'
 import { randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
 import {
@@ -14,6 +19,7 @@ import type { ServerEnvironmentContent, ServerEnvironmentDescriptor } from '@arc
 import { createServerRuntime, loadServerBase, type ServerRuntime } from './native'
 
 interface Environment {
+  presentationRevision: string
   runtime: ServerRuntime
   data: PreparedNpmEnvironment['data']
   descriptor: ServerEnvironmentDescriptor
@@ -215,6 +221,7 @@ export class ServerEnvironmentRegistry {
       })),
     }
     this.publish({
+      presentationRevision: prepared.presentationRevision,
       runtime,
       data: prepared.data,
       descriptor,
@@ -286,22 +293,23 @@ export class ServerEnvironmentRegistry {
         ...(entry.descriptor.id === this.defaultId && { isDefault: true }),
       }))
   }
+  versionsForRules(id: string, rules: EnvironmentAdmissionRules) {
+    const entry = this.entry(id)
+    const runtime = entry.descriptor.runtime
+    const gameplayRevision = sha256Hex(
+      gameplayIdentity(runtime, entry.runtime.sandbox?.revision ?? runtime.contentRevision, rules),
+    )
+    return { gameplayRevision, environmentVersion: environmentVersion(gameplayRevision, entry.presentationRevision) }
+  }
   private publicDescriptor(entry: PublishedEnvironment): ServerEnvironmentDescriptor {
     const descriptor = structuredClone(entry.descriptor)
     const publication = this.publication?.get(entry.descriptor.id)
     const policy = publication?.executionPolicy
     const rules = structuredClone(publication?.rules ?? entry.runtime.defaultRules ?? { schemaVersion: 1 as const })
-    const gameplayRevision = sha256Hex(
-      gameplayIdentity(
-        descriptor.runtime,
-        entry.runtime.sandbox?.revision ?? descriptor.runtime.contentRevision,
-        rules,
-      ),
-    )
     const peerRevision = (entry.bundled || policy === 'peer') && entry.runtime.sandbox?.revision
     return {
       ...descriptor,
-      gameplayRevision,
+      ...this.versionsForRules(descriptor.id, rules),
       ...(publication?.environmentId && {
         environmentId: publication.environmentId,
         environmentName: publication.environmentName,

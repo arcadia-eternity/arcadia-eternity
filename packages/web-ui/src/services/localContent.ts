@@ -1,3 +1,4 @@
+import type { ManagedEnvironmentInstallation } from '@arcadia-eternity/protocol'
 import { localMediaScope, registerMediaEnvironment } from './mediaLoader'
 import { getDesktopApi } from '@/utils/env'
 import { validateEnvironmentContent } from './serverContentValidation'
@@ -19,6 +20,7 @@ export async function acquireLocalContent(environmentId?: string, refresh = fals
     return {
       environmentId: selectedId,
       environmentName: selected?.environmentName ?? catalog.builtins?.find(doc => doc.id === selectedId)?.name,
+      environmentVersion: catalog.environmentVersion,
       gameplayRevision: catalog.gameplayRevision,
       draftRevision: undefined,
       content: catalog.content,
@@ -45,13 +47,18 @@ export async function acquireLocalContent(environmentId?: string, refresh = fals
     validateEnvironmentContent(result.content)
     releaseMedia = registerMediaEnvironment(
       result.content,
-      localMediaScope(['desktop', result.environmentId, result.gameplayRevision], result.packages, result.resources),
+      localMediaScope(
+        ['desktop', result.environmentId, result.environmentVersion ?? result.gameplayRevision],
+        result.packages,
+        result.resources,
+      ),
       result.resources,
       true,
     )
     return {
       environmentId: result.environmentId,
       environmentName: result.environmentName,
+      environmentVersion: result.environmentVersion,
       gameplayRevision: result.gameplayRevision,
       draftRevision: result.draftRevision,
       content: result.content,
@@ -72,5 +79,29 @@ export async function acquireLocalContent(environmentId?: string, refresh = fals
   } catch (error) {
     await release()
     throw error
+  }
+}
+
+/** Resolve by version across installations, then verify the capture in case the installation changed. */
+export async function acquireLocalContentVersion(version: string, preferredId?: string) {
+  const api = getDesktopApi()
+  let ids: string[] = []
+  if (api?.localEnvironment) {
+    const snapshot = await api.localEnvironment({ action: 'snapshot' })
+    const result = snapshot.result as { installations: ManagedEnvironmentInstallation[] } | undefined
+    ids =
+      result?.installations.flatMap(item =>
+        item.status === 'ready' && item.environmentVersion === version ? [item.environmentId] : [],
+      ) ?? []
+  } else if (!api && hasPreparedWebEnvironment()) {
+    ids =
+      (await readPreparedWebCatalog()).builtins
+        ?.filter(item => item.environmentVersion === version)
+        .map(item => item.id) ?? []
+  }
+  for (const id of new Set([...ids, ...(preferredId ? [preferredId] : [])])) {
+    const captured = await acquireLocalContent(id).catch(() => undefined)
+    if (captured?.environmentVersion === version) return captured
+    await captured?.release()
   }
 }

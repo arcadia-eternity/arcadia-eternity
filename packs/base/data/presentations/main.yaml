@@ -8504,11 +8504,6 @@
     source: swf:pet_palading
     fallback: portrait:pet_palading
   cry: petSound:num:250
-- id: skills.skill_chongzhuang_palading
-  target:
-    kind: skills
-    id: skill_chongzhuang_palading
-  sfx: skill:skill_chongzhuang_palading
 - id: skills.skill_guangxiangongji
   target:
     kind: skills
@@ -8877,10 +8872,10 @@
     kind: marks
     id: mark_shiquxiujue
   icon: mark:mark_shiquxiujue
-- id: skills.skill_chouda_hema
+- id: skills.skill_chouda_jiangwufang
   target:
     kind: skills
-    id: skill_chouda_hema
+    id: skill_chouda_jiangwufang
   sfx: hema:sfx-07-2-001
 - id: skills.skill_ganjuebaoli
   target:
@@ -10689,15 +10684,10 @@
     kind: marks
     id: mark_emblem_kadunjiujiu_171
   icon: mark:default-emblem
-- id: skills.skill_xinlianxin_haoyin
+- id: skills.skill_quanliyiji_shenggong_10
   target:
     kind: skills
-    id: skill_xinlianxin_haoyin
-  sfx: bingchuantun:sfx-01-2-001
-- id: skills.skill_quanliyiji_kadundudu
-  target:
-    kind: skills
-    id: skill_quanliyiji_kadundudu
+    id: skill_quanliyiji_shenggong_10
   sfx: bingchuantun:sfx-01-1-003
 - id: skills.skill_xinsushanyao
   target:
@@ -10714,11 +10704,6 @@
     kind: skills
     id: skill_qingyingshenzi
   sfx: bingchuantun:sfx-01-3-002
-- id: skills.skill_quanlichongfeng_2
-  target:
-    kind: skills
-    id: skill_quanlichongfeng_2
-  sfx: bingchuantun:sfx-01-1-003
 - id: skills.skill_fanxincuican
   target:
     kind: skills
@@ -10729,16 +10714,6 @@
     kind: skills
     id: skill_xinlingsuo
   sfx: bingchuantun:sfx-01-2-001
-- id: skills.skill_xuehongyinji_sanhuihe
-  target:
-    kind: skills
-    id: skill_xuehongyinji_sanhuihe
-  sfx: bingchuantun:sfx-01-3-001
-- id: skills.skill_xinyuan_2
-  target:
-    kind: skills
-    id: skill_xinyuan_2
-  sfx: bingchuantun:sfx-01-3-003
 - id: species.pet_kadunjiujiu_171
   target:
     kind: species
@@ -10862,11 +10837,6 @@
     kind: marks
     id: mark_emblem_mika
   icon: mark:default-emblem
-- id: skills.skill_guangxiangongji_jiangtefang
-  target:
-    kind: skills
-    id: skill_guangxiangongji_jiangtefang
-  sfx: skill:skill_shenpanguangchong
 - id: skills.skill_gaosuzitai
   target:
     kind: skills
@@ -11442,11 +11412,6 @@
     kind: skills
     id: skill_huoyanpenshe
   sfx: skill:skill_kaisazhiyan
-- id: skills.skill_lieyanzhiqu_chijiumianyi
-  target:
-    kind: skills
-    id: skill_lieyanzhiqu_chijiumianyi
-  sfx: skill:skill_qiankunzhiyan
 - id: skills.skill_chiretuji_yanre
   target:
     kind: skills
@@ -11727,11 +11692,6 @@
     kind: skills
     id: skill_jilang
   sfx: skill:skill_tuanliubuxi
-- id: skills.skill_niliu_2
-  target:
-    kind: skills
-    id: skill_niliu_2
-  sfx: skill:skill_yueguang
 - id: skills.skill_hailangzhenpao
   target:
     kind: skills

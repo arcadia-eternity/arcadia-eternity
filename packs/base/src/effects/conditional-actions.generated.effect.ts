@@ -4,7 +4,7 @@ import { BaseMark } from '@arcadia-eternity/battle/engine'
 import {
   defineEffects,
   EffectTrigger,
-  selectFrom,
+  values,
   numberParam,
   conditions,
   contexts,
@@ -88,6 +88,7 @@ export class ConditionalActionsGeneratedEffects {
           ),
         }
       })(),
+      // The fallback stage boost shares the post-hit status roll.
       effect_skill_add_mark_opponent_mabi_15_percent_or_raise_spa_1_stage_50_percent: (() => {
         const parameters = {
           action0_value_condition_percent: numberParam({
@@ -303,6 +304,7 @@ export class ConditionalActionsGeneratedEffects {
           ),
         ),
       },
+      // Apply sleep after damage so this hit cannot wake the target before the fallback is decided.
       effect_skill_add_mark_opponent_shuimian_15_percent_or_raise_spe_1_stage_50_percent: (() => {
         const parameters = {
           action0_value_condition_percent: numberParam({
@@ -383,62 +385,41 @@ export class ConditionalActionsGeneratedEffects {
       effect_skill_consume_xinzhiyinji_multihit: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: actions.sequence(
-          actions.choose(
-            targets.opponentMarks.where(mark => mark.tags.includes('xinzhiyinji_tag')).condition(checks.exists()),
-            contexts.skillUse.apply(ops.setMultihit(selectFrom([5, 8]).all())),
-            contexts.skillUse.apply(ops.setMultihit(1)),
-          ),
+        when: conditions.all(
+          conditions.selfUsesSkill,
+          targets.opponentMarks.where(mark => mark.tags.includes('xinzhiyinji_tag')).condition(checks.exists()),
         ),
+        apply: contexts.skillUse.apply(ops.setMultihit(values.randomInt(5, 8))),
       },
       effect_skill_multihit_if_height_above_100: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: actions.sequence(
-          actions.choose(
-            (ctx: EffectFrame) => {
-              const left = ctx.read(targets.ownerPet.select(pet => pet.height).first())
-              const right = 100
-              return left !== undefined && right !== undefined && left > right
-            },
-            contexts.skillUse.apply(ops.setMultihit(3)),
-            contexts.skillUse.apply(ops.setMultihit(1)),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.height).first())
+          const right = 100
+          return left !== undefined && right !== undefined && left > right
+        }),
+        apply: contexts.skillUse.apply(ops.setMultihit(3)),
       },
       effect_skill_multihit_if_height_gt_opponent: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: actions.sequence(
-          actions.choose(
-            (ctx: EffectFrame) => {
-              const left = ctx.read(targets.ownerPet.select(pet => pet.height).first())
-              const right = ctx.read(targets.opponentActive.select(pet => pet.height).first())
-              return left !== undefined && right !== undefined && left > right
-            },
-            contexts.skillUse.apply(ops.setMultihit(3)),
-            contexts.skillUse.apply(ops.setMultihit(1)),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.height).first())
+          const right = ctx.read(targets.opponentActive.select(pet => pet.height).first())
+          return left !== undefined && right !== undefined && left > right
+        }),
+        apply: contexts.skillUse.apply(ops.setMultihit(3)),
       },
       effect_skill_multihit_if_height_lt_opponent: {
         triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: actions.sequence(
-          actions.choose(
-            (ctx: EffectFrame) => {
-              const left = ctx.read(targets.ownerPet.select(pet => pet.height).first())
-              const right = ctx.read(targets.opponentActive.select(pet => pet.height).first())
-              return left !== undefined && right !== undefined && left < right
-            },
-            contexts.skillUse.apply(ops.setMultihit(3)),
-            contexts.skillUse.apply(ops.setMultihit(1)),
-          ),
-        ),
+        when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
+          const left = ctx.read(targets.ownerPet.select(pet => pet.height).first())
+          const right = ctx.read(targets.opponentActive.select(pet => pet.height).first())
+          return left !== undefined && right !== undefined && left < right
+        }),
+        apply: contexts.skillUse.apply(ops.setMultihit(3)),
       },
     })
   }

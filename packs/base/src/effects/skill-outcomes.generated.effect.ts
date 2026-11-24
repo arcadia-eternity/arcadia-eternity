@@ -176,15 +176,6 @@ export class SkillOutcomesGeneratedEffects {
         ),
         apply: contexts.skillUse.apply(ops.setSureMiss(-1)),
       },
-      effect_mark_silence: {
-        triggers: [EffectTrigger.BeforeUseSkillCheck],
-        priority: 0,
-        when: conditions.all(
-          conditions.sourceOwnsEvent,
-          conditions.not(contexts.skillUse.condition((_ctx, events) => events[0]?.category === 'Status')),
-        ),
-        apply: contexts.skillUse.apply(ops.setSureMiss(-1)),
-      },
       effect_mark_skill_sure_hit: {
         triggers: [EffectTrigger.BeforeUseSkillCheck],
         priority: 0,
@@ -376,7 +367,9 @@ export class SkillOutcomesGeneratedEffects {
         priority: 0,
         when: conditions.all(
           conditions.selfUsesSkill,
-          targets.opponentMarks.where(mark => mark.tags.includes('xinzhiyinji_tag')).condition(checks.exists()),
+          targets.opponentMarks
+            .where(mark => mark.isActive && mark.tags.includes('xinzhiyinji_tag'))
+            .condition(checks.exists()),
         ),
         apply: contexts.skillUse.apply(ops.setSureHit(2)),
       },
@@ -397,7 +390,7 @@ export class SkillOutcomesGeneratedEffects {
         apply: contexts.skillUse.apply(ops.addAccuracy(50)),
       },
       effect_skill_increase_crit_rate_95_if_max_hp_gt_opponent: {
-        triggers: [EffectTrigger.BeforeHit],
+        triggers: [EffectTrigger.AfterUseSkillCheck],
         priority: 0,
         when: conditions.all(conditions.selfUsesSkill, (ctx: EffectFrame) => {
           const left = ctx.read(targets.ownerPet.select(pet => pet.stat.maxHp).first())
