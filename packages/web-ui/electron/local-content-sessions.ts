@@ -6,6 +6,7 @@ import type {
   buildDisplayLocales,
   environmentVersion,
   gameplayRevision,
+  mapPresentationResources,
 } from '@arcadia-eternity/pack-loader/native'
 import type { NpmContentHost, prepareNpmProject } from '@arcadia-eternity/pack-loader/node'
 import type { NativeRuntimeIdentity, ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
@@ -18,6 +19,7 @@ export interface LocalContentRuntime {
   environmentVersion: typeof environmentVersion
   buildDisplayCatalog: typeof buildDisplayCatalog
   buildDisplayLocales: typeof buildDisplayLocales
+  mapPresentationResources: typeof mapPresentationResources
 }
 
 interface ProjectLease {
@@ -176,19 +178,9 @@ export function createLocalContentSessions({ library, load, assetUrl }: LocalCon
         return url
       }
       for (const kind of ['species', 'skills', 'marks'] as const)
-        for (const row of content[kind]) {
-          const p = row.presentation
-          if (!p) continue
-          for (const key of ['icon', 'portrait', 'cry', 'sfx', 'background', 'music'] as const) {
-            const ref = p[key]
-            if (ref) p[key] = resolveResource(row.id, ref)
-          }
-          if (p.battle)
-            for (const key of ['source', 'fallback'] as const) {
-              const ref = p.battle[key]
-              if (ref) p.battle[key] = resolveResource(row.id, ref)
-            }
-        }
+        for (const row of content[kind])
+          if (row.presentation)
+            row.presentation = runtime.mapPresentationResources(row.presentation, ref => resolveResource(row.id, ref))
       const { prepareEnvironmentRules, assertEnvironmentRequirements } =
         await import('@arcadia-eternity/content-sdk/environment-rules')
       assertEnvironmentRequirements(lease.document?.requires)
@@ -243,6 +235,7 @@ export function createLocalContentSessions({ library, load, assetUrl }: LocalCon
   async function capturePersonalEnvironment(owner?: string, environmentId?: string) {
     const captured = await prepare(owner, { environmentId })
     try {
+      const { mapPresentationResources } = await load()
       const session = sessions.get(captured.token)
       if (!session || session.owner !== owner) throw new Error('LOCAL_CONTENT_OWNER_RELEASED')
       const content = structuredClone(captured.content)
@@ -257,19 +250,8 @@ export function createLocalContentSessions({ library, load, assetUrl }: LocalCon
         return `arcadia-resource:${id}`
       }
       for (const kind of ['species', 'skills', 'marks'] as const)
-        for (const row of content[kind]) {
-          const p = row.presentation
-          if (!p) continue
-          for (const key of ['icon', 'portrait', 'cry', 'sfx', 'background', 'music'] as const) {
-            const ref = p[key]
-            if (ref) p[key] = resource(ref)
-          }
-          if (p.battle)
-            for (const key of ['source', 'fallback'] as const) {
-              const ref = p.battle[key]
-              if (ref) p.battle[key] = resource(ref)
-            }
-        }
+        for (const row of content[kind])
+          if (row.presentation) row.presentation = mapPresentationResources(row.presentation, resource)
       const media = captured.resources
         .filter(
           row =>

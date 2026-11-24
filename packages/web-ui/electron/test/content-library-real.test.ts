@@ -25,7 +25,7 @@ test(
     const { createNodeBattleWorkerManager } = await import('@arcadia-eternity/battle/sandbox/node')
     const { createLocalContentSessions } = await import('../local-content-sessions.ts')
     const { emptyNpmContentHost, prepareNpmProject } = await import('@arcadia-eternity/pack-loader/node')
-    const { environmentVersion, gameplayRevision, buildDisplayCatalog, buildDisplayLocales } =
+    const { environmentVersion, gameplayRevision, buildDisplayCatalog, buildDisplayLocales, mapPresentationResources } =
       await import('@arcadia-eternity/pack-loader/native')
     const { writeFile } = await import('node:fs/promises')
     const root = await mkdtemp(join(tmpdir(), 'arcadia-consumer-update-')),
@@ -66,6 +66,7 @@ test(
         gameplayRevision,
         buildDisplayCatalog,
         buildDisplayLocales,
+        mapPresentationResources,
       }),
       assetUrl: (token, hash) => 'http://localhost/' + token + '/' + hash,
     })

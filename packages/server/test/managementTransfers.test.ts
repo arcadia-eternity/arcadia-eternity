@@ -291,14 +291,18 @@ for (const driver of ['sqlite', 'postgres'] as const) {
         const operation = await env.transfers.export(env.owner.actor, env.version.installationId, 'expires')
         await complete(env.operations, operation.id)
         const download = await env.transfers.download(env.owner.actor, operation.id)
+        const secondDownload = await env.transfers.download(env.owner.actor, operation.id)
         env.advance(5000)
         await expect(env.transfers.download(env.owner.actor, operation.id)).rejects.toMatchObject({
           code: 'TRANSFER_EXPIRED',
           status: 410,
         })
         expect((await env.transfers.cleanup()).removed).toBe(0)
-        expect((await readFile(download.file)).length).toBe(download.bytes)
         await download.release()
+        await download.release()
+        expect((await env.transfers.cleanup()).removed).toBe(0)
+        expect((await readFile(secondDownload.file)).length).toBe(secondDownload.bytes)
+        await secondDownload.release()
         expect((await env.transfers.cleanup()).removed).toBe(1)
         expect(await readdir(env.directory)).toEqual([])
       })

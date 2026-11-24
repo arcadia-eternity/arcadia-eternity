@@ -4,6 +4,29 @@ import { ServerRelayPeerTransport } from '../src/relayPeerTransport'
 import type { PrivateRoomPeerSignalPayload } from '../src/types'
 
 describe('ServerRelayPeerTransport', () => {
+  it('notifies subscribed listeners in order, including repeated states', async () => {
+    const transport = new ServerRelayPeerTransport()
+    const events: string[] = []
+    const recordFirst = () => events.push('first ' + transport.getState())
+    const unsubscribe = transport.onStateChange(recordFirst)
+    transport.onStateChange(recordFirst)
+    transport.onStateChange(state => events.push('second ' + state))
+
+    await transport.connect({ role: 'host', remotePeerId: 'peer' })
+    transport.markConnected()
+    unsubscribe()
+    await transport.close()
+    expect(events).toEqual([
+      'first connecting',
+      'second connecting',
+      'first connected',
+      'second connected',
+      'first connected',
+      'second connected',
+      'second closed',
+    ])
+  })
+
   it('forwards custom messages through the signal bridge and becomes connected on ready', async () => {
     const outgoingSignals: PrivateRoomPeerSignalPayload[] = []
     const transport = new ServerRelayPeerTransport()

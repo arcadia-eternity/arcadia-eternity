@@ -10,6 +10,7 @@ import {
   gameplayRevision,
   buildDisplayCatalog,
   buildDisplayLocales,
+  mapPresentationResources,
 } from '@arcadia-eternity/pack-loader/native'
 import { createNodeBattleWorkerManager } from '@arcadia-eternity/battle/sandbox/node'
 
@@ -38,6 +39,7 @@ it('captures real npm display and resources, preserves prepared recipes across e
       gameplayRevision,
       buildDisplayCatalog,
       buildDisplayLocales,
+      mapPresentationResources,
     }),
     assetUrl: (token: string, hash: string) => `http://localhost/local-content/${token}/${hash}`,
   })
@@ -180,6 +182,7 @@ it('shares concurrent captures, refreshes without leaks, retries failures and cl
     gameplayRevision,
     buildDisplayCatalog,
     buildDisplayLocales,
+    mapPresentationResources,
     prepareNpmProject: async () => {
       calls++
       let resolve!: () => void
@@ -271,6 +274,7 @@ it('releases document owners and rejects late preparation after document retirem
     gameplayRevision,
     buildDisplayCatalog,
     buildDisplayLocales,
+    mapPresentationResources,
     prepareNpmProject: async () => {
       await gate
       return {

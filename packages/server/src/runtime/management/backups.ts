@@ -6,6 +6,7 @@ import { join, resolve } from 'node:path'
 import type { DurableStorage, StorageTransaction } from '@arcadia-eternity/database'
 import { ManagementAuth, managementScopeKey, type ManagementActor, type ManagementScope } from './auth'
 import { OperationService, type Operation } from './operations'
+import { ArtifactAccess } from './artifactAccess'
 
 export interface ManagementBackupsOptions {
   storage: DurableStorage
@@ -56,8 +57,7 @@ export class ManagementBackups {
   private root: string
   private initializing?: Promise<void>
   private closed = false
-  private readonly active = new Map<string, number>()
-  private readonly locks = new Map<string, Promise<void>>()
+  private readonly artifacts = new ArtifactAccess()
   private readonly capturing = new Set<AbortController>()
   constructor(private readonly options: ManagementBackupsOptions) {
     this.serverScope = { kind: 'server', id: options.serverId }
@@ -91,29 +91,6 @@ export class ManagementBackups {
   }
   private file(id: string) {
     return join(this.root, `backup-${validId(id)}.json`)
-  }
-  private pin(name: string) {
-    this.active.set(name, (this.active.get(name) ?? 0) + 1)
-    return () => {
-      const count = (this.active.get(name) ?? 1) - 1
-      if (count) this.active.set(name, count)
-      else this.active.delete(name)
-    }
-  }
-  private async exclusive<T>(name: string, action: () => Promise<T>): Promise<T> {
-    const previous = this.locks.get(name) ?? Promise.resolve()
-    let release!: () => void
-    const next = new Promise<void>(done => {
-      release = done
-    })
-    this.locks.set(name, next)
-    await previous
-    try {
-      return await action()
-    } finally {
-      release()
-      if (this.locks.get(name) === next) this.locks.delete(name)
-    }
   }
   async authorize(
     actor: ManagementActor,
@@ -169,10 +146,10 @@ export class ManagementBackups {
     if (bytes.length > this.maxBytes) fail('BACKUP_TOO_LARGE', 413)
     await this.ready()
     const name = `backup-${validId(id)}.json`
-    await this.exclusive(name, async () => {
+    await this.artifacts.exclusive(name, async () => {
       const temporaryName = `tmp-${randomUUID()}.json`,
         temporary = join(this.root, temporaryName)
-      const release = this.pin(temporaryName)
+      const release = this.artifacts.pin(temporaryName)
       try {
         signal.throwIfAborted()
         const handle = await open(temporary, 'wx', 0o600)
@@ -191,8 +168,11 @@ export class ManagementBackups {
           await directory.close()
         }
       } finally {
-        await rm(temporary, { force: true })
-        release()
+        try {
+          await rm(temporary, { force: true })
+        } finally {
+          release()
+        }
       }
     })
   }
@@ -211,9 +191,9 @@ export class ManagementBackups {
       // Large captures are serialized per owner, so concurrent API requests cannot
       // multiply the maximum in-memory archive size.
       async context =>
-        this.exclusive('capture', async () => {
+        this.artifacts.exclusive('capture', async () => {
           const name = `backup-${context.operationId}.json`,
-            release = this.pin(name)
+            release = this.artifacts.pin(name)
           const controller = new AbortController()
           this.capturing.add(controller)
           const signal = AbortSignal.any([context.signal, controller.signal])
@@ -249,7 +229,7 @@ export class ManagementBackups {
             // authenticated retrieval/expiry, never claim an unverified rollback.
             try {
               if (!commitAttempted)
-                await this.exclusive(name, () => rm(this.file(context.operationId), { force: true }))
+                await this.artifacts.exclusive(name, () => rm(this.file(context.operationId), { force: true }))
             } finally {
               this.capturing.delete(controller)
               release()
@@ -284,9 +264,9 @@ export class ManagementBackups {
     const result = operation.result as BackupDownloadResult | undefined
     if (!result || typeof result.expiresAt !== 'number' || result.expiresAt <= this.now()) fail('BACKUP_EXPIRED', 410)
     const name = `backup-${id}.json`,
-      release = this.pin(name)
+      release = this.artifacts.pin(name)
     try {
-      return await this.exclusive(name, async () => {
+      return await this.artifacts.exclusive(name, async () => {
         let handle
         try {
           handle = await open(this.file(id), constants.O_RDONLY | constants.O_NOFOLLOW)
@@ -318,15 +298,15 @@ export class ManagementBackups {
     const operations = await this.options.operations.list(managementScopeKey(this.serverScope))
     let removed = 0
     for (const name of await readdir(this.root)) {
-      if (!/^backup-[a-f0-9]{64}\.json$|^tmp-[a-f0-9-]{36}\.json$/.test(name) || this.active.has(name)) continue
+      if (!/^backup-[a-f0-9]{64}\.json$|^tmp-[a-f0-9-]{36}\.json$/.test(name) || this.artifacts.isPinned(name)) continue
       const operation = name.startsWith('backup-')
         ? operations.find(value => value.id === name.slice(7, -5))
         : undefined
       if (operation && ['queued', 'running'].includes(operation.status)) continue
       const expiresAt = (operation?.result as Partial<BackupDownloadResult> | undefined)?.expiresAt
       if (typeof expiresAt === 'number' && expiresAt > this.now()) continue
-      await this.exclusive(name, async () => {
-        if (this.active.has(name)) return
+      await this.artifacts.exclusive(name, async () => {
+        if (this.artifacts.isPinned(name)) return
         const file = join(this.root, name),
           info = await lstat(file).catch(() => undefined)
         if (!info?.isFile() || info.isSymbolicLink()) return

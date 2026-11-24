@@ -1,7 +1,6 @@
 import { readElementCatalog } from '@arcadia-eternity/const'
 import {
-  addEnvironmentPackage,
-  removeEnvironmentPackage,
+  resolveEnvironmentPackageChange,
   normalizeEnvironmentDocument,
 } from '@arcadia-eternity/content-sdk/management-workspace'
 import type {
@@ -1120,26 +1119,20 @@ export class ManagementService {
           if (!adding && input.cascade !== undefined && typeof input.cascade !== 'boolean') fail('INVALID_REQUEST')
           await this.authorizeEnvironmentUpdate(actor, parts[3])
           const name = text(input.name, 214)
-          const workspace = this.options.workspace
-          const draft = await (adding ? addEnvironmentPackage : removeEnvironmentPackage)(
-            {
-              listDrafts: () => workspace.listDrafts(),
-              listInstallations: () => workspace.listInstallations(),
-              saveDraft: async ({ document, expectedRevision }) => ({
-                document: normalizeEnvironmentDocument(document),
-                revision: expectedRevision!,
-              }),
-            },
-            {
-              environmentId: parts[3],
-              expectedRevision: text(input.expectedRevision),
-              name,
-              ...(adding
-                ? { version: input.version as string | undefined, source: input.source as boolean | undefined }
-                : { cascade: input.cascade as boolean | undefined }),
-            },
-          )
-          return this.applyEnvironment(actor, request, draft.document, text(input.expectedRevision))
+          const expectedRevision = text(input.expectedRevision)
+          const change = await resolveEnvironmentPackageChange(this.options.workspace, {
+            environmentId: parts[3],
+            expectedRevision,
+            name,
+            ...(adding
+              ? {
+                  action: 'add-package',
+                  version: input.version as string | undefined,
+                  source: input.source as boolean | undefined,
+                }
+              : { action: 'remove-package', cascade: input.cascade as boolean | undefined }),
+          })
+          return this.applyEnvironment(actor, request, change.document, change.expectedRevision)
         }
       }
       if (parts[2] === 'installations' && parts.length === 4 && method === 'DELETE') {

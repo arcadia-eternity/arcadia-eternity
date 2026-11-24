@@ -1,14 +1,10 @@
+import { Listeners, PeerTransportEvents } from './peerTransportEvents'
 import type {
   PeerTransportConnectOptions,
   PeerTransportMessage,
   PeerTransportSignal,
-  PeerTransportState,
   SignalingPeerTransport,
 } from './peerTransport'
-
-type MessageHandler = (message: PeerTransportMessage) => void
-type StateHandler = (state: PeerTransportState) => void
-type SignalHandler = (signal: PeerTransportSignal) => void
 
 export interface WebRTCPeerTransportOptions {
   localPeerId: string
@@ -16,25 +12,19 @@ export interface WebRTCPeerTransportOptions {
   channelLabel?: string
 }
 
-export class WebRTCPeerTransport implements SignalingPeerTransport {
+export class WebRTCPeerTransport extends PeerTransportEvents implements SignalingPeerTransport {
   readonly name = 'webrtc'
 
-  private readonly messageHandlers = new Set<MessageHandler>()
-  private readonly stateHandlers = new Set<StateHandler>()
-  private readonly signalHandlers = new Set<SignalHandler>()
+  private readonly signals = new Listeners<PeerTransportSignal>()
   private readonly options: WebRTCPeerTransportOptions
 
-  private state: PeerTransportState = 'idle'
   private peerConnection?: RTCPeerConnection
   private dataChannel?: RTCDataChannel
   private pendingMessages: PeerTransportMessage[] = []
 
   constructor(options: WebRTCPeerTransportOptions) {
+    super()
     this.options = options
-  }
-
-  getState(): PeerTransportState {
-    return this.state
   }
 
   async connect(options: PeerTransportConnectOptions): Promise<void> {
@@ -87,7 +77,7 @@ export class WebRTCPeerTransport implements SignalingPeerTransport {
 
   async send(message: PeerTransportMessage): Promise<void> {
     if (!this.dataChannel || this.dataChannel.readyState !== 'open') {
-      if (this.state === 'idle' || this.state === 'connecting') {
+      if (this.getState() === 'idle' || this.getState() === 'connecting') {
         this.pendingMessages.push(message)
         return
       }
@@ -102,19 +92,8 @@ export class WebRTCPeerTransport implements SignalingPeerTransport {
     this.setState('closed')
   }
 
-  onMessage(handler: MessageHandler): () => void {
-    this.messageHandlers.add(handler)
-    return () => this.messageHandlers.delete(handler)
-  }
-
-  onStateChange(handler: StateHandler): () => void {
-    this.stateHandlers.add(handler)
-    return () => this.stateHandlers.delete(handler)
-  }
-
-  onLocalSignal(handler: SignalHandler): () => void {
-    this.signalHandlers.add(handler)
-    return () => this.signalHandlers.delete(handler)
+  onLocalSignal(handler: (signal: PeerTransportSignal) => void): () => void {
+    return this.signals.subscribe(handler)
   }
 
   private createPeerConnection(): RTCPeerConnection {
@@ -124,7 +103,7 @@ export class WebRTCPeerTransport implements SignalingPeerTransport {
       if (!candidate) {
         return
       }
-      this.signalHandlers.forEach(handler =>
+      this.signals.forEach(handler =>
         handler({
           kind: 'ice-candidate',
           payload: candidate.toJSON ? candidate.toJSON() : candidate,
@@ -169,17 +148,17 @@ export class WebRTCPeerTransport implements SignalingPeerTransport {
 
   private handleIncomingData(payload: unknown): void {
     if (this.isPeerTransportMessage(payload)) {
-      this.messageHandlers.forEach(handler => handler(payload))
+      this.messages.emit(payload)
       return
     }
 
     if (typeof payload === 'string') {
       try {
         const parsed = JSON.parse(payload) as PeerTransportMessage
-        this.messageHandlers.forEach(handler => handler(parsed))
+        this.messages.emit(parsed)
         return
       } catch {
-        this.messageHandlers.forEach(handler =>
+        this.messages.forEach(handler =>
           handler({
             type: 'raw',
             payload,
@@ -189,7 +168,7 @@ export class WebRTCPeerTransport implements SignalingPeerTransport {
       }
     }
 
-    this.messageHandlers.forEach(handler =>
+    this.messages.forEach(handler =>
       handler({
         type: 'raw',
         payload,
@@ -199,7 +178,7 @@ export class WebRTCPeerTransport implements SignalingPeerTransport {
 
   private emitLocalDescription(kind: 'offer' | 'answer', description: RTCSessionDescription | null): void {
     if (!description) return
-    this.signalHandlers.forEach(handler =>
+    this.signals.forEach(handler =>
       handler({
         kind,
         payload: description.toJSON ? description.toJSON() : description,
@@ -243,11 +222,6 @@ export class WebRTCPeerTransport implements SignalingPeerTransport {
       typeof (payload as { type: unknown }).type === 'string' &&
       'payload' in payload
     )
-  }
-
-  private setState(nextState: PeerTransportState): void {
-    this.state = nextState
-    this.stateHandlers.forEach(handler => handler(nextState))
   }
 
   private destroyPeerConnection(): void {

@@ -5,11 +5,7 @@ import { tmpdir } from 'node:os'
 import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import {
-  ContentWorkspace,
-  addEnvironmentPackage,
-  removeEnvironmentPackage,
-} from '../../../content-dev/src/content-workspace.ts'
+import { ContentWorkspace, resolveEnvironmentPackageChange } from '../../../content-dev/src/content-workspace.ts'
 import { LocalEnvironments } from '../local-environments.ts'
 import { PlayerBattleEnvironments } from '../player-battle-environment.ts'
 import { readInstalledEnvironmentDocument } from '../../../content-dev/src/prepared-document.ts'
@@ -62,8 +58,7 @@ async function fixture(t) {
       openWorkspace: () => ContentWorkspace.open(join(root, 'workspace'), { retentions: { list: async () => [] } }),
       library,
       validate,
-      addPackage: addEnvironmentPackage,
-      removePackage: removeEnvironmentPackage,
+      resolvePackageChange: resolveEnvironmentPackageChange,
       ...options,
     })
     instances.push(api)
@@ -266,13 +261,13 @@ test('relocated desktop environment module loads without workspace packages and 
   await copyFile(new URL('../local-environments.ts', import.meta.url), file)
   const { LocalEnvironments: Relocated } = await import(pathToFileURL(file).href)
   const workspace = { root, close: async () => {} }
-  const input = { action: 'remove-package', environmentId: 'friends', name: 'sample' }
+  const input = { action: 'remove-package', environmentId: 'friends', name: 'sample', expectedRevision: 'current' }
   const api = new Relocated({
     openWorkspace: async () => workspace,
-    removePackage: async (actualWorkspace, actualInput) => {
-      assert.equal(typeof actualWorkspace.saveDraft, 'function')
+    resolvePackageChange: async (actualWorkspace, actualInput) => {
+      assert.equal(actualWorkspace, workspace)
       assert.equal(actualInput, input)
-      return { document, revision: 'updated' }
+      return { document, expectedRevision: actualInput.expectedRevision }
     },
   })
   assert.equal(typeof (await api.request(input)).operationId, 'string')

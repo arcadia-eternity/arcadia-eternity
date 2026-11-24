@@ -1,4 +1,4 @@
-import { readSharedTeam } from '@arcadia-eternity/local-profile'
+import { defaultData, readSharedTeam } from '@arcadia-eternity/local-profile'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, disposePinia, setActivePinia } from 'pinia'
 import { createApp } from 'vue'
@@ -99,6 +99,26 @@ describe('local play when browser storage cannot persist', () => {
     expect(writeLocalData('small-setting', '1')).toBe(true)
     expect(localStorageUnavailable.value).toBe(true)
   })
+})
+
+it('keeps saved settings and restores a fresh copy of the profile log defaults', () => {
+  const defaults = defaultData().settings
+  localStorage.setItem('gameSetting.visibleLogTypes', '[]')
+  localStorage.setItem('gameSetting.musicVolume', '0')
+  localStorage.setItem('gameSetting.battleRenderer', '"image"')
+  const settings = useGameSettingStore()
+
+  expect(settings.visibleLogTypes.size).toBe(0)
+  expect(settings.battleRenderer).toBe('image')
+  expect(settings.musicVolume).toBe(0)
+  expect(settings.soundVolume).toBe(defaults.soundVolume)
+
+  settings.resetLogTypesToDefault()
+  expect([...settings.visibleLogTypes]).toEqual(defaults.visibleLogTypes)
+  settings.toggleLogType(defaults.visibleLogTypes[0])
+  settings.resetLogTypesToDefault()
+  expect(JSON.parse(localStorage.getItem('gameSetting.visibleLogTypes')!)).toEqual(defaults.visibleLogTypes)
+  expect(settings.musicVolume).toBe(0)
 })
 
 it('keeps shared builds and source-specific environment preferences independent', () => {

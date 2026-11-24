@@ -1,29 +1,19 @@
+import { Listeners, PeerTransportEvents } from './peerTransportEvents'
 import type {
   PeerTransportConnectOptions,
   PeerTransportMessage,
   PeerTransportSignal,
-  PeerTransportState,
   SignalingPeerTransport,
 } from './peerTransport'
 
-type MessageHandler = (message: PeerTransportMessage) => void
-type StateHandler = (state: PeerTransportState) => void
-
-export class InMemoryPeerTransport implements SignalingPeerTransport {
+export class InMemoryPeerTransport extends PeerTransportEvents implements SignalingPeerTransport {
   readonly name = 'in-memory'
 
-  private state: PeerTransportState = 'idle'
-  private readonly messageHandlers = new Set<MessageHandler>()
-  private readonly stateHandlers = new Set<StateHandler>()
-  private readonly signalHandlers = new Set<(signal: PeerTransportSignal) => void>()
+  private readonly signals = new Listeners<PeerTransportSignal>()
   private peer?: InMemoryPeerTransport
 
   pairWith(peer: InMemoryPeerTransport): void {
     this.peer = peer
-  }
-
-  getState(): PeerTransportState {
-    return this.state
   }
 
   async connect(_options: PeerTransportConnectOptions): Promise<void> {
@@ -36,43 +26,23 @@ export class InMemoryPeerTransport implements SignalingPeerTransport {
   }
 
   async send(message: PeerTransportMessage): Promise<void> {
-    if (this.state !== 'connected' || !this.peer) {
+    if (this.getState() !== 'connected' || !this.peer) {
       throw new Error('Peer transport is not connected')
     }
 
-    this.peer.dispatchMessage(message)
+    this.peer.messages.emit(message)
   }
 
   async close(): Promise<void> {
     this.setState('closed')
   }
 
-  onMessage(handler: MessageHandler): () => void {
-    this.messageHandlers.add(handler)
-    return () => this.messageHandlers.delete(handler)
-  }
-
-  onStateChange(handler: StateHandler): () => void {
-    this.stateHandlers.add(handler)
-    return () => this.stateHandlers.delete(handler)
-  }
-
   onLocalSignal(handler: (signal: PeerTransportSignal) => void): () => void {
-    this.signalHandlers.add(handler)
-    return () => this.signalHandlers.delete(handler)
+    return this.signals.subscribe(handler)
   }
 
   async handleSignal(_signal: PeerTransportSignal): Promise<void> {
     void _signal
     // in-memory transport does not require external signaling
-  }
-
-  private dispatchMessage(message: PeerTransportMessage): void {
-    this.messageHandlers.forEach(handler => handler(message))
-  }
-
-  private setState(nextState: PeerTransportState): void {
-    this.state = nextState
-    this.stateHandlers.forEach(handler => handler(nextState))
   }
 }

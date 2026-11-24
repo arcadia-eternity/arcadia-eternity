@@ -15,7 +15,7 @@ import type {
   ServerEnvironmentContent,
   ServerEnvironmentDescriptor,
 } from '@arcadia-eternity/protocol'
-import { digestJson } from '@arcadia-eternity/pack-loader/native'
+import { digestJson, mapPresentationResources } from '@arcadia-eternity/pack-loader/native'
 import { Value } from '@sinclair/typebox/value'
 import {
   assertPlayableTeam,
@@ -244,19 +244,9 @@ function portableSnapshotRevision(
 }
 function mapMedia(content: ServerEnvironmentContent, resolve: (value: unknown) => string): ServerEnvironmentContent {
   const result = structuredClone(content)
-  for (const kind of ['species', 'skills', 'marks'] as const) {
-    for (const row of result[kind]) {
-      const presentation = row.presentation
-      if (!presentation) continue
-      for (const key of ['icon', 'portrait', 'cry', 'sfx', 'background', 'music'] as const)
-        if (presentation[key] !== undefined) presentation[key] = resolve(presentation[key])
-      if (presentation.battle) {
-        presentation.battle.source = resolve(presentation.battle.source)
-        if (presentation.battle.fallback !== undefined)
-          presentation.battle.fallback = resolve(presentation.battle.fallback)
-      }
-    }
-  }
+  for (const kind of ['species', 'skills', 'marks'] as const)
+    for (const row of result[kind])
+      if (row.presentation) row.presentation = mapPresentationResources(row.presentation, resolve)
   return result
 }
 function portableMedia(value: unknown, assets: ReadonlyMap<string, unknown>): string {

@@ -41,6 +41,7 @@ import type { ContentPackageAction } from '../src/types/contentPackages.ts'
 import type { OwnedContentWorkspace } from '@arcadia-eternity/content-sdk/management-workspace'
 
 type RuntimeModules = {
+  '@arcadia-eternity/content-sdk/workspace': AuthorApi
   '@arcadia-eternity/local-profile': typeof import('@arcadia-eternity/local-profile')
   '@arcadia-eternity/local-profile/node': typeof import('@arcadia-eternity/local-profile/node')
   '@arcadia-eternity/content-sdk/managed-projects': typeof import('@arcadia-eternity/content-sdk/managed-projects')
@@ -51,11 +52,7 @@ type RuntimeModules = {
   '@arcadia-eternity/database': typeof import('@arcadia-eternity/database')
 }
 
-// The installed runtime lives outside app.asar. Resolve it from its own package root.
-function loadRuntimeModule<Name extends keyof RuntimeModules>(
-  runtimeRequire: NodeJS.Require,
-  name: Name,
-): Promise<RuntimeModules[Name]> {
+function loadRuntimeModule<Name extends keyof RuntimeModules>(name: Name): Promise<RuntimeModules[Name]> {
   return import(pathToFileURL(runtimeRequire.resolve(name)).href)
 }
 
@@ -108,6 +105,10 @@ protectStandardStreams()
 let playerLibraryBridge: Awaited<ReturnType<typeof registerPlayerLibrary>> | undefined
 
 const require = createRequire(import.meta.url)
+// The installed server runtime and its dependencies live outside app.asar.
+const runtimeRequire = app.isPackaged
+  ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
+  : require
 const { autoUpdater }: typeof import('electron-updater') = require('electron-updater')
 
 const __filename = fileURLToPath(import.meta.url)
@@ -159,14 +160,10 @@ let personalProfileBusy = true
 async function getPersonalProfile() {
   if (!personalProfile)
     personalProfile = (async () => {
-      const runtimeRequire = app.isPackaged
-        ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
-        : require
       const { ProfileRepository, validateEnvelope, validateData } = await loadRuntimeModule(
-        runtimeRequire,
         '@arcadia-eternity/local-profile',
       )
-      const { FileProfileStorage } = await loadRuntimeModule(runtimeRequire, '@arcadia-eternity/local-profile/node')
+      const { FileProfileStorage } = await loadRuntimeModule('@arcadia-eternity/local-profile/node')
       const storage = new FileProfileStorage(path.join(app.getPath('userData'), 'profile'))
       await storage.acquireOwner()
       return { storage, repository: new ProfileRepository(storage), validateEnvelope, validateData }
@@ -337,17 +334,7 @@ function getAuthorWorkspaces() {
   authorWorkspaces ??= new AuthorWorkspaces({
     root: path.join(app.getPath('userData'), 'ugc'),
     installedPackage: id => getContentLibrary().authorProject(id),
-    api: (): Promise<AuthorApi> =>
-      import(
-        app.isPackaged
-          ? pathToFileURL(
-              path.join(
-                process.resourcesPath,
-                'arcadia-server/node_modules/@arcadia-eternity/content-sdk/dist/author-api.js',
-              ),
-            ).href
-          : '@arcadia-eternity/content-sdk/workspace'
-      ),
+    api: () => loadRuntimeModule('@arcadia-eternity/content-sdk/workspace'),
     notify: event => {
       if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('desktop:author-changed', event)
       notifyAuthorPreviewChange(authorPreviewWindows.values(), authorPreviewProjects, event)
@@ -362,26 +349,20 @@ function getAuthorWorkspaces() {
   })
   return authorWorkspaces
 }
-function activeBaseRoot(runtimeRequire: NodeJS.Require) {
+function activeBaseRoot() {
   return (
     contentLibrary?.officialPackageRoot ??
     path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json'))
   )
 }
 function loadPackageUpdates() {
-  const runtimeRequire = app.isPackaged
-    ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
-    : require
-  return loadRuntimeModule(runtimeRequire, '@arcadia-eternity/content-sdk/managed-projects')
+  return loadRuntimeModule('@arcadia-eternity/content-sdk/managed-projects')
 }
 function getContentLibrary() {
   if (contentLibrary) return contentLibrary
-  const runtimeRequire = app.isPackaged
-    ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
-    : require
   const root = path.join(app.getPath('userData'), 'content-packages')
   const shippedRoot = path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json'))
-  const loadWorkspace = () => loadRuntimeModule(runtimeRequire, '@arcadia-eternity/content-sdk/management-workspace')
+  const loadWorkspace = () => loadRuntimeModule('@arcadia-eternity/content-sdk/management-workspace')
   contentLibrary ??= new ContentLibrary({
     root,
     packageUpdates: {
@@ -407,7 +388,7 @@ function getContentLibrary() {
         )
       },
       catalogDigest: async root => {
-        const { catalogMaterialDigest } = await loadRuntimeModule(runtimeRequire, '@arcadia-eternity/pack-loader/node')
+        const { catalogMaterialDigest } = await loadRuntimeModule('@arcadia-eternity/pack-loader/node')
         return catalogMaterialDigest(root)
       },
       withArchive: async (candidate, signal, use) => {
@@ -415,7 +396,7 @@ function getContentLibrary() {
         return withOfficialUpdateArchive(candidate, localBattleHost.npmCliPath, signal, use)
       },
       validate: async (directory, signal, catalog) => {
-        const { validateWorkspaceProject } = await loadRuntimeModule(runtimeRequire, '@arcadia-eternity/server')
+        const { validateWorkspaceProject } = await loadRuntimeModule('@arcadia-eternity/server')
         for (const draft of catalog.environments)
           await validateWorkspaceProject({ directory, signal, draft }, { effectPreparation: 'prebuilt-only' })
       },
@@ -453,35 +434,19 @@ function getContentLibrary() {
     },
     host: localBattleHost,
     copyMember: async (...args) => {
-      const runtimeRequire = app.isPackaged
-        ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
-        : require
-      const { copyEnvironmentMember } = await loadRuntimeModule(
-        runtimeRequire,
-        '@arcadia-eternity/content-sdk/management-workspace',
-      )
+      const { copyEnvironmentMember } = await loadRuntimeModule('@arcadia-eternity/content-sdk/management-workspace')
       return copyEnvironmentMember(...args)
     },
     withDefaultArchive: async use => {
-      const runtimeRequire = app.isPackaged
-        ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
-        : require
-      const { withShippedCatalogArchive } = await loadRuntimeModule(
-        runtimeRequire,
-        '@arcadia-eternity/pack-loader/node',
-      )
-      const root = path.dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json'))
-      return withShippedCatalogArchive(root, localBattleHost.npmCliPath, use)
+      const { withShippedCatalogArchive } = await loadRuntimeModule('@arcadia-eternity/pack-loader/node')
+      return withShippedCatalogArchive(shippedRoot, localBattleHost.npmCliPath, use)
     },
     createManagedProjects: async (root, options) => {
-      const runtimeRequire = app.isPackaged
-        ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
-        : require
       const { ManagedProjects } = await loadPackageUpdates()
       return new ManagedProjects(root, {
         ...options,
         get bundledPackageRoot() {
-          return activeBaseRoot(runtimeRequire)
+          return activeBaseRoot()
         },
       })
     },
@@ -500,9 +465,6 @@ function getContentLibrary() {
 let builtinEnvironment: Awaited<ReturnType<typeof openBuiltinEnvironment>> | undefined
 let localEnvironments: LocalEnvironments | undefined
 function getLocalEnvironments() {
-  const runtimeRequire = app.isPackaged
-    ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
-    : require
   localEnvironments ??= new LocalEnvironments({
     openBuiltin: async () => {
       await getManagementWorkspaceOwner().ready()
@@ -512,7 +474,6 @@ function getLocalEnvironments() {
     library: getContentLibrary(),
     acquireRecipe: async (source, destination, options) => {
       const { acquireAuthorEnvironment, parseAuthorEnvironmentNpmSpec } = await loadRuntimeModule(
-        runtimeRequire,
         '@arcadia-eternity/content-sdk/management-workspace',
       )
       return acquireAuthorEnvironment(
@@ -525,37 +486,26 @@ function getLocalEnvironments() {
         },
       )
     },
-    addPackage: async (workspace, input) => {
-      const { addEnvironmentPackage } = await loadRuntimeModule(
-        runtimeRequire,
+    resolvePackageChange: async (workspace, input) => {
+      const { resolveEnvironmentPackageChange } = await loadRuntimeModule(
         '@arcadia-eternity/content-sdk/management-workspace',
       )
-      return addEnvironmentPackage(workspace, input)
-    },
-    removePackage: async (workspace, input) => {
-      const { removeEnvironmentPackage } = await loadRuntimeModule(
-        runtimeRequire,
-        '@arcadia-eternity/content-sdk/management-workspace',
-      )
-      return removeEnvironmentPackage(workspace, input)
+      return resolveEnvironmentPackageChange(workspace, input)
     },
     openWorkspace: async () => {
-      const { ContentWorkspace } = await loadRuntimeModule(
-        runtimeRequire,
-        '@arcadia-eternity/content-sdk/management-workspace',
-      )
+      const { ContentWorkspace } = await loadRuntimeModule('@arcadia-eternity/content-sdk/management-workspace')
       // Local play and hosting borrow read leases. Persistent server bindings belong to the management workspace.
       return ContentWorkspace.open(path.join(app.getPath('userData'), 'local-environments'), {
         allowShareDownloads: true,
         get bundledPackageRoot() {
-          return activeBaseRoot(runtimeRequire)
+          return activeBaseRoot()
         },
         npmCache: path.join(app.getPath('userData'), 'content-packages', 'acquisition', 'npm-cache'),
         retentions: { list: async () => [] },
       })
     },
     validate: async input => {
-      const { validateWorkspaceProject } = await loadRuntimeModule(runtimeRequire, '@arcadia-eternity/server')
+      const { validateWorkspaceProject } = await loadRuntimeModule('@arcadia-eternity/server')
       return validateWorkspaceProject(input)
     },
   })
@@ -577,13 +527,9 @@ function synchronizeDesktopEnvironments(workspace: OwnedContentWorkspace, report
   return current
 }
 async function refreshDesktopEnvironments(workspace: OwnedContentWorkspace) {
-  const runtimeRequire = app.isPackaged
-    ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
-    : require
-  const { validateWorkspaceProject } = await loadRuntimeModule(runtimeRequire, '@arcadia-eternity/server')
+  const { validateWorkspaceProject } = await loadRuntimeModule('@arcadia-eternity/server')
   const library = getContentLibrary()
   const { synchronizeShippedEnvironments } = await loadRuntimeModule(
-    runtimeRequire,
     '@arcadia-eternity/content-sdk/management-workspace',
   )
   const catalog = await library.officialEnvironmentCatalog()
@@ -591,7 +537,7 @@ async function refreshDesktopEnvironments(workspace: OwnedContentWorkspace) {
     localServerStateDirectory,
     workspace.workspaceId,
     async input => {
-      const { openStorage } = await loadRuntimeModule(runtimeRequire, '@arcadia-eternity/database')
+      const { openStorage } = await loadRuntimeModule('@arcadia-eternity/database')
       return openStorage(input)
     },
   )
@@ -613,18 +559,12 @@ function getManagementWorkspaceOwner() {
     library: getContentLibrary(),
     synchronize: synchronizeDesktopEnvironments,
     openWorkspace: async (root, options) => {
-      const runtimeRequire = app.isPackaged
-        ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
-        : require
-      const { ContentWorkspace } = await loadRuntimeModule(
-        runtimeRequire,
-        '@arcadia-eternity/content-sdk/management-workspace',
-      )
+      const { ContentWorkspace } = await loadRuntimeModule('@arcadia-eternity/content-sdk/management-workspace')
       return ContentWorkspace.open(root, {
         ...options,
         allowShareDownloads: true,
         get bundledPackageRoot() {
-          return activeBaseRoot(runtimeRequire)
+          return activeBaseRoot()
         },
       })
     },
@@ -633,12 +573,9 @@ function getManagementWorkspaceOwner() {
 }
 async function loadLocalContentRuntime() {
   localContentRuntime ??= (async () => {
-    const runtimeRequire = app.isPackaged
-      ? createRequire(path.join(process.resourcesPath, 'arcadia-server/package.json'))
-      : require
     const [node, native] = await Promise.all([
-      loadRuntimeModule(runtimeRequire, '@arcadia-eternity/pack-loader/node'),
-      loadRuntimeModule(runtimeRequire, '@arcadia-eternity/pack-loader/native'),
+      loadRuntimeModule('@arcadia-eternity/pack-loader/node'),
+      loadRuntimeModule('@arcadia-eternity/pack-loader/native'),
     ])
     return {
       host: node.emptyNpmContentHost,
@@ -647,6 +584,7 @@ async function loadLocalContentRuntime() {
       environmentVersion: native.environmentVersion,
       buildDisplayCatalog: native.buildDisplayCatalog,
       buildDisplayLocales: native.buildDisplayLocales,
+      mapPresentationResources: native.mapPresentationResources,
     }
   })().catch(error => {
     localContentRuntime = undefined

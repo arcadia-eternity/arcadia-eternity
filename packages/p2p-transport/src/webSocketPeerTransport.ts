@@ -1,15 +1,12 @@
+import { PeerTransportEvents } from './peerTransportEvents'
 import { webSocketText } from './webSocketData'
 import WebSocket from 'ws'
 import type {
   PeerTransportConnectOptions,
   PeerTransportMessage,
   PeerTransportSignal,
-  PeerTransportState,
   SignalingPeerTransport,
 } from './peerTransport'
-
-type MessageHandler = (message: PeerTransportMessage) => void
-type StateHandler = (state: PeerTransportState) => void
 
 export interface WebSocketPeerTransportOptions {
   url: string
@@ -17,26 +14,20 @@ export interface WebSocketPeerTransportOptions {
   peerId: string
 }
 
-export class WebSocketPeerTransport implements SignalingPeerTransport {
+export class WebSocketPeerTransport extends PeerTransportEvents implements SignalingPeerTransport {
   readonly name = 'websocket'
 
   private readonly url: string
   private readonly roomId: string
   private readonly peerId: string
-  private readonly messageHandlers = new Set<MessageHandler>()
-  private readonly stateHandlers = new Set<StateHandler>()
-  private state: PeerTransportState = 'idle'
   private remotePeerId?: string
   private socket?: WebSocket
 
   constructor(options: WebSocketPeerTransportOptions) {
+    super()
     this.url = options.url
     this.roomId = options.roomId
     this.peerId = options.peerId
-  }
-
-  getState(): PeerTransportState {
-    return this.state
   }
 
   async connect(options: PeerTransportConnectOptions): Promise<void> {
@@ -51,13 +42,13 @@ export class WebSocketPeerTransport implements SignalingPeerTransport {
     this.socket.on('message', data => {
       const raw = webSocketText(data)
       const parsed = JSON.parse(raw) as PeerTransportMessage
-      this.messageHandlers.forEach(handler => handler(parsed))
+      this.messages.emit(parsed)
     })
     this.socket.on('error', () => {
       this.setState('failed')
     })
     this.socket.on('close', () => {
-      if (this.state !== 'failed') {
+      if (this.getState() !== 'failed') {
         this.setState('closed')
       }
     })
@@ -88,16 +79,6 @@ export class WebSocketPeerTransport implements SignalingPeerTransport {
     this.socket = undefined
   }
 
-  onMessage(handler: MessageHandler): () => void {
-    this.messageHandlers.add(handler)
-    return () => this.messageHandlers.delete(handler)
-  }
-
-  onStateChange(handler: StateHandler): () => void {
-    this.stateHandlers.add(handler)
-    return () => this.stateHandlers.delete(handler)
-  }
-
   onLocalSignal(_handler: (signal: PeerTransportSignal) => void): () => void {
     void _handler
     return () => {}
@@ -106,10 +87,5 @@ export class WebSocketPeerTransport implements SignalingPeerTransport {
   async handleSignal(_signal: PeerTransportSignal): Promise<void> {
     void _signal
     // websocket transport is directly connected and does not require signaling
-  }
-
-  private setState(nextState: PeerTransportState): void {
-    this.state = nextState
-    this.stateHandlers.forEach(handler => handler(nextState))
   }
 }

@@ -3,8 +3,6 @@ import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { lstat, mkdir, readFile, writeFile, rename, rm } from 'node:fs/promises'
 import type {
-  addEnvironmentPackage,
-  AddEnvironmentPackageInput,
   ContentWorkspace,
   EnvironmentDocument,
   EnvironmentExport,
@@ -13,8 +11,8 @@ import type {
   EnvironmentImportProbe,
   EnvironmentInstallation,
   PrepareEnvironmentInput,
-  removeEnvironmentPackage,
-  RemoveEnvironmentPackageInput,
+  resolveEnvironmentPackageChange,
+  EnvironmentPackageChange,
   StaticPreparer,
   UnavailableInstallation,
 } from '@arcadia-eternity/content-sdk/management-workspace'
@@ -55,8 +53,7 @@ interface LocalEnvironmentOptions {
     destination: string,
     options: { signal: AbortSignal; offline: boolean },
   ) => Promise<{ document: EnvironmentDocument; directory: string }>
-  addPackage: typeof addEnvironmentPackage
-  removePackage: typeof removeEnvironmentPackage
+  resolvePackageChange: typeof resolveEnvironmentPackageChange
   baseRules?: EnvironmentDocument['rules']
   openBuiltin?: () => Promise<BuiltinEnvironment | undefined>
 }
@@ -101,8 +98,7 @@ type LocalEnvironmentRequest =
   | { action: 'snapshot' | 'clear-completed' }
   | ({ action: 'select' | 'export-preview' } & InstallationTarget)
   | ({ action: 'export'; mode?: EnvironmentExportMode } & InstallationTarget)
-  | ({ action: 'add-package'; allowDownload?: boolean } & AddEnvironmentPackageInput)
-  | ({ action: 'remove-package'; allowDownload?: boolean } & RemoveEnvironmentPackageInput)
+  | (EnvironmentPackageChange & { allowDownload?: boolean })
   | ({ action: 'apply'; document: EnvironmentDocument } & ApplyOptions)
   | { action: 'delete-draft'; environmentId: string; expectedRevision: string }
   | { action: 'clear-installation'; installationId: string }
@@ -161,16 +157,14 @@ export class LocalEnvironments {
   declare readonly library: LocalEnvironmentOptions['library']
   declare readonly validate: LocalEnvironmentOptions['validate']
   declare readonly acquireRecipe: LocalEnvironmentOptions['acquireRecipe']
-  declare readonly addPackage: LocalEnvironmentOptions['addPackage']
-  declare readonly removePackage: LocalEnvironmentOptions['removePackage']
+  declare readonly resolvePackageChange: LocalEnvironmentOptions['resolvePackageChange']
 
   constructor({
     openWorkspace,
     library,
     validate,
     acquireRecipe,
-    addPackage,
-    removePackage,
+    resolvePackageChange,
     baseRules,
     openBuiltin,
   }: LocalEnvironmentOptions) {
@@ -180,8 +174,7 @@ export class LocalEnvironments {
     this.library = library
     this.validate = validate
     this.acquireRecipe = acquireRecipe
-    this.addPackage = addPackage
-    this.removePackage = removePackage
+    this.resolvePackageChange = resolvePackageChange
   }
   ready() {
     if (this.#closed) throw fail('WORKSPACE_CLOSED', '环境库已关闭')
@@ -573,19 +566,8 @@ export class LocalEnvironments {
           ? ['action', 'environmentId', 'expectedRevision', 'name', 'version', 'source', 'allowDownload']
           : ['action', 'environmentId', 'expectedRevision', 'name', 'cascade', 'allowDownload']
         if (Object.keys(input).some(key => !allowed.includes(key))) throw fail('INVALID_REQUEST')
-        const draft = await (adding ? this.addPackage : this.removePackage)(
-          {
-            listDrafts: () => workspace.listDrafts(),
-            listInstallations: () => workspace.listInstallations(),
-            saveDraft: async ({ document, expectedRevision }) => ({
-              // A package change always forwards the original draft's checked revision.
-              document: document as EnvironmentDocument,
-              revision: expectedRevision!,
-            }),
-          },
-          input,
-        )
-        return this.request({ ...input, action: 'apply', document: draft.document })
+        const change = await this.resolvePackageChange(workspace, input)
+        return this.request({ action: 'apply', ...change, allowDownload: input.allowDownload })
       }
       case 'apply': {
         const document = structuredClone(input.document)

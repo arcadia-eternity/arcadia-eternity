@@ -1,6 +1,10 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { addEnvironmentPackage, removeEnvironmentPackage } from '../src/content-workspace.ts'
+import {
+  addEnvironmentPackage,
+  removeEnvironmentPackage,
+  resolveEnvironmentPackageChange,
+} from '../src/content-workspace.ts'
 import { normalizeEnvironmentDocument } from '../src/debug-environments.ts'
 
 function fixture(forest = 'forest') {
@@ -35,6 +39,30 @@ function fixture(forest = 'forest') {
     },
   }
 }
+test('resolves an edit without changing the draft and carries its revision to the next write', async () => {
+  const workspace = fixture()
+  const original = (await workspace.listDrafts())[0]
+  const change = await resolveEnvironmentPackageChange(workspace, {
+    action: 'remove-package',
+    environmentId: original.document.id,
+    expectedRevision: original.revision,
+    name: 'nature',
+    cascade: true,
+  })
+  assert.deepEqual(change.document.packages, {})
+  assert.equal(change.expectedRevision, original.revision)
+  await assert.rejects(
+    resolveEnvironmentPackageChange(workspace, {
+      action: 'unknown',
+      environmentId: original.document.id,
+      expectedRevision: original.revision,
+      name: 'forest',
+    }),
+    { code: 'ENVIRONMENT_PACKAGE_INVALID' },
+  )
+  assert.deepEqual((await workspace.listDrafts())[0], original)
+})
+
 test('shared dependency blocks removal; explicit cascade deletes declarations without history', async () => {
   const workspace = fixture()
   const input = { environmentId: 'shared', expectedRevision: '1', name: 'nature' }
