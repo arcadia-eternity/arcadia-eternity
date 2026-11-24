@@ -8715,6 +8715,26 @@
     kind: marks
     id: mark_ability_yinji
   icon: mark:default-ability
+- id: marks.mark_ability_houjin
+  target:
+    kind: marks
+    id: mark_ability_houjin
+  icon: mark:default-ability
+- id: marks.mark_ability_ganjue
+  target:
+    kind: marks
+    id: mark_ability_ganjue
+  icon: mark:default-ability
+- id: marks.mark_emblem_jianren
+  target:
+    kind: marks
+    id: mark_emblem_jianren
+  icon: mark:default-emblem
+- id: marks.mark_emblem_tingjue
+  target:
+    kind: marks
+    id: mark_emblem_tingjue
+  icon: mark:default-emblem
 - id: marks.mark_emblem_hongxin
   target:
     kind: marks
@@ -11911,6 +11931,16 @@
     kind: marks
     id: mark_qitiao
   icon: mark:mark_qitiao
+- id: marks.mark_weizui
+  target:
+    kind: marks
+    id: mark_weizui
+  icon: mark:mark_weizui
+- id: marks.mark_lanzui
+  target:
+    kind: marks
+    id: mark_lanzui
+  icon: mark:mark_lanzui
 - id: marks.mark_meijiuyouhuo
   target:
     kind: marks
@@ -11926,6 +11956,11 @@
     kind: marks
     id: mark_abuzhiyuan
   icon: mark:mark_abuzhiyuan
+- id: marks.mark_anfu
+  target:
+    kind: marks
+    id: mark_anfu
+  icon: mark:mark_anfu
 - id: marks.mark_xuezhiwaiyi
   target:
     kind: marks
@@ -11951,6 +11986,11 @@
     kind: marks
     id: mark_huohuaquti
   icon: mark:mark_huohuaquti
+- id: marks.mark_shiqieshi
+  target:
+    kind: marks
+    id: mark_shiqieshi
+  icon: mark:mark_shiqieshi
 - id: marks.mark_chenshoushi
   target:
     kind: marks
@@ -12071,6 +12111,16 @@
     kind: marks
     id: mark_tefongfantan_atongtie
   icon: mark:mark_tefongfantan_atongtie
+- id: marks.mark_wugongjianban_atongtie
+  target:
+    kind: marks
+    id: mark_wugongjianban_atongtie
+  icon: mark:mark_wugongjianban_atongtie
+- id: marks.mark_shuxingshixiao_atongtie
+  target:
+    kind: marks
+    id: mark_shuxingshixiao_atongtie
+  icon: mark:mark_shuxingshixiao_atongtie
 - id: marks.mark_jinu_atongtie
   target:
     kind: marks
@@ -12086,6 +12136,11 @@
     kind: marks
     id: mark_huixuanguangren
   icon: mark:mark_huixuanguangren
+- id: marks.mark_guangxiansuoding
+  target:
+    kind: marks
+    id: mark_guangxiansuoding
+  icon: mark:mark_guangxiansuoding
 - id: marks.mark_jiancijiaqiao
   target:
     kind: marks
@@ -12111,11 +12166,21 @@
     kind: marks
     id: mark_jiancibaofa
   icon: mark:mark_jiancibaofa
+- id: marks.mark_shazhili
+  target:
+    kind: marks
+    id: mark_shazhili
+  icon: mark:mark_shazhili
 - id: marks.mark_badu_shihunlinggui
   target:
     kind: marks
     id: mark_badu_shihunlinggui
   icon: mark:mark_badu_shihunlinggui
+- id: marks.mark_badu_youhunlinggui
+  target:
+    kind: marks
+    id: mark_badu_youhunlinggui
+  icon: mark:mark_badu_lihunlinggui
 - id: marks.mark_badu_lihunlinggui
   target:
     kind: marks
@@ -12126,6 +12191,16 @@
     kind: marks
     id: mark_badu_fankangyishi
   icon: mark:mark_badu_fankangyishi
+- id: marks.mark_badu_linghunsuiji
+  target:
+    kind: marks
+    id: mark_badu_linghunsuiji
+  icon: mark:mark_zaochengshanghaijianshao
+- id: marks.mark_badu_dizhishang
+  target:
+    kind: marks
+    id: mark_badu_dizhishang
+  icon: mark:mark_shazhili
 - id: marks.mark_zuogu
   target:
     kind: marks
@@ -12146,6 +12221,26 @@
     kind: marks
     id: mark_yanghou
   icon: mark:mark_yanghou
+- id: marks.mark_fengkuangdaocao
+  target:
+    kind: marks
+    id: mark_fengkuangdaocao
+  icon: mark:mark_fengkuangdaocao
+- id: marks.mark_kuanghuanqu
+  target:
+    kind: marks
+    id: mark_kuanghuanqu
+  icon: mark:mark_kuanghuanqu
+- id: marks.mark_shanbitisheng
+  target:
+    kind: marks
+    id: mark_shanbitisheng
+  icon: mark:mark_shanbitisheng
+- id: marks.mark_manhuinuqi
+  target:
+    kind: marks
+    id: mark_manhuinuqi
+  icon: mark:mark_manhuinuqi
 - id: marks.mark_nuoji_njihua
   target:
     kind: marks
@@ -12171,6 +12266,11 @@
     kind: marks
     id: mark_nuoji_dongfeng_heal
   icon: mark:mark_nuoji_wanshijubei
+- id: marks.mark_nuoji_dongfeng_countdown
+  target:
+    kind: marks
+    id: mark_nuoji_dongfeng_countdown
+  icon: mark:mark_nuoji_dongfeng
 - id: marks.mark_nuoji_dongfeng
   target:
     kind: marks

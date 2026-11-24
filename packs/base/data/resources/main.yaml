@@ -8828,6 +8828,14 @@
   kind: image
   source: https://seer2-resource.yuuinih.com/png/markImage/3109.png
   sha256: 3588039e80e7d8a160791b3675d9b45776606b5a1a3bd6280f6de95b25240b8c
+- id: mark:mark_weizui
+  kind: image
+  source: https://seer2-resource.yuuinih.com/png/markImage/3117.png
+  sha256: 6dd3c7d85db17d8a3479837fc5c4155ac73a9d49e22c369825d73420521d62ea
+- id: mark:mark_lanzui
+  kind: image
+  source: https://seer2-resource.yuuinih.com/png/markImage/3118.png
+  sha256: 0c82150e6ea1dc9e242aed79abb98894c8f3bd7ecd41b07e583d9167f0939190
 - id: mark:mark_meijiuyouhuo
   kind: image
   source: https://seer2-resource.yuuinih.com/png/markImage/3119.png
@@ -8840,6 +8848,10 @@
   kind: image
   source: https://seer2-resource.yuuinih.com/png/markImage/3114.png
   sha256: cfdd09db1c03002da015a5874992882b922d6837158f1e220e7a2eec90b0fbfc
+- id: mark:mark_anfu
+  kind: image
+  source: https://seer2-resource.yuuinih.com/png/markImage/3121.png
+  sha256: 9dc3dc17e4095b930dd05db943320e6fd8205a4f05d75c1d155c1ecc4caa3019
 - id: mark:mark_xuezhiwaiyi
   kind: image
   source: https://seer2-resource.yuuinih.com/png/markImage/3122.png
@@ -8860,6 +8872,10 @@
   kind: image
   source: https://seer2-resource.yuuinih.com/png/markImage/4011.png
   sha256: f180a01b88829de67b8e3be7b862977c96a84ef38d85e2f0dd04a382a5fe79e7
+- id: mark:mark_shiqieshi
+  kind: image
+  source: https://seer2-resource.yuuinih.com/png/markImage/3131.png
+  sha256: 359f6e0522821ad6617dd25d6ebec019a9292256bd0a0ea94ca05a488aec5f61
 - id: mark:mark_chenshoushi
   kind: image
   source: https://seer2-resource.yuuinih.com/png/markImage/3132.png
@@ -8956,6 +8972,14 @@
   kind: image
   source: https://seer2-resource.yuuinih.com/png/markImage/3246.png
   sha256: 081061062a861c1d555a33929965f0978d1fd51d9e578d86ef3ad866e297a0c9
+- id: mark:mark_wugongjianban_atongtie
+  kind: image
+  source: https://seer2-resource.yuuinih.com/png/markImage/3245.png
+  sha256: 561a070e35bc022737690fefa819297750027750a90937f6b8da909b118f51e6
+- id: mark:mark_shuxingshixiao_atongtie
+  kind: image
+  source: https://seer2-resource.yuuinih.com/png/markImage/3247.png
+  sha256: 8de19d83dacba355dedc59b63625bce978ce754403205276ba18999bb1a564f4
 - id: mark:mark_jinu_atongtie
   kind: image
   source: https://seer2-resource.yuuinih.com/png/markImage/3250.png
@@ -8968,6 +8992,10 @@
   kind: image
   source: https://seer2-resource.yuuinih.com/png/markImage/3164.png
   sha256: 68e6e97d4341579ac6a58b703cb047dfc49733bf1391dff96bffafe42644cc41
+- id: mark:mark_guangxiansuoding
+  kind: image
+  source: https://seer2-resource.yuuinih.com/png/markImage/11991.png
+  sha256: 9e3c65e479cb4060b73cf4345cf2fd65cba0f4b97cc1ab95083630d830c7a426
 - id: mark:mark_jiancijiaqiao
   kind: image
   source: https://seer2-resource.yuuinih.com/png/markImage/3174.png
@@ -8988,6 +9016,10 @@
   kind: image
   source: https://seer2-resource.yuuinih.com/png/markImage/3170.png
   sha256: 4c2cdc741c1f59936357709f8b062c3262862b2f9ae5b30b2d0cbc992c21986e
+- id: mark:mark_shazhili
+  kind: image
+  source: https://seer2-resource.yuuinih.com/png/markImage/3171.png
+  sha256: 60345785eb90896cd3c36e8acf7d2b33f81cef245fbdad85e33f37c440600d44
 - id: mark:mark_badu_shihunlinggui
   kind: image
   source: https://seer2-resource.yuuinih.com/png/markImage/3176.png
@@ -9016,6 +9048,22 @@
   kind: image
   source: https://seer2-resource.yuuinih.com/png/markImage/3231.png
   sha256: bc3d80755d3e0206f10b58967a3d1e3b5b50b04d09775293b8dff965443035ad
+- id: mark:mark_fengkuangdaocao
+  kind: image
+  source: https://seer2-resource.yuuinih.com/png/markImage/3237.png
+  sha256: f97b4cb08d3ec8e42eb90aeb22344de281efc1b7490c6c1f34ee670107d06f11
+- id: mark:mark_kuanghuanqu
+  kind: image
+  source: https://seer2-resource.yuuinih.com/png/markImage/3233.png
+  sha256: 5d04f67ba920d19891e5d53e4349610e314e5ebfff15c31093b275f2fdb26a28
+- id: mark:mark_shanbitisheng
+  kind: image
+  source: https://seer2-resource.yuuinih.com/png/markImage/3235.png
+  sha256: be33aa4c996b75ab8d1a32b72f03fb62bc94cc497d2be86faacbe0b121a374b4
+- id: mark:mark_manhuinuqi
+  kind: image
+  source: https://seer2-resource.yuuinih.com/png/markImage/3236.png
+  sha256: bf0bae39df410ee6ab7c71e97df32425f6951df0b919a1858cade51c9090c31a
 - id: mark:mark_nuoji_njihua
   kind: image
   source: https://seer2-resource.yuuinih.com/png/markImage/3263.png
