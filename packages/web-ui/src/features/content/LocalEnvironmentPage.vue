@@ -523,7 +523,7 @@ onBeforeUnmount(() => {
       @navigate="select"
     >
       <template #toolbar>
-        <ElButton v-if="library || canAuthor" @click="router.push({ name: 'Creation' })">内容包与创作</ElButton>
+        <ElButton v-if="library || canAuthor" @click="router.push({ name: 'Creation' })">创作工坊</ElButton>
         <ElButton @click="tasksOpen = true">任务</ElButton>
       </template>
     </ManagementEnvironments>
@@ -610,7 +610,7 @@ onBeforeUnmount(() => {
         <ElButton v-if="library" :disabled="busy" @click="importPackage">从文件加入内容包</ElButton>
       </template>
       <template #toolbar>
-        <ElButton v-if="library || canAuthor" @click="router.push({ name: 'Creation' })">内容包与创作</ElButton>
+        <ElButton v-if="library || canAuthor" @click="router.push({ name: 'Creation' })">创作工坊</ElButton>
         <ElButton @click="tasksOpen = true">任务{{ activeTasks ? `（${activeTasks}）` : '' }}</ElButton>
         <ElButton :disabled="busy || preparing" @click="openRecipeInstaller">安装环境包</ElButton>
         <ElButton :disabled="busy" @click="openImport">导入环境</ElButton>

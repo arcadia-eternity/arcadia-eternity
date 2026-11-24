@@ -86,9 +86,11 @@ const visibleProjectViews = computed(() =>
     return view.id !== 'git' || !readOnly.value
   }),
 )
-const projectView = computed<ProjectView>(
-  () => visibleProjectViews.value.find(view => view.id === route.query?.view)?.id ?? projectViews[0].id,
-)
+const projectView = computed<ProjectView>(() => {
+  const requested = route.query?.view
+  if (requested === 'editor' && environmentProject.value) return 'settings'
+  return visibleProjectViews.value.find(view => view.id === requested)?.id ?? projectViews[0].id
+})
 function projectLocation(view: ProjectView) {
   return { path: route.path, query: { ...route.query, view } }
 }

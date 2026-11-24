@@ -14,7 +14,7 @@ function page(path: string, title: string, topic: string, ...symbols: string[]):
 export const creatorSections = [
   {
     title: '从工作台开始',
-    outcome: '建立资料包，用霜团打一场可复现的对战，再连接 AI 助手。',
+    outcome: '从点子开始，用工作台或 AI 助手建立资料包，打第一场对战。',
     reference: false,
     pages: [
       page('start/first-battle', '创建项目，打第一场对战', 'tutorials', 'first-battle'),
