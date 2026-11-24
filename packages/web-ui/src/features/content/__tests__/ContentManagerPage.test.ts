@@ -37,6 +37,7 @@ vi.mock('@/stores/gameData', () => ({ useGameDataStore: () => gameData }))
 vi.mock('@/services/serverEnvironment', () => ({ readServerEnvironmentContent: read, listServerEnvironments: list }))
 const environment = (id: string) => ({
   id,
+  environmentVersion: 'e'.repeat(64),
   packages: [{ projectId: 'custom', name: '@test/custom', version: '1.0.0', namespace: 'custom' }],
 })
 const base = { projectId: 'base', name: '@arcadia-eternity/data-pack-base', version: '4.0.0', namespace: 'base' }
@@ -108,6 +109,8 @@ it('shows only the current room packages in the browser and never changes saved 
   const page = open()
   await flushPromises()
   await pickPackage(page)
+  expect(page.get('.fingerprint-value code').text()).toBe('e'.repeat(64))
+  expect(page.get('.package-preview summary').text()).toBe('1 只精灵 · 1 个技能 · 1 个印记')
   await page.get('[role=tab][id$=impact]').trigger('click')
   expect(page.text()).toContain('内容引用齐全')
   expect(page.text()).toContain('收藏队伍')

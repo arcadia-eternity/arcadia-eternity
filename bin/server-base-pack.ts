@@ -10,19 +10,22 @@ import {
   selectServerBase,
 } from '@arcadia-eternity/content-sdk/managed-projects'
 import { catalogMaterialDigest, withShippedEnvironmentProject } from '@arcadia-eternity/pack-loader/node'
-import { readOfficialEnvironments } from '@arcadia-eternity/content-sdk/management-workspace'
+import {
+  readInstalledOfficialEnvironments,
+  readOfficialEnvironments,
+} from '@arcadia-eternity/content-sdk/management-workspace'
 import { validateWorkspaceProject } from '@arcadia-eternity/server'
 import host from '@arcadia-eternity/pack-loader/package.json' with { type: 'json' }
 
 export const shippedBaseRoot = () =>
   dirname(fileURLToPath(import.meta.resolve('@arcadia-eternity/data-pack-base/package.json')))
-const store = (dataDirectory: string) => join(dataDirectory, 'official-base')
+const store = (dataDirectory: string) => join(dataDirectory, 'official-base', 'releases')
 export const serverBase = (dataDirectory: string, pin?: string) =>
   selectServerBase(store(dataDirectory), shippedBaseRoot(), host.version, pin, validateBase)
 
 /** Remember host-selected materials so pinned environments survive a later server upgrade. */
 export async function serverOfficialMaterials(dataDirectory: string, selected: string) {
-  const records = join(store(dataDirectory), 'known-materials')
+  const records = join(dataDirectory, 'official-base', 'known-materials')
   // The digest includes the package version. Creating a directory records it atomically.
   await mkdir(join(records, await catalogMaterialDigest(selected)), { recursive: true, mode: 0o700 })
   return async (digest: string) => {
@@ -35,11 +38,9 @@ export async function serverOfficialMaterials(dataDirectory: string, selected: s
 }
 
 export function serverOfficialEnvironments(directory: string) {
-  return readOfficialEnvironments(
-    directory,
-    createRequire(import.meta.url).resolve,
-    directory === shippedBaseRoot() ? undefined : join(dirname(directory), 'official-environments.json'),
-  )
+  return directory === shippedBaseRoot()
+    ? readOfficialEnvironments(directory, createRequire(import.meta.url).resolve)
+    : readInstalledOfficialEnvironments(directory, dirname(directory))
 }
 
 async function validateBase(directory: string, signal?: AbortSignal) {

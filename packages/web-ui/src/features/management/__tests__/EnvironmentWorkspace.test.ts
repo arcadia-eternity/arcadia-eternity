@@ -5,6 +5,7 @@ import { ElInputNumber, ElMessageBox, ElSelect } from 'element-plus'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { reactive } from 'vue'
 import EnvironmentWorkspace from '../EnvironmentWorkspace.vue'
+import type { ManagedReadyEnvironmentInstallation } from '@arcadia-eternity/protocol'
 import type { ManagedEnvironment, ManagedEnvironmentInstallation } from '@/types/management'
 
 const environment = (): ManagedEnvironment => ({
@@ -19,7 +20,7 @@ const environment = (): ManagedEnvironment => ({
     requires: { engine: '4', capabilities: ['custom-effects'] },
   },
 })
-const version = (draft: ManagedEnvironment, id = 'version-1'): ManagedEnvironmentInstallation => ({
+const version = (draft: ManagedEnvironment, id = 'version-1'): ManagedReadyEnvironmentInstallation => ({
   installationId: id,
   environmentId: draft.document.id,
   workspaceId: 'workspace-a',
@@ -65,6 +66,43 @@ afterEach(() => {
 })
 
 describe('shared environment workspace', () => {
+  it('previews only the selected installation materials and removes the fingerprint when the draft changes', async () => {
+    const draft = environment()
+    const fingerprint = 'a'.repeat(64)
+    const installation: ManagedEnvironmentInstallation = {
+      ...version(draft),
+      environmentVersion: fingerprint,
+      contentCatalog: {
+        species: [
+          { id: 'ice:pet', name: '冰灵' },
+          { id: 'base_pet', name: '基础精灵' },
+        ],
+        skills: [{ id: 'ice:skill', name: '冰击' }],
+        marks: [],
+        stages: [],
+      },
+      members: [
+        {
+          name: '@test/ice',
+          version: '1.2.3',
+          projectId: 'ice',
+          namespace: 'ice',
+          direct: true,
+          dependencies: [],
+          requiredBy: [],
+        },
+      ],
+    }
+    const { page } = open({ environments: [draft], installations: [installation] })
+    expect(page.get('.fingerprint-value code').text()).toBe(fingerprint)
+    expect(page.get('.package-preview summary').text()).toBe('1 只精灵 · 1 个技能 · 0 个印记')
+    expect(page.get('.package-preview dl').text()).toContain('冰灵')
+    expect(page.text()).not.toContain('基础精灵')
+    await page.setProps({ environments: [{ ...draft, revision: 'draft-8' }] })
+    expect(page.find('.environment-fingerprint').exists()).toBe(false)
+    expect(page.text()).toContain('上次应用的内容包')
+  })
+
   it('hides deletion for builtin environments but allows deleting user environments', async () => {
     const builtin = { ...environment(), builtin: true }
     const { page } = open({ environments: [builtin] })

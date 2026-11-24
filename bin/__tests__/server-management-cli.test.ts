@@ -879,7 +879,9 @@ it('hot-updates both official presets in the background, preserves a live room, 
     environment: { id: initial.find(item => item.isDefault)!.id },
   })
   await accepted(socket, 'leavePrivateRoom')
-  await vi.waitFor(() => readFile(join(data, 'official-base', version, '.arcadia-release-digest')), { timeout: 10000 })
+  await vi.waitFor(() => readFile(join(data, 'official-base', 'releases', version, '.arcadia-release-digest')), {
+    timeout: 10000,
+  })
   await stop(running.child)
   expect(JSON.parse((await update('update')).stdout)).toMatchObject({
     installedVersion: version,

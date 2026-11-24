@@ -118,7 +118,11 @@ export async function buildWebContent(root = basePackageRoot, projectDirectory) 
       coreBuildId: prepared.build.coreBuildId,
       registryBuildId: prepared.build.registryBuildId,
     }
-    const packages = prepared.installation.packages.map(({ name, version }) => ({ name, version }))
+    const packages = prepared.installation.packages.map(({ name, version, manifest, officialHost }) => ({
+      name,
+      version,
+      namespace: manifest?.namespace ?? (officialHost ? '' : undefined),
+    }))
     const entries = []
     for (const doc of definitions) {
       assertEnvironmentRequirements(doc?.requires)
@@ -135,7 +139,7 @@ export async function buildWebContent(root = basePackageRoot, projectDirectory) 
       })
     }
     writeJson(material + '/catalog.json', {
-      packages,
+      packages: packages.map(({ name, version }) => ({ name, version })),
       rules: entries[0].rules,
       content,
       resources,

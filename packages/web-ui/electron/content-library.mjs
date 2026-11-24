@@ -4,7 +4,19 @@ import { bytesToHex } from '@noble/hashes/utils.js'
 import { lstatSync, readFileSync } from 'node:fs'
 import { isDeepStrictEqual, parseArgs } from 'node:util'
 import { randomUUID } from 'node:crypto'
-import { copyFile, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
+import {
+  copyFile,
+  cp,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  realpath,
+  rename,
+  rm,
+  writeFile,
+} from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { basename, dirname, isAbsolute, join } from 'node:path'
 
@@ -393,7 +405,7 @@ export class ContentLibrary {
         if (entry.materialDigest && entry.materialDigest !== digest)
           throw new Error('OFFICIAL_MATERIAL_DIGEST_MISMATCH')
         const project = await this.#directory(entry.id)
-        const catalog = await readJson(join(project, 'official-environments.json'))
+        const catalog = await updates.readEnvironments(project)
         if (environmentDigest(catalog) !== entry.environmentDigest)
           throw new Error('OFFICIAL_ENVIRONMENT_DIGEST_MISMATCH')
         if (equalShipped) {
@@ -404,8 +416,9 @@ export class ContentLibrary {
             continue
           }
         }
-        if (entry.validatedHost !== host) await updates.validate(project, this.#controller.signal)
+        if (entry.validatedHost !== host) await updates.validate(project, this.#controller.signal, catalog)
       } catch (error) {
+        if (error.code === 'OFFICIAL_ENVIRONMENT_PACKAGES_MISSING') continue
         lastError = error
         console.warn('Skipping unusable cached official base', ref.version, error)
         continue
@@ -450,11 +463,8 @@ export class ContentLibrary {
           this.#controller.signal,
         )
         const directory = await this.#directory(plan.project)
-        const catalog = await this.packageUpdates?.shippedCatalog?.()
-        if (catalog) {
-          await writeFile(join(directory, 'official-environments.json'), JSON.stringify(catalog), { flag: 'wx' })
-        }
-        await this.packageUpdates?.validate?.(directory, this.#controller.signal)
+        const catalog = await this.packageUpdates?.stageShippedEnvironments?.(directory, plan.entry.version)
+        await this.packageUpdates?.validate?.(directory, this.#controller.signal, catalog)
         const entry = {
           ...plan.entry,
           bundled: true,
@@ -493,9 +503,11 @@ export class ContentLibrary {
     const entry = this.#state?.installed.find(item => item.bundled)
     return entry && join(this.root, 'projects', storageName(entry.id), 'node_modules', officialPackage)
   }
-  get officialEnvironmentCatalogFile() {
-    const entry = this.#state?.installed.find(item => item.bundled)
-    return entry && join(this.root, 'projects', storageName(entry.id), 'official-environments.json')
+  async officialEnvironmentCatalog() {
+    await this.#load()
+    const entry = this.#state.installed.find(item => item.bundled)
+    if (!entry) throw new Error('未找到官方基础包')
+    return this.packageUpdates.readEnvironments(await this.#directory(entry.id))
   }
   get pendingOfficialUpdateId() {
     return this.#state?.installed.find(item => item.bundled && item.activationPending)?.id
@@ -540,7 +552,7 @@ export class ContentLibrary {
     if (!candidate) return null
     if (old.activationPending) return old.id
     // Existing environments can still acquire read leases during the network download.
-    return this.packageUpdates.withArchive(candidate, signal, (file, catalog) =>
+    return this.packageUpdates.withArchive(candidate, signal, (file, environmentPackages) =>
       this.#exclusive(async () => {
         signal.throwIfAborted()
         if (old.id !== this.#state.installed.find(item => item.bundled)?.id)
@@ -560,9 +572,14 @@ export class ContentLibrary {
           )
             throw new Error('基础包与客户端不兼容')
           const directory = await this.#directory(plan.project)
-          await writeFile(join(directory, 'official-environments.json'), JSON.stringify(catalog), { flag: 'wx' })
+          await cp(environmentPackages, join(directory, basename(environmentPackages)), {
+            recursive: true,
+            force: false,
+            errorOnExist: true,
+          })
+          const catalog = await this.packageUpdates.readEnvironments(directory)
           await this.run(['content', 'npm', 'approve', directory, '--profile', 'local-development'], signal)
-          await this.packageUpdates.validate(directory, signal)
+          await this.packageUpdates.validate(directory, signal, catalog)
           const materialDigest = await this.#digestEntry(entry)
           const officialHistory = await this.#rememberOfficial(this.#state, old, entry.id)
           signal.throwIfAborted()
@@ -618,11 +635,13 @@ export class ContentLibrary {
       const ref = this.#state.officialHistory?.find(item => item.id === pending.previousOfficialId)
       if (!ref) return false
       const previous = await this.#readOfficial(ref)
+      const directory = await this.#directory(previous.id)
+      const catalog = await this.packageUpdates.readEnvironments(directory).catch(error => {
+        if (error.code !== 'ENOENT' && error.code !== 'OFFICIAL_ENVIRONMENT_PACKAGES_MISSING') throw error
+      })
+      if (!catalog || environmentDigest(catalog) !== previous.environmentDigest) return false
       const digest = await this.#digestEntry(previous)
       if (previous.materialDigest && previous.materialDigest !== digest) return false
-      const directory = await this.#directory(previous.id)
-      const catalog = await readJson(join(directory, 'official-environments.json'))
-      if (environmentDigest(catalog) !== previous.environmentDigest) return false
       if (previous.engines?.arcadia) {
         if (!semver.satisfies(this.packageUpdates.clientVersion, previous.engines.arcadia)) return false
       } else if (
@@ -631,7 +650,7 @@ export class ContentLibrary {
       )
         return false
       if (previous.validatedHost !== this.packageUpdates.clientVersion)
-        await this.packageUpdates.validate(directory, this.#controller.signal)
+        await this.packageUpdates.validate(directory, this.#controller.signal, catalog)
       await this.#update(state => ({
         ...state,
         revision: state.revision + 1,

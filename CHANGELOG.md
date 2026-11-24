@@ -1,5 +1,22 @@
 # Changelog
 
+## [4.19.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.18.0...arcadia-eternity-v4.19.0) (2026-11-24)
+
+
+### ✨ Features
+
+* **web-ui:** show environment fingerprints and package previews ([981c33c](https://github.com/arcadia-eternity/arcadia-eternity/commit/981c33c14948a38b3f901b7171c22db9c19e6e38))
+
+
+### 🐛 Bug Fixes
+
+* **desktop:** skip legacy official content caches on startup ([7fd1128](https://github.com/arcadia-eternity/arcadia-eternity/commit/7fd1128382294ca03f1fd8f2974990e58acdfb97))
+
+
+### ♻️ Code Refactoring
+
+* **content:** load official environments from package manifests ([1d0f595](https://github.com/arcadia-eternity/arcadia-eternity/commit/1d0f595d8aca78a09216f44170ef657eb18fab32))
+
 ## [4.18.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.17.1...arcadia-eternity-v4.18.0) (2026-11-24)
 
 

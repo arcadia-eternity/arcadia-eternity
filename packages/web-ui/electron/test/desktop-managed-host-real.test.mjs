@@ -302,7 +302,6 @@ test(
             runtimeRequire.resolve,
           ),
           synchronizeShippedEnvironments,
-          legacyBuiltinId: async () => undefined,
         })
       },
     })

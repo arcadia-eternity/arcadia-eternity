@@ -16,6 +16,8 @@ import EnvironmentLayout from '@/features/content/EnvironmentLayout.vue'
 import EnvironmentPanel from '@/features/content/EnvironmentPanel.vue'
 import EnvironmentDetailHeading from '@/features/content/EnvironmentDetailHeading.vue'
 import EnvironmentPackageRow from '@/features/content/EnvironmentPackageRow.vue'
+import EnvironmentPackagePreview from '@/features/content/EnvironmentPackagePreview.vue'
+import { indexPackagePreviews, packagePreview } from '@/features/content/environmentPackagePreview'
 import EnvironmentDirectory from '@/features/content/EnvironmentDirectory.vue'
 import EnvironmentExportButton from './EnvironmentExportButton.vue'
 import EnvironmentReferenceInput from './EnvironmentReferenceInput.vue'
@@ -182,6 +184,18 @@ const latestVersion = computed(
       .filter(item => item.environmentId === selectedEnvironment.value?.document.id && item.status === 'ready')
       .sort((a, b) => (b.status === 'ready' ? b.createdAt : 0) - (a.status === 'ready' ? a.createdAt : 0))[0],
 )
+const currentVersion = computed(() => {
+  const version = latestVersion.value
+  return version?.status === 'ready' && version.draftRevision === selectedEnvironment.value?.revision
+    ? version
+    : undefined
+})
+const preparedPackages = computed(() => {
+  const version = latestVersion.value
+  if (version?.status !== 'ready' || !version.members) return undefined
+  const previews = indexPackagePreviews(version.contentCatalog)
+  return version.members.map(member => ({ ...member, preview: packagePreview(previews, member) }))
+})
 const draftContent = computed(() => {
   const installed = latestVersion.value
   return resolveDraftContent({
@@ -430,14 +444,13 @@ function save() {
         <ElEmpty v-if="!entries.length && !editing" :image-size="64" description="暂无环境" />
         <p v-if="navigation?.selected && !selectedEnvironment && !editing" role="status">此来源的环境已不可用。</p>
         <template v-if="selectedEnvironment && !editing">
-          <EnvironmentDetailHeading :name="selectedEnvironment.document.name" :readonly="selectedEnvironment.builtin">
+          <EnvironmentDetailHeading
+            :name="selectedEnvironment.document.name"
+            :readonly="selectedEnvironment.builtin"
+            :environment-version="currentVersion?.environmentVersion"
+          >
             <template #status>
-              <ElTag
-                v-if="latestVersion?.status === 'ready' && latestVersion.draftRevision === selectedEnvironment.revision"
-                type="success"
-                size="small"
-                >已就绪</ElTag
-              >
+              <ElTag v-if="currentVersion" type="success" size="small">已就绪</ElTag>
               <ElTag v-else type="warning" size="small">待应用</ElTag>
             </template>
             <ElButton
@@ -474,13 +487,7 @@ function save() {
             <ElButton @click="deletingDraft = ''" native-type="button">取消</ElButton>
           </div>
           <section class="members">
-            <template
-              v-if="
-                latestVersion?.status !== 'ready' ||
-                !latestVersion.members ||
-                latestVersion.draftRevision !== selectedEnvironment.revision
-              "
-            >
+            <template v-if="!currentVersion?.members">
               <h4>依赖</h4>
               <EnvironmentPackageRow
                 v-for="(range, name) in selectedEnvironment.document.packages"
@@ -500,15 +507,13 @@ function save() {
                 description="暂无依赖"
               />
             </template>
-            <template v-if="latestVersion?.status === 'ready' && latestVersion.members">
-              <h4>环境内的内容包</h4>
-              <p v-if="latestVersion.draftRevision !== selectedEnvironment.revision" class="hint">
-                依赖已更改，请重新准备。
-              </p>
-              <ElEmpty v-if="!latestVersion.members.length" :image-size="48" description="暂无内容包" />
+            <template v-if="preparedPackages">
+              <h4>{{ currentVersion ? '环境内的内容包' : '上次应用的内容包' }}</h4>
+              <p v-if="!currentVersion" class="hint">依赖已更改，请重新准备。</p>
+              <ElEmpty v-if="!preparedPackages.length" :image-size="48" description="暂无内容包" />
               <EnvironmentPackageRow
-                v-for="member in latestVersion.members"
-                :key="member.name"
+                v-for="member in preparedPackages"
+                :key="JSON.stringify([latestVersion?.installationId, member.name])"
                 :name="member.name"
                 :version="member.version"
               >
@@ -516,6 +521,7 @@ function save() {
                 <small v-if="member.requiredBy.length">被依赖：{{ member.requiredBy.join('、') }}</small>
                 <small v-if="member.dependencies.length">需要：{{ member.dependencies.join('、') }}</small>
                 <small v-if="requiredPackage(member.name)">环境必需</small>
+                <EnvironmentPackagePreview v-if="member.preview" :preview="member.preview" />
                 <template #actions>
                   <ElButton
                     v-if="!selectedEnvironment.builtin && !requiredPackage(member.name)"

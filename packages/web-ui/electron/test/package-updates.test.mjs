@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { createHash } from 'node:crypto'
 import { catalogMaterialDigest, withShippedEnvironmentProject } from '@arcadia-eternity/pack-loader/node'
+import { stageBundledOfficialEnvironmentPackages } from '@arcadia-eternity/content-sdk/management-workspace'
 import {
   selectPackageUpdate,
   selectServerBase,
@@ -99,14 +100,21 @@ test('server resolves shipped, cached and pinned versions against the same offli
     const directory = join(release, 'package')
     await cp(shipped, directory, { recursive: true })
     await put(directory, version, range)
-    const catalog = '{}'
-    await writeFile(join(release, 'official-environments.json'), catalog)
+    const recipes = join(root, 'recipes-' + version)
+    await mkdir(recipes)
+    for (const suffix of ['default', 'training-120']) {
+      const recipe = JSON.parse(await readFile(resolve('packs/environment-' + suffix, 'package.json'), 'utf8'))
+      await writeFile(join(recipes, 'environment-' + suffix + '.json'), JSON.stringify({ ...recipe, version }))
+    }
+    const catalog = await stageBundledOfficialEnvironmentPackages(version, release, specifier =>
+      join(recipes, specifier.split('/')[1] + '.json'),
+    )
     await writeFile(
       join(release, '.arcadia-release-digest'),
       createHash('sha256')
         .update(await catalogMaterialDigest(directory))
         .update('\0')
-        .update(catalog)
+        .update(JSON.stringify(catalog))
         .digest('hex'),
     )
   }
@@ -132,6 +140,24 @@ test('server resolves shipped, cached and pinned versions against the same offli
   await writeFile(file, (await readFile(file, 'utf8')) + '\n')
   assert.notEqual(await catalogMaterialDigest(same), await catalogMaterialDigest(shipped))
   assert.equal((await selectServerBase(store, shipped, '4.11.0', '2.0.0')).directory, shipped)
+  const recipePath = join(
+    store,
+    '3.0.0',
+    'environment-packages',
+    '@arcadia-eternity',
+    'environment-default',
+    'package.json',
+  )
+  const recipe = JSON.parse(await readFile(recipePath, 'utf8'))
+  await writeFile(
+    recipePath,
+    JSON.stringify({
+      ...recipe,
+      arcadiaEnvironment: { ...recipe.arcadiaEnvironment, name: 'Changed preset' },
+    }),
+  )
+  assert.equal((await selectServerBase(store, shipped, '4.11.0')).directory, shipped)
+  await writeFile(recipePath, JSON.stringify(recipe))
   await writeFile(join(store, '3.0.0', 'package', manifest.arcadia.catalog), 'damaged')
   assert.equal((await selectServerBase(store, shipped, '4.11.0')).directory, shipped)
 })

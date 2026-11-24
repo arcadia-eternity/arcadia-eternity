@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ElTag } from 'element-plus'
-defineProps<{ name: string; readonly?: boolean }>()
+import EnvironmentFingerprint from './EnvironmentFingerprint.vue'
+defineProps<{ name: string; readonly?: boolean; environmentVersion?: string }>()
 </script>
 
 <template>
@@ -11,6 +12,7 @@ defineProps<{ name: string; readonly?: boolean }>()
       <slot name="status" />
     </div>
     <div v-if="$slots.default" class="detail-actions"><slot /></div>
+    <EnvironmentFingerprint v-if="environmentVersion" :key="environmentVersion" :value="environmentVersion" />
   </header>
 </template>
 
