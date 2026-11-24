@@ -39,7 +39,7 @@ beforeAll(async () => {
         content: 'content.json',
         effects: 'effects.js',
         effectArtifact: 'effects.artifact.json',
-        sdkApi: 2,
+        sdkApi: 3,
       },
     }),
   )
@@ -169,7 +169,7 @@ it.each([
   ['wrong identity', { packageId: '@arcadia-test/someone-else' }],
   ['unknown format', { format: 'custom-artifact' }],
   ['future schema', { version: 2 }],
-  ['SDK mismatch', { sdkApi: 3 }],
+  ['SDK mismatch', { sdkApi: 2 }],
   ['nontext source', { source: {} }],
   ['unknown envelope fields', { permissions: ['filesystem'] }],
 ])('rejects %s without compiling a declared fallback source', async (_name, patch) => {

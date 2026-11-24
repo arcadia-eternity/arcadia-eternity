@@ -1,5 +1,7 @@
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  removeMark,
+  transferMarks,
   BaseMark,
   BaseSkill,
   Category,
@@ -215,7 +217,7 @@ it('transfers one pending descriptor while preserving its original target positi
   const holder = f.battle.marks[0]
   const pending = holder.deferredDamage
   const transfer = new SwitchPetContext(new TurnContext(f.battle), f.a, f.a.activePet)
-  f.a.activePet.transferMarks(transfer, holder)
+  transferMarks(transfer, f.a.activePet, holder)
   expect(f.battle.marks).toHaveLength(0)
   expect(f.a.activePet.marks).toContain(holder)
   expect(holder.deferredDamage).toBe(pending)
@@ -230,7 +232,7 @@ it.each(['remove', 'suppress'] as const)('discards a pending strike on %s', mode
   const f = fixture()
   advanceDeferredTurn(f.battle, 'cast')
   const mark = f.battle.marks[0]
-  if (mode === 'remove') f.battle.removeMark(new RemoveMarkContext(new TurnContext(f.battle), mark))
+  if (mode === 'remove') removeMark(new RemoveMarkContext(new TurnContext(f.battle), mark))
   else mark.isSuppressed = true
   for (let i = 0; i < 4; i++) advanceDeferredTurn(f.battle)
   expect(f.damages()).toHaveLength(0)

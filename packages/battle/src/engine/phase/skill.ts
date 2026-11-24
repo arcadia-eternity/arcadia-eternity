@@ -1,3 +1,5 @@
+import { changeRage } from './rage'
+import { addMark } from './AddMarkPhase'
 import { z } from 'zod'
 import { ElementSchema } from '../content/schema/element'
 import { BaseMark, BaseStatLevelMark } from '../mark'
@@ -16,7 +18,7 @@ import type { Battle } from '../battle'
 import type { SkillInstance } from '../skill'
 import type { Pet } from '../pet'
 import { ContextPhase } from './base'
-import { DamagePhase } from './damage'
+import { dealDamage } from './damage'
 import {
   AddMarkContext,
   DamageContext,
@@ -79,7 +81,7 @@ export class SkillPhase extends ContextPhase<UseSkillContext> {
 
     try {
       // Consume rage
-      context.origin.addRage(new RageContext(context, context.origin, 'skill', 'reduce', context.rage))
+      changeRage(new RageContext(context, context.origin, 'skill', 'reduce', context.rage))
 
       // Apply after skill check effects
       battle.applyEffects(context, EffectTrigger.AfterUseSkillCheck)
@@ -120,7 +122,7 @@ export class SkillPhase extends ContextPhase<UseSkillContext> {
             battle.applyEffects(context, EffectTrigger.PreDamage)
 
             const damageContext = makeSkillDamageContext(context, context.skill, context.actualTarget, context)
-            battle.phaseManager.run(new DamagePhase(damageContext))
+            dealDamage(damageContext)
           }
 
           battle.applyEffects(context, EffectTrigger.OnHit) // Trigger hit effects
@@ -131,7 +133,7 @@ export class SkillPhase extends ContextPhase<UseSkillContext> {
 
       // Hit reward rage for non-status moves
       if (context.category !== Category.Status && landedHit) {
-        context.origin.addRage(new RageContext(context, context.origin, 'skillHit', 'add', 15))
+        changeRage(new RageContext(context, context.origin, 'skillHit', 'add', 15))
       }
     } finally {
       battle.phaseManager.run(new MarkCleanupPhase(battle, context.parent as TurnContext))
@@ -294,5 +296,5 @@ export function deferSkillDamage(
   })
   // A cancelled mark application also consumes the cast. It cannot fall back to immediate damage.
   cast.damageDeferred = true
-  cast.battle.addMark(application)
+  addMark(application)
 }

@@ -1,11 +1,21 @@
 # Effect SDK：使用现有战斗 API 编写 TypeScript 效果
 
-从 `@arcadia-eternity/content-sdk` 导入装饰器和效果类型，在 `src/effects/*.effect.ts` 中声明效果。效果接口版本通过 `arcadia.sdkApi: 2` 声明。npm 效果由 [Arena / Comlink 宿主](effect-sandbox.md) 执行，沙箱开放明确允许的效果能力。
+从 `@arcadia-eternity/content-sdk` 导入装饰器和效果类型，在 `src/effects/*.effect.ts` 中声明效果。效果接口版本通过 `arcadia.sdkApi: 3` 声明。npm 效果由 [Arena / Comlink 宿主](effect-sandbox.md) 执行，沙箱开放明确允许的效果能力。
+
+从 API 2 迁移时，把实体上的写方法改为下表中的阶段函数。目标仍由上下文指定，例如将 `owner.heal(event)` 改为 `heal(event)`。将内容包的 `arcadia.sdkApi` 更新为 `3`，用新版 SDK 重新构建效果产物。
 
 ## 从一个效果开始
 
 ```ts
-import { effect, on, EffectTrigger, Pet, HealContext, type NativeEffectContext } from '@arcadia-eternity/content-sdk'
+import {
+  effect,
+  on,
+  EffectTrigger,
+  Pet,
+  heal,
+  HealContext,
+  type NativeEffectContext,
+} from '@arcadia-eternity/content-sdk'
 
 @effect({ id: 'heal-on-hit', sourceKind: 'skill' })
 export class HealOnHit {
@@ -13,12 +23,12 @@ export class HealOnHit {
   static apply(context: NativeEffectContext<EffectTrigger.OnHit>) {
     if (context.source !== context.parent.skill) return
     const owner = context.source.owner
-    if (owner instanceof Pet) owner.heal(new HealContext(context, context.source, owner, 20))
+    if (owner instanceof Pet) heal(new HealContext(context, context.source, owner, 20))
   }
 }
 ```
 
-`@on` 的静态方法收到原生战斗上下文，领域方法走原有战斗阶段。需要参数、绑定或组合工具时，可在装饰类中实现 `static create(context)`，返回 `defineCodeEffect` 定义；其 `build({ effectId, sourceMark })` 仍支持原有能力。参见 [装饰器装载设计](effect-loading-redesign.md) 和 [slow 示例](../../examples/ugc/slow/src/effects/slow.effect.ts)。
+`@on` 的静态方法收到原生战斗上下文，调用阶段函数提交对应的上下文。需要参数、绑定或组合工具时，可在装饰类中实现 `static create(context)`，返回 `defineCodeEffect` 定义；其 `build({ effectId, sourceMark })` 仍支持原有能力。参见 [装饰器装载设计](effect-loading-redesign.md) 和 [slow 示例](../../examples/ugc/slow/src/effects/slow.effect.ts)。
 
 在技能或印记的 `behaviors` 中通过独立 `useId` 引用效果 ID。SDK 从 `effectSources` 指定的目录发现装饰类，构建 `effectArtifact`；加载器在准入后读取产物，检查实际效果是否适用于引用它的对象。未被内容引用的效果不会注册。完整格式见 [npm 内容包](npm-content.md)。
 
@@ -26,19 +36,19 @@ export class HealOnHit {
 
 ## 现有 API 索引
 
-| 用途               | 公开 API 与常用操作                                                                                                                                        |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 触发与上下文       | `EffectTrigger`、`nativeEffectTriggers`、`EffectContext`、`UseSkillContext`、`TurnContext`；`NativeEffectContext<T>` 根据触发类型推导 `parent`             |
-| 领域对象           | `Battle`、`Player`、`Pet`、`BaseSkill`、`SkillInstance`、`BaseMark`、`MarkInstanceImpl`，以及原有实例类型与枚举                                            |
-| 伤害和治疗         | `DamageContext`、`HealContext`；`pet.damage(context)`、`pet.heal(context)`；伤害事件的 `addModified(percent, delta)`                                       |
-| 怒气               | `RageContext`；`pet.addRage(context)`；由 `RageContext.modifiedType` 的 `add` / `reduce` 选择获得或损失事件                                                |
-| 印记               | `AddMarkContext`、`RemoveMarkContext`、`StackContext`、`ConsumeStackContext`；`pet.addMark`、`battle.removeMark`、`mark.consumeStack`、`pet.transferMarks` |
-| 属性贡献           | `Modifier`、`DurationType`、`attributeSystem.addModifier`；`Signal`、`ReactiveValue`、`projectValue`、`combineValues`                                      |
-| 参数               | `numberParam`、`booleanParam`、`stringParam`；`parameterAddress`、`ParameterCatalog`、`defineParameter`、`ConfigSystem`、`ConfigModifier`                  |
-| 实体状态           | `defineEffectState`、`getEffectState`、`setEffectState`；技能、印记、精灵、玩家或 Battle 的独立状态                                                        |
-| 即时选择与操作工具 | 原有 `targets`、`contexts`、`conditions`、`values`、`ops`、`actions`，按需使用                                                                             |
-| 持续取值工具       | 原有 capture/follow、`bindings`；底层值计划集中在 `sdk.valuePlans`，避免与即时 `sdk.values` 混淆                                                           |
-| 执行预算           | `executionBudgetPolicy`、`ExecutionBudgetExceeded`；本局的 `battle.executionBudget`                                                                        |
+| 用途               | 公开 API 与常用操作                                                                                                                            |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| 触发与上下文       | `EffectTrigger`、`nativeEffectTriggers`、`EffectContext`、`UseSkillContext`、`TurnContext`；`NativeEffectContext<T>` 根据触发类型推导 `parent` |
+| 领域对象           | `Battle`、`Player`、`Pet`、`BaseSkill`、`SkillInstance`、`BaseMark`、`MarkInstanceImpl`，以及原有实例类型与枚举                                |
+| 伤害和治疗         | `DamageContext`、`HealContext`；`dealDamage(context)`、`heal(context)`；伤害事件的 `addModified(percent, delta)`                               |
+| 怒气               | `RageContext`；`changeRage(context)`；由 `RageContext.modifiedType` 的 `add` / `reduce` 选择获得或损失事件                                     |
+| 印记               | `addMark(context)`、`removeMark(context)`、`consumeMarkStacks(context, mark, amount)`、`transferMarks(context, target, ...marks)`              |
+| 属性贡献           | `Modifier`、`DurationType`、`attributeSystem.addModifier`；`Signal`、`ReactiveValue`、`projectValue`、`combineValues`                          |
+| 参数               | `numberParam`、`booleanParam`、`stringParam`；`parameterAddress`、`ParameterCatalog`、`defineParameter`、`ConfigSystem`、`ConfigModifier`      |
+| 实体状态           | `defineEffectState`、`getEffectState`、`setEffectState`；技能、印记、精灵、玩家或 Battle 的独立状态                                            |
+| 即时选择与操作工具 | 原有 `targets`、`contexts`、`conditions`、`values`、`ops`、`actions`，按需使用                                                                 |
+| 持续取值工具       | 原有 capture/follow、`bindings`；底层值计划集中在 `sdk.valuePlans`，避免与即时 `sdk.values` 混淆                                               |
+| 执行预算           | `executionBudgetPolicy`、`ExecutionBudgetExceeded`；本局的 `battle.executionBudget`                                                            |
 
 注入的 `EffectSdk` 仅声明可调用的顶层函数和构造器。领域类可用于 `instanceof`，但不能在沙箱中自行构造；例如 `new sdk.Signal(...)` 不受支持。`@arcadia-eternity/battle/authoring` 的完整导出供可信宿主使用，上表中的低层属性贡献与响应式基础设施不属于沙箱构造能力。
 

@@ -2,7 +2,6 @@ import { initializePetRelations } from './values/relations'
 import {
   Category,
   CleanStageStrategy,
-  EffectTrigger,
   Element,
   type Events,
   Gender,
@@ -20,23 +19,11 @@ import {
   StatTypeOnlyBattle,
   StatTypeWithoutHp,
 } from '@arcadia-eternity/const'
-import {
-  AddMarkContext,
-  DamageContext,
-  EffectContext,
-  HealContext,
-  RageContext,
-  RemoveMarkContext,
-  SwitchPetContext,
-} from './context'
 import type { Instance, OwnedEntity, Prototype } from './entity'
 import { BaseMark, type MarkInstance, StatLevelMarkInstanceImpl } from './mark'
 import { Player } from './player'
 import { BaseSkill, SkillInstance } from './skill'
 import { PetAttributeSystem } from './attributeSystem'
-import { DamagePhase } from './phase/damage'
-import { HealPhase } from './phase/heal'
-import { MarkTransferPhase } from './phase/MarkTransferPhase'
 import type { Emitter } from 'mitt'
 
 export interface Species extends Prototype {
@@ -148,28 +135,6 @@ export class Pet implements OwnedEntity, Instance {
 
   public isActive() {
     return this.owner?.activePet === this
-  }
-
-  public addRage(context: RageContext) {
-    this.owner?.addRage(context)
-  }
-
-  public damage(context: DamageContext): boolean {
-    context.battle.phaseManager.run(new DamagePhase(context))
-    return this.isAlive
-  }
-
-  public heal(context: HealContext): boolean {
-    context.battle.phaseManager.run(new HealPhase(context))
-    return this.isAlive
-  }
-
-  public addMark(context: AddMarkContext) {
-    return context.battle.addMark(context)
-  }
-
-  public removeMark(context: RemoveMarkContext) {
-    context.battle.removeMark(context)
   }
 
   private calculateStat(type: StatTypeOnBattle): number {
@@ -433,11 +398,6 @@ export class Pet implements OwnedEntity, Instance {
           yield mark
       }
     }
-  }
-
-  public transferMarks(context: SwitchPetContext | EffectContext<EffectTrigger>, ...marks: MarkInstance[]) {
-    // Use MarkTransferPhase
-    context.battle.phaseManager.run(new MarkTransferPhase(context.battle, context, this, marks))
   }
 
   /**

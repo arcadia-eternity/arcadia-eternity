@@ -18,7 +18,15 @@
 把下面的类放入 `src/effects/heal-on-hit.effect.ts`。在需使用它的技能上新增一个独立的 `useId`，让 `definitionId.$ref` 指向本项目的 `behavior/heal-on-hit`，写法见[技能定义](./skill-behaviors.md)。
 
 ```ts
-import { effect, on, EffectTrigger, Pet, HealContext, type NativeEffectContext } from '@arcadia-eternity/content-sdk'
+import {
+  effect,
+  on,
+  EffectTrigger,
+  Pet,
+  heal,
+  HealContext,
+  type NativeEffectContext,
+} from '@arcadia-eternity/content-sdk'
 
 @effect({ id: 'heal-on-hit', sourceKind: 'skill' })
 export class HealOnHit {
@@ -26,7 +34,7 @@ export class HealOnHit {
   static apply(context: NativeEffectContext<EffectTrigger.OnHit>) {
     if (context.source !== context.parent.skill) return
     const owner = context.source.owner
-    if (owner instanceof Pet) owner.heal(new HealContext(context, context.source, owner, 20))
+    if (owner instanceof Pet) heal(new HealContext(context, context.source, owner, 20))
   }
 }
 ```

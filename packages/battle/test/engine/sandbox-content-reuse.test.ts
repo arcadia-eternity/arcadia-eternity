@@ -65,14 +65,14 @@ function environment(): SandboxEnvironment {
       artifact: {
         format: 'arcadia.effect-module',
         version: 1,
-        sdkApi: 2,
+        sdkApi: 3,
         packageId: `p${index}`,
         // Each module deliberately declares the same lexical names and exports.
         source: `const amount=${amount};
           export function createCatalog(){
             const effect=sdk.defineNativeEffect({id:'p${index}/heal',triggers:[sdk.EffectTrigger.TurnEnd],
               apply(ctx){const pet=ctx.source.owner;
-                pet.heal(new sdk.HealContext(ctx,ctx.source,pet,amount));
+                sdk.heal(new sdk.HealContext(ctx,ctx.source,pet,amount));
               }});
             return {effects:new Map([[effect.id,effect]]),parameters:new Map()};
           }`,
@@ -230,7 +230,7 @@ it('keeps authored counters on each battle entity while reusing the same effect 
           const n=sdk.getEffectState(ctx,ctx.source,hits)+1;
           sdk.setEffectState(ctx,ctx.source,hits,n);
           const pet=ctx.source.owner;
-          pet.heal(new sdk.HealContext(ctx,ctx.source,pet,n));
+          sdk.heal(new sdk.HealContext(ctx,ctx.source,pet,n));
         }});
       return {effects:new Map([[effect.id,effect]]),parameters:new Map()};
     }`,
@@ -275,7 +275,7 @@ it('resets the per-session call budget while retaining a fault permanently', asy
     {
       format: 'arcadia.effect-module',
       version: 1,
-      sdkApi: 2,
+      sdkApi: 3,
       packageId: 'budget',
       source: 'export function createEffects(){return []}',
     },

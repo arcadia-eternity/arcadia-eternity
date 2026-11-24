@@ -1,4 +1,5 @@
 import {
+  removeMark,
   BaseMark,
   RemoveMarkContext,
   HealPhase,
@@ -73,7 +74,7 @@ it('releases a temporary effect when its mark leaves the battle during the phase
     new Effect<EffectTrigger>(
       'fixture/remove-temporary-target' as effectId,
       [EffectTrigger.OnBeforeHeal],
-      ctx => f.battle.removeMark(new RemoveMarkContext(ctx, mark)),
+      ctx => removeMark(new RemoveMarkContext(ctx, mark)),
       0,
     ),
   )

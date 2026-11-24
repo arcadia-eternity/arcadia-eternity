@@ -9,7 +9,7 @@ const project: SourceProject = { id: 'source-project', name: '测试内容包', 
 const snapshot: AuthorSnapshot = {
   root: project.directory,
   name: project.name,
-  project: { projectId: 'test-pack', namespace: 'test-pack', sdkApi: 2 },
+  project: { projectId: 'test-pack', namespace: 'test-pack', sdkApi: 3 },
   records: [],
   files: [],
   assets: [],

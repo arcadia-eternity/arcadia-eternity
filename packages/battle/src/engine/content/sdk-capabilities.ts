@@ -1,5 +1,16 @@
+export const phaseOperations = [
+  'dealDamage',
+  'heal',
+  'changeRage',
+  'addMark',
+  'removeMark',
+  'transferMarks',
+  'consumeMarkStacks',
+] as const
+
 /** Callable top-level capabilities shared by the injected SDK types and Arena. */
 export const effectSdkFunctions = [
+  ...phaseOperations,
   'compileEffect',
   'defineEffect',
   'defineEffects',

@@ -11,7 +11,15 @@ import { SynchronousPhase } from './base'
 import { MarkStackPhase } from './MarkStackPhase'
 import { isOwnerContribution } from '../content/owner-contributions'
 
-export class MarkTransferPhase extends SynchronousPhase<SwitchPetContext | EffectContext<EffectTrigger>> {
+export function transferMarks(
+  context: SwitchPetContext | EffectContext<EffectTrigger>,
+  target: Pet | Battle,
+  ...marks: MarkInstance[]
+): void {
+  context.battle.phaseManager.run(new MarkTransferPhase(context.battle, context, target, marks))
+}
+
+class MarkTransferPhase extends SynchronousPhase<SwitchPetContext | EffectContext<EffectTrigger>> {
   constructor(
     battle: Battle,
     transferContext: SwitchPetContext | EffectContext<EffectTrigger>,

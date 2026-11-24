@@ -69,7 +69,7 @@ function input(source = 'export function createEffects(){return []}'): SandboxBa
         {
           namespace: 'test',
           role: 'behaviors',
-          artifact: { format: 'arcadia.effect-module', version: 1, sdkApi: 2, packageId: 'test', source },
+          artifact: { format: 'arcadia.effect-module', version: 1, sdkApi: 3, packageId: 'test', source },
         },
       ],
     },

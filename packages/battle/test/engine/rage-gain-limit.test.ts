@@ -1,6 +1,7 @@
 import { RageGainLimitEffects } from '../../../../packs/base/src/effects/rage-gain-limit.effect'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  changeRage,
   BaseMark,
   RageContext,
   EffectContext,
@@ -45,7 +46,7 @@ for (const reason of ['turn', 'damage', 'skill', 'skillHit', 'switch', 'effect']
     it(`caps ${reason} gain ${amount} at the current stack`, () => {
       const f = fixture()
       const event = new RageContext(f.turn, f.a, reason, 'add', amount)
-      f.a.addRage(event)
+      changeRage(event)
       expect(event.rageChangeResult).toBe(Math.min(3, amount))
       expect(f.a.currentRage).toBe(10 + Math.min(3, amount))
     })
@@ -63,7 +64,7 @@ for (const priority of [-10, 10])
       }),
     )
     const event = new RageContext(f.turn, f.a, 'effect', 'add', 2)
-    f.a.addRage(event)
+    changeRage(event)
     expect(event.modified).toEqual([100, 10])
     expect(event.rageChangeResult).toBe(3)
     expect(f.a.currentRage).toBe(13)
@@ -81,30 +82,30 @@ it('reads late stack changes once and re-queries on the next gain', () => {
     }),
   )
   const first = new RageContext(f.turn, f.a, 'effect', 'add', 20)
-  f.a.addRage(first)
+  changeRage(first)
   expect(first.rageChangeResult).toBe(7)
   f.b.activePet.skills[0].effects.splice(0)
   f.mark.stack = 2
-  f.a.addRage(new RageContext(f.turn, f.a, 'effect', 'add', 20))
+  changeRage(new RageContext(f.turn, f.a, 'effect', 'add', 20))
   expect(first.rageChangeResult).toBe(7)
   expect(f.a.currentRage).toBe(19)
 })
 for (const type of ['reduce', 'setting'] as const)
   it(`does not cap ${type} operations`, () => {
     const f = fixture()
-    f.a.addRage(new RageContext(f.turn, f.a, 'effect', type, 8))
+    changeRage(new RageContext(f.turn, f.a, 'effect', type, 8))
     expect(f.a.currentRage).toBe(type === 'reduce' ? 2 : 8)
   })
 it('does not cap another player', () => {
   const f = fixture()
-  f.b.addRage(new RageContext(f.turn, f.b, 'effect', 'add', 20))
+  changeRage(new RageContext(f.turn, f.b, 'effect', 'add', 20))
   expect(f.b.currentRage).toBe(30)
 })
 it('composes limits by minimum and floors the final amount', () => {
   const f = fixture(5)
   const event = new RageContext(f.turn, f.a, 'effect', 'add', 20, false, [50, 1])
   event.limitGain(2.5)
-  f.a.addRage(event)
+  changeRage(event)
   expect(event.rageChangeResult).toBe(2)
   expect(f.a.currentRage).toBe(12)
 })
@@ -112,12 +113,12 @@ it('zero gain limit, cancellation and invalid limits', () => {
   const f = fixture()
   const event = new RageContext(f.turn, f.a, 'effect', 'add', 20)
   event.limitGain(0)
-  f.a.addRage(event)
+  changeRage(event)
   expect(f.a.currentRage).toBe(10)
   for (const invalid of [-1, NaN, Infinity]) expect(() => event.limitGain(invalid)).toThrow()
   const cancelled = new RageContext(f.turn, f.a, 'effect', 'add', 20)
   cancelled.available = false
-  f.a.addRage(cancelled)
+  changeRage(cancelled)
   expect(cancelled.rageChangeResult).toBe(0)
   expect(f.a.currentRage).toBe(10)
 })

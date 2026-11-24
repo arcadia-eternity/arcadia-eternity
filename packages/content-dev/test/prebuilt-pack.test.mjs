@@ -35,7 +35,7 @@ async function fixture(t, { files = ['dist/content.json'] } = {}) {
       namespace: 'prebuilt-pack',
       content: 'dist/content.json',
       effects: 'dist/effects.js',
-      sdkApi: 2,
+      sdkApi: 3,
     },
   }
   const original = JSON.stringify(manifest, null, 2) + '\n'

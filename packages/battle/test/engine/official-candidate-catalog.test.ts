@@ -1,4 +1,5 @@
 import {
+  removeMark,
   BaseMark,
   ConfigSystem,
   createContentCatalog,
@@ -30,7 +31,7 @@ it('uses the caller-provided amplification prototype when the supplied shield is
     a.activePet.marks.push(source)
     source.effects.push(candidates.effects.get('effect_mark_onDestroy_add_mark_shanghaizengjia')!)
     const parent = new EffectContext(new TurnContext(battle), EffectTrigger.TurnStart, a.activePet.skills[0])
-    battle.removeMark(new RemoveMarkContext(parent, source))
+    removeMark(new RemoveMarkContext(parent, source))
     const amplification = a.activePet.marks.find(mark => mark.baseId === 'mark_shanghaizengjia')
     expect(amplification?.base).toBe(dependencies.get('mark_shanghaizengjia'))
     expect(amplification?.stack).toBe(100)

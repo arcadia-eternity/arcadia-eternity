@@ -1,5 +1,6 @@
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  dealDamage,
   BaseMark,
   EffectTrigger,
   TurnContext,
@@ -80,7 +81,7 @@ for (const kind of ['pet', 'skill', 'mark'] as const)
             trace.push(message.type)
           }
         })
-        b.activePet.damage(context)
+        dealDamage(context)
         if (damageType === DamageType.Effect) {
           expect(trace).toEqual([BattleMessageType.Damage, EffectTrigger.OnDamage])
           expect(b.activePet.currentHp).toBe(hp - 20)

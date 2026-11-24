@@ -165,7 +165,7 @@ function small(source = 'export function createEffects(){return []}'): SandboxBa
         {
           namespace: 'test',
           role: 'behaviors',
-          artifact: { format: 'arcadia.effect-module', version: 1, sdkApi: 2, packageId: 'test', source },
+          artifact: { format: 'arcadia.effect-module', version: 1, sdkApi: 3, packageId: 'test', source },
         },
       ],
     },
@@ -230,7 +230,7 @@ it('restores a UGC initial checkpoint in a new Worker without a package-specific
 })
 it.each([
   { trigger: 'OnHit', code: 'ctx.source.owner.currentHp=0', expected: /Use SDK operations/ },
-  { trigger: 'OnBeforeCalculateDamage', code: 'ctx.parent.target.heal()', expected: /heal during damage evaluation/ },
+  { trigger: 'OnBeforeCalculateDamage', code: 'sdk.heal(ctx.parent)', expected: /heal during damage evaluation/ },
 ])(
   'stops a battle after a caught SDK permission fault at $trigger',
   async ({ trigger, code, expected }) => {
@@ -306,7 +306,7 @@ it('projects damage results and preserves native healing after production minifi
         const result=ctx.parent.result;
         if (result.status!=='committed' || result.hpBefore-result.hpAfter!==result.hpLoss ||
             result.origin.skillId!=='strike' || result.intent.targetId!==result.targetId) throw Error('invalid damage receipt');
-        pet.heal(new sdk.HealContext(ctx,ctx.source,pet,ctx.battle.randomInt(1,1)));
+        sdk.heal(new sdk.HealContext(ctx,ctx.source,pet,ctx.battle.randomInt(1,1)));
       }})]
     }`)
     Object.assign(spec.environment.data, {

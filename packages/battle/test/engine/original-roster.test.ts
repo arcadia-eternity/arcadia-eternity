@@ -1,5 +1,6 @@
 import { BattleMessageType, DamageType, EffectTrigger, individualValueSpread } from '@arcadia-eternity/const'
 import {
+  dealDamage,
   SwitchPetPhase,
   DamageContext,
   SwitchPetContext,
@@ -404,7 +405,7 @@ it('威朗普受到暴击后为自身获得会心', () => {
   const attacker = opponent.activePet
   const skill = attacker.skills[0]!
   const cast = new UseSkillContext(new TurnContext(battle), opponent, attacker, skill.target, skill)
-  owner.activePet.damage(new DamageContext(cast, skill, owner.activePet, 20, DamageType.Physical, true))
+  dealDamage(new DamageContext(cast, skill, owner.activePet, 20, DamageType.Physical, true))
   expect(owner.activePet.marks.some(mark => mark.baseId === 'mark_huixin')).toBe(true)
   expect(attacker.marks.some(mark => mark.baseId === 'mark_haipa')).toBe(false)
 })
@@ -424,7 +425,7 @@ it('米奇林在累计损失第 200 点体力时崩坏，并停止积累弹力',
   const target = owner.activePet
   const skill = attacker.skills[0]!
   const cast = new UseSkillContext(new TurnContext(battle), opponent, attacker, skill.target, skill)
-  const strike = (damage: number) => target.damage(new DamageContext(cast, skill, target, damage, DamageType.Physical))
+  const strike = (damage: number) => dealDamage(new DamageContext(cast, skill, target, damage, DamageType.Physical))
   const mark = (id: string) => target.marks.find(entry => entry.baseId === id && entry.isActive)
   strike(199)
   expect(mark('mark_tanli')?.stack).toBe(199)

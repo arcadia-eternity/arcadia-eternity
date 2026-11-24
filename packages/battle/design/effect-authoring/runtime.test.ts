@@ -1,6 +1,9 @@
 import { applyEffect } from '../../src/engine/phase/effectExecution'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  addMark,
+  consumeMarkStacks,
+  dealDamage,
   AddMarkContext,
   BaseMark,
   DamageContext,
@@ -71,7 +74,7 @@ function fixture() {
       stackable: true,
       keepOnSwitchOut: true,
     })
-    f.battle.addMark(new AddMarkContext(ctx, owner, base, stack))
+    addMark(new AddMarkContext(ctx, owner, base, stack))
     const mark = owner.marks.find(mark => mark.baseId === id)
     if (!mark) throw new Error(`Mark creation failed: ${id}`)
     return mark
@@ -196,7 +199,7 @@ it('rebirth assigns current HP from execution-time max HP without heal hooks', (
     }),
   ])
   f.owner.currentHp = 50
-  f.owner.damage(new DamageContext(f.use, f.b.activePet, f.owner, 100))
+  dealDamage(new DamageContext(f.use, f.b.activePet, f.owner, 100))
   expect(f.owner.currentHp).toBe(100)
   expect(healing).toBe(0)
 })
@@ -228,7 +231,7 @@ it('runs the weakness example on creation, follows stack, changes spe only, and 
   expect(f.owner.stat.spd).toBe(spd)
   mark.stack = 3
   expect(f.owner.stat.spe).toBe(225)
-  source.consumeStack(f.ctx, 1)
+  consumeMarkStacks(f.ctx, source, 1)
   expect(f.owner.stat.spe).toBe(300)
   mark.stack = 4
   expect(f.owner.stat.spe).toBe(300)
@@ -272,7 +275,7 @@ it.each(['capture', 'follow'] as const)('%s handles real removal and subsequent 
   f.owner.attributeSystem.updateBaseValue('spe', 300)
   const mark = f.add('mark_ruodianjihao', [], 2)
   f.add('speed-source', [penalty(mode === 'capture' ? capturedInstancePenalty : followingInstancePenalty)])
-  mark.consumeStack(f.ctx, 2)
+  consumeMarkStacks(f.ctx, mark, 2)
   expect(f.owner.stat.spe).toBe(300)
   f.add('mark_ruodianjihao', [], 3)
   expect(f.owner.stat.spe).toBe(mode === 'capture' ? 300 : 225)
@@ -1094,11 +1097,12 @@ it('missing marks skip option reads; missing options use base defaults while exp
   const missingMark = absent.select(mark => mark.base).first()
   const missingNumber = absent.select(mark => mark.stack).first()
   const inputs: number[][] = []
-  const add = f.owner.addMark.bind(f.owner)
-  f.owner.addMark = context => {
-    inputs.push([context.stack, context.duration])
-    return add(context)
-  }
+  f.add('test/observe-mark-defaults', [
+    hook('test/observe-mark-application', EffectTrigger.OnBeforeAddMark, ({ parent }) => {
+      if (parent instanceof AddMarkContext && parent.target === f.owner && parent.baseMark === base)
+        inputs.push([parent.stack, parent.duration])
+    }),
+  ])
   const effect = compileEffect(
     defineEffect({
       id: 'test/mark-defaults',
@@ -1520,7 +1524,7 @@ it('persistent self-player and opponent-mark queries use source identity without
     ),
   ])
   const base = new BaseMark('test/opponent-support' as baseMarkId, [], f.debuff.config)
-  f.battle.addMark(new AddMarkContext(f.ctx, f.b.activePet, base))
+  addMark(new AddMarkContext(f.ctx, f.b.activePet, base))
   expect(f.owner.stat.spe).toBe(before - 1)
 })
 

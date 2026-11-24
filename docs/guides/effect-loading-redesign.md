@@ -34,7 +34,7 @@ export class Example {
   "arcadia": {
     "effectSources": "src/effects",
     "effectArtifact": "dist/arcadia-effects.json",
-    "sdkApi": 2
+    "sdkApi": 3
   }
 }
 ```

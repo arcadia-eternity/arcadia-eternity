@@ -94,10 +94,10 @@ export const domainFields = [
   'defeated',
 ] as const
 export const projectedMethods = {
-  Pet: ['addMark', 'removeMark', 'damage', 'heal', 'addRage', 'transferMarks'],
-  Player: ['addRage'],
-  Battle: ['random', 'randomInt', 'shuffle', 'removeMark'],
-  MarkInstanceImpl: ['consumeStack'],
+  Pet: [],
+  Player: [],
+  Battle: ['random', 'randomInt', 'shuffle'],
+  MarkInstanceImpl: [],
   ConfigSystem: ['get'],
   Context: ['addModified'],
   BaseMark: [],

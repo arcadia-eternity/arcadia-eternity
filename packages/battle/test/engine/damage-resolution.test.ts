@@ -1,5 +1,6 @@
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  dealDamage,
   AttackTargetOpinion,
   BaseMark,
   BattleMessageType,
@@ -36,7 +37,7 @@ function fixture() {
   const use = new UseSkillContext(new TurnContext(battle), a, caster, AttackTargetOpinion.opponent, skill)
   function hit(amount: number, type = DamageType.Physical) {
     const event = new DamageContext(use, skill, target, amount, type)
-    target.damage(event)
+    dealDamage(event)
     expect(event.result).toBeDefined()
     return event
   }
@@ -267,7 +268,7 @@ it('cannot edit or recommit the event after applying its HP loss', () => {
   expect(Object.isFrozen(event)).toBe(true)
   expect(() => event.addModified(100, 0)).toThrow()
   expect(Reflect.set(committed, 'hpLoss', 99)).toBe(false)
-  expect(() => target.damage(event)).toThrow()
+  expect(() => dealDamage(event)).toThrow()
   expect(event.result).toBe(committed)
   expect(event.damageResult).toBe(7)
   expect(event.source.id).toBe(skill.id)

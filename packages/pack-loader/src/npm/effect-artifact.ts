@@ -106,7 +106,13 @@ export async function compileEffectModule(
       throw Error('Effect module must have a bounded, closed dependency graph')
     if (parse(output[0].code)[0].some(entry => entry.d !== -2))
       throw Error('Runtime imports are not supported in effect artifacts')
-    return Object.freeze({ format: 'arcadia.effect-module', version: 1, sdkApi: 2, packageId, source: output[0].code })
+    return Object.freeze({
+      format: 'arcadia.effect-module',
+      version: 1,
+      sdkApi: sdk.effectSdkApiVersion,
+      packageId,
+      source: output[0].code,
+    })
   } finally {
     await build.close()
   }

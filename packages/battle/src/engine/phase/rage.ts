@@ -2,7 +2,11 @@ import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
 import { ContextPhase } from './base'
 import { RageContext } from '../context'
 
-export class RagePhase extends ContextPhase<RageContext> {
+export function changeRage(context: RageContext): void {
+  context.battle.phaseManager.run(new RagePhase(context))
+}
+
+class RagePhase extends ContextPhase<RageContext> {
   protected executeOperation(): void {
     const context = this.event
     const battle = this.battle

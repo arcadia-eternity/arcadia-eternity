@@ -1,4 +1,5 @@
 import {
+  addMark,
   effect,
   on,
   defineCodeEffect,
@@ -19,7 +20,7 @@ export class ApplySlow {
     const slow = content.marks.get(content.id('slow'))
     if (!slow) throw new Error('Missing slow mark')
     const target = context.parent.actualTarget
-    if (target) target.addMark(new AddMarkContext(context, target, slow))
+    if (target) addMark(new AddMarkContext(context, target, slow))
   }
 }
 

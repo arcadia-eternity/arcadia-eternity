@@ -65,7 +65,7 @@ test('packages opened from node_modules always use the read-only published view'
         namespace: 'installed-pack',
         content: 'dist/content.json',
         presentation: 'dist/presentation.json',
-        sdkApi: 2,
+        sdkApi: 3,
       },
     }),
   )
@@ -97,7 +97,7 @@ async function fixture(t, options = { watch: false }) {
   await mkdir(join(root, 'data/skills'), { recursive: true })
   await writeFile(
     join(root, 'package.json'),
-    JSON.stringify({ name: 'example', arcadia: { projectId: 'example', namespace: 'example', sdkApi: 2 } }),
+    JSON.stringify({ name: 'example', arcadia: { projectId: 'example', namespace: 'example', sdkApi: 3 } }),
   )
   await writeFile(join(root, 'data/skills/hit.yaml'), '# 作者注释\nid: hit\npower: 40 # 基础威力\nextra: keep\n')
   const workspace = await AuthorWorkspace.open(root, options)

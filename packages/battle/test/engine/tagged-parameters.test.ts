@@ -1,5 +1,6 @@
 import { TaggedParametersEffects } from '../../../../packs/base/src/effects/tagged-parameters.effect'
 import {
+  removeMark,
   BaseMark,
   BattleMessageType,
   ConfigModifierType,
@@ -83,7 +84,7 @@ it('restores tagged modifiers with a fresh catalog and keeps source cleanup work
     pet = restored.playerA.activePet
   expect(freshParams.read(restored.configSystem, 'saved.chance', pet.skills[0])).toBe(45)
   const mark = pet.marks.find(mark => mark.baseId === 'fixture/saved-tag-source')!
-  restored.removeMark(
+  removeMark(
     new RemoveMarkContext(new EffectContext(new TurnContext(restored), EffectTrigger.TurnEnd, pet.skills[0]), mark),
   )
   expect(freshParams.read(restored.configSystem, 'saved.chance', pet.skills[0])).toBe(40)

@@ -1,5 +1,8 @@
 import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import {
+  addMark,
+  removeMark,
+  transferMarks,
   AddMarkContext,
   BaseMark,
   Effect,
@@ -107,13 +110,13 @@ it('releases a destroyed mark scope and does not transfer its state to a replace
   const f = fixture(),
     ctx = context(f.battle),
     pet = f.a.activePet
-  pet.addMark(new AddMarkContext(ctx, pet, f.debuff))
+  addMark(new AddMarkContext(ctx, pet, f.debuff))
   const mark = pet.marks.find(mark => mark.base === f.debuff)!
   setEffectState(ctx, mark, hits, 3)
-  f.battle.removeMark(new RemoveMarkContext(ctx, mark))
+  removeMark(new RemoveMarkContext(ctx, mark))
   expect(() => getEffectState(ctx, mark, hits)).toThrow(/belong/)
   expect(f.battle.configSystem.exportSnapshotState().scopedBase.has(mark)).toBe(false)
-  pet.addMark(new AddMarkContext(ctx, pet, f.debuff))
+  addMark(new AddMarkContext(ctx, pet, f.debuff))
   const replacement = pet.marks.find(mark => mark.base === f.debuff)!
   expect(replacement).not.toBe(mark)
   expect(getEffectState(ctx, replacement, hits)).toBe(0)
@@ -138,7 +141,7 @@ it('makes state available during creation and releases it when creation fails', 
     ],
     f.debuff.config,
   )
-  pet.addMark(new AddMarkContext(ctx, pet, base))
+  addMark(new AddMarkContext(ctx, pet, base))
   expect(
     getEffectState(
       ctx,
@@ -168,7 +171,7 @@ it('makes state available during creation and releases it when creation fails', 
     return apply(parent, trigger, ...sources)
   })
   try {
-    expect(() => f.battle.addMark(new AddMarkContext(ctx, pet, failing))).toThrow('creation failed')
+    expect(() => addMark(new AddMarkContext(ctx, pet, failing))).toThrow('creation failed')
     expect(f.battle.configSystem.exportSnapshotState().scopedBase.has(mark)).toBe(false)
   } finally {
     spy.mockRestore()
@@ -181,16 +184,16 @@ it('keeps state on direct transfer and releases the absorbed instance on merge',
     source = f.a.activePet,
     next = f.a.team[1],
     target = f.b.activePet
-  source.addMark(new AddMarkContext(ctx, source, f.debuff))
-  target.addMark(new AddMarkContext(ctx, target, f.debuff))
+  addMark(new AddMarkContext(ctx, source, f.debuff))
+  addMark(new AddMarkContext(ctx, target, f.debuff))
   const incoming = source.marks.find(mark => mark.base === f.debuff)!,
     existing = target.marks.find(mark => mark.base === f.debuff)!
   setEffectState(ctx, incoming, hits, 3)
   setEffectState(ctx, existing, hits, 7)
-  next.transferMarks(ctx, incoming)
+  transferMarks(ctx, next, incoming)
   expect(getEffectState(ctx, incoming, hits)).toBe(3)
   expect(next.marks).toContain(incoming)
-  target.transferMarks(ctx, incoming)
+  transferMarks(ctx, target, incoming)
   expect(getEffectState(ctx, existing, hits)).toBe(7)
   expect(() => getEffectState(ctx, incoming, hits)).toThrow(/belong/)
   expect(f.battle.configSystem.exportSnapshotState().scopedBase.has(incoming)).toBe(false)

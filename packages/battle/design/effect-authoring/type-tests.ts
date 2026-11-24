@@ -423,7 +423,7 @@ sdk.defineCodeEffect({
     // @ts-expect-error OnHit is not a damage event.
     context.parent.damageResult
     const owner = context.source.owner
-    if (owner instanceof sdk.Pet) owner.heal(new sdk.HealContext(context, context.source, owner, 20))
+    if (owner instanceof sdk.Pet) sdk.heal(new sdk.HealContext(context, context.source, owner, 20))
   },
 })
 sdk.defineCodeEffect({

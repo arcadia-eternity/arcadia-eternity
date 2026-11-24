@@ -30,7 +30,7 @@ async function fixture() {
     artifact: {
       format: 'arcadia.effect-module',
       version: 1,
-      sdkApi: 2,
+      sdkApi: 3,
       packageId,
       // The transport must only copy this text. Neither metadata loading nor preparation may evaluate it.
       source: 'globalThis.__peerMaterialExecuted = true; export function createEffects() { return [] }',

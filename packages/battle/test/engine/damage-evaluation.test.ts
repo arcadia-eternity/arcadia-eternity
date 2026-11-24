@@ -1,5 +1,6 @@
 import { afterEach, expect, it } from 'vitest'
 import {
+  dealDamage,
   AttackTargetOpinion,
   BaseMark,
   DamageContext,
@@ -61,7 +62,7 @@ it('discards a failed numeric rule and its reserved cost before evaluating the n
     }),
   )
 
-  target.damage(damage)
+  dealDamage(damage)
   expect(target.currentHp).toBe(before - 28)
   expect(mark.stack).toBe(3)
   expect(damage.result?.hpLoss).toBe(28)
@@ -87,7 +88,7 @@ it('vetoes a numeric effect through its immediate BeforeEffect context without s
     }),
   )
 
-  target.damage(damage)
+  dealDamage(damage)
   expect(target.currentHp).toBe(before - 30)
   expect(mark.stack).toBe(3)
 })
@@ -104,7 +105,7 @@ it('pays the selected Shield rule exactly once', () => {
     }),
   )
   const hp = target.currentHp
-  target.damage(damage)
+  dealDamage(damage)
   expect(target.currentHp).toBe(hp - 23)
   expect(mark.stack).toBe(0)
 })
@@ -127,7 +128,7 @@ it('honors a healing veto before committing the conversion cost', () => {
       apply: contexts.heal.apply(ops.disableContext()),
     }),
   )
-  target.damage(damage)
+  dealDamage(damage)
   expect(target.currentHp).toBe(hp)
   expect(mark.stack).toBe(3)
 })
@@ -149,7 +150,7 @@ it('reserves a healing modifier cost from the same ledger as the conversion', ()
       apply: contexts.heal.apply(ops.modifyHeal({ percent: 0, delta: 10 })),
     }),
   )
-  target.damage(damage)
+  dealDamage(damage)
   expect(target.currentHp).toBe(hp + 40)
   expect(damage.result?.payments.map(cost => cost.stacks)).toEqual([1, 2])
   expect(mark.stack).toBe(0)
@@ -174,6 +175,6 @@ it('rejects HP assignments from an immediate selector callback before committing
       },
     }),
   )
-  target.damage(damage)
+  dealDamage(damage)
   expect(target.currentHp).toBe(hp - 30)
 })

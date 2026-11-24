@@ -1,6 +1,10 @@
 import { applyEffect } from '../../src/engine/phase/effectExecution'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  addMark,
+  heal,
+  removeMark,
+  transferMarks,
   AddMarkContext,
   AttackTargetOpinion,
   BaseMark,
@@ -70,7 +74,7 @@ function addSource(f: ReturnType<typeof fixture>) {
   base.effects.push(use.effect)
   use.parameters.install(f.battle.configSystem)
   const context = new EffectContext(new TurnContext(f.battle), EffectTrigger.TurnStart, f.a.activePet.skills[0])
-  f.a.activePet.addMark(new AddMarkContext(context, f.a.activePet, base, 2))
+  addMark(new AddMarkContext(context, f.a.activePet, base, 2))
   return { use, source: f.a.activePet.marks.find(mark => mark.baseId === base.id)!, context }
 }
 function snapshotCatalog(
@@ -131,13 +135,13 @@ it.each([false, true])(
     expect(a.stat.def).toBe(before[0] + 12)
     source.isSuppressed = suppressed
     if (suppressed) expect(a.stat.def).toBe(before[0])
-    b.transferMarks(context, source)
+    transferMarks(context, b, source)
     expect(a.stat.def).toBe(before[0])
     expect(source.owner).toBe(b)
     expect(b.stat.def).toBe(before[1] + (suppressed ? 0 : 12))
     source.isSuppressed = false
     expect(b.stat.def).toBe(before[1] + 12)
-    f.battle.removeMark(new RemoveMarkContext(context, source))
+    removeMark(new RemoveMarkContext(context, source))
     expect(b.stat.def).toBe(before[1])
   },
 )
@@ -167,7 +171,7 @@ it('restores native effects, source modifiers and RNG from a supported waiting-p
   expect(pet.stat.def).toBe(baseline + 9)
   mark.stack = 4
   expect(pet.stat.def).toBe(baseline + 12)
-  restored.removeMark(new RemoveMarkContext(new TurnContext(restored), mark))
+  removeMark(new RemoveMarkContext(new TurnContext(restored), mark))
   expect(pet.stat.def).toBe(baseline)
 })
 
@@ -192,7 +196,7 @@ it('keeps native parameters scoped to each use and exposes the actual typed cont
         context.source,
       )
       if (owner instanceof Pet && typeof amount === 'number')
-        owner.heal(new HealContext(context, context.source, owner, amount))
+        heal(new HealContext(context, context.source, owner, amount))
     },
   })
   for (const [index, useId] of ['one', 'two'].entries()) {
@@ -230,7 +234,7 @@ it('captures native declaration fields before compiling uses and validates unsup
     triggers: [EffectTrigger.TurnEnd] as EffectTrigger.TurnEnd[],
     apply(context: EffectContext<EffectTrigger.TurnEnd>) {
       const owner = context.source.owner
-      if (owner instanceof Pet) owner.heal(new HealContext(context, context.source, owner, 3))
+      if (owner instanceof Pet) heal(new HealContext(context, context.source, owner, 3))
     },
   }
   const native = sdk.defineCodeEffect(input)

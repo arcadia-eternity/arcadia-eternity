@@ -92,7 +92,7 @@ describe('NativePackLoader', () => {
         artifact: {
           format: 'arcadia.effect-module',
           version: 1,
-          sdkApi: 2,
+          sdkApi: 3,
           packageId: 'fixture',
           source: 'export function createEffects(){return []}',
         },

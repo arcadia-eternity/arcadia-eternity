@@ -1,5 +1,6 @@
+import { removeMark } from './RemoveMarkPhase'
 import { calculateSkillDamage, makeSkillDamageContext, type DeferredDamage } from './skill'
-import { DamagePhase } from './damage'
+import { dealDamage } from './damage'
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
 import type { Battle } from '../battle'
 import { EffectContext, RemoveMarkContext, type TurnContext } from '../context'
@@ -42,7 +43,7 @@ export class MarkUpdatePhase extends SynchronousPhase<TurnContext> {
         mark: mark.id,
         target: mark.owner instanceof Pet ? mark.owner.id : 'battle',
       })
-      battle.removeMark(new RemoveMarkContext(context, mark))
+      removeMark(new RemoveMarkContext(context, mark))
       return
     }
 
@@ -93,6 +94,6 @@ export class MarkUpdatePhase extends SynchronousPhase<TurnContext> {
         causeId: pending.id,
       },
     )
-    battle.phaseManager.run(new DamagePhase(event))
+    dealDamage(event)
   }
 }

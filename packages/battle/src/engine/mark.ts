@@ -1,5 +1,4 @@
 import type { DeferredDamage } from './phase/skill'
-import { consumeMarkStacks } from './phase/consumeStack'
 import { initializeOwnerRelations } from './values/relations'
 import { normalizeMarkInstanceParams, type MarkInstanceParams } from './content/mark-parameters'
 import {
@@ -15,7 +14,6 @@ import {
 import { nanoid } from 'nanoid'
 
 import type { Battle } from './battle'
-import { DamageContext, EffectContext } from './context'
 import { Effect, type EffectContainer, type TemporaryEffect } from './effect'
 import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
@@ -82,7 +80,6 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   set stack(value: number)
   get baseId(): baseMarkId
   registerBattle(battle: Battle): void
-  consumeStack(context: EffectContext<EffectTrigger> | DamageContext, amount: number): number
   temporaryEffects: TemporaryEffect[]
   attributeModifierCleanups: (() => void)[]
   getEffects(trigger: EffectTrigger): Effect<EffectTrigger>[]
@@ -203,10 +200,6 @@ export class MarkInstanceImpl implements MarkInstance {
   /** Track lifetime without assigning an owner to an incoming stacking operand. */
   registerBattle(battle: Battle): void {
     this.attributeSystem.setBattleId(battle.id)
-  }
-
-  consumeStack(context: EffectContext<EffectTrigger> | DamageContext, amount: number): number {
-    return consumeMarkStacks(context, this, amount)
   }
 
   toMessage(): MarkMessage {

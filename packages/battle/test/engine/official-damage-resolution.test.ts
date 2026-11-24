@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  changeRage,
+  dealDamage,
   AttackTargetOpinion,
   BaseMark,
   BattleMessageType,
@@ -63,7 +65,7 @@ function fixture() {
   }
   function damage(amount: number, type = DamageType.Physical) {
     const event = new DamageContext(use, skill, defender, amount, type)
-    defender.damage(event)
+    dealDamage(event)
     return event
   }
   return { battle, attacker, defender, skill, use, mark, damage }
@@ -392,7 +394,7 @@ describe('斗战之魂 rage payment', () => {
             ctx.parent.addModified(-50, 0)
           } else {
             debits.push(ctx.parent.rageSpent)
-            player.addRage(new RageContext(ctx, player, 'effect', 'add', 7))
+            changeRage(new RageContext(ctx, player, 'effect', 'add', 7))
           }
         },
       }),

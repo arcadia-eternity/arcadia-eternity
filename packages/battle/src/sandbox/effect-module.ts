@@ -1,3 +1,4 @@
+import { effectSdkApiVersion } from '@arcadia-eternity/const'
 import { newQuickJSWASMModuleFromVariant, newVariant } from 'quickjs-emscripten'
 import variant from '@jitl/quickjs-singlefile-browser-release-sync'
 import { Arena } from 'quickjs-emscripten-sync'
@@ -59,7 +60,7 @@ export class ArenaEffectModule implements PreparedEffectModule {
         !artifact ||
         artifact.format !== 'arcadia.effect-module' ||
         artifact.version !== 1 ||
-        artifact.sdkApi !== 2 ||
+        artifact.sdkApi !== effectSdkApiVersion ||
         typeof artifact.packageId !== 'string' ||
         !artifact.packageId.length ||
         artifact.packageId.length > 200 ||

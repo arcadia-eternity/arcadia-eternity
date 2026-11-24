@@ -48,7 +48,7 @@ apply: contexts.skillUse.apply(ops.deferSkillDamage(holder, { afterTurns: 2 })),
 | 先扣印记层数再调用 preventDamage，或先治疗再取消伤害         | 用 preventDamage 的 stacks 参数或 replaceDamageWithHeal 声明一次性规则和费用                 |
 | 从实时 HP 差或可变 Context 推算吸血、反伤和怒气              | 从 contexts.damageResult 读取 hpLoss，从 origin 取得真正的来源                               |
 | 在 SkillPhase 自行宣告击败                                   | 监听 OnDefeat，从 DefeatContext 读取 target、killer 和 skill                                 |
-| 外部拼装 DamagePhase 的位置参数、手工调用 updateDamageResult | 使用 pet.damage(proposal)，阶段和求值由引擎建立。SDK 的普通定量伤害使用 ops.dealDamage       |
+| 外部拼装 DamagePhase 的位置参数、手工调用 updateDamageResult | 使用 dealDamage(proposal)，阶段和求值由引擎建立。SDK 的普通定量伤害使用 ops.dealDamage       |
 
 伤害的 modified 兼容读数由数值项计算。直接修改返回的二元组不会注册规则。每个事件的阶段配置沿用 PhaseManager 的清理边界，结算器的候选、预留和临时 Context 都随事件释放。将来推广到治疗、怒气与印记时，可以复用提案身份、数值运算和提交结果的约定，各领域保留自己的费用与状态规则。
 

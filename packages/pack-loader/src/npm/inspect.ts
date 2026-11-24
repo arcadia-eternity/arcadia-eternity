@@ -17,7 +17,7 @@ import {
 } from '../works/model'
 import { linkWorkRuleSets, verifyAssets } from '../works/compiler'
 import { PresentationManifestSchema, parseWithErrors, type PresentationManifest } from '@arcadia-eternity/schema'
-import { effectSdkApiVersion } from '@arcadia-eternity/battle/authoring'
+import { effectSdkApiVersion } from '@arcadia-eternity/const'
 import { readEnvironmentRuleSets, sha256Hex } from '@arcadia-eternity/const'
 import { resolveNpmInvocation } from './runner'
 

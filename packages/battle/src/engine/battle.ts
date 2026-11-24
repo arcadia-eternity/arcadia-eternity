@@ -18,7 +18,7 @@ import { publicBattleMessage } from './messageVisibility'
 import { ExecutionBudget } from './execution/budget'
 import { GameRng } from './rng'
 import { ConfigSystem } from './config'
-import { AddMarkContext, Context, RemoveMarkContext, type TriggerContextMap } from './context'
+import { Context, type TriggerContextMap } from './context'
 import { type EffectContainer } from './effect'
 import { type MarkInstance } from './mark'
 import { Pet } from './pet'
@@ -31,8 +31,6 @@ import mitt from 'mitt'
 import { PhaseManager, BattleStartPhase, BattleLoopPhase, SelectionPhase, BattleSwitchPhase } from './phase'
 import { sampleBattleInteger, sampleBattleRandom } from './phase/damage'
 import { EffectExecutionPhase } from './phase/effectExecution'
-import { RemoveMarkPhase } from './phase/RemoveMarkPhase'
-import { AddMarkPhase } from './phase/AddMarkPhase'
 import { TimerManager } from './timer'
 import { TransformationSystem } from './transformation'
 import { createChildLogger } from './logger'
@@ -282,15 +280,6 @@ export class Battle extends Context {
         this.executionBudget.assertActive()
       })
     })
-  }
-
-  public addMark(context: AddMarkContext) {
-    this.phaseManager.run(new AddMarkPhase(context))
-    return context.result
-  }
-
-  public removeMark(context: RemoveMarkContext) {
-    this.phaseManager.run(new RemoveMarkPhase(context))
   }
 
   public getOpponent(player: Player) {

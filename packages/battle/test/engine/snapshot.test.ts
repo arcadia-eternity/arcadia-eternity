@@ -1,4 +1,5 @@
 import {
+  removeMark,
   BattleMessageType,
   SnapshotCatalog,
   restoreBattle,
@@ -205,7 +206,7 @@ it('retains native form sources and rebuilds cross-target cleanup and reactive c
   restoredSource.stack = 2
   expect(restoredPet.stat.atk).toBe(20)
   expect(restored.playerB.activePet.stat.def).toBe(originalDef + 9)
-  restored.removeMark(new RemoveMarkContext(new TurnContext(restored), restoredSource))
+  removeMark(new RemoveMarkContext(new TurnContext(restored), restoredSource))
   expect(restored.transformationSystem.getTransformationState(restoredPet).isTransformed).toBe(false)
   expect(restoredPet.base).toBe(restoredPet.originalSpecies)
   expect(restoredPet.currentHp).toBe(100)

@@ -24,7 +24,7 @@ test(
     await mkdir(join(userData, 'ugc/state'), { recursive: true })
     await writeFile(
       join(project, 'package.json'),
-      JSON.stringify({ name: 'yaml-test', arcadia: { projectId: 'yaml-test', namespace: 'yaml-test', sdkApi: 2 } }),
+      JSON.stringify({ name: 'yaml-test', arcadia: { projectId: 'yaml-test', namespace: 'yaml-test', sdkApi: 3 } }),
     )
     await writeFile(
       file,

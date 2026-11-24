@@ -1,3 +1,4 @@
+import { removeMark } from './RemoveMarkPhase'
 import { BattleMessageType, EffectTrigger, type DamageResult, type DamagePayment } from '@arcadia-eternity/const'
 import {
   ConsumeStackContext,
@@ -15,7 +16,7 @@ import { ContextPhase } from './base'
 import { type MarkInstance, StatLevelMarkInstanceImpl } from '../mark'
 import { Pet } from '../pet'
 import { evaluateEventMagnitude } from '../modifierMath'
-import { RagePhase } from './rage'
+import { changeRage } from './rage'
 import type { Battle, BattleRng } from '../battle'
 import { SkillInstance } from '../skill'
 import { notifyHeal, prepareHeal } from './heal'
@@ -29,6 +30,12 @@ function damageAncestors(event: DamageContext): DamageContext[] {
 }
 
 type HealReplacement = { event: HealContext; hp: number }
+
+export function dealDamage(context: DamageContext): boolean {
+  const target = context.target
+  context.battle.phaseManager.run(new DamagePhase(context))
+  return target.isAlive
+}
 
 /** A single execution/cleanup scope, including all synchronous result reactions. */
 export class DamagePhase extends ContextPhase<DamageContext> {
@@ -286,7 +293,7 @@ export class DamagePhase extends ContextPhase<DamageContext> {
     }
     for (const mark of this.debits.keys()) {
       if (mark.stack <= 0 && mark.isActive && belongsToBattle(event, mark))
-        battle.removeMark(new RemoveMarkContext(event, mark))
+        removeMark(new RemoveMarkContext(event, mark))
     }
     if (this.heal) notifyHeal(this.heal.event, battle)
     if (hpLoss <= 0) return
@@ -301,7 +308,7 @@ export class DamagePhase extends ContextPhase<DamageContext> {
     if (!target) throw new Error('Committed damage target is missing from battle')
     if (event.policy.skillReactions && target.owner) {
       const amount = Math.floor((hpLoss * 49) / target.stat.maxHp)
-      battle.phaseManager.run(new RagePhase(new RageContext(event, target.owner, 'damage', 'add', amount)))
+      changeRage(new RageContext(event, target.owner, 'damage', 'add', amount))
     }
     if (hpAfter > 0) return
     const { petId, skillInstanceId } = result.origin

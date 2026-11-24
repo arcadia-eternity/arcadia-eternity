@@ -1,6 +1,8 @@
 import { AuthoredEffects } from '../../../../packs/base/src/effects/authored/index.effect'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  addMark,
+  consumeMarkStacks,
   SwitchPetContext,
   effectAuthoring,
   defineValue,
@@ -140,7 +142,7 @@ async function checkpoint(mode: Mode, missing = false, custom = false) {
     persistent: true,
     keepOnSwitchOut: true,
   })
-  if (!missing) f.battle.addMark(new AddMarkContext(setup, pet, markBase, 2))
+  if (!missing) addMark(new AddMarkContext(setup, pet, markBase, 2))
   if (mode === 'rage-capture' || mode === 'rage-follow') f.b.currentRage = 80
   const effect = definition(mode, custom)
   effectAuthoring.effectParameters(effect).install(f.battle.configSystem)
@@ -149,7 +151,7 @@ async function checkpoint(mode: Mode, missing = false, custom = false) {
     persistent: true,
     keepOnSwitchOut: true,
   })
-  f.battle.addMark(new AddMarkContext(setup, pet, sourceBase, 1))
+  addMark(new AddMarkContext(setup, pet, sourceBase, 1))
   const ready = new Promise<void>(resolve =>
     f.battle.registerListener(message => {
       if (message.type === BattleMessageType.TurnAction) resolve()
@@ -207,7 +209,7 @@ it.each(['capture', 'follow', 'entry'] as const)(
     expect(twice.playerA.activePet.stat.spe).toBe(mode === 'capture' ? 225 : 200)
     const source = twice.playerA.activePet.marks.find(m => m.baseId === 'snapshot/source')!
     const ctx = new EffectContext(new TurnContext(twice), EffectTrigger.TurnStart, twice.playerA.activePet.skills[0])
-    source.consumeStack(ctx, 1)
+    consumeMarkStacks(ctx, source, 1)
     expect(twice.playerA.activePet.stat.spe).toBe(300)
   },
 )
@@ -216,7 +218,7 @@ it('restores an initially absent follow and discovers later membership', async (
   const pet = restored.playerA.activePet
   expect(pet.stat.spe).toBe(300)
   const ctx = new EffectContext(new TurnContext(restored), EffectTrigger.TurnStart, pet.skills[0])
-  restored.addMark(new AddMarkContext(ctx, pet, markBase, 3))
+  addMark(new AddMarkContext(ctx, pet, markBase, 3))
   expect(pet.stat.spe).toBe(225)
 })
 it('supports explicit plans inside custom execute callbacks', async () => {

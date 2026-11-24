@@ -1,6 +1,8 @@
 import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { Type } from '@sinclair/typebox'
 import {
+  addMark,
+  consumeMarkStacks,
   AddMarkContext,
   BaseMark,
   BattleMessageType,
@@ -46,7 +48,7 @@ function fixture() {
   const parent = new EffectContext(new TurnContext(f.battle), EffectTrigger.TurnStart, f.a.activePet.skills[0])
   const add = (input = {}, target = f.a.activePet) => {
     const context = new AddMarkContext(parent, target, base, 1, 2, undefined, input)
-    return { context, result: f.battle.addMark(context), mark: target.marks.find(mark => mark.base === base)! }
+    return { context, result: addMark(context), mark: target.marks.find(mark => mark.base === base)! }
   }
   return { ...f, base, params, parent, add }
 }
@@ -69,7 +71,7 @@ it('copies normalized arguments and installs them before OnMarkCreated, before i
   const input = { ratio: 0 }
   const context = new AddMarkContext(f.parent, f.a.activePet, f.base, 1, 2, undefined, input)
   input.ratio = 0.8
-  f.battle.addMark(context)
+  addMark(context)
   expect(seen).toEqual([[0, false]])
   const mark = f.a.activePet.marks[0]
   expect(mark.instanceParams).toEqual({ ratio: 0 })
@@ -123,13 +125,13 @@ it('rejects conflicts after OnBeforeAddMark but before any mutex removal or stac
   const result = f.add({ ratio: 0.9 })
   expect(result.result).toBe('parameter-conflict')
   expect(before).toBe(1)
-  expect(
-    f.a.activePet.addMark(new AddMarkContext(f.parent, f.a.activePet, f.base, 1, 2, undefined, { ratio: 0.9 })),
-  ).toBe('parameter-conflict')
+  expect(addMark(new AddMarkContext(f.parent, f.a.activePet, f.base, 1, 2, undefined, { ratio: 0.9 }))).toBe(
+    'parameter-conflict',
+  )
   expect(first.stack).toBe(1)
   expect(f.a.activePet.marks).toEqual([first, unrelated])
   result.context.target = f.a.team[1]
-  expect(f.battle.addMark(result.context)).toBeUndefined()
+  expect(addMark(result.context)).toBeUndefined()
 })
 
 it('uses the final target selected by OnBeforeAddMark for parameter compatibility', () => {
@@ -155,7 +157,7 @@ it('uses the final target selected by OnBeforeAddMark for parameter compatibilit
 it('leaves legacy mutex replacement unchanged and rejects undeclared parameter input', () => {
   const f = fixture()
   const legacy = new BaseMark('legacy' as baseMarkId, [], f.base.config)
-  const add = () => f.battle.addMark(new AddMarkContext(f.parent, f.a.activePet, legacy, 1))
+  const add = () => addMark(new AddMarkContext(f.parent, f.a.activePet, legacy, 1))
   add()
   const first = f.a.activePet.marks[0]
   add()
@@ -234,7 +236,7 @@ it('releases instance Config scopes after destruction, preserving hook reads and
       new ConfigModifier(ConfigDurationType.binding, `cleanup/${i}`, 0.1, ConfigModifierType.delta, 0),
       mark,
     )
-    mark.consumeStack(f.parent, 1)
+    consumeMarkStacks(f.parent, mark, 1)
     const state = f.battle.configSystem.exportSnapshotState()
     expect(state.scopedBase.has(mark)).toBe(false)
     expect(state.scopedModifiers.has(mark)).toBe(false)
@@ -256,7 +258,7 @@ it('releases a newly installed scope when creation aborts before insertion', () 
     return original(parent, trigger, ...sources)
   })
   try {
-    expect(() => f.battle.addMark(context)).toThrow('creation aborted')
+    expect(() => addMark(context)).toThrow('creation aborted')
     expect(f.battle.configSystem.exportSnapshotState().scopedBase.has(mark)).toBe(false)
     expect(f.a.activePet.marks).not.toContain(mark)
   } finally {

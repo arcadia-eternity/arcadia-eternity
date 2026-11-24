@@ -1,9 +1,10 @@
+import { removeMark } from './RemoveMarkPhase'
 import { EffectTrigger } from '@arcadia-eternity/const'
 import type { Battle } from '../battle'
 import { RemoveMarkContext, type SwitchPetContext } from '../context'
 import type { Pet } from '../pet'
 import { SynchronousPhase } from './base'
-import { MarkTransferPhase } from './MarkTransferPhase'
+import { transferMarks } from './MarkTransferPhase'
 
 export class MarkSwitchOutPhase extends SynchronousPhase<SwitchPetContext> {
   constructor(
@@ -31,11 +32,11 @@ export class MarkSwitchOutPhase extends SynchronousPhase<SwitchPetContext> {
 
       // Handle marks that need to be transferred
       if (mark.config.transferOnSwitch && context.switchInPet) {
-        battle.phaseManager.run(new MarkTransferPhase(battle, context, context.switchInPet, [mark]))
+        transferMarks(context, context.switchInPet, mark)
         // Mark should be removed from original pet after transfer
         return false
       } else if (!shouldKeep) {
-        battle.removeMark(new RemoveMarkContext(context, mark))
+        removeMark(new RemoveMarkContext(context, mark))
         return false
       }
 

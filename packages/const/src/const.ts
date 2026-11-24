@@ -1,3 +1,6 @@
+/** Bump when the injected authoring/module contract changes incompatibly. Actual builds have separate digests. */
+export const effectSdkApiVersion = 3 as const
+
 // 新增怒气相关配置
 export const MAX_RAGE = 100
 export const RAGE_PER_TURN = 15

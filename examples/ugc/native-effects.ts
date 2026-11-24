@@ -2,7 +2,7 @@ import type { CodeEffectModuleContext } from '@arcadia-eternity/battle/authoring
 
 /** Official engine APIs, exercised by packages/battle/test/engine/effect-sdk-native.test.ts. */
 export function createEffects({ sdk, id }: CodeEffectModuleContext) {
-  const { defineCodeEffect, EffectTrigger, Pet, HealContext, targets, ops } = sdk
+  const { defineCodeEffect, EffectTrigger, Pet, heal, HealContext, targets, ops } = sdk
   return [
     defineCodeEffect({
       id: id('recover'),
@@ -13,7 +13,7 @@ export function createEffects({ sdk, id }: CodeEffectModuleContext) {
         const owner = context.source.owner
         if (owner instanceof Pet) {
           const amount = context.battle.randomInt(3, 7)
-          owner.heal(new HealContext(context, context.source, owner, amount))
+          heal(new HealContext(context, context.source, owner, amount))
         }
       },
     }),

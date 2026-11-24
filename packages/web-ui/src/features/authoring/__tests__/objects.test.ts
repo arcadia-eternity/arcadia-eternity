@@ -13,7 +13,7 @@ const record = (kind: string, id: string): SourceRecord => ({
 const snapshot = (records: SourceRecord[] = []): AuthorSnapshot => ({
   root: '/',
   name: 'test',
-  project: { projectId: 'test', namespace: 'test', sdkApi: 2 },
+  project: { projectId: 'test', namespace: 'test', sdkApi: 3 },
   records,
   files: records.map(row => ({ file: row.file })),
   assets: [],

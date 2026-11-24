@@ -4,8 +4,7 @@ import { defineNativeBehavior, type BehaviorDefinition, type NativeBehaviorExpor
 import type { NativeEffectContext, NativeEffectDefinition, NativeEffectTrigger } from './native-effect'
 import { nativeEffectContext } from './authoring/runtime'
 
-/** Bump when the injected authoring/module contract changes incompatibly. Actual builds have separate digests. */
-export const effectSdkApiVersion = 2 as const
+export { effectSdkApiVersion } from '@arcadia-eternity/const'
 
 /** A code export is compiled separately for each content use. Never keep battle state in this factory. */
 export interface CodeEffectContext {

@@ -1,11 +1,19 @@
 import { domainFields, evaluationReads, parameterMethods, projectedMethods } from './projection'
-import { effectSdkFunctions } from '../engine/content/sdk-capabilities'
+import { effectSdkFunctions, phaseOperations } from '../engine/content/sdk-capabilities'
 import { Arena } from 'quickjs-emscripten-sync'
 import { registerArenaProjection } from './arena-session'
 import * as sdk from '../../authoring'
 import { Battle } from '../engine/battle'
 import { assertEvaluationOperation, getDamageEvaluation } from '../engine/phase/damage'
-import { Context, DamageContext, EffectContext, HealContext } from '../engine/context'
+import {
+  AddMarkContext,
+  Context,
+  DamageContext,
+  EffectContext,
+  HealContext,
+  RageContext,
+  RemoveMarkContext,
+} from '../engine/context'
 import { Pet } from '../engine/pet'
 import { Player } from '../engine/player'
 import { BaseMark, MarkInstanceImpl } from '../engine/mark'
@@ -46,13 +54,23 @@ const projectionRules = (Object.keys(projectedMethods) as (keyof typeof projecte
 const denied = new Set(['constructor', 'prototype', '__proto__', 'caller', 'callee', 'arguments'])
 const coreSdk = { ...sdk, defineNativeBehavior, normalizeBehaviorDefinitions, BehaviorCompilationError }
 const authorFunctions = new Set<string>(effectSdkFunctions)
+type PhaseOperation = (typeof phaseOperations)[number]
+const phaseFunctions = new Map<unknown, PhaseOperation>(phaseOperations.map(name => [sdk[name], name]))
+const eventPhases = {
+  dealDamage: DamageContext,
+  heal: HealContext,
+  changeRage: RageContext,
+  addMark: AddMarkContext,
+  removeMark: RemoveMarkContext,
+} as const
+
 function frame(value: object): boolean {
   return typeof Reflect.get(value, 'read') === 'function' && !!Reflect.get(value, 'ops')
 }
 /** SDK-specific projections and canonical registrations. Arena owns marshalling, proxies and handles. */
 export class ArenaEffectSdk {
   private readonly canonical = new WeakSet<object>()
-  private readonly proposedDamage = new WeakMap<DamageContext, Scope>()
+  private readonly proposedEvents = new WeakMap<Context, Scope>()
   private readonly callbacks = new WeakMap<Fn, Fn>()
   private count = 0
   private activeScope?: Scope
@@ -143,6 +161,40 @@ export class ArenaEffectSdk {
       }),
     )
   }
+  private validatePhase(operation: PhaseOperation, args: unknown[]): void {
+    const deny = (reason: string): never => this.reject(new SandboxFault('permission', 'sdk', reason))
+    if (getDamageEvaluation()) return deny(`Cannot perform ${operation} during damage evaluation`)
+    const scope = this.activeScope
+    if (!scope?.effect) return deny('Phase operations require an active effect')
+    const { battle } = scope.effect
+    const isPet = (target: unknown) => target instanceof Pet && battle.petMap.get(target.id) === target
+    const isMark = (mark: unknown) =>
+      mark instanceof MarkInstanceImpl &&
+      (mark.owner === battle || isPet(mark.owner)) &&
+      mark.owner?.marks.includes(mark)
+    const [event, target, ...rest] = args
+    if (operation === 'transferMarks' || operation === 'consumeMarkStacks') {
+      if (event !== scope.effect) return deny('Phase parent must be the current effect')
+      if (operation === 'transferMarks') {
+        if ((target !== battle && !isPet(target)) || !rest.every(isMark)) return deny('Invalid mark transfer')
+      } else if (!isMark(target) || typeof rest[0] !== 'number' || !Number.isFinite(rest[0]) || rest[0] < 0)
+        return deny('Invalid mark consumption')
+      return
+    }
+    const Event = eventPhases[operation]
+    if (!(event instanceof Event) || this.proposedEvents.get(event) !== scope || event.parent !== scope.effect)
+      return deny(`${operation} requires a current proposal`)
+    if (
+      ((event instanceof DamageContext || event instanceof HealContext) &&
+        (event.source !== scope.effect.source || !isPet(event.target))) ||
+      (event instanceof RageContext && event.target !== battle.playerA && event.target !== battle.playerB) ||
+      (event instanceof AddMarkContext &&
+        (!(event.baseMark instanceof BaseMark) || (event.target !== battle && !isPet(event.target)))) ||
+      (event instanceof RemoveMarkContext && !isMark(event.mark))
+    )
+      return deny(`Invalid ${operation} proposal target or source`)
+    this.proposedEvents.delete(event)
+  }
   output<T>(value: T, scope: Scope | undefined = this.activeScope, ephemeral = false): T {
     if (!value || (typeof value !== 'object' && typeof value !== 'function') || this.canonical.has(value as object))
       return value
@@ -189,7 +241,8 @@ export class ArenaEffectSdk {
               return this.reject(new SandboxFault('permission', 'sdk', 'Invalid damage proposal identity'))
           }
           const result = isClass ? Reflect.construct(fn, input) : fn(...input)
-          if (value === DamageContext) this.proposedDamage.set(result as DamageContext, this.activeScope!)
+          if (isClass && result instanceof Context && this.activeScope?.effect)
+            this.proposedEvents.set(result, this.activeScope)
           return ephemeral ? this.output(result, scope, true) : this.output(result)
         })
       if (isClass) Object.defineProperty(callable, Symbol.hasInstance, { value: (item: unknown) => item instanceof fn })
@@ -235,7 +288,8 @@ export class ArenaEffectSdk {
               if (isDomain && !domainRule.methods.includes(String(key)))
                 return this.reject(new SandboxFault('permission', 'sdk', 'Direct domain methods denied'))
               if (isClassConstructor(member as Fn)) return this.output(member)
-              if (!members.has(key))
+              if (!members.has(key)) {
+                const phase = phaseFunctions.get(member)
                 members.set(key, (...args) => {
                   // Check at call time, including handles captured in an earlier callback.
                   if (getDamageEvaluation()) {
@@ -266,18 +320,10 @@ export class ArenaEffectSdk {
                         new SandboxFault('permission', 'sdk', 'Cannot change parameters during damage evaluation'),
                       )
                   }
-                  if (original instanceof Pet && key === 'damage') {
-                    const [event] = args
-                    if (
-                      !(event instanceof DamageContext) ||
-                      event.target !== original ||
-                      !this.proposedDamage.get(event)?.active
-                    )
-                      return this.reject(new SandboxFault('permission', 'sdk', 'Damage requires a current proposal'))
-                    this.proposedDamage.delete(event)
-                  }
+                  if (phase) this.validatePhase(phase, args)
                   return Reflect.apply(member, original, args)
                 })
+              }
               return this.output(members.get(key)!, temporary ? scope : undefined, temporary)
             }
             return this.output(member, temporary ? scope : undefined, temporary)

@@ -3,6 +3,11 @@ import { ContextPhase } from './base'
 import { HealContext } from '../context'
 import type { Battle } from '../battle'
 
+export function heal(context: HealContext): boolean {
+  context.battle.phaseManager.run(new HealPhase(context))
+  return context.target.isAlive
+}
+
 export class HealPhase extends ContextPhase<HealContext> {
   protected executeOperation(): void {
     const context = this.event

@@ -1,4 +1,4 @@
-import { unbindStatStage } from './RemoveMarkPhase'
+import { removeMark, unbindStatStage } from './RemoveMarkPhase'
 import { StackStrategy, EffectTrigger, BattleMessageType, type markId } from '@arcadia-eternity/const'
 import type { Battle } from '../battle'
 import { RemoveMarkContext, type StackContext } from '../context'
@@ -27,7 +27,7 @@ export class MarkStackPhase extends SynchronousPhase<StackContext> {
 
     // Handle special strategies that don't modify values
     if (strategy === StackStrategy.remove) {
-      battle.removeMark(new RemoveMarkContext(context, existingMark))
+      removeMark(new RemoveMarkContext(context, existingMark))
       return
     }
 
@@ -39,7 +39,7 @@ export class MarkStackPhase extends SynchronousPhase<StackContext> {
     if (existingMark instanceof StatLevelMarkInstanceImpl && newMark instanceof StatLevelMarkInstanceImpl) {
       const level = Math.max(-6, Math.min(6, existingMark.level + newMark.level))
       if (level === 0) {
-        battle.removeMark(new RemoveMarkContext(context, existingMark))
+        removeMark(new RemoveMarkContext(context, existingMark))
         return
       }
       const owner = existingMark.owner
@@ -127,7 +127,7 @@ export class MarkStackPhase extends SynchronousPhase<StackContext> {
 
     // Check if mark should be destroyed (when stacks reach 0)
     if (existingMark.stack <= 0) {
-      battle.removeMark(new RemoveMarkContext(context, existingMark))
+      removeMark(new RemoveMarkContext(context, existingMark))
       return
     }
 

@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest'
 import {
+  addMark,
   AddMarkContext,
   AttackTargetOpinion,
   EffectContext,
@@ -63,7 +64,7 @@ it.each([
       }
       function mark(id: string) {
         const source = new EffectContext(new TurnContext(battle), EffectTrigger.TurnStart, a.activePet.skills[0])
-        battle.addMark(
+        addMark(
           new AddMarkContext(source, b.activePet, catalog.getMark(id as Parameters<typeof catalog.getMark>[0]), 1),
         )
       }

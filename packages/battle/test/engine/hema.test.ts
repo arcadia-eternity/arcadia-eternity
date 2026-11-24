@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import {
+  addMark,
   AddMarkContext,
   AttackTargetOpinion,
   BattleMessageType,
@@ -190,7 +191,7 @@ it.each([
   const turnContext = new TurnContext(battle)
   const attack = a.activePet.skills[0]
   const markSource = new EffectContext(turnContext, EffectTrigger.TurnStart, attack)
-  battle.addMark(
+  addMark(
     new AddMarkContext(markSource, b.activePet, catalog.getMark(markId as Parameters<typeof catalog.getMark>[0]), 1),
   )
   const skillUse = new UseSkillContext(turnContext, a, a.activePet, AttackTargetOpinion.opponent, attack)

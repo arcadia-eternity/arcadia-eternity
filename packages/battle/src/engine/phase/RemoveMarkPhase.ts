@@ -10,7 +10,11 @@ import { StatLevelMarkInstanceImpl } from '../mark'
 import { Pet } from '../pet'
 import { ContextPhase } from './base'
 
-export class RemoveMarkPhase extends ContextPhase<RemoveMarkContext> {
+export function removeMark(context: RemoveMarkContext): void {
+  context.battle.phaseManager.run(new RemoveMarkPhase(context))
+}
+
+class RemoveMarkPhase extends ContextPhase<RemoveMarkContext> {
   protected executeOperation(): void {
     const context = this.event
     const battle = this.battle
@@ -71,7 +75,7 @@ export function reverseStatStages(
 ): void {
   for (const mark of target.getClearableStatStageMarks(strategy, ...stats)) {
     const level = mark.level
-    context.battle.removeMark(new RemoveMarkContext(context, mark))
+    removeMark(new RemoveMarkContext(context, mark))
     addStatStage(context, target, mark.statType, -level)
   }
 }

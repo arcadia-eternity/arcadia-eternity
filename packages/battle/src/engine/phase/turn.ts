@@ -1,3 +1,4 @@
+import { changeRage } from './rage'
 import { EffectTrigger, BattleMessageType, BattleStatus, BattlePhase } from '@arcadia-eternity/const'
 import { InteractivePhase } from './base'
 import { TurnContext, RageContext, UseSkillContext, SwitchPetContext } from '../context'
@@ -120,7 +121,7 @@ export function executeTurnOperation(context: TurnContext, battle: Battle): void
  */
 function addTurnRage(context: TurnContext, battle: Battle): void {
   ;[battle.playerA, battle.playerB].forEach(player => {
-    player.addRage(new RageContext(context, player, 'turn', 'add', player.activePet.stat.ragePerTurn))
+    changeRage(new RageContext(context, player, 'turn', 'add', player.activePet.stat.ragePerTurn))
   })
 }
 

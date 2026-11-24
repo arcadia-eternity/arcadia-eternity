@@ -1,10 +1,11 @@
+import type { effectSdkApiVersion } from '@arcadia-eternity/const'
 import type { CodeEffectModule } from '../engine/content/effect-sdk'
 
 /** Compiled ESM with a closed dependency graph. Its text is evaluated only by Arena. */
 export interface EffectModuleArtifact {
   readonly format: 'arcadia.effect-module'
   readonly version: 1
-  readonly sdkApi: 2
+  readonly sdkApi: typeof effectSdkApiVersion
   readonly packageId: string
   readonly source: string
 }

@@ -112,11 +112,9 @@ test('SDK symbols cover dispatched triggers and preserve the actual frame and do
   assert.deepEqual(native.sort(), [...nativeEffectTriggers].sort())
   const hit = await authorReference({ symbol: 'EffectTrigger.OnHit' })
   assert.equal(hit.parent, 'UseSkillContext')
-  assert.ok(
-    hit.methods.some(method => method.receiver === 'ctx.parent.actualTarget' && method.symbol === 'Pet.addMark'),
-  )
+  assert.match(hit.example, /addMark\(new AddMarkContext/)
   assert.match((await authorReference({ symbol: 'UseSkillContext.actualTarget' })).signature, /Pet \| undefined/)
-  assert.match((await authorReference({ symbol: 'Pet.addMark' })).signature, /AddMarkContext.*parameter-conflict/)
+  assert.match((await authorReference({ symbol: 'addMark' })).signature, /AddMarkContext.*parameter-conflict/)
   assert.match(
     (await authorReference({ symbol: 'ops.bindAttribute' })).signature,
     /AttributeBindingOptions.*Operator<Pet>/,
@@ -125,8 +123,9 @@ test('SDK symbols cover dispatched triggers and preserve the actual frame and do
   assert.match((await authorReference({ symbol: 'EffectFrame.ops.modifyDamage' })).signature, /DamageContext/)
   const before = await authorReference({ symbol: 'EffectTrigger.OnBeforeCalculateDamage' })
   assert.ok(before.methods.some(m => m.symbol === 'DamageContext.addModified'))
-  assert.ok(!before.methods.some(m => m.symbol === 'Pet.damage'))
   for (const symbol of [
+    'Pet.addMark',
+    'Pet.damage',
     'Pet.cleanupAttributeModifiers',
     'UseSkillContext.updateActualTarget',
     'NativeEffectContext.sourceActor',
@@ -137,7 +136,7 @@ test('SDK symbols cover dispatched triggers and preserve the actual frame and do
   assert.equal(a.matches.length, 50)
   assert.ok(a.matches.at(-1).symbol < b.matches[0].symbol)
   const found = await authorReference({ query: 'addmark' })
-  assert.ok(found.matches.some(item => item.symbol === 'Pet.addMark'))
+  assert.ok(found.matches.some(item => item.symbol === 'addMark'))
 })
 
 test('every trigger example type-checks against the content SDK entry', async () => {
@@ -145,7 +144,7 @@ test('every trigger example type-checks against the content SDK entry', async ()
   const { nativeEffectTriggers } = await import('@arcadia-eternity/battle/authoring')
   const { fileURLToPath } = await import('node:url')
   const source = [
-    "import { effect, on, EffectTrigger, type NativeEffectContext, type EffectModuleContext, AddMarkContext, defineCodeEffect, numberParam, targets, ops } from '@arcadia-eternity/content-sdk'",
+    "import { effect, on, EffectTrigger, type NativeEffectContext, type EffectModuleContext, addMark, AddMarkContext, defineCodeEffect, numberParam, targets, ops } from '@arcadia-eternity/content-sdk'",
   ]
   for (const trigger of nativeEffectTriggers) {
     const event = await authorReference({ symbol: 'EffectTrigger.' + trigger })

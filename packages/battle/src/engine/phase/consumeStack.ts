@@ -1,3 +1,4 @@
+import { removeMark } from './RemoveMarkPhase'
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
 import { RemoveMarkContext, ConsumeStackContext, type EffectContext, type DamageContext } from '../context'
 import type { MarkInstance } from '../mark'
@@ -53,7 +54,7 @@ class ConsumeStackPhase extends ContextPhase<ConsumeStackContext> {
 
     // Check if mark should be destroyed
     if (mark.stack <= 0) {
-      context.battle.removeMark(new RemoveMarkContext(context.parent, context.mark))
+      removeMark(new RemoveMarkContext(context.parent, context.mark))
     }
   }
 }

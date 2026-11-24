@@ -15,10 +15,8 @@ import {
 } from '@arcadia-eternity/const'
 import type { Battle } from './battle'
 import { publicBattleMessage } from './messageVisibility'
-import { RageContext } from './context'
 import { Pet } from './pet'
 import { PlayerAttributeSystem } from './attributeSystem'
-import { RagePhase } from './phase/rage'
 import * as jsondiffpatch from 'jsondiffpatch'
 import type { Emitter } from 'mitt'
 import { initializePlayerRelations } from './values/relations'
@@ -236,10 +234,6 @@ export class Player {
       default:
         throw '未实现的selection类型'
     }
-  }
-
-  public addRage(context: RageContext) {
-    context.battle.phaseManager.run(new RagePhase(context))
   }
 
   public toMessage(viewerId?: string, showHidden = false): PlayerMessage {

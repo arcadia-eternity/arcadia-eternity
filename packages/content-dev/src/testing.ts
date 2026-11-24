@@ -18,6 +18,8 @@ export {
   EffectContext,
   EffectTrigger,
   RemoveMarkContext,
+  removeMark,
+  transferMarks,
   parameterAddress,
   setGlobalLogger,
 } from '@arcadia-eternity/battle/engine'

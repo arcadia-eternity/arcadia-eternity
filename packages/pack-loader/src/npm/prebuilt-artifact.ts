@@ -1,3 +1,4 @@
+import { effectSdkApiVersion } from '@arcadia-eternity/const'
 import { lstat, readFile, realpath } from 'node:fs/promises'
 import { isAbsolute, relative } from 'node:path'
 import { parse } from 'es-module-lexer/minimal/js'
@@ -17,7 +18,7 @@ export function validatePrebuiltEffectModule(value: unknown, packageId: string):
     Object.keys(artifact).some(key => !['format', 'version', 'sdkApi', 'packageId', 'source'].includes(key)) ||
     artifact.format !== 'arcadia.effect-module' ||
     artifact.version !== 1 ||
-    artifact.sdkApi !== 2 ||
+    artifact.sdkApi !== effectSdkApiVersion ||
     artifact.packageId !== packageId ||
     typeof artifact.source !== 'string' ||
     !artifact.source.length ||
@@ -37,7 +38,7 @@ export function validatePrebuiltEffectModule(value: unknown, packageId: string):
   return Object.freeze({
     format: 'arcadia.effect-module',
     version: 1,
-    sdkApi: 2,
+    sdkApi: effectSdkApiVersion,
     packageId,
     source: artifact.source,
   })

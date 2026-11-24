@@ -1,6 +1,7 @@
 import { StackDamageEffects } from '../../../../packs/base/src/effects/stack-damage.effect'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  dealDamage,
   SkillPhase,
   Category,
   effectAuthoring,
@@ -59,7 +60,7 @@ function fixture(id: typeof reduction | typeof amplification, stack = 3) {
   )
   const damage = (type = DamageType.Special) => new DamageContext(use, use.skill, f.b.activePet, 40, type)
   const apply = (event = damage()) => {
-    event.target.damage(event)
+    dealDamage(event)
     if (!event.result) throw new Error('Damage did not resolve')
     return event.result
   }
@@ -85,7 +86,7 @@ for (const id of [reduction, amplification] as const) {
   it(`${id}: real special damage settlement`, () => {
     const f = fixture(id, 1)
     const event = f.damage()
-    f.b.activePet.damage(event)
+    dealDamage(event)
     expect(event.damageResult).toBe(id === amplification ? 70 : 39)
     expect(f.b.activePet.currentHp).toBe(f.b.activePet.stat.maxHp - event.damageResult)
   })

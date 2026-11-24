@@ -1,6 +1,7 @@
 import { SwitchRageProtectionEffects } from '../../../../packs/base/src/effects/switch-rage-protection.effect'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  changeRage,
   SnapshotCatalog,
   snapshotBattle,
   restoreBattle,
@@ -103,18 +104,18 @@ it('protection is consumed once, and the following switch pays its loss', () => 
 it('unrelated rage loss keeps the mark', () => {
   const f = fixture()
   f.a.currentRage = 100
-  f.a.addRage(new RageContext(f.turn, f.a, 'skill', 'reduce', 20))
+  changeRage(new RageContext(f.turn, f.a, 'skill', 'reduce', 20))
   expect(f.a.currentRage).toBe(80)
   expect(f.mark.isActive).toBe(true)
 })
 it('requires actual switch ancestry and matching target', () => {
   const f = fixture()
   f.a.currentRage = 100
-  f.a.addRage(new RageContext(f.turn, f.a, 'switch', 'reduce', 20))
+  changeRage(new RageContext(f.turn, f.a, 'switch', 'reduce', 20))
   expect(f.a.currentRage).toBe(80)
   const context = new SwitchPetContext(f.turn, f.a, f.incoming)
   f.b.currentRage = 100
-  f.b.addRage(new RageContext(context, f.b, 'switch', 'reduce', 20))
+  changeRage(new RageContext(context, f.b, 'switch', 'reduce', 20))
   expect(f.b.currentRage).toBe(80)
   expect(f.mark.isActive).toBe(true)
 })

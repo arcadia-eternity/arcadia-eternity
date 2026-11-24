@@ -1,9 +1,11 @@
+import { transferMarks } from '../../phase/MarkTransferPhase'
+import { heal } from '../../phase/heal'
 import { consumeMarkStacks } from '../../phase/consumeStack'
 import { addMarkStacks } from '../../phase/MarkStackPhase'
-import { reverseStatStages } from '../../phase/RemoveMarkPhase'
-import { addStatStage } from '../../phase/AddMarkPhase'
+import { removeMark, reverseStatStages } from '../../phase/RemoveMarkPhase'
+import { addMark, addStatStage } from '../../phase/AddMarkPhase'
 import {
-  DamagePhase,
+  dealDamage,
   setEffectHp,
   assertEvaluationOperation,
   damageRuleId,
@@ -39,7 +41,7 @@ import {
 } from '../../context'
 import { Pet } from '../../pet'
 import { Player } from '../../player'
-import { RagePhase } from '../../phase/rage'
+import { changeRage } from '../../phase/rage'
 import { BaseSkill, SkillInstance } from '../../skill'
 import { BaseMark, BaseStatLevelMark, MarkInstanceImpl, type MarkInstance } from '../../mark'
 import { defineNativeEffect } from '../../content/native-effect'
@@ -990,10 +992,8 @@ const operatorFactories: typeof C.ops = {
   setRage: amount =>
     numeric(amount, (ctx, target, n) => {
       const source = engine(ctx)
-      const phase = new RagePhase(
-        new RageContext(source, target instanceof Player ? target : target.owner!, 'effect', 'setting', n),
-      )
-      source.battle.phaseManager.run(phase)
+      const player = target instanceof Player ? target : target.owner
+      if (player) changeRage(new RageContext(source, player, 'effect', 'setting', n))
     }),
   setIgnoreShield: () => (ctx, selected) => {
     for (const event of selected) if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle skill context')
@@ -1038,9 +1038,7 @@ const operatorFactories: typeof C.ops = {
           throw new Error('Expected finite numeric input')
       for (const target of selected) {
         validate(target)
-        target.addMark(
-          new AddMarkContext(source, target, base, count as number | undefined, turns as number | undefined),
-        )
+        addMark(new AddMarkContext(source, target, base, count as number | undefined, turns as number | undefined))
       }
     }
   },
@@ -1162,7 +1160,7 @@ const operatorFactories: typeof C.ops = {
     if (player.currentRage <= 0) return
     if (!Number.isFinite(player.maxRage * factor)) throw new Error('Rage damage bonus must be finite')
     const payment = new RageContext(frame, player, 'effect', 'reduce', player.currentRage)
-    player.addRage(payment)
+    changeRage(payment)
     if (payment.rageSpent > 0) {
       cast.paidDamageBonuses.push({ sourceId: damageRuleId(frame), delta: Math.floor(payment.rageSpent * factor) })
     }
@@ -1207,7 +1205,7 @@ const operatorFactories: typeof C.ops = {
   heal: amount =>
     numeric(amount, (ctx, pet, n) => {
       const source = engine(ctx)
-      pet.heal(new HealContext(source, source.source, pet, n))
+      heal(new HealContext(source, source.source, pet, n))
     }),
   dealDamage: (amount, options = {}) => {
     const { damageType = DamageType.Effect, element, policy = {} } = options
@@ -1220,18 +1218,20 @@ const operatorFactories: typeof C.ops = {
     const proposal = { damageType, element, policy: { ...policy } }
     return numeric(amount, (ctx, pet, n) => {
       const source = engine(ctx)
-      source.battle.phaseManager.run(new DamagePhase(DamageContext.fromEffect(source, pet, n, proposal)))
+      dealDamage(DamageContext.fromEffect(source, pet, n, proposal))
     })
   },
   addRage: amount =>
     numeric(amount, (ctx, target, n) => {
       const source = engine(ctx)
-      target.addRage(new RageContext(source, target instanceof Player ? target : target.owner!, 'effect', 'add', n))
+      const player = target instanceof Player ? target : target.owner
+      if (player) changeRage(new RageContext(source, player, 'effect', 'add', n))
     }),
   reduceRage: amount =>
     numeric(amount, (ctx, target, n) => {
       const source = engine(ctx)
-      target.addRage(new RageContext(source, target instanceof Player ? target : target.owner!, 'effect', 'reduce', n))
+      const player = target instanceof Player ? target : target.owner
+      if (player) changeRage(new RageContext(source, player, 'effect', 'reduce', n))
     }),
   removeMark: () => (ctx, selected) => {
     for (const mark of selected) if (mark.isActive) assertMarkLifecycleTarget(ctx, mark)
@@ -1239,7 +1239,7 @@ const operatorFactories: typeof C.ops = {
       if (!mark.isActive) continue
       assertMarkLifecycleTarget(ctx, mark)
       const source = engine(ctx)
-      source.battle.removeMark(new RemoveMarkContext(source, mark))
+      removeMark(new RemoveMarkContext(source, mark))
     }
   },
   refreshMarkDuration: () => (ctx, marks) => {
@@ -1296,7 +1296,7 @@ const operatorFactories: typeof C.ops = {
     const marks = read(ctx, input) as readonly MarkInstance[]
     if (!Array.isArray(marks)) throw new Error('Expected a mark list')
     for (const mark of marks) assertMarkLifecycleTarget(ctx, mark)
-    target.transferMarks(engine(ctx), ...marks)
+    transferMarks(engine(ctx), target, ...marks)
   },
   transferStatStages: (input, options = {}) => {
     const stats = [...(options.stats ?? [])] as StatTypeWithoutHp[]

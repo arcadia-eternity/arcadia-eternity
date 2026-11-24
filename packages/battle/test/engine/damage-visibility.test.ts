@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest'
 import {
+  dealDamage,
   AttackTargetOpinion,
   BattleMessageType,
   DamageContext,
@@ -22,7 +23,7 @@ it('exposes the damage trace only to the host and full-information views', async
     for (const cancelled of [false, true]) {
       const event = new DamageContext(skill, source, b.activePet, 1)
       event.available = !cancelled
-      b.activePet.damage(event)
+      dealDamage(event)
     }
     for (const type of [BattleMessageType.Damage, BattleMessageType.DamageFail] as const) {
       expect(views[0].find(m => m.type === type)?.data).toHaveProperty('result.intent.origin')

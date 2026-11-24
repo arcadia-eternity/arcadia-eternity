@@ -1,4 +1,6 @@
 import {
+  addMark,
+  consumeMarkStacks,
   AddMarkContext,
   AttackTargetOpinion,
   BattleMessageType,
@@ -201,7 +203,7 @@ function setupMarks(directory: ContentCatalog, battle: Battle) {
   pet.attributeSystem.updateBaseValue('spe', 300)
   const context = new EffectContext(new TurnContext(battle), EffectTrigger.TurnStart, pet.skills[0])
   for (const index of [0, 1])
-    battle.addMark(new AddMarkContext(context, pet, directory.getMark(`demo/mark-${index}` as baseMarkId), 1))
+    addMark(new AddMarkContext(context, pet, directory.getMark(`demo/mark-${index}` as baseMarkId), 1))
   same(pet.stat.spe, 286, 'Two native marks each install their own parameter and stack bindings')
   setAmount(directory, battle, 'petMark', 0, -5)
   same(pet.stat.spe, 284, 'Only the first native mark follows the changed parameter')
@@ -230,7 +232,11 @@ function continueProbe(directory: ContentCatalog, battle: Battle, mode: Mode, ma
   same(heals, [12, 20, 14, 20], 'Behavior order and independent values')
   if (marks) {
     const first = pet.marks.find(mark => mark.baseId === 'demo/mark-0')!
-    first.consumeStack(new EffectContext(new TurnContext(battle), EffectTrigger.TurnStart, pet.skills[0]), first.stack)
+    consumeMarkStacks(
+      new EffectContext(new TurnContext(battle), EffectTrigger.TurnStart, pet.skills[0]),
+      first,
+      first.stack,
+    )
     require(!pet.marks.some(mark => mark.baseId === 'demo/mark-0'), 'First mark removed')
     require(pet.marks.some(mark => mark.baseId === 'demo/mark-1'), 'Second mark retained')
     same(pet.stat.spe, 291, 'Removing one mark removes only its contributions')

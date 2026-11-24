@@ -1,4 +1,5 @@
 import {
+  dealDamage,
   BattleStartPhase,
   DamageContext,
   executeTurnOperation,
@@ -29,7 +30,7 @@ export function strike(battle: Battle, attacker: Pet, target: Pet, amount: numbe
   const skill = attacker.skills[0]!
   const cast = new UseSkillContext(new TurnContext(battle), attacker.owner!, attacker, skill.target, skill)
   const damage = new DamageContext(cast, skill, target, amount, type)
-  target.damage(damage)
+  dealDamage(damage)
   return damage.result!
 }
 

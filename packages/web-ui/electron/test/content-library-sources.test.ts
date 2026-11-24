@@ -87,7 +87,7 @@ async function contentPackage(root, name, version = '1.0.0') {
         namespace,
         content: 'content.json',
         effectArtifact: 'effect.json',
-        sdkApi: 2,
+        sdkApi: 3,
       },
     }),
   )
@@ -100,7 +100,7 @@ async function contentPackage(root, name, version = '1.0.0') {
     JSON.stringify({
       format: 'arcadia.effect-module',
       version: 1,
-      sdkApi: 2,
+      sdkApi: 3,
       packageId: name,
       source:
         'globalThis.__arcadiaLibrarySourceExecuted=true; throw new Error("MUST_NOT_EXECUTE"); export function createEffects(){return []}',
@@ -599,7 +599,7 @@ test('public release URL uses the library review and requests execution only for
   await assert.rejects(f.library.installRemote(source), { name: 'AbortError' })
   assert.equal((await f.library.list()).packages.length, 0)
   assert.equal(reviews[0].name, f.source.name)
-  assert.equal(reviews[0].sdkApi, 2)
+  assert.equal(reviews[0].sdkApi, 3)
   install = true
   const id = await f.library.installRemote(source)
   const entry = (await f.library.list()).packages.find(pkg => pkg.id === id)

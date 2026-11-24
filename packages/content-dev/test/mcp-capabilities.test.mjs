@@ -19,7 +19,7 @@ async function fixture(t) {
   const json = (file, value) => writeFile(join(root, file), JSON.stringify(value))
   await json('package.json', {
     name: 'mcp-capabilities',
-    arcadia: { projectId: 'capabilities', namespace: 'capabilities', sdkApi: 2 },
+    arcadia: { projectId: 'capabilities', namespace: 'capabilities', sdkApi: 3 },
   })
   await json('data/skills/hit.json', { id: 'hit', power: 40 })
   await json('locales/zh-CN/skill.json', { hit: { name: '测试攻击' }, second: { name: '第二项' } })

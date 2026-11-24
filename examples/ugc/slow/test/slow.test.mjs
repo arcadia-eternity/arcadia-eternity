@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
+  removeMark,
   AttackTargetOpinion,
   BattleMessageType,
   EffectTrigger,
@@ -161,7 +162,7 @@ test(
       }
       assert.equal(b.activePet.stat.spe, speed, 'natural expiry restores speed')
       battle.applyEffects(attack(), EffectTrigger.OnHit)
-      battle.removeMark(new RemoveMarkContext(turn(), b.activePet.marks[0]))
+      removeMark(new RemoveMarkContext(turn(), b.activePet.marks[0]))
       assert.equal(b.activePet.stat.spe, speed, 'removing the source restores speed')
     } finally {
       await battle?.cleanup()

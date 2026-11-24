@@ -68,7 +68,7 @@ async function capture(icon?: string) {
       artifact: {
         format: 'arcadia.effect-module',
         version: 1,
-        sdkApi: 2,
+        sdkApi: 3,
         packageId: '@arcadia-eternity/data-pack-base',
         source: 'globalThis.__personalSourceEvaluated = true; export function createEffects() { return [] }',
       },

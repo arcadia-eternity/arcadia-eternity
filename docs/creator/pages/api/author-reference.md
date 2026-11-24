@@ -11,7 +11,7 @@
 | `topic`  | 查 SDK 符号时可省略，或填 `sdk`。用 `tutorials` 找实作，用 `species`、`skills`、`marks`、`effects`、`team`、`environment` 查机制，用 `mcp` 查工具。 |
 | `symbol` | 可选，区分大小写。省略时读取主题；填写后返回该符号所在的参考页。                                                                                    |
 
-SDK 查询返回 `parent`、`fields`、`methods` 和 `example`（触发器），以及声明位置、签名和相关符号。以命中为例，先查 `EffectTrigger.OnHit`，再查 `UseSkillContext.actualTarget` 和 `Pet.addMark`，就能确认实际目标需要判空，并取得加印记的方法签名。[浏览命中事件](/sdk/triggers/OnHit)
+SDK 查询返回 `parent`、`fields`、`methods` 和 `example`（触发器），以及声明位置、签名和相关符号。以命中为例，先查 `EffectTrigger.OnHit`，再查 `UseSkillContext.actualTarget` 和 `addMark`，就能确认实际目标需要判空，并取得加印记的方法签名。[浏览命中事件](/sdk/triggers/OnHit)
 
 只记得名字的一部分时传 `{"query":"addMark"}`。结果按符号名排序，最多返回 50 个；用 `nextOffset` 的值作为下一次请求的 `offset`，直到返回 `null`。用 `{"topic":"sdk"}` 从第一个符号开始浏览。
 

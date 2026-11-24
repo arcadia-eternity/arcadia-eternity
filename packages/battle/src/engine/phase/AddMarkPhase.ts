@@ -1,3 +1,4 @@
+import { removeMark } from './RemoveMarkPhase'
 import { DurationType, Modifier } from '../attributeSystem'
 import type { DeferredDamage } from './skill'
 import { markParameterContract, normalizeMarkInstanceParams, sameMarkInstanceParams } from '../content/mark-parameters'
@@ -20,7 +21,12 @@ import { Pet } from '../pet'
 import { ContextPhase } from './base'
 import { MarkStackPhase } from './MarkStackPhase'
 
-export class AddMarkPhase extends ContextPhase<AddMarkContext> {
+export function addMark(context: AddMarkContext) {
+  context.battle.phaseManager.run(new AddMarkPhase(context))
+  return context.result
+}
+
+class AddMarkPhase extends ContextPhase<AddMarkContext> {
   protected executeOperation(): void {
     const context = this.event
     const battle = this.battle
@@ -53,7 +59,7 @@ export class AddMarkPhase extends ContextPhase<AddMarkContext> {
       // Remove all conflicting marks using RemoveMarkPhase
       existingMarks.forEach(mark => {
         const removeMarkContext = new RemoveMarkContext(context, mark)
-        battle.removeMark(removeMarkContext)
+        removeMark(removeMarkContext)
       })
     }
 
@@ -151,7 +157,7 @@ export function addStatStage(
   stat: StatTypeWithoutHp,
   level: number,
 ): void {
-  context.battle.addMark(new AddMarkContext(context, target, CreateStatStageMark(stat, level), level))
+  addMark(new AddMarkContext(context, target, CreateStatStageMark(stat, level), level))
 }
 
 export function bindStatStage(mark: StatLevelMarkInstanceImpl, owner: Pet): void {

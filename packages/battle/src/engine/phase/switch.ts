@@ -1,3 +1,4 @@
+import { changeRage } from './rage'
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
 import { ContextPhase } from './base'
 import { SwitchPetContext, TurnContext, RageContext } from '../context'
@@ -50,7 +51,7 @@ export class SwitchPetPhase extends ContextPhase<SwitchPetContext> {
     const loss = player.currentRage - Math.floor(player.currentRage * 0.8)
     if (loss > 0) {
       // Preserve the exact old balance even if a prior effect assigned fractional rage.
-      player.addRage(new RageContext(context, player, 'switch', 'reduce', loss, false, [0, 0], 'none'))
+      changeRage(new RageContext(context, player, 'switch', 'reduce', loss, false, [0, 0], 'none'))
     }
   }
 }

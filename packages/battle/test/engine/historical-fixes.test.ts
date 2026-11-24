@@ -1,5 +1,8 @@
 import { addStatStage } from '../../src/engine/phase/AddMarkPhase'
 import {
+  changeRage,
+  dealDamage,
+  heal,
   BaseSkill,
   DamageContext,
   DamageType,
@@ -44,7 +47,7 @@ it('does not heal a benched pet just because isActive is a function', () => {
   const { a, battle } = fixture(),
     pet = a.team[1]
   pet.currentHp = 10
-  pet.heal(new HealContext(context(battle), a.activePet.skills[0], pet, 20))
+  heal(new HealContext(context(battle), a.activePet.skills[0], pet, 20))
   expect(pet.currentHp).toBe(10)
 })
 it('gives a default Builder one hit and 100 percent accuracy', () => {
@@ -96,7 +99,7 @@ it('sets rejected damage to zero and retains the caller context', () => {
   )
   const ctx = new DamageContext(context(battle), b.activePet, a.activePet, 30, DamageType.Physical)
   const hp = a.activePet.currentHp
-  a.activePet.damage(ctx)
+  dealDamage(ctx)
   expect(a.activePet.currentHp).toBe(hp)
   expect(ctx.available).toBe(false)
   expect(ctx.damageResult).toBe(0)
@@ -114,7 +117,7 @@ it('honors a denied rage gain and returns its outcome in the caller context', ()
     ),
   )
   const ctx = new RageContext(new TurnContext(battle), a, 'effect', 'add', 10)
-  a.addRage(ctx)
+  changeRage(ctx)
   expect(a.currentRage).toBe(20)
   expect(ctx.available).toBe(false)
   expect(ctx.rageChangeResult).toBe(0)

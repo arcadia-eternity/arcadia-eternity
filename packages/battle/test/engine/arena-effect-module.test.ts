@@ -16,7 +16,7 @@ afterEach(async () => {
 const artifact = (source: string): EffectModuleArtifact => ({
   format: 'arcadia.effect-module',
   version: 1,
-  sdkApi: 2,
+  sdkApi: 3,
   packageId: 'test',
   source,
 })
@@ -25,10 +25,14 @@ async function prepare(source: string, policy: SandboxPolicy = sandboxPolicy) {
   modules.push(module)
   return module
 }
-function compile(module: ArenaEffectModule) {
+function compile(module: ArenaEffectModule, marks: sdk.BaseMark[] = []) {
   const f = makeScenario()
   battles.push(f.battle)
-  const exports = module.createEffects({ sdk, marks: new Map(), id: id => `test:${id}` })
+  const exports = module.createEffects({
+    sdk,
+    marks: new Map(marks.map(mark => [mark.id, mark])),
+    id: id => `test:${id}`,
+  })
   const result = compileBehaviorUse(
     sdk.codeEffectDefinition(exports[0]),
     { useId: 'one', definitionId: exports[0].id },
@@ -113,7 +117,7 @@ it('reads current domain state independently on each callback', async () => {
         apply(ctx){
           const pet=ctx.source.owner;
           if(pet!==ctx.source.owner)throw Error('identity');
-          pet.heal(new sdk.HealContext(ctx,ctx.source,pet,pet.currentHp / 10));
+          sdk.heal(new sdk.HealContext(ctx,ctx.source,pet,pet.currentHp / 10));
         }
       })];
     }`)
@@ -131,13 +135,53 @@ it('uses native SDK healing and the battle RNG through scoped domain capabilitie
   const module = await prepare(`export function createEffects({sdk,id}){
     return [sdk.defineCodeEffect({id:id('native-heal'),sourceKind:'skill',triggers:[sdk.EffectTrigger.TurnEnd],
       apply(ctx){const pet=ctx.source.owner;if(pet instanceof sdk.Pet)
-        pet.heal(new sdk.HealContext(ctx,ctx.source,pet,ctx.battle.randomInt(3,3)));
+        sdk.heal(new sdk.HealContext(ctx,ctx.source,pet,ctx.battle.randomInt(3,3)));
       }})]
   }`)
   const f = compile(module)
   f.a.activePet.currentHp = 40
   applyEffect(f.effect, f.ctx)
   expect(f.a.activePet.currentHp).toBe(43)
+})
+it('resolves damage and the mark lifecycle through the injected phase functions', async () => {
+  const base = new sdk.BaseMark('test:stack' as sdk.baseMarkId, [])
+  const module = await prepare(`export function createEffects({sdk,id,marks}) {
+    const base = marks.get(id('stack'));
+    return [sdk.defineCodeEffect({id:id('phases'),sourceKind:'skill',triggers:[sdk.EffectTrigger.TurnEnd],
+      apply(ctx) {
+        const pet = ctx.source.owner;
+        sdk.dealDamage(new sdk.DamageContext(ctx, ctx.source, pet, 5));
+        sdk.addMark(new sdk.AddMarkContext(ctx, pet, base));
+        const mark = pet.marks.find(mark => mark.base === base);
+        sdk.transferMarks(ctx, pet.owner.team[1], mark);
+        if (mark.owner !== pet.owner.team[1]) throw Error('Transfer failed');
+        if (sdk.consumeMarkStacks(ctx, mark, 1) !== 1 || mark.isActive) throw Error('Consumption failed');
+        sdk.addMark(new sdk.AddMarkContext(ctx, ctx.battle, base));
+        sdk.removeMark(new sdk.RemoveMarkContext(ctx, ctx.battle.marks.find(mark => mark.base === base)));
+      }
+    })];
+  }`)
+  const f = compile(module, [base])
+  const pet = f.a.activePet
+  const hp = pet.currentHp
+  applyEffect(f.effect, f.ctx)
+  expect(pet.currentHp).toBe(hp - 5)
+  for (const owner of [f.battle, ...f.a.team]) expect(owner.marks.some(mark => mark.base === base)).toBe(false)
+})
+it('accepts a damage proposal only once per invocation', async () => {
+  const module = await prepare(`export function createEffects({sdk,id}) {
+    return [sdk.defineCodeEffect({id:id('damage'),sourceKind:'skill',triggers:[sdk.EffectTrigger.TurnEnd],
+      apply(ctx) {
+        const event = new sdk.DamageContext(ctx, ctx.source, ctx.source.owner, 5);
+        sdk.dealDamage(event);
+        sdk.dealDamage(event);
+      }
+    })];
+  }`)
+  const f = compile(module)
+  const hp = f.a.activePet.currentHp
+  expect(() => applyEffect(f.effect, f.ctx)).toThrow(/current proposal/)
+  expect(f.a.activePet.currentHp).toBe(hp - 5)
 })
 it('latches denied writes even if author code catches the exception', async () => {
   const module = await prepare(`export function createEffects({sdk,id}){return [sdk.defineCodeEffect({id:id('write'),
@@ -203,7 +247,7 @@ it('reduces rage through the native context and dispatches loss events', async (
       apply(ctx) {
         const pet = ctx.source.owner;
         if (pet instanceof sdk.Pet && pet.owner) {
-          pet.addRage(new sdk.RageContext(ctx, pet.owner, 'effect', 'reduce', 12));
+          sdk.changeRage(new sdk.RageContext(ctx, pet.owner, 'effect', 'reduce', 12));
         }
       }
     })];
@@ -236,8 +280,8 @@ function injectedSdkTypeContract(
   void injected.projectValue
   if (candidate instanceof injected.Pet) {
     const pet: sdk.Pet = candidate
-    // @ts-expect-error Rage loss uses addRage with a reduce context.
-    pet.reduceRage()
+    // @ts-expect-error Rage changes are submitted through the phase function.
+    void pet.addRage
   }
   injected.defineCodeEffect({
     id: 'test:rage',
@@ -246,7 +290,7 @@ function injectedSdkTypeContract(
     apply(ctx) {
       const pet = ctx.source.owner
       if (pet instanceof injected.Pet && pet.owner)
-        pet.addRage(new injected.RageContext(ctx, pet.owner, 'effect', 'reduce', 12))
+        injected.changeRage(new injected.RageContext(ctx, pet.owner, 'effect', 'reduce', 12))
     },
   })
   new injected.ParameterCatalog([])

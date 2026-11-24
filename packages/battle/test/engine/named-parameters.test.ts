@@ -12,6 +12,7 @@ import {
 } from '../../../../packs/base/src/effects/named-parameters.effect'
 import { officialRageCandidate } from '../../../../packs/base/src/effects/rage.effect'
 import {
+  removeMark,
   AddMarkContext,
   AttackTargetOpinion,
   BaseMark,
@@ -86,7 +87,7 @@ it('the rage consumer reads the modified canonical parameter and returns to base
   a.currentRage = 0
   battle.applyEffects(use, EffectTrigger.OnHit, skill)
   expect(a.currentRage).toBe(25)
-  battle.removeMark(new RemoveMarkContext(new EffectContext(use, EffectTrigger.OnHit, skill), mark))
+  removeMark(new RemoveMarkContext(new EffectContext(use, EffectTrigger.OnHit, skill), mark))
   a.currentRage = 0
   battle.applyEffects(use, EffectTrigger.OnHit, skill)
   expect(a.currentRage).toBe(20)
@@ -126,7 +127,7 @@ it('a captured parameter factor stays captured while its mark stack follows; new
   }
   const first = apply()
   expect(pet.stat.critRate).toBe(initial + 25)
-  battle.removeMark(new RemoveMarkContext(context, emblem))
+  removeMark(new RemoveMarkContext(context, emblem))
   expect(
     catalog.read(
       battle.configSystem,
