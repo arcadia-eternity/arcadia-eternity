@@ -342,7 +342,7 @@ describe('official damage rules', () => {
 
 function rageSkillFixture(hits = 1) {
   const fixtureState = fixture()
-  const { battle, attacker, defender, skill, use } = fixtureState
+  const { battle, defender, skill, use } = fixtureState
   const player = battle.playerA
   const effect = generatedVitalSequences.effect_skill_clear_rage_add_fixed_damage
   effectAuthoring.effectParameters(effect).install(battle.configSystem)
@@ -365,9 +365,8 @@ function rageSkillFixture(hits = 1) {
     }
   })
   function execute() {
-    const phase = new SkillPhase(battle, player, attacker, AttackTargetOpinion.opponent, skill, use.parent, use)
-    battle.phaseManager.registerPhase(phase)
-    battle.phaseManager.executePhase(phase.id)
+    const phase = new SkillPhase(use)
+    battle.phaseManager.run(phase)
   }
   return { ...fixtureState, player, execute, results }
 }

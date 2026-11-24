@@ -43,8 +43,7 @@ class TurnPhase extends SynchronousPhase<TurnContext> {
 }
 function run(battle: Battle, action: (phase: TurnPhase) => void) {
   const phase = new TurnPhase(battle, action)
-  battle.phaseManager.registerPhase(phase)
-  const result = battle.phaseManager.executePhase(phase.id)
+  const result = battle.phaseManager.run(phase)
   if (!result.success) throw result.error
 }
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
@@ -118,8 +117,7 @@ it('propagates failed synchronous phases instead of silently continuing Battle',
   const phase = new TurnPhase(battle, () => {
     throw new Error('phase failure')
   })
-  battle.phaseManager.registerPhase(phase)
-  expect(() => battle.phaseManager.executePhase(phase.id)).toThrow('phase failure')
+  expect(() => battle.phaseManager.run(phase)).toThrow('phase failure')
 })
 
 it('suppresses native mark effects and modifiers during Override without losing a form-causing source', () => {
@@ -168,8 +166,7 @@ it('suppresses native mark effects and modifiers during Override without losing 
   expect(pet.stat.atk).toBe(55)
   expect(battle.configSystem.get('native-config', pet)).toBe(10)
   const update = new MarkUpdatePhase(battle, new TurnContext(battle), source)
-  battle.phaseManager.registerPhase(update)
-  battle.phaseManager.executePhase(update.id)
+  battle.phaseManager.run(update)
   expect(source.isActive).toBe(false)
   expect(battle.transformationSystem.getTransformationState(pet).isTransformed).toBe(false)
   expect(pet.stat.atk).toBe(55)
@@ -177,16 +174,16 @@ it('suppresses native mark effects and modifiers during Override without losing 
   expect(fired).toBe(1)
 })
 
-it('rejects unsupported automatic retry before mutating state', () => {
+it('never replays a partially executed phase', () => {
   const { battle } = fixture()
   let writes = 0
   const phase = new TurnPhase(battle, () => {
     writes++
     throw new Error('partially mutated')
   })
-  battle.phaseManager.registerPhase(phase)
-  expect(() => battle.phaseManager.executePhase(phase.id, { retryCount: 1 })).toThrow('rollback')
-  expect(writes).toBe(0)
+  expect(() => battle.phaseManager.run(phase)).toThrow('partially mutated')
+  expect(() => battle.phaseManager.run(phase)).toThrow('already registered')
+  expect(writes).toBe(1)
 })
 
 it('publishes a phase modifier immediately when it is registered inside the bound phase', () => {

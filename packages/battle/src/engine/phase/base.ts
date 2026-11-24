@@ -366,15 +366,25 @@ export abstract class SynchronousPhase<TContext extends Context = Context> exten
   }
 }
 
+/** A synchronous phase operating on the event supplied by its caller. */
+export abstract class ContextPhase<T extends Context & { readonly battle: Battle }> extends SynchronousPhase<T> {
+  constructor(
+    protected readonly event: T,
+    id?: string,
+  ) {
+    super(event.battle, id)
+  }
+
+  protected createContext(): T {
+    return this.event
+  }
+}
+
 /**
  * Base class for phases that need to wait for external input (like player selections)
  * These phases override the base class methods to support asynchronous operations
  */
 export abstract class InteractivePhase<TContext extends Context = Context> extends BattlePhaseBase<TContext> {
-  protected waitingForInput: boolean = false
-  protected inputResolver?: (value: any) => void
-  protected inputRejecter?: (reason: any) => void
-
   /**
    * Abstract method to execute the core operation logic asynchronously
    */
@@ -460,10 +470,6 @@ export abstract class InteractivePhase<TContext extends Context = Context> exten
       state: this.state,
     }
 
-    if (this.waitingForInput) {
-      this.rejectInput(new Error('Phase cancelled'))
-    }
-
     await this.onCancelAsync()
   }
 
@@ -477,40 +483,5 @@ export abstract class InteractivePhase<TContext extends Context = Context> exten
 
     await this.onCleanupAsync()
     this._context = undefined
-  }
-
-  /**
-   * Wait for external input
-   */
-  protected async waitForInput<T = any>(): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      this.waitingForInput = true
-      this.inputResolver = resolve
-      this.inputRejecter = reject
-    })
-  }
-
-  /**
-   * Provide input to resolve waiting
-   */
-  public provideInput<T = any>(input: T): void {
-    if (this.waitingForInput && this.inputResolver) {
-      this.waitingForInput = false
-      this.inputResolver(input)
-      this.inputResolver = undefined
-      this.inputRejecter = undefined
-    }
-  }
-
-  /**
-   * Reject waiting input
-   */
-  public rejectInput(reason: any): void {
-    if (this.waitingForInput && this.inputRejecter) {
-      this.waitingForInput = false
-      this.inputRejecter(reason)
-      this.inputResolver = undefined
-      this.inputRejecter = undefined
-    }
   }
 }

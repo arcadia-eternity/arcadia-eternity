@@ -1,6 +1,6 @@
 import { BattleMessageType, type SwitchPetSelection } from '@arcadia-eternity/const'
 import { InteractivePhase } from './base'
-import { Context } from '../context'
+import { SwitchPetContext, Context } from '../context'
 import { SwitchPetPhase } from './switch'
 import type { Battle } from '../battle'
 
@@ -120,9 +120,7 @@ export class BattleSwitchPhase extends InteractivePhase<BattleSwitchContext> {
     for (const player of playersNeedingSwitch) {
       if (player.selection?.type === 'switch-pet') {
         const selectionPet = this.battle.getPetByID((player.selection as SwitchPetSelection).pet)
-        const switchPhase = new SwitchPetPhase(this.battle, player, selectionPet, this)
-        this.battle.phaseManager.registerPhase(switchPhase)
-        await this.battle.phaseManager.executePhase(switchPhase.id)
+        this.battle.phaseManager.run(new SwitchPetPhase(new SwitchPetContext(this.battle, player, selectionPet)))
       }
       player.selection = null
       // 通知TimerManager选择状态已清理

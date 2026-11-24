@@ -10,16 +10,9 @@ import { BaseSkill, SkillInstance } from './skill'
 import { type MarkInstance, BaseMark, BaseStatLevelMark, MarkInstanceImpl, StatLevelMarkInstanceImpl } from './mark'
 import { Effect } from './effect'
 import {
-  ComposableAttributeSystem,
-  type StatLevelMarkAttributeSet,
-  type SkillAttributeSet,
-  type RageAttributeSet,
   AttributeSystem,
   PetAttributeSystem,
   PlayerAttributeSystem,
-  MarkAttributeSystem,
-  SkillAttributeSystem,
-  createStatLevelMarkAttributeSystem,
   Modifier,
   type AttributeData,
 } from './attributeSystem'
@@ -191,9 +184,6 @@ const attributeTypes = {
   AttributeSystem,
   PetAttributeSystem,
   PlayerAttributeSystem,
-  MarkAttributeSystem,
-  SkillAttributeSystem,
-  ComposableAttributeSystem,
 }
 function attributeTag(value: object): string {
   const entry = Object.entries(attributeTypes).find(([, ctor]) => Object.getPrototypeOf(value) === ctor.prototype)
@@ -323,7 +313,7 @@ const ledger = {
     ctor: StatLevelMarkInstanceImpl,
     fields:
       'base deferredDamage instanceParams suppression owner id effects temporaryEffects config tags attributeSystem attributeModifierCleanups modifierCleanupFn statLevelAttributeSystem stageMultiplier$',
-    runtime: 'emitter levelAccessors',
+    runtime: 'emitter',
   },
   BaseSkill: {
     ctor: BaseSkill,
@@ -448,7 +438,6 @@ export function snapshotBattle(
         throw new Error('Cross-Battle attribute reference cannot be snapshotted')
       write('attribute', {
         type: attributeTag(value),
-        accessors: value instanceof ComposableAttributeSystem ? Object.keys(value.getAccessors()).join('|') : '',
         state: value.exportSnapshotState(),
       })
     } else if (value instanceof ConfigSystem) {
@@ -599,26 +588,13 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
             const type = node.fields.type as string
             if (type === 'PetAttributeSystem') object = new PetAttributeSystem()
             else if (type === 'PlayerAttributeSystem') object = new PlayerAttributeSystem()
-            else if (type === 'MarkAttributeSystem') {
-              const mark = new MarkAttributeSystem()
-              mark.initializeMarkAttributes(0, 0)
-              object = mark
-            } else if (type === 'SkillAttributeSystem') {
-              const skill = new SkillAttributeSystem()
-              skill.initializeSkillAttributes(0, 0, 0, 0)
-              object = skill
-            } else if (type === 'ComposableAttributeSystem') {
-              const system = new ComposableAttributeSystem<
-                StatLevelMarkAttributeSet & SkillAttributeSet & RageAttributeSet
-              >()
-              if (typeof node.fields.accessors !== 'string') throw new Error('Invalid snapshot accessors')
-              const accessors = node.fields.accessors.split('|')
-              if (accessors.includes('getDuration')) system.withBaseMarkAttributes(0, 0)
-              if (accessors.includes('getLevel')) system.withLevelAttributes(0)
-              if (accessors.includes('getPower')) system.withSkillAttributes(0, 0, 0, 0)
-              if (accessors.includes('getCurrentRage')) system.withRageAttributes(0, 0)
-              object = system
-            } else if (type === 'AttributeSystem') object = new AttributeSystem()
+            // Older snapshots identified mark, skill and composable attribute stores separately.
+            else if (
+              ['AttributeSystem', 'MarkAttributeSystem', 'SkillAttributeSystem', 'ComposableAttributeSystem'].includes(
+                type,
+              )
+            )
+              object = new AttributeSystem()
             else throw new Error(`Unsupported snapshot attribute system: ${type}`)
             break
           }
@@ -825,12 +801,6 @@ export function restoreBattle(input: unknown, catalog: SnapshotCatalog): Battle 
       } else if (object instanceof Pet || object instanceof MarkInstanceImpl) set(object, { emitter })
       if (object instanceof Pet) initializePetRelations(object)
       else if (object instanceof MarkInstanceImpl || object instanceof SkillInstance) initializeOwnerRelations(object)
-      if (object instanceof StatLevelMarkInstanceImpl)
-        set(object, {
-          levelAccessors: (
-            Reflect.get(object, 'statLevelAttributeSystem') as ReturnType<typeof createStatLevelMarkAttributeSystem>
-          ).getAccessors(),
-        })
     }
     battle.transformationSystem.restoreSnapshotState(data.transformations)
     for (const object of objects) if (object instanceof RestoredBoundValue) object.initialize()

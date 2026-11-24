@@ -286,26 +286,12 @@ export class Battle extends Context implements MarkOwner {
   }
 
   public addMark(context: AddMarkContext) {
-    const addMarkPhase = new AddMarkPhase(
-      this,
-      context.parent,
-      context.target,
-      context.baseMark,
-      context.stack,
-      context.duration,
-      context.config,
-      undefined,
-      context,
-    )
-    this.phaseManager.registerPhase(addMarkPhase)
-    this.phaseManager.executePhase(addMarkPhase.id)
+    this.phaseManager.run(new AddMarkPhase(context))
     return context.result
   }
 
   public removeMark(context: RemoveMarkContext) {
-    const removeMarkPhase = new RemoveMarkPhase(this, context.parent, context.mark, undefined, context)
-    this.phaseManager.registerPhase(removeMarkPhase)
-    this.phaseManager.executePhase(removeMarkPhase.id)
+    this.phaseManager.run(new RemoveMarkPhase(context))
   }
 
   public getOpponent(player: Player) {
@@ -351,9 +337,7 @@ export class Battle extends Context implements MarkOwner {
         ]
 
       // Use EffectExecutionPhase managed by PhaseManager
-      const effectExecutionPhase = new EffectExecutionPhase(this, context, trigger, effectContainers)
-      this.phaseManager.registerPhase(effectExecutionPhase)
-      this.phaseManager.executePhase(effectExecutionPhase.id)
+      this.phaseManager.run(new EffectExecutionPhase(this, context, trigger, effectContainers))
     })
   }
 
@@ -415,14 +399,10 @@ export class Battle extends Context implements MarkOwner {
       this.timerManager.activateRestoredState(false)
       // Phase 0: Initialize battle
       this.currentPhase = BattlePhase.StartPhase
-      const startPhase = new BattleStartPhase(this)
-      this.phaseManager.registerPhase(startPhase)
-      await this.phaseManager.executePhaseAsync(startPhase.id)
+      await this.phaseManager.runAsync(new BattleStartPhase(this))
 
       // Phase 1: Main battle loop
-      const battleLoopPhase = new BattleLoopPhase(this)
-      this.phaseManager.registerPhase(battleLoopPhase)
-      await this.phaseManager.executePhaseAsync(battleLoopPhase.id)
+      await this.phaseManager.runAsync(new BattleLoopPhase(this))
     } finally {
       // 无论成功还是失败，都要清除启动标志
       this._isStarting = false
@@ -448,8 +428,7 @@ export class Battle extends Context implements MarkOwner {
         undefined,
         this.currentPhase as BattlePhase.SelectionPhase | BattlePhase.SwitchPhase,
       )
-      this.phaseManager.registerPhase(loop)
-      await this.phaseManager.executePhaseAsync(loop.id)
+      await this.phaseManager.runAsync(loop)
     } catch (error) {
       this.assertRunning()
       throw error

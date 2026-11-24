@@ -162,28 +162,12 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
   }
 
   public damage(context: DamageContext): boolean {
-    const damagePhase = new DamagePhase(context.battle, context)
-    context.battle.phaseManager.registerPhase(damagePhase)
-    context.battle.phaseManager.executePhase(damagePhase.id)
+    context.battle.phaseManager.run(new DamagePhase(context))
     return this.isAlive
   }
 
   public heal(context: HealContext): boolean {
-    // Heal logic has been moved to HealPhase
-    // This method now delegates to the phase system
-    const healPhase = new HealPhase(
-      context.battle,
-      context.parent,
-      context.source,
-      context.target,
-      context.baseHeal,
-      context.ingoreEffect,
-      context.modified,
-      undefined,
-      context,
-    )
-    context.battle.phaseManager.registerPhase(healPhase)
-    context.battle.phaseManager.executePhase(healPhase.id)
+    context.battle.phaseManager.run(new HealPhase(context))
     return this.isAlive
   }
 
@@ -532,9 +516,7 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
 
   public transferMarks(context: SwitchPetContext | EffectContext<EffectTrigger>, ...marks: MarkInstance[]) {
     // Use MarkTransferPhase
-    const transferPhase = new MarkTransferPhase(context.battle, context, this, marks)
-    transferPhase.initialize()
-    transferPhase.execute()
+    context.battle.phaseManager.run(new MarkTransferPhase(context.battle, context, this, marks))
   }
 
   /**

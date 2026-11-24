@@ -1,9 +1,8 @@
 import { BattleMessageType, type markId } from '@arcadia-eternity/const'
-import { AddMarkContext, StackContext } from '../context'
+import { RemoveMarkContext, AddMarkContext, StackContext } from '../context'
 import type { Battle } from '../battle'
 import { Pet } from '../pet'
 import { StatLevelMarkInstanceImpl, CreateStatStageMark } from '../mark'
-import { RemoveMarkPhase } from './RemoveMarkPhase'
 
 /**
  * Handle StatLevel mark stacking with special level-based logic
@@ -21,9 +20,7 @@ export function executeStatLevelMarkStacking(
 
   // If new level is 0, destroy the mark
   if (newLevel === 0) {
-    const removePhase = new RemoveMarkPhase(battle, context, existingMark)
-    battle.phaseManager.registerPhase(removePhase)
-    battle.phaseManager.executePhase(removePhase.id)
+    battle.removeMark(new RemoveMarkContext(context, existingMark))
     return
   }
 

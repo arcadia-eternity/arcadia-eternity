@@ -98,10 +98,10 @@ it('stops a multi-hit skill after its confirmed knockout and credits the skill i
       },
     }),
   )
-  const phase = new SkillPhase(f.battle, f.a, f.actor, f.skill.target, f.skill, f.turn, use)
-  f.battle.phaseManager.registerPhase(phase)
-  expect(f.battle.phaseManager.executePhase(phase.id).success).toBe(true)
+  const phase = new SkillPhase(use)
+  expect(f.battle.phaseManager.run(phase).success).toBe(true)
   expect(f.defeated).toEqual([f.target.id])
+  expect(f.turn.appledContexts[0]).toBe(use)
   expect(use.defeated).toBe(true)
   expect(use.currentHitCount).toBe(2)
   expect(credits).toEqual([f.skill.id])
@@ -114,9 +114,8 @@ it('credits the official on-hit execution once even though the status move dealt
   const execute = ExecuteLowHealthEffects.build().effect_skill_execute_opponent_hp_under_75_hit_or_miss
   effectAuthoring.effectParameters(execute).install(f.battle.configSystem)
   f.skill.effects.push(execute)
-  const phase = new SkillPhase(f.battle, f.a, f.actor, f.skill.target, f.skill, f.turn, use)
-  f.battle.phaseManager.registerPhase(phase)
-  expect(f.battle.phaseManager.executePhase(phase.id).success).toBe(true)
+  const phase = new SkillPhase(use)
+  expect(f.battle.phaseManager.run(phase).success).toBe(true)
   expect(f.defeated).toEqual([f.target.id])
   expect(use.defeated).toBe(true)
   expect(f.battle.lastKiller).toBe(f.a)
@@ -176,9 +175,8 @@ it('does not award hit rage when a knockout before the first hit ends the attack
   f.battle.registerListener(event => {
     if (event.type === BattleMessageType.RageChange) reasons.push(event.data.reason)
   })
-  const phase = new SkillPhase(f.battle, f.a, f.actor, f.skill.target, f.skill, f.turn, use)
-  f.battle.phaseManager.registerPhase(phase)
-  expect(f.battle.phaseManager.executePhase(phase.id).success).toBe(true)
+  const phase = new SkillPhase(use)
+  expect(f.battle.phaseManager.run(phase).success).toBe(true)
   expect(f.defeated).toEqual([f.target.id])
   expect(reasons).toEqual(['skill'])
 })

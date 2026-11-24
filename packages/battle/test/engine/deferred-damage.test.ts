@@ -13,6 +13,7 @@ import {
   StackStrategy,
   SwitchPetContext,
   TurnContext,
+  TransformContext,
   TransformPhase,
   restoreBattle,
   setGlobalLogger,
@@ -166,9 +167,10 @@ it('preserves the cast skill definition if the skill instance transforms before 
       .withPower(200)
       .withTag('fixture/transformed')
       .build()
-    const phase = new TransformPhase(f.battle, f.battle, f.skill, 'skill', f.skill.base, changedSkill, 'permanent', 0)
-    f.battle.phaseManager.registerPhase(phase)
-    f.battle.phaseManager.executePhase(phase.id)
+    const phase = new TransformPhase(
+      new TransformContext(f.battle, f.skill, 'skill', f.skill.base, changedSkill, 'permanent', 0),
+    )
+    f.battle.phaseManager.run(phase)
     expect(f.skill.baseId).toBe('fixture/transformed')
   })
   expect(result.damage).toBe(baseline.damage)

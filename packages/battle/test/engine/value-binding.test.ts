@@ -1,5 +1,6 @@
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  SwitchPetContext,
   AddMarkContext,
   BaseMark,
   Effect,
@@ -39,7 +40,7 @@ function fixture() {
   return { ...f, source: f.a.activePet.marks[0] }
 }
 function switchTo(battle: Battle, player: Player, index: number) {
-  const phase = new SwitchPetPhase(battle, player, player.team[index], new TurnContext(battle))
+  const phase = new SwitchPetPhase(new SwitchPetContext(new TurnContext(battle), player, player.team[index]))
   phase.initialize()
   expect(phase.execute().success).toBe(true)
 }

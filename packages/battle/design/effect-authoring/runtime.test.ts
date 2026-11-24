@@ -294,7 +294,7 @@ it.each(['capture', 'follow'] as const)('%s opponent selection across real switc
   const initial = f.owner.stat.spe
   f.b.team[0].attributeSystem.updateBaseValue('def', 50)
   expect(f.owner.stat.spe).toBe(initial - 10)
-  const phase = new SwitchPetPhase(f.battle, f.b, f.b.team[1], new TurnContext(f.battle))
+  const phase = new SwitchPetPhase(new SwitchPetContext(new TurnContext(f.battle), f.b, f.b.team[1]))
   phase.initialize()
   expect(phase.execute().success).toBe(true)
   expect(f.owner.stat.spe).toBe(initial - (mode === 'capture' ? 10 : 40))

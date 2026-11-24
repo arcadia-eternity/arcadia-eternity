@@ -981,15 +981,9 @@ const operatorFactories: typeof C.ops = {
     numeric(amount, (ctx, target, n) => {
       const source = engine(ctx)
       const phase = new RagePhase(
-        source.battle,
-        source,
-        target instanceof Player ? target : target.owner!,
-        'effect',
-        'setting',
-        n,
+        new RageContext(source, target instanceof Player ? target : target.owner!, 'effect', 'setting', n),
       )
-      source.battle.phaseManager.registerPhase(phase)
-      source.battle.phaseManager.executePhase(phase.id)
+      source.battle.phaseManager.run(phase)
     }),
   setIgnoreShield: () => (ctx, selected) => {
     for (const event of selected) if (event.battle !== engine(ctx).battle) throw new Error('Cross-battle skill context')
@@ -1239,7 +1233,7 @@ const operatorFactories: typeof C.ops = {
     for (const mark of marks) assertMarkLifecycleTarget(ctx, mark)
     for (const mark of marks) {
       const duration = mark.config.duration
-      if (!mark.config.persistent && duration !== undefined) mark.attributeSystem.setDuration(duration)
+      if (!mark.config.persistent && duration !== undefined) mark.duration = duration
     }
   },
   addStacks: amount => numeric(amount, (_ctx, mark, n) => mark.addStack(n), assertMarkLifecycleTarget),

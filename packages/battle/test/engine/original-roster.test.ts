@@ -1,5 +1,11 @@
 import { BattleMessageType, DamageType, EffectTrigger, individualValueSpread } from '@arcadia-eternity/const'
-import { DamageContext, SwitchPetContext, TurnContext, UseSkillContext } from '@arcadia-eternity/battle/engine'
+import {
+  SwitchPetPhase,
+  DamageContext,
+  SwitchPetContext,
+  TurnContext,
+  UseSkillContext,
+} from '@arcadia-eternity/battle/engine'
 import { describe, expect, it, vi } from 'vitest'
 import { petBattle } from './original-pet-battle'
 
@@ -309,7 +315,7 @@ it.each([1, 80])('万事俱备消耗东风后仅为下一只己方诺基博回�
   ])
   const [donor, other, recipient] = owner.team
   const switchTo = (pet: typeof donor) =>
-    owner.performSwitchPet(new SwitchPetContext(new TurnContext(battle), owner, pet))
+    battle.phaseManager.run(new SwitchPetPhase(new SwitchPetContext(new TurnContext(battle), owner, pet)))
   const endTurn = () => battle.applyEffects(new TurnContext(battle), EffectTrigger.TurnEnd)
   recipient.currentHp = Math.floor((recipient.stat.maxHp * percent) / 100)
   const before = recipient.currentHp

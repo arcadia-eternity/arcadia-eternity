@@ -46,7 +46,7 @@ for (const denied of [false, true])
         },
       }),
     )
-    const phase = new SkillPhase(f.battle, f.a, f.a.activePet, AttackTargetOpinion.opponent, f.skill, f.turn, f.use)
+    const phase = new SkillPhase(f.use)
     phase.initialize()
     phase.execute()
     expect(observed).toEqual([true])
@@ -65,7 +65,7 @@ it('direct switch phase records its context before outgoing effects', () => {
       },
     }),
   )
-  const phase = new SwitchPetPhase(f.battle, f.a, f.a.team[1], f.turn, context)
+  const phase = new SwitchPetPhase(context)
   phase.initialize()
   phase.execute()
   expect(observed).toEqual([true])

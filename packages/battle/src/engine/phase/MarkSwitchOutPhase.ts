@@ -1,15 +1,9 @@
 import { EffectTrigger } from '@arcadia-eternity/const'
 import type { Battle } from '../battle'
-import type { SwitchPetContext } from '../context'
+import { RemoveMarkContext, type SwitchPetContext } from '../context'
 import type { Pet } from '../pet'
 import { SynchronousPhase } from './base'
 import { MarkTransferPhase } from './MarkTransferPhase'
-import { RemoveMarkPhase } from './RemoveMarkPhase'
-
-/**
- * MarkSwitchOutPhase handles mark switch out operations
- * Replaces MarkSystem.handleSwitchOut logic with proper phase-based execution
- */
 
 export class MarkSwitchOutPhase extends SynchronousPhase<SwitchPetContext> {
   constructor(
@@ -28,35 +22,24 @@ export class MarkSwitchOutPhase extends SynchronousPhase<SwitchPetContext> {
 
   protected executeOperation(): void {
     const context = this._context!
+    const pet = this.pet
+    const battle = this.battle
 
-    // Execute the mark switch out operation logic
-    executeMarkSwitchOutOperation(context, this.pet, this.battle)
+    battle.applyEffects(context, EffectTrigger.OnOwnerSwitchOut, ...pet.marks)
+    pet.marks = pet.marks.filter(mark => {
+      const shouldKeep = mark.config.keepOnSwitchOut ?? false
+
+      // Handle marks that need to be transferred
+      if (mark.config.transferOnSwitch && context.switchInPet) {
+        battle.phaseManager.run(new MarkTransferPhase(battle, context, context.switchInPet, [mark]))
+        // Mark should be removed from original pet after transfer
+        return false
+      } else if (!shouldKeep) {
+        battle.removeMark(new RemoveMarkContext(context, mark))
+        return false
+      }
+
+      return shouldKeep
+    })
   }
-}
-/**
- * Extracted mark switch out operation logic
- * This function contains the core mark switch out logic, replacing MarkSystem.handleSwitchOut
- */
-
-export function executeMarkSwitchOutOperation(context: SwitchPetContext, pet: Pet, battle: Battle): void {
-  battle.applyEffects(context, EffectTrigger.OnOwnerSwitchOut, ...pet.marks)
-  pet.marks = pet.marks.filter(mark => {
-    const shouldKeep = mark.config.keepOnSwitchOut ?? false
-
-    // Handle marks that need to be transferred
-    if (mark.config.transferOnSwitch && (context as any).switchInPet) {
-      const transferPhase = new MarkTransferPhase(battle, context, (context as any).switchInPet, [mark])
-      battle.phaseManager.registerPhase(transferPhase)
-      battle.phaseManager.executePhase(transferPhase.id)
-      // Mark should be removed from original pet after transfer
-      return false
-    } else if (!shouldKeep) {
-      const removePhase = new RemoveMarkPhase(battle, context, mark)
-      battle.phaseManager.registerPhase(removePhase)
-      battle.phaseManager.executePhase(removePhase.id)
-      return false
-    }
-
-    return shouldKeep
-  })
 }

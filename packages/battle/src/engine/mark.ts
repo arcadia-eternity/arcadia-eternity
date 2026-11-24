@@ -21,14 +21,7 @@ import { Effect, type EffectContainer, type TemporaryEffect } from './effect'
 import { type Instance, type MarkOwner, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
 import type { Emitter } from 'mitt'
-import {
-  Modifier,
-  DurationType,
-  MarkAttributeSystem,
-  createStatLevelMarkAttributeSystem,
-  type BaseMarkAccessors,
-  type LevelAccessors,
-} from './attributeSystem'
+import { Modifier, DurationType, AttributeSystem, type MarkAttributes, type LevelAttributes } from './attributeSystem'
 import { Signal, projectValue, type ReactiveValue } from './reactiveValue'
 
 export interface IBaseMark extends Prototype {
@@ -81,10 +74,8 @@ export interface MarkInstance extends EffectContainer, OwnedEntity<Pet | Battle 
   deferredDamage?: DeferredDamage
   readonly instanceParams: MarkInstanceParams | undefined
   readonly base: BaseMark
-  readonly attributeSystem: MarkAttributeSystem
+  readonly attributeSystem: AttributeSystem<MarkAttributes>
 
-  // Compatibility properties
-  _stack: number
   duration: number
   isActive: boolean
 
@@ -145,7 +136,7 @@ export class MarkInstanceImpl implements MarkInstance {
   public emitter?: Emitter<Events>
 
   // Attribute system for managing mark parameters
-  public readonly attributeSystem: MarkAttributeSystem
+  public readonly attributeSystem: AttributeSystem<MarkAttributes>
 
   // Store cleanup functions for attribute modifiers
   private attributeModifierCleanups: (() => void)[] = []
@@ -173,14 +164,16 @@ export class MarkInstanceImpl implements MarkInstance {
     }
 
     // Initialize attribute system with mark ID (battleId will be set later in setOwner)
-    this.attributeSystem = new MarkAttributeSystem()
+    this.attributeSystem = new AttributeSystem<MarkAttributes>()
 
     // Initialize attribute system with mark parameters
     const duration = overrides?.duration ?? mergedConfig.duration ?? base.config.duration ?? 3
     const finalDuration = mergedConfig.persistent ? -1 : duration
     const stack = overrides?.stack ?? base.config.maxStacks ?? 1
 
-    this.attributeSystem.initializeMarkAttributes(finalDuration, stack, true)
+    this.attributeSystem.registerBaseAttribute('duration', finalDuration)
+    this.attributeSystem.registerBaseAttribute('stack', stack)
+    this.attributeSystem.registerBaseAttribute('isActive', true)
 
     this.config = mergedConfig
     this.tags = [...base.tags, ...(overrides?.tags || [])]
@@ -189,37 +182,28 @@ export class MarkInstanceImpl implements MarkInstance {
     this.config.isShield = mergedConfig.isShield ?? false
   }
 
-  // Compatibility properties using AttributeSystem
-  get _stack(): number {
-    return this.attributeSystem.getStack()
-  }
-
-  set _stack(value: number) {
-    this.attributeSystem.setStack(value)
-  }
-
   get stack(): number {
-    return this.attributeSystem.getStack()
+    return this.attributeSystem.getCurrentValue('stack') as number
   }
 
   set stack(value: number) {
-    this.attributeSystem.setStack(value)
+    this.attributeSystem.updateBaseValue('stack', Math.max(0, value))
   }
 
   get duration(): number {
-    return this.attributeSystem.getDuration()
+    return this.attributeSystem.getCurrentValue('duration') as number
   }
 
   set duration(value: number) {
-    this.attributeSystem.setDuration(value)
+    this.attributeSystem.updateBaseValue('duration', value)
   }
 
   get isActive(): boolean {
-    return this.attributeSystem.getIsActive()
+    return this.attributeSystem.getCurrentValue('isActive') as boolean
   }
 
   set isActive(value: boolean) {
-    this.attributeSystem.setIsActive(value)
+    this.attributeSystem.updateBaseValue('isActive', value)
   }
 
   get baseId(): baseMarkId {
@@ -277,8 +261,7 @@ export class MarkInstanceImpl implements MarkInstance {
   consumeStack(context: EffectContext<EffectTrigger> | DamageContext, amount: number): number {
     // Use ConsumeStackPhase for unified stack consumption
     const consumePhase = new ConsumeStackPhase(context.battle, context, this, amount)
-    context.battle.phaseManager.registerPhase(consumePhase)
-    const result = context.battle.phaseManager.executePhase(consumePhase.id)
+    const result = context.battle.phaseManager.run(consumePhase)
 
     if (result.success && consumePhase.context) {
       return consumePhase.context.actualAmount
@@ -376,8 +359,7 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
   private modifierCleanupFn?: () => void
 
   // 使用组合的方式管理attributeSystem，专门用于StatLevel相关的属性
-  private statLevelAttributeSystem: ReturnType<typeof createStatLevelMarkAttributeSystem>
-  private levelAccessors: BaseMarkAccessors & LevelAccessors
+  private readonly statLevelAttributeSystem = new AttributeSystem<LevelAttributes>()
 
   // 使用computed创建自动计算的stage multiplier，基于attributeSystem的level
   private stageMultiplier$: ReactiveValue<number>
@@ -388,18 +370,7 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
   ) {
     super(base, { id })
 
-    // 创建专门的attributeSystem实例用于管理StatLevel属性
-    // 使用父类的属性值，避免循环依赖
-    this.statLevelAttributeSystem = createStatLevelMarkAttributeSystem(
-      super.duration, // 使用父类的duration
-      super.stack, // 使用父类的stack
-      super.isActive, // 使用父类的isActive
-      base.initialLevel,
-    )
-
-    // Cache the accessors for type safety
-    this.levelAccessors = this.statLevelAttributeSystem.getAccessors() as BaseMarkAccessors & LevelAccessors
-
+    this.statLevelAttributeSystem.registerBaseAttribute('level', base.initialLevel)
     // 创建基于attributeSystem level的computed Observable
     this.stageMultiplier$ = projectValue(this.statLevelAttributeSystem.getAttribute$('level'), 'stage')
   }
@@ -411,11 +382,11 @@ export class StatLevelMarkInstanceImpl extends MarkInstanceImpl implements MarkI
 
   // level的getter和setter，操作attributeSystem
   get level(): number {
-    return this.levelAccessors.getLevel()
+    return this.statLevelAttributeSystem.getCurrentValue('level') as number
   }
 
   set level(value: number) {
-    this.levelAccessors.setLevel(value)
+    this.statLevelAttributeSystem.updateBaseValue('level', value)
   }
 
   get statType() {

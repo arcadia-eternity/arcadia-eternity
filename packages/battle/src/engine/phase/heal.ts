@@ -1,54 +1,18 @@
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
-import { SynchronousPhase } from './base'
+import { ContextPhase } from './base'
 import { HealContext } from '../context'
 import type { Battle } from '../battle'
-import type { Pet } from '../pet'
-import type { MarkInstance } from '../mark'
-import type { SkillInstance } from '../skill'
 
-/**
- * HealPhase handles healing operations
- * Corresponds to HealContext and replaces healing logic
- */
-export class HealPhase extends SynchronousPhase<HealContext> {
-  constructor(
-    battle: Battle,
-    private readonly parentContext: any, // EffectContext
-    private readonly source: MarkInstance | SkillInstance,
-    private readonly target: Pet,
-    private readonly value: number,
-    private readonly ignoreEffect: boolean = false,
-    private readonly modified: [number, number] = [0, 0],
-    id?: string,
-    private readonly existingContext?: HealContext,
-  ) {
-    super(battle, id)
-  }
-
-  protected createContext(): HealContext {
-    return (
-      this.existingContext ??
-      new HealContext(this.parentContext, this.source, this.target, this.value, this.ignoreEffect, this.modified)
-    )
-  }
-
+export class HealPhase extends ContextPhase<HealContext> {
   protected executeOperation(): void {
-    const context = this._context!
+    const context = this.event
+    const battle = this.battle
 
-    // Execute the heal operation logic (extracted from Pet.heal)
-    executeHealOperation(context, this.battle)
+    const hp = prepareHeal(context, battle)
+    if (hp === undefined) return
+    context.target.currentHp = hp
+    notifyHeal(context, battle)
   }
-}
-
-/**
- * Extracted heal operation logic from Pet.heal
- * This function contains the core healing logic
- */
-export function executeHealOperation(context: HealContext, battle: Battle): void {
-  const hp = prepareHeal(context, battle)
-  if (hp === undefined) return
-  context.target.currentHp = hp
-  notifyHeal(context, battle)
 }
 
 export function prepareHeal(context: HealContext, battle: Battle): number | undefined {

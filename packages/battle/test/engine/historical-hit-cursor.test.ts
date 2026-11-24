@@ -69,7 +69,7 @@ for (const spec of cases)
         },
       }),
     )
-    const phase = new SkillPhase(battle, a, a.activePet, AttackTargetOpinion.opponent, skill, turn, use)
+    const phase = new SkillPhase(use)
     phase.initialize()
     phase.execute()
     expect(trace[0]).toEqual({ on: 'BeforeUseSkillCheck', cursor: 1, total: 1 })

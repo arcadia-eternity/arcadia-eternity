@@ -76,15 +76,7 @@ function fixture() {
   const context = (skill = fly) =>
     new UseSkillContext(new TurnContext(f.battle), f.a, f.a.activePet, AttackTargetOpinion.opponent, skill)
   const run = (event = context()) => {
-    const phase = new SkillPhase(
-      f.battle,
-      event.origin,
-      event.pet,
-      event.selectTarget,
-      event.skill,
-      event.parent,
-      event,
-    )
+    const phase = new SkillPhase(event)
     phase.initialize()
     phase.execute()
     return event
@@ -239,7 +231,9 @@ for (const oldFormat of [false, true])
       pet = player.activePet
     expect(pet.lastUsedSkillElement).toBe(oldFormat ? undefined : Element.Flying)
     const next = pet.skills.find(skill => skill.baseId === 'fixture/flying-two')!
-    const phase = new SkillPhase(restored, player, pet, AttackTargetOpinion.opponent, next, new TurnContext(restored))
+    const phase = new SkillPhase(
+      new UseSkillContext(new TurnContext(restored), player, pet, AttackTargetOpinion.opponent, next),
+    )
     phase.initialize()
     phase.execute()
     expect(player.currentRage).toBe(oldFormat ? 0 : 20)

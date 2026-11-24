@@ -14,7 +14,7 @@ import { nanoid } from 'nanoid'
 import { Effect, type EffectContainer, type TemporaryEffect } from './effect'
 import { type Instance, type OwnedEntity, type Prototype } from './entity'
 import { Pet } from './pet'
-import { SkillAttributeSystem } from './attributeSystem'
+import { AttributeSystem, type SkillAttributes } from './attributeSystem'
 
 export class BaseSkillBuilder {
   #id = '' as baseSkillId
@@ -164,7 +164,7 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
   effects: Effect<EffectTrigger>[] = []
 
   // Attribute system for managing skill parameters
-  public readonly attributeSystem: SkillAttributeSystem
+  public readonly attributeSystem: AttributeSystem<SkillAttributes>
 
   constructor(
     public readonly base: BaseSkill,
@@ -194,57 +194,52 @@ export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, 
     this.tags = overrides?.tag ? [...base.tags, ...overrides.tag] : [...base.tags]
     this.effects = [...base.effects, ...(overrides?.effects ? overrides.effects : [])]
 
-    // Initialize attribute system with skill ID (battleId will be set later in setOwner)
-    this.attributeSystem = new SkillAttributeSystem()
-
-    // Initialize attribute system with skill parameters
-    const power = overrides?.power ?? base.power
-    const accuracy = overrides?.accuracy ?? base.accuracy
-    const rage = overrides?.rage ?? base.rage
-    const priority = overrides?.priority ?? base.priority
-
-    this.attributeSystem.initializeSkillAttributes(power, accuracy, rage, priority, false)
+    this.attributeSystem = new AttributeSystem<SkillAttributes>()
+    this.attributeSystem.registerBaseAttribute('power', overrides?.power ?? base.power)
+    this.attributeSystem.registerBaseAttribute('accuracy', overrides?.accuracy ?? base.accuracy)
+    this.attributeSystem.registerBaseAttribute('rage', overrides?.rage ?? base.rage)
+    this.attributeSystem.registerBaseAttribute('priority', overrides?.priority ?? base.priority)
+    this.attributeSystem.registerBaseAttribute('appeared', false)
   }
 
-  // Compatibility properties using AttributeSystem
   get power(): number {
-    return this.attributeSystem.getPower()
+    return this.attributeSystem.getCurrentValue('power') as number
   }
 
   set power(value: number) {
-    this.attributeSystem.setPower(value)
+    this.attributeSystem.updateBaseValue('power', value)
   }
 
   get accuracy(): number {
-    return this.attributeSystem.getAccuracy()
+    return this.attributeSystem.getCurrentValue('accuracy') as number
   }
 
   set accuracy(value: number) {
-    this.attributeSystem.setAccuracy(value)
+    this.attributeSystem.updateBaseValue('accuracy', value)
   }
 
   get rage(): number {
-    return this.attributeSystem.getRage()
+    return this.attributeSystem.getCurrentValue('rage') as number
   }
 
   set rage(value: number) {
-    this.attributeSystem.setRage(value)
+    this.attributeSystem.updateBaseValue('rage', value)
   }
 
   get priority(): number {
-    return this.attributeSystem.getPriority()
+    return this.attributeSystem.getCurrentValue('priority') as number
   }
 
   set priority(value: number) {
-    this.attributeSystem.setPriority(value)
+    this.attributeSystem.updateBaseValue('priority', value)
   }
 
   get appeared(): boolean {
-    return this.attributeSystem.getAppeared()
+    return this.attributeSystem.getCurrentValue('appeared') as boolean
   }
 
   set appeared(value: boolean) {
-    this.attributeSystem.setAppeared(value)
+    this.attributeSystem.updateBaseValue('appeared', value)
   }
 
   get baseId() {

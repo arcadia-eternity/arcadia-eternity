@@ -8,10 +8,6 @@ import { damageRuleId, isReplacementTrigger, runReplacementSample } from '../rep
 import { evaluationSavepoint, getDamageEvaluation, runDamageAuthor } from '../damageEvaluation'
 import { createChildLogger } from '../logger'
 
-/**
- * EffectExecutionPhase handles effect execution operations
- * Replaces EffectScheduler logic with proper phase-based execution
- */
 export class EffectExecutionPhase<T extends EffectTrigger> extends SynchronousPhase<TriggerContextMap[T]> {
   constructor(
     battle: Battle,
@@ -29,87 +25,53 @@ export class EffectExecutionPhase<T extends EffectTrigger> extends SynchronousPh
   }
 
   protected executeOperation(): void {
-    const context = this._context!
+    const parentContext = this._context!
+    const trigger = this.trigger
+    const effectContainers = this.effectContainers
+    const battle = this.battle
 
-    // Execute the effect execution operation logic
-    executeEffectExecutionOperation(context, this.trigger, this.effectContainers, this.battle)
-  }
-}
+    const logger = createChildLogger('EffectExecution')
 
-/**
- * Extracted effect execution operation logic
- * This function contains the core effect execution logic, replacing EffectScheduler.flushEffects
- */
-function executeEffectExecutionOperation<T extends EffectTrigger>(
-  parentContext: TriggerContextMap[T],
-  trigger: T,
-  effectContainers: EffectContainer[],
-  battle: Battle,
-): void {
-  const logger = createChildLogger('EffectExecution')
+    const effectQueue = collectEffectsFromContainers(trigger, parentContext, effectContainers)
+    effectQueue.sort((a, b) => b.effect.priority - a.effect.priority)
 
-  // Effect queue for this execution
-  const effectQueue: Array<{
-    effect: Effect<EffectTrigger>
-    context: EffectContext<EffectTrigger>
-  }> = []
+    for (const { effect, context } of effectQueue) {
+      // Apply BeforeEffect effects
+      runReplacementSample(context, 'before', () => battle.applyEffects(context, EffectTrigger.BeforeEffect))
 
-  // Track added effects to prevent duplicates
-  const addedEffects = new Set<string>()
+      if (!context.available) {
+        battle.emitMessage(BattleMessageType.EffectApplyFail, {
+          source: context.source.id,
+          effect: effect.id,
+          reason: 'disabled',
+        })
+        continue
+      }
 
-  // Phase 1: Collect all effects to be triggered directly from containers
-  const collectedEffects = collectEffectsFromContainers(trigger, parentContext, effectContainers)
-  collectedEffects.forEach(({ effect, context }) => {
-    const effectKey = `${(context.source as any).id || 'unknown'}_${effect.id}_${context.source.constructor.name}`
-
-    if (!addedEffects.has(effectKey)) {
-      addedEffects.add(effectKey)
-      effectQueue.push({ effect, context })
-    }
-  })
-
-  // Sort effects by priority (higher priority first)
-  effectQueue.sort((a, b) => b.effect.priority - a.effect.priority)
-
-  // Phase 3: Execute all effects in priority order
-  while (effectQueue.length > 0) {
-    const { effect, context } = effectQueue.shift()!
-
-    // Apply BeforeEffect effects
-    runReplacementSample(context, 'before', () => battle.applyEffects(context, EffectTrigger.BeforeEffect))
-
-    if (!context.available) {
-      battle.emitMessage(BattleMessageType.EffectApplyFail, {
+      // Emit effect apply message
+      battle.emitMessage(BattleMessageType.EffectApply, {
         source: context.source.id,
         effect: effect.id,
-        reason: 'disabled',
       })
-      continue
-    }
 
-    // Emit effect apply message
-    battle.emitMessage(BattleMessageType.EffectApply, {
-      source: context.source.id,
-      effect: effect.id,
-    })
+      try {
+        // Execute the effect
+        effect.innerApply(context)
+        context.success = true
 
-    try {
-      // Execute the effect
-      effect.innerApply(context)
-      context.success = true
+        // Apply AfterEffect effects
+        runReplacementSample(context, 'after', () => battle.applyEffects(context, EffectTrigger.AfterEffect))
+      } catch (error) {
+        battle.executionBudget.assertActive()
+        logger.error(`Effect Error ${effect.id}:`, error)
+        context.success = false
 
-      // Apply AfterEffect effects
-      runReplacementSample(context, 'after', () => battle.applyEffects(context, EffectTrigger.AfterEffect))
-    } catch (error) {
-      battle.executionBudget.assertActive()
-      logger.error(`Effect Error ${effect.id}:`, error)
-      context.success = false
-
-      battle.emitMessage(BattleMessageType.EffectApplyFail, {
-        source: context.source.id,
-        effect: effect.id,
-        reason: 'disabled',
-      })
+        battle.emitMessage(BattleMessageType.EffectApplyFail, {
+          source: context.source.id,
+          effect: effect.id,
+          reason: 'disabled',
+        })
+      }
     }
   }
 }

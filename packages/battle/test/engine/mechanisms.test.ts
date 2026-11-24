@@ -1,3 +1,4 @@
+import { UseSkillContext, SwitchPetContext } from '@arcadia-eternity/battle/engine'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import {
   AddMarkContext,
@@ -72,7 +73,7 @@ describe('V1 inherited mechanisms', () => {
   it('uses V1 floor(rage * .8) on switch (#201 difference 01)', () => {
     const { a, battle } = fixture()
     a.currentRage = 21
-    const phase = new SwitchPetPhase(battle, a, a.team[1], new TurnContext(battle))
+    const phase = new SwitchPetPhase(new SwitchPetContext(new TurnContext(battle), a, a.team[1]))
     phase.initialize()
     expect(phase.execute().success).toBe(true)
     expect(a.currentRage).toBe(16)
@@ -137,7 +138,7 @@ describe('V1 inherited mechanisms', () => {
     const ctx = context(battle)
     battle.addMark(new AddMarkContext(ctx, a.activePet, mark('transfer', { transferOnSwitch: true })))
     const source = a.activePet.marks[0]
-    const phase = new SwitchPetPhase(battle, a, a.team[1], new TurnContext(battle))
+    const phase = new SwitchPetPhase(new SwitchPetContext(new TurnContext(battle), a, a.team[1]))
     phase.initialize()
     phase.execute()
     noFailedPhases(battle)
@@ -211,15 +212,9 @@ describe('V1 inherited mechanisms', () => {
       if (m.type === BattleMessageType.Damage) damage.push(m.data.damage)
     })
     const phase = new SkillPhase(
-      battle,
-      b,
-      b.activePet,
-      b.activePet.skills[0].target,
-      b.activePet.skills[0],
-      new TurnContext(battle),
+      new UseSkillContext(new TurnContext(battle), b, b.activePet, b.activePet.skills[0].target, b.activePet.skills[0]),
     )
-    battle.phaseManager.registerPhase(phase)
-    expect(battle.phaseManager.executePhase(phase.id).success).toBe(true)
+    expect(battle.phaseManager.run(phase).success).toBe(true)
     noFailedPhases(battle)
     expect(damage).toHaveLength(3)
     expect(order).toEqual([3, 2, 1, 3, 2, 1, 3, 2, 1])

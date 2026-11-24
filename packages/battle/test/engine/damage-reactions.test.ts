@@ -97,7 +97,7 @@ it('reflects a committed hit and awards the skill drain only for HP lost by its 
 })
 
 it('each hit commits its own result before the next hit reads current HP', () => {
-  const { battle, a, b, use, skill, turn, committed } = setup()
+  const { battle, a, b, use, skill, committed } = setup()
   use.category = Category.Physical
   use.hitOverrides.push({ willHit: true, priority: 1000 })
   use.multihit = 3
@@ -113,9 +113,8 @@ it('each hit commits its own result before the next hit reads current HP', () =>
     }),
   )
   const hp = b.activePet.currentHp
-  const phase = new SkillPhase(battle, a, a.activePet, AttackTargetOpinion.opponent, skill, turn, use)
-  battle.phaseManager.registerPhase(phase)
-  battle.phaseManager.executePhase(phase.id)
+  const phase = new SkillPhase(use)
+  battle.phaseManager.run(phase)
   expect(committed.map(hit => [hit.hpBefore, hit.hpAfter])).toEqual([
     [hp, hp - 9],
     [hp - 9, hp - 18],

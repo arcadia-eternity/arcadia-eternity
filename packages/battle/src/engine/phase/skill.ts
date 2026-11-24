@@ -1,179 +1,123 @@
 import { EffectTrigger, Category, BattleMessageType } from '@arcadia-eternity/const'
-import { SynchronousPhase } from './base'
+import { ContextPhase } from './base'
 import { makeSkillDamageContext } from '../skillDamage'
 import { UseSkillContext, RageContext, TurnContext } from '../context'
 import { MarkCleanupPhase } from './MarkCleanupPhase'
-import type { Battle } from '../battle'
-import type { Player } from '../player'
-import type { Pet } from '../pet'
-import type { SkillInstance } from '../skill'
-import { AttackTargetOpinion } from '@arcadia-eternity/const'
 
-/**
- * SkillPhase handles skill usage operations
- * Corresponds to UseSkillContext and replaces performAttack logic
- */
-export class SkillPhase extends SynchronousPhase<UseSkillContext> {
-  constructor(
-    battle: Battle,
-    private readonly origin: Player,
-    private readonly pet: Pet,
-    private readonly selectTarget: AttackTargetOpinion,
-    private readonly skill: SkillInstance,
-    private readonly parentContext: any, // TurnContext or other parent
-    private readonly existingContext?: UseSkillContext, // Optional existing context
-    id?: string,
-  ) {
-    super(battle, id)
-  }
-
-  public get effectivePriority(): number {
-    return this.existingContext?.priority ?? this.skill.priority
-  }
-
-  // Public getters for sorting purposes (before context is initialized)
-  public get skillInstance(): SkillInstance {
-    return this.skill
-  }
-
-  public get petInstance(): Pet {
-    return this.pet
-  }
-
-  protected createContext(): UseSkillContext {
-    // Use existing context if provided, otherwise create new one
-    return (
-      this.existingContext ||
-      new UseSkillContext(this.parentContext, this.origin, this.pet, this.selectTarget, this.skill)
-    )
-  }
-
+export class SkillPhase extends ContextPhase<UseSkillContext> {
   protected executeOperation(): void {
-    const context = this._context!
-
-    // Register the attempt before any skill hooks, including direct phase execution.
+    const context = this.event
+    const battle = this.battle
     if (context.parent instanceof TurnContext) context.parent.appledContexts.push(context)
 
-    // Execute the skill operation logic (extracted from performAttack)
-    executeSkillOperation(context, this.battle)
-  }
-}
+    // Update skill usage tracking
+    if (context.pet.lastSkill && context.pet.lastSkill.baseId === context.skill.baseId) {
+      context.pet.lastSkillUsedTimes += 1
+    } else {
+      context.pet.lastSkill = context.skill
+      context.pet.lastSkillUsedTimes = 1
+    }
+    context.skill.appeared = true
 
-/**
- * Extracted skill operation logic from Player.performAttack
- * This function contains the core skill execution logic
- */
-export function executeSkillOperation(context: UseSkillContext, battle: Battle): void {
-  // Update skill usage tracking
-  if (context.pet.lastSkill && context.pet.lastSkill.baseId === context.skill.baseId) {
-    context.pet.lastSkillUsedTimes += 1
-  } else {
-    context.pet.lastSkill = context.skill
-    context.pet.lastSkillUsedTimes = 1
-  }
-  context.skill.appeared = true
+    // Apply before effects
+    battle.applyEffects(context, EffectTrigger.BeforeUseSkillCheck)
+    context.updateActualTarget()
 
-  // Apply before effects
-  battle.applyEffects(context, EffectTrigger.BeforeUseSkillCheck)
-  context.updateActualTarget()
+    // Check if skill can be used
+    if (context.pet.currentHp <= 0 || !context.pet.isAlive || !context.available || !context.actualTarget) {
+      battle.emitMessage(BattleMessageType.SkillUseFail, {
+        user: context.pet.id,
+        skill: context.skill.id,
+        reason: !context.pet.isAlive ? 'faint' : !context.actualTarget ? 'invalid_target' : 'disabled',
+      })
+      return
+    }
 
-  // Check if skill can be used
-  if (context.pet.currentHp <= 0 || !context.pet.isAlive || !context.available || !context.actualTarget) {
-    battle.emitMessage(BattleMessageType.SkillUseFail, {
+    // Check rage requirement
+    if (context.origin.currentRage < context.rage) {
+      battle.emitMessage(BattleMessageType.SkillUseFail, {
+        user: context.pet.id,
+        skill: context.skill.id,
+        reason: 'no_rage',
+      })
+      return
+    }
+
+    context.previousSkillElement = context.pet.lastUsedSkillElement
+
+    // Emit skill use message
+    battle.emitMessage(BattleMessageType.SkillUse, {
       user: context.pet.id,
+      target: context.selectTarget,
       skill: context.skill.id,
-      reason: !context.pet.isAlive ? 'faint' : !context.actualTarget ? 'invalid_target' : 'disabled',
+      baseSkill: context.skill.baseId,
+      rage: context.rage,
     })
-    return
-  }
 
-  // Check rage requirement
-  if (context.origin.currentRage < context.rage) {
-    battle.emitMessage(BattleMessageType.SkillUseFail, {
-      user: context.pet.id,
-      skill: context.skill.id,
-      reason: 'no_rage',
-    })
-    return
-  }
+    try {
+      // Consume rage
+      context.origin.addRage(new RageContext(context, context.origin, 'skill', 'reduce', context.rage))
 
-  context.previousSkillElement = context.pet.lastUsedSkillElement
+      // Apply after skill check effects
+      battle.applyEffects(context, EffectTrigger.AfterUseSkillCheck)
 
-  // Emit skill use message
-  battle.emitMessage(BattleMessageType.SkillUse, {
-    user: context.pet.id,
-    target: context.selectTarget,
-    skill: context.skill.id,
-    baseSkill: context.skill.baseId,
-    rage: context.rage,
-  })
+      // Update hit, multihit, and crit results
+      context.updateHitResult()
+      context.updateMultihitResult()
+      context.updateCritResult()
 
-  try {
-    // Consume rage
-    context.origin.addRage(new RageContext(context, context.origin, 'skill', 'reduce', context.rage))
+      // Apply before multihit effects
+      battle.applyEffects(context, EffectTrigger.BeforeMultiHit)
 
-    // Apply after skill check effects
-    battle.applyEffects(context, EffectTrigger.AfterUseSkillCheck)
+      let landedHit = false
+      // Execute multihit loop
+      for (; context.currentHitCount <= context.multihitResult; context.currentHitCount++) {
+        if (!context.pet.isAlive || !context.actualTarget.isAlive) break
+        // Hit check
+        if (!context.hitResult) {
+          battle.emitMessage(BattleMessageType.SkillMiss, {
+            user: context.pet.id,
+            target: context.actualTarget.id,
+            skill: context.skill.id,
+            reason: 'accuracy',
+          })
+          battle.applyEffects(context, EffectTrigger.OnMiss)
+          // All subsequent hits will miss, no need to continue
+          break
+        } else {
+          landedHit = true
+          battle.applyEffects(context, EffectTrigger.BeforeHit)
 
-    // Update hit, multihit, and crit results
-    context.updateHitResult()
-    context.updateMultihitResult()
-    context.updateCritResult()
+          // Calculate damage for non-status moves
+          if (context.category !== Category.Status && !context.damageDeferred) {
+            context.updateDamageResult()
 
-    // Apply before multihit effects
-    battle.applyEffects(context, EffectTrigger.BeforeMultiHit)
+            if (context.crit) battle.applyEffects(context, EffectTrigger.OnCritPreDamage)
+            battle.applyEffects(context, EffectTrigger.PreDamage)
 
-    let landedHit = false
-    // Execute multihit loop
-    for (; context.currentHitCount <= context.multihitResult; context.currentHitCount++) {
-      if (!context.pet.isAlive || !context.actualTarget.isAlive) break
-      // Hit check
-      if (!context.hitResult) {
-        battle.emitMessage(BattleMessageType.SkillMiss, {
-          user: context.pet.id,
-          target: context.actualTarget.id,
-          skill: context.skill.id,
-          reason: 'accuracy',
-        })
-        battle.applyEffects(context, EffectTrigger.OnMiss)
-        // All subsequent hits will miss, no need to continue
-        break
-      } else {
-        landedHit = true
-        battle.applyEffects(context, EffectTrigger.BeforeHit)
+            const damageContext = makeSkillDamageContext(context, context.skill, context.actualTarget, context)
+            context.actualTarget.damage(damageContext)
+          }
 
-        // Calculate damage for non-status moves
-        if (context.category !== Category.Status && !context.damageDeferred) {
-          context.updateDamageResult()
-
-          if (context.crit) battle.applyEffects(context, EffectTrigger.OnCritPreDamage)
-          battle.applyEffects(context, EffectTrigger.PreDamage)
-
-          const damageContext = makeSkillDamageContext(context, context.skill, context.actualTarget, context)
-          context.actualTarget.damage(damageContext)
+          battle.applyEffects(context, EffectTrigger.OnHit) // Trigger hit effects
         }
-
-        battle.applyEffects(context, EffectTrigger.OnHit) // Trigger hit effects
       }
+
+      context.pet.lastMissedSkillId = context.hitResult ? undefined : context.skill.baseId
+
+      // Hit reward rage for non-status moves
+      if (context.category !== Category.Status && landedHit) {
+        context.origin.addRage(new RageContext(context, context.origin, 'skillHit', 'add', 15))
+      }
+    } finally {
+      battle.phaseManager.run(new MarkCleanupPhase(battle, context.parent as TurnContext))
+
+      context.pet.lastUsedSkillElement = context.element
+      battle.applyEffects(context, EffectTrigger.SkillUseEnd)
+
+      battle.emitMessage(BattleMessageType.SkillUseEnd, {
+        user: context.pet.id,
+      })
     }
-
-    context.pet.lastMissedSkillId = context.hitResult ? undefined : context.skill.baseId
-
-    // Hit reward rage for non-status moves
-    if (context.category !== Category.Status && landedHit) {
-      context.origin.addRage(new RageContext(context, context.origin, 'skillHit', 'add', 15))
-    }
-  } finally {
-    // Use MarkCleanupPhase managed by PhaseManager
-    const markCleanupPhase = new MarkCleanupPhase(battle, context.parent as TurnContext)
-    battle.phaseManager.registerPhase(markCleanupPhase)
-    battle.phaseManager.executePhase(markCleanupPhase.id)
-
-    context.pet.lastUsedSkillElement = context.element
-    battle.applyEffects(context, EffectTrigger.SkillUseEnd)
-
-    battle.emitMessage(BattleMessageType.SkillUseEnd, {
-      user: context.pet.id,
-    })
   }
 }

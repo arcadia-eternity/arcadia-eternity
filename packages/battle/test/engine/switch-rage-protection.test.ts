@@ -48,7 +48,7 @@ function fixture(location: 'outgoing' | 'incoming' | 'opponent' | 'none' = 'outg
   if (location !== 'none') owner.marks.push(mark)
   const turn = new TurnContext(f.battle)
   const switchTo = (pet = incoming) => {
-    const phase = new SwitchPetPhase(f.battle, f.a, pet, turn)
+    const phase = new SwitchPetPhase(new SwitchPetContext(turn, f.a, pet))
     phase.initialize()
     phase.execute()
   }
@@ -206,7 +206,9 @@ it('fresh-catalog checkpoint retains protection and consumes it on resumed switc
   battles.push(restored)
   const outgoing = restored.playerA.activePet
   const mark = outgoing.marks.find(mark => mark.baseId === 'mark_feixuanzhen')!
-  const phase = new SwitchPetPhase(restored, restored.playerA, restored.playerA.team[1], new TurnContext(restored))
+  const phase = new SwitchPetPhase(
+    new SwitchPetContext(new TurnContext(restored), restored.playerA, restored.playerA.team[1]),
+  )
   phase.initialize()
   phase.execute()
   expect(restored.playerA.currentRage).toBe(99)

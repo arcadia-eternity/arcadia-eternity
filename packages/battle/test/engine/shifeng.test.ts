@@ -1,4 +1,5 @@
 import {
+  SwitchPetContext,
   AddMarkContext,
   AttackTargetOpinion,
   BattleStartPhase,
@@ -52,8 +53,7 @@ function setup(skills: string[], gender: 'Male' | 'Female' = 'Male', emblem?: st
   const battle = catalog.createBattle(a, b, { rngSeed: 'shifeng', timerConfig: { enabled: false } })
   battles.push(battle)
   const start = new BattleStartPhase(battle)
-  battle.phaseManager.registerPhase(start)
-  expect(battle.phaseManager.executePhase(start.id).success).toBe(true)
+  expect(battle.phaseManager.run(start).success).toBe(true)
   return { battle, a, b }
 }
 
@@ -82,17 +82,8 @@ function attack(battle: Battle, player: Player, id: string, willHit: boolean) {
   player.currentRage = player.maxRage
   const use = skillUse(battle, player, id)
   use.hitOverrides.push({ willHit, priority: 1000 })
-  const phase = new SkillPhase(
-    battle,
-    player,
-    player.activePet,
-    AttackTargetOpinion.opponent,
-    use.skill,
-    use.parent,
-    use,
-  )
-  battle.phaseManager.registerPhase(phase)
-  expect(battle.phaseManager.executePhase(phase.id).success).toBe(true)
+  const phase = new SkillPhase(use)
+  expect(battle.phaseManager.run(phase).success).toBe(true)
 }
 
 it('spends three independent charges on hits, then blocks both classes of abnormal status through switching', () => {
@@ -127,9 +118,8 @@ it('spends three independent charges on hits, then blocks both classes of abnorm
   expect(observeDamage).toHaveReturnedWith(1)
 
   for (const pet of [a.team[1], a.team[0]]) {
-    const phase = new SwitchPetPhase(battle, a, pet, new TurnContext(battle))
-    battle.phaseManager.registerPhase(phase)
-    expect(battle.phaseManager.executePhase(phase.id).success).toBe(true)
+    const phase = new SwitchPetPhase(new SwitchPetContext(new TurnContext(battle), a, pet))
+    expect(battle.phaseManager.run(phase).success).toBe(true)
     expect(a.activePet).toBe(pet)
   }
   expect(a.team.map(pet => mark(pet, needles)?.stack)).toEqual([0, 3])

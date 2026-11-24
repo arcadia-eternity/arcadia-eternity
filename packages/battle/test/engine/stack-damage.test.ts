@@ -147,15 +147,7 @@ for (const id of [reduction, amplification] as const)
       f.use.category = Category.Special
       f.use.power = 20
       f.use.setSureHit()
-      const phase = new SkillPhase(
-        f.battle,
-        f.a,
-        f.a.activePet,
-        AttackTargetOpinion.opponent,
-        f.use.skill,
-        f.use.parent,
-        f.use,
-      )
+      const phase = new SkillPhase(f.use)
       phase.initialize()
       phase.execute()
       expect(f.use.hitResult).toBe(true)

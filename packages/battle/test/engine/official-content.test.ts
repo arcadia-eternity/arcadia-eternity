@@ -340,12 +340,7 @@ function landFirstSkill(battle: Battle) {
   attacker.settingRage(100)
   const pet = attacker.activePet
   const phase = new SkillPhase(
-    battle,
-    attacker,
-    pet,
-    AttackTargetOpinion.opponent,
-    pet.skills[0],
-    new TurnContext(battle),
+    new UseSkillContext(new TurnContext(battle), attacker, pet, AttackTargetOpinion.opponent, pet.skills[0]),
   )
   phase.initialize()
   phase.execute()

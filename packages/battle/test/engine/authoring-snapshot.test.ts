@@ -1,6 +1,7 @@
 import { AuthoredEffects } from '../../../../packs/base/src/effects/authored/index.effect'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  SwitchPetContext,
   effectAuthoring,
   defineValue,
   values as planValues,
@@ -356,7 +357,9 @@ it.each(['parameter-capture', 'parameter-follow'] as const)(
     expect(pet.stat.spe).toBe(mode === 'parameter-capture' ? 275 : 260)
     restored.configSystem.releaseScope(source)
     expect(pet.stat.spe).toBe(275)
-    const phase = new SwitchPetPhase(restored, restored.playerB, restored.playerB.team[1], new TurnContext(restored))
+    const phase = new SwitchPetPhase(
+      new SwitchPetContext(new TurnContext(restored), restored.playerB, restored.playerB.team[1]),
+    )
     const phaseModifier = new ConfigModifier(
       ConfigDurationType.phaseType,
       'phase-amount',
