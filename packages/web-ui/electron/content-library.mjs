@@ -418,6 +418,7 @@ export class ContentLibrary {
         }
         if (entry.validatedHost !== host) await updates.validate(project, this.#controller.signal, catalog)
       } catch (error) {
+        if (error.code === 'OFFICIAL_ENVIRONMENT_PACKAGES_MISSING') continue
         lastError = error
         console.warn('Skipping unusable cached official base', ref.version, error)
         continue
@@ -636,7 +637,7 @@ export class ContentLibrary {
       const previous = await this.#readOfficial(ref)
       const directory = await this.#directory(previous.id)
       const catalog = await this.packageUpdates.readEnvironments(directory).catch(error => {
-        if (error.code !== 'ENOENT') throw error
+        if (error.code !== 'ENOENT' && error.code !== 'OFFICIAL_ENVIRONMENT_PACKAGES_MISSING') throw error
       })
       if (!catalog || environmentDigest(catalog) !== previous.environmentDigest) return false
       const digest = await this.#digestEntry(previous)

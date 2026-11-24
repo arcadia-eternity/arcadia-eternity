@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { valid } from 'semver'
 import { environmentManifestDocument, type EnvironmentDocumentV2 } from './debug-environments.ts'
@@ -7,7 +7,7 @@ import {
   officialEnvironmentPackages,
   resolveOfficialWorkspaceManifest,
 } from './official-environment-packages.ts'
-import { isRecord } from './types.ts'
+import { errorCode, isRecord } from './types.ts'
 import { contentError, readJson } from './workspace-materials.ts'
 
 export type OfficialEnvironmentCatalog = { defaultEnvironment: string; environments: EnvironmentDocumentV2[] }
@@ -56,8 +56,14 @@ export async function readOfficialEnvironments(root: string, resolve: (specifier
 }
 
 export async function readInstalledOfficialEnvironments(base: string, release: string) {
+  const packages = officialEnvironmentPackagesDirectory(release)
+  const info = await lstat(packages).catch(error => {
+    if (errorCode(error) === 'ENOENT') throw contentError('OFFICIAL_ENVIRONMENT_PACKAGES_MISSING')
+    throw error
+  })
+  if (!info.isDirectory()) throw contentError('OFFICIAL_ENVIRONMENT_PACKAGES_INVALID')
   return officialEnvironmentCatalog(await officialBaseVersion(base), name =>
-    readJson(join(officialEnvironmentPackagesDirectory(release), name, 'package.json')),
+    readJson(join(packages, name, 'package.json')),
   )
 }
 

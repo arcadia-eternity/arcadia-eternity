@@ -340,7 +340,21 @@ test(
       return catalog.defaultEnvironment
     }
     try {
+      const legacy = (await library.list()).packages.find(item => item.bundled)
+      await rm(join(library.officialPackageRoot, '../../../environment-packages'), { recursive: true })
+      await library.close()
+      library = new ContentLibrary(options)
+      const warn = t.mock.method(console, 'warn', () => {})
+      try {
+        await library.resume()
+        await activateOfficialEnvironments(library, synchronize)
+        assert.equal(warn.mock.callCount(), 0)
+      } finally {
+        warn.mock.restore()
+      }
       const previous = (await library.list()).packages.find(item => item.bundled)
+      assert.equal(previous.version, legacy.version)
+      assert.notEqual(previous.id, legacy.id)
       const envId = await synchronize()
       defaultId = envId
       const startup = await library.acquireDefaultProject()
@@ -371,15 +385,18 @@ test(
         await assert.rejects(update(), /SOURCE_INTEGRITY_MISMATCH/)
         assert.equal((await library.list()).packages[0].id, previous.id)
         damaged = false
+        const previousBase = library.officialPackageRoot
+        const previousProject = resolve(previousBase, '../../..')
         const rollbackManifest = join(
-          library.officialPackageRoot,
-          '../../../environment-packages/@arcadia-eternity/environment-default/package.json',
+          previousProject,
+          'environment-packages/@arcadia-eternity/environment-default/package.json',
         )
         const failedActivation = await library.updatePackage(previous.id, candidate.version)
         assert.equal(library.pendingOfficialUpdateId, failedActivation)
         const savedManifest = await readFile(rollbackManifest)
         await rm(rollbackManifest)
         try {
+          await assert.rejects(readInstalledOfficialEnvironments(previousBase, previousProject), { code: 'ENOENT' })
           const activationError = new Error('official activation failed')
           await assert.rejects(
             activateOfficialEnvironments(library, async () => {
