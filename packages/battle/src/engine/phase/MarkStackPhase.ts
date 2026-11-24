@@ -1,8 +1,10 @@
+import { unbindStatStage } from './RemoveMarkPhase'
 import { StackStrategy, EffectTrigger, BattleMessageType, type markId } from '@arcadia-eternity/const'
 import type { Battle } from '../battle'
 import { RemoveMarkContext, type StackContext } from '../context'
-import { CreateStatStageMark, StatLevelMarkInstanceImpl } from '../mark'
+import { CreateStatStageMark, StatLevelMarkInstanceImpl, type MarkInstance } from '../mark'
 import { Pet } from '../pet'
+import { bindStatStage } from './AddMarkPhase'
 import { SynchronousPhase } from './base'
 
 export class MarkStackPhase extends SynchronousPhase<StackContext> {
@@ -51,11 +53,13 @@ export class MarkStackPhase extends SynchronousPhase<StackContext> {
         updated.level = level
         updated.duration = existingMark.duration
         updated.config = { ...existingMark.config }
-        if (existingMark.emitter) updated.setOwner(owner, existingMark.emitter)
+        updated.setOwner(owner, battle.emitter)
         const index = owner.marks.indexOf(existingMark)
         if (index !== -1) owner.marks[index] = updated
-        existingMark.detach()
-        updated.attachTo(owner)
+        owner.marks = owner.marks.filter(mark => mark !== existingMark)
+        existingMark.owner = null
+        unbindStatStage(existingMark)
+        if (owner instanceof Pet) bindStatStage(updated, owner)
         existingMark.isActive = false
         battle.configSystem.releaseScope(existingMark)
       }
@@ -133,4 +137,9 @@ export class MarkStackPhase extends SynchronousPhase<StackContext> {
       mark: existingMark.toMessage(),
     })
   }
+}
+
+/** A direct stack grant does not merge a second mark or run its stacking hooks. */
+export function addMarkStacks(mark: MarkInstance, amount: number): void {
+  mark.stack = Math.min(mark.config.maxStacks ?? Infinity, mark.stack + amount)
 }

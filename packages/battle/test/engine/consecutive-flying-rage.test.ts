@@ -72,7 +72,7 @@ function fixture() {
   const fly = skill('one', Element.Flying),
     otherFly = skill('two', Element.Flying),
     normal = skill('normal', Element.Normal)
-  f.a.settingRage(0)
+  f.a.currentRage = 0
   const context = (skill = fly) =>
     new UseSkillContext(new TurnContext(f.battle), f.a, f.a.activePet, AttackTargetOpinion.opponent, skill)
   const run = (event = context()) => {

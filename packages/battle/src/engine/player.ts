@@ -223,29 +223,19 @@ export class Player {
     return selection.pet !== this.activePet.id && selectionPet.isAlive && this.team.some(v => v.id === selection.pet)
   }
 
-  public setSelection(selection: PlayerSelection): boolean {
+  public canSelect(selection: PlayerSelection): boolean {
     switch (selection.type) {
       case 'use-skill':
-        if (!this.checkSkillsActionAvailable(selection)) return false
-        break
+        return this.checkSkillsActionAvailable(selection)
       case 'switch-pet':
-        if (!this.checkSwitchAvailable(selection)) return false
-        break
+        return this.checkSwitchAvailable(selection)
       case 'do-nothing':
-        if (!this.checkDoNothingActionAvailable()) return false
-        break
+        return this.checkDoNothingActionAvailable()
       case 'surrender':
-        break
+        return true
       default:
         throw '未实现的selection类型'
     }
-    this.selection = selection
-    return true
-  }
-
-  public settingRage(value: number) {
-    //TODO:触发设定怒气相关事件
-    this.currentRage = Math.max(Math.min(value, this.maxRage), 0)
   }
 
   public addRage(context: RageContext) {

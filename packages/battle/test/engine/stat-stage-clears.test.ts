@@ -1,5 +1,7 @@
+import { addStatStage } from '../../src/engine/phase/AddMarkPhase'
 import {
   EffectContext,
+  effectAuthoring,
   EffectTrigger,
   StatLevelMarkInstanceImpl,
   StatTypeWithoutHp,
@@ -33,8 +35,8 @@ for (const nextStat of [false, true])
     battles.push(battle)
     const pet = a.activePet
     const context = new EffectContext(new TurnContext(battle), EffectTrigger.TurnStart, pet.skills[0])
-    pet.addStatStage(context, StatTypeWithoutHp.atk, 2)
-    pet.addStatStage(context, StatTypeWithoutHp.spa, -3)
+    addStatStage(context, pet, StatTypeWithoutHp.atk, 2)
+    addStatStage(context, pet, StatTypeWithoutHp.spa, -3)
     const atk = pet.marks.find(
       (m): m is StatLevelMarkInstanceImpl => m instanceof StatLevelMarkInstanceImpl && m.statType === 'atk',
     )!
@@ -53,7 +55,14 @@ for (const nextStat of [false, true])
         },
       }),
     )
-    pet.clearStatStage(context)
+    pet.skills[0].effects.push(
+      effectAuthoring.compileEffect({
+        id: 'fixture/clear-stages',
+        triggers: [EffectTrigger.TurnStart],
+        apply: effectAuthoring.targets.ownerPet.apply(effectAuthoring.ops.clearStatStages()),
+      }),
+    )
+    battle.applyEffects(context.parent, EffectTrigger.TurnStart, pet.skills[0])
     expect(atk.isActive).toBe(false)
     expect(spa.isActive).toBe(true)
     expect(added.isActive).toBe(!nextStat)

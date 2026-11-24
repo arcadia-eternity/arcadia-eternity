@@ -1,5 +1,11 @@
-import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
-import { RemoveMarkContext } from '../context'
+import { addStatStage } from './AddMarkPhase'
+import {
+  EffectTrigger,
+  BattleMessageType,
+  type CleanStageStrategy,
+  type StatTypeWithoutHp,
+} from '@arcadia-eternity/const'
+import { RemoveMarkContext, type EffectContext } from '../context'
 import { StatLevelMarkInstanceImpl } from '../mark'
 import { Pet } from '../pet'
 import { ContextPhase } from './base'
@@ -25,13 +31,11 @@ export class RemoveMarkPhase extends ContextPhase<RemoveMarkContext> {
     mark.isActive = false
     mark.deferredDamage = undefined
 
-    // Clean up attribute modifiers before destroying the mark
-    mark.cleanupAttributeModifiers()
-
-    // Special cleanup for StatLevelMarkInstanceImpl
+    mark.attributeModifierCleanups.forEach(cleanup => cleanup())
+    mark.attributeModifierCleanups.length = 0
+    if (mark.owner instanceof Pet) mark.owner.attributeSystem.removeModifiersFromSource(mark.id)
     if (mark instanceof StatLevelMarkInstanceImpl) {
-      // Clean up the stat stage modifier
-      mark.cleanupStatStageModifier()
+      unbindStatStage(mark)
     }
 
     // Clean up any transformations caused by this mark
@@ -51,5 +55,23 @@ export class RemoveMarkPhase extends ContextPhase<RemoveMarkContext> {
       baseMarkId: mark.baseId,
       target: owner instanceof Pet ? owner.id : 'battle',
     })
+  }
+}
+
+export function unbindStatStage(mark: StatLevelMarkInstanceImpl): void {
+  mark.modifierCleanupFn?.()
+  mark.modifierCleanupFn = undefined
+}
+
+export function reverseStatStages(
+  context: EffectContext<EffectTrigger>,
+  target: Pet,
+  strategy: CleanStageStrategy,
+  stats: StatTypeWithoutHp[],
+): void {
+  for (const mark of target.getClearableStatStageMarks(strategy, ...stats)) {
+    const level = mark.level
+    context.battle.removeMark(new RemoveMarkContext(context, mark))
+    addStatStage(context, target, mark.statType, -level)
   }
 }

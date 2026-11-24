@@ -51,7 +51,7 @@ export function runTrainingCommand(battle: Battle, command: TrainingCommand) {
     case 'set-rage': {
       const player = battle.getPlayerByID(command.player)
       const before = player.currentRage
-      player.settingRage(boundedValue(command.value, player.maxRage))
+      player.currentRage = boundedValue(command.value, player.maxRage)
       if (ai && player === ai && ai.selection) {
         const queued = actionKey(ai.selection)
         const available = ai.getAvailableSelection()

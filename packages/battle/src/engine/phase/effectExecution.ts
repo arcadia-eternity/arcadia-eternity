@@ -1,3 +1,5 @@
+import { consumeMarkStacks } from './consumeStack'
+import { MarkInstanceImpl } from '../mark'
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
 import { SynchronousPhase } from './base'
 import { DamageContext, EffectContext, type TriggerContextMap } from '../context'
@@ -62,7 +64,7 @@ export class EffectExecutionPhase<T extends EffectTrigger> extends SynchronousPh
 
       try {
         // Execute the effect
-        effect.innerApply(context)
+        applyEffect(effect, context)
         context.success = true
 
         // Apply AfterEffect effects
@@ -150,5 +152,34 @@ function matchesCondition(
     return runDamageAuthor(undefined, () => runReplacementSample(context, 'when', () => predicate(context)))
   } finally {
     rollback()
+  }
+}
+
+export function applyEffect<T extends EffectTrigger>(effect: Effect<T>, context: EffectContext<T>): void {
+  const mark = context.source instanceof MarkInstanceImpl ? context.source : undefined
+  if (mark && (!mark.isActive || mark.isSuppressed)) return
+  const evaluation = getDamageEvaluation()
+  const rollback = evaluation && evaluationSavepoint(evaluation, context.parent)
+  try {
+    if (mark && effect.consumesStacks) {
+      const amount = effect.consumesStacks === 'all' ? mark.stack : effect.consumesStacks
+      if (!evaluation) consumeMarkStacks(context, mark, amount)
+      else if (context.trigger !== EffectTrigger.OnDamageReplacement && context.trigger !== EffectTrigger.Shield) {
+        const modifiesProposal = context.parent === evaluation || context.trigger === EffectTrigger.OnBeforeHeal
+        if (!modifiesProposal || !evaluation.reserveModifierCost(mark, effect.consumesStacks))
+          throw new Error('Cannot pay damage modifier cost')
+      }
+      // Replacement costs travel with the rule and are reserved only if selected.
+    }
+
+    const apply = () => {
+      if (Array.isArray(effect.apply)) effect.apply.forEach(a => a.call(effect, context))
+      else effect.apply.call(effect, context)
+    }
+    if (evaluation) runDamageAuthor(context, () => runReplacementSample(context, 'apply', apply))
+    else apply()
+  } catch (error) {
+    rollback?.()
+    throw error
   }
 }

@@ -141,15 +141,7 @@ export class BaseSkill implements Prototype {
 }
 
 export class SkillInstance implements EffectContainer, OwnedEntity<Pet | null>, Instance {
-  private temporaryEffects: TemporaryEffect[] = []
-
-  addTemporaryEffect(effect: Effect<EffectTrigger>, phaseId: string): void {
-    this.temporaryEffects.push({ effect, phaseId })
-  }
-
-  clearTemporaryEffects(phaseId: string): void {
-    this.temporaryEffects = this.temporaryEffects.filter(entry => entry.phaseId !== phaseId)
-  }
+  temporaryEffects: TemporaryEffect[] = []
 
   public owner: Pet | null = null
   public readonly id: skillId

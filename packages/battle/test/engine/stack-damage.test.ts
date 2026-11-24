@@ -141,7 +141,7 @@ for (const id of [reduction, amplification] as const)
     const run = (enabled: boolean) => {
       const f = fixture(id, 2)
       if (!enabled) f.source.effects.splice(0)
-      f.a.settingRage(100)
+      f.a.currentRage = 100
       f.b.activePet.attributeSystem.updateBaseValue('maxHp', 1000)
       f.b.activePet.currentHp = 1000
       f.use.category = Category.Special

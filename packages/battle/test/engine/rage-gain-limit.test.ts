@@ -35,8 +35,8 @@ function fixture(stack = 3) {
   }).createInstance({ stack })
   mark.setOwner(f.a.activePet, f.battle.emitter)
   f.a.activePet.marks.push(mark)
-  f.a.settingRage(10)
-  f.b.settingRage(10)
+  f.a.currentRage = 10
+  f.b.currentRage = 10
   const turn = new TurnContext(f.battle)
   return { ...f, mark, turn }
 }

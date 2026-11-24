@@ -1,6 +1,5 @@
 import type { Events, InstanceId, PrototypeId } from '@arcadia-eternity/const'
 import type { Battle } from './battle'
-import type { AddMarkContext, RemoveMarkContext } from './context'
 import type { MarkInstance } from './mark'
 import type { Pet } from './pet'
 import type { Player } from './player'
@@ -23,11 +22,4 @@ export type CanOwnedEntity = Battle | Player | Pet | MarkInstance | SkillInstanc
 export interface OwnedEntity<T = CanOwnedEntity> {
   owner: T
   setOwner(owner: Exclude<T, null>, emitter: Emitter<Events>): void // 排除 null
-}
-
-export interface MarkOwner {
-  marks: MarkInstance[]
-
-  addMark(context: AddMarkContext): void
-  removeMark(context: RemoveMarkContext): void
 }

@@ -248,6 +248,7 @@ it('releases instance Config scopes after destruction, preserving hook reads and
 it('releases a newly installed scope when creation aborts before insertion', () => {
   const f = fixture()
   const mark = f.base.createInstance({ instanceParams: { ratio: 0.7 } })
+  vi.spyOn(f.base, 'createInstance').mockReturnValue(mark)
   const context = new AddMarkContext(f.parent, f.a.activePet, f.base)
   const original = f.battle.applyEffects.bind(f.battle)
   const spy = vi.spyOn(f.battle, 'applyEffects').mockImplementation((parent, trigger, ...sources) => {
@@ -255,7 +256,7 @@ it('releases a newly installed scope when creation aborts before insertion', () 
     return original(parent, trigger, ...sources)
   })
   try {
-    expect(() => mark.OnMarkCreated(f.a.activePet, context)).toThrow('creation aborted')
+    expect(() => f.battle.addMark(context)).toThrow('creation aborted')
     expect(f.battle.configSystem.exportSnapshotState().scopedBase.has(mark)).toBe(false)
     expect(f.a.activePet.marks).not.toContain(mark)
   } finally {

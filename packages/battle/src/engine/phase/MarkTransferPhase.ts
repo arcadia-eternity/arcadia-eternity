@@ -1,9 +1,12 @@
-import { matchesMarkApplication } from './AddMarkPhase'
+import { unbindStatStage } from './RemoveMarkPhase'
+import { getCleanupBinding } from '../snapshotBindings'
+import { Modifier } from '../attributeSystem'
+import { bindStatStage, matchesMarkApplication } from './AddMarkPhase'
 import { EffectTrigger, StackStrategy } from '@arcadia-eternity/const'
 import type { Battle } from '../battle'
 import { SwitchPetContext, EffectContext, AddMarkContext, StackContext } from '../context'
-import type { MarkInstance } from '../mark'
-import type { Pet } from '../pet'
+import { StatLevelMarkInstanceImpl, type MarkInstance } from '../mark'
+import { Pet } from '../pet'
 import { SynchronousPhase } from './base'
 import { MarkStackPhase } from './MarkStackPhase'
 import { isOwnerContribution } from '../content/owner-contributions'
@@ -32,8 +35,18 @@ export class MarkTransferPhase extends SynchronousPhase<SwitchPetContext | Effec
 
     marks.forEach(mark => {
       if (!mark.isActive || !mark.owner) return
-      mark.cleanupOwnerContributions()
-      mark.detach()
+      mark.attributeModifierCleanups = mark.attributeModifierCleanups.filter(cleanup => {
+        const binding = getCleanupBinding(cleanup)
+        const modifier = binding && Reflect.get(binding, 'modifier')
+        if (!(modifier instanceof Modifier) || !modifier.followsMarkOwner) return true
+        cleanup()
+        return false
+      })
+      if (mark.owner) mark.owner.marks = mark.owner.marks.filter(member => member !== mark)
+      mark.owner = null
+      if (mark instanceof StatLevelMarkInstanceImpl) {
+        unbindStatStage(mark)
+      }
       const existingMark = target.marks.find(m => matchesMarkApplication(m, mark.base, mark.deferredDamage))
       if (existingMark) {
         // Create EffectContext for stacking
@@ -72,7 +85,9 @@ export class MarkTransferPhase extends SynchronousPhase<SwitchPetContext | Effec
         battle.configSystem.releaseScope(mark)
       } else {
         // Transfer mark directly
-        mark.transfer(context, target)
+        mark.owner = target
+        if (mark instanceof StatLevelMarkInstanceImpl && target instanceof Pet) bindStatStage(mark, target)
+        target.marks.push(mark)
         // Rebuild only trusted owner-bound contributions. No OnMarkCreated/OnAnyMarkAdded event is replayed.
         const sourceContext =
           context instanceof EffectContext ? context : new EffectContext(context, EffectTrigger.OnOwnerSwitchOut, mark)

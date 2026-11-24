@@ -56,8 +56,7 @@ export class PhaseManager {
 
   private leave(phase: BattlePhaseBase, previous: BattlePhaseBase | undefined): void {
     this.battle.configSystem.popPhase(phase)
-    this.battle.cleanupPhaseEffects(phase.id)
-    if (phase.isFinished()) phase.cleanupConfigModifiers()
+    if (phase.isFinished()) phase.releaseEffects()
     this.currentPhase = previous
   }
 

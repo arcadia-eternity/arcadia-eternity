@@ -1,3 +1,4 @@
+import { addStatStage } from '../../src/engine/phase/AddMarkPhase'
 // Custom mechanism fixture, not a substitute for the official Effect catalog.
 import {
   createBattle,
@@ -125,7 +126,7 @@ export function makeScenario(
           if (!(ctx.parent instanceof UseSkillContext) || ctx.source.owner !== ctx.parent.pet) return
           counters.hits++
           ctx.battle.addMark(new AddMarkContext(ctx, ctx.parent.actualTarget!, debuff))
-          ctx.parent.pet.addStatStage(ctx, StatTypeWithoutHp.atk, 1)
+          addStatStage(ctx, ctx.parent.pet, StatTypeWithoutHp.atk, 1)
           ctx.parent.origin.addRage(new RageContext(ctx, ctx.parent.origin, 'effect', 'add', 3))
         },
         0,

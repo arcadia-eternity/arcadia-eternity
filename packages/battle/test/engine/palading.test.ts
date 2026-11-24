@@ -668,7 +668,10 @@ it('doubles 复仇光冲 power only when every partner has fainted', async () =>
     const ready = prompt(battle)
     running.push(battle.startBattle().catch(() => {}))
     await ready
-    if (faintedPartner) a.team[1].currentHp = 0
+    if (faintedPartner) {
+      a.team[1].currentHp = 0
+      a.team[1].isAlive = false
+    }
     await runTurn(battle, () => {
       a.currentRage = 100
       use(battle, a, 'skill_fuchouguangchong')

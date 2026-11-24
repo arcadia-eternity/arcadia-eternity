@@ -18,7 +18,6 @@ import {
   type DamagePayment,
 } from '@arcadia-eternity/const'
 import type { Battle } from './battle'
-import { type MarkOwner } from './entity'
 import { BaseMark, type MarkInstance } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
@@ -571,7 +570,7 @@ export class AddMarkContext extends Context {
   public duration: number
   constructor(
     public readonly parent: EffectContext<EffectTrigger>,
-    public target: MarkOwner,
+    public target: Battle | Pet,
     public baseMark: BaseMark,
     stack?: number,
     duration?: number,

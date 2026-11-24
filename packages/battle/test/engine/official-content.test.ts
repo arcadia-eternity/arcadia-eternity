@@ -156,9 +156,12 @@ for (const request of ['forced', 'faint'] as const)
       system = new LocalBattleSystem(battle, directory)
     battles.push(battle)
     systems.push(system)
-    if (request === 'forced') b.activePet.currentHp = 0
-    else {
+    if (request === 'forced') {
+      b.activePet.currentHp = 0
+      b.activePet.isAlive = false
+    } else {
       a.activePet.currentHp = 0
+      a.activePet.isAlive = false
       battle.lastKiller = b
     }
     await system.ready()
@@ -337,7 +340,7 @@ const training120 = {
 
 function landFirstSkill(battle: Battle) {
   const attacker = battle.playerA
-  attacker.settingRage(100)
+  attacker.currentRage = 100
   const pet = attacker.activePet
   const phase = new SkillPhase(
     new UseSkillContext(new TurnContext(battle), attacker, pet, AttackTargetOpinion.opponent, pet.skills[0]),

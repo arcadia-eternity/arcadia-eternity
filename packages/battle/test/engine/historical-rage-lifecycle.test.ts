@@ -24,7 +24,7 @@ function fixture() {
     p.marks.splice(0)
     for (const s of p.skills) s.effects.splice(0)
   }
-  f.a.settingRage(40)
+  f.a.currentRage = 40
   return f
 }
 for (const kind of ['add', 'reduce'] as const)

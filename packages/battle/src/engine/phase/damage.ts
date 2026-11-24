@@ -237,7 +237,7 @@ export class DamagePhase extends ContextPhase<DamageContext> {
         if (mark instanceof StatLevelMarkInstanceImpl) mark.level = Math.sign(mark.level) * (mark.stack - amount)
         else mark.stack -= amount
       }
-      event.target.attributeSystem.setCurrentHp(hpAfter)
+      event.target.currentHp = hpAfter
     } else {
       proposal.payments.length = 0
     }
@@ -320,7 +320,7 @@ export class DamagePhase extends ContextPhase<DamageContext> {
 export function setEffectHp(source: EffectContext<EffectTrigger>, target: Pet, hp: number): void {
   if (!target.isAlive) return
   const wasPositive = target.currentHp > 0
-  target.attributeSystem.setCurrentHp(hp)
+  target.currentHp = hp
   if (wasPositive && target.currentHp <= 0) {
     const killer = source.source.owner instanceof Pet ? source.source.owner : undefined
     const skill = source.source instanceof SkillInstance ? source.source : undefined

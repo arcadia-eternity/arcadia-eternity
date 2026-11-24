@@ -92,8 +92,10 @@ it.each(['detached', 'suppressed'] as const)('rejects the entire hit when a rese
   skill.effects.splice(0)
   expect(damage.reserveModifierCost(setup().mark, 1)).toBe(false)
   expect(damage.reserveModifierCost(mark, 'all')).toBe(true)
-  if (state === 'detached') mark.detach()
-  else mark.isSuppressed = true
+  if (state === 'detached') {
+    owner.marks = owner.marks.filter(member => member !== mark)
+    mark.owner = null
+  } else mark.isSuppressed = true
   run()
   expect(damage.result).toMatchObject({ status: 'failed', reason: 'payment-unavailable', payments: [] })
   expect(owner.currentHp).toBe(hpBefore)

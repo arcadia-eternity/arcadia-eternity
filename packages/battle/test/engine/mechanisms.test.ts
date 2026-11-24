@@ -96,6 +96,7 @@ describe('V1 inherited mechanisms', () => {
   it('grants turn rage even to the fainted active pet owner (#201 difference 03)', () => {
     const { a, b, battle } = fixture()
     b.activePet.currentHp = 0
+    b.activePet.isAlive = false
     a.selection = { type: 'do-nothing', player: a.id }
     b.selection = { type: 'do-nothing', player: b.id }
     executeTurnOperation(new TurnContext(battle), battle)

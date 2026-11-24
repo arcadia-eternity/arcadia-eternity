@@ -1,3 +1,7 @@
+import type { EffectTrigger } from '@arcadia-eternity/const'
+import type { Effect } from '../effect'
+import type { SkillInstance } from '../skill'
+import type { MarkInstance } from '../mark'
 import type { Context } from '../context'
 import type { Battle } from '../battle'
 import { ConfigModifier, ConfigDurationType, ConfigModifierType, type ConfigValue } from '../config'
@@ -41,6 +45,7 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
   public phaseType?: import('../config').PhaseType
   public result?: PhaseResult
   protected _context?: TContext
+  private temporaryEffectTargets?: Set<SkillInstance | MarkInstance>
   protected configModifierCleanups: (() => void)[] = []
 
   constructor(
@@ -216,8 +221,7 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
    * Cleanup phase resources
    */
   public cleanup(): void {
-    // Cleanup all config modifiers
-    this.cleanupConfigModifiers()
+    this.releaseEffects()
 
     this.onCleanup()
     this._context = undefined
@@ -278,10 +282,19 @@ export abstract class BattlePhaseBase<TContext extends Context = Context> {
     this.configModifierCleanups.push(cleanup)
   }
 
-  /**
-   * Cleanup all config modifiers associated with this phase
-   */
-  public cleanupConfigModifiers(): void {
+  public addTemporaryEffect(target: SkillInstance | MarkInstance, effect: Effect<EffectTrigger>): void {
+    target.temporaryEffects.push({ effect, phaseId: this.id })
+    this.temporaryEffectTargets ??= new Set()
+    this.temporaryEffectTargets.add(target)
+  }
+
+  public releaseEffects(): void {
+    if (this.temporaryEffectTargets) {
+      for (const target of this.temporaryEffectTargets) {
+        target.temporaryEffects = target.temporaryEffects.filter(entry => entry.phaseId !== this.id)
+      }
+      this.temporaryEffectTargets = undefined
+    }
     this.configModifierCleanups.forEach(cleanup => cleanup())
     this.configModifierCleanups.length = 0
   }
@@ -477,9 +490,7 @@ export abstract class InteractivePhase<TContext extends Context = Context> exten
    * Cleanup phase resources asynchronously
    */
   public async cleanupAsync(): Promise<void> {
-    // Cleanup all config modifiers
-    this.configModifierCleanups.forEach(cleanup => cleanup())
-    this.configModifierCleanups.length = 0
+    this.releaseEffects()
 
     await this.onCleanupAsync()
     this._context = undefined

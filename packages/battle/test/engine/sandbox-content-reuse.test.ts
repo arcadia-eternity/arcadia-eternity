@@ -1,3 +1,4 @@
+import { applyEffect } from '../../src/engine/phase/effectExecution'
 import { loadBasePrototypeData } from './base-metadata'
 import officialEffectArtifact from '@arcadia-eternity/data-pack-base/effects?effect-module'
 import { LocalBattleSystem } from '../../host'
@@ -138,7 +139,8 @@ it.each(['package', 'environment'] as const)(
         try {
           a.activePet.currentHp = 20
           for (const effect of effects) {
-            effect.innerApply(
+            applyEffect(
+              effect,
               new EffectContext(new TurnContext(battle), EffectTrigger.TurnEnd, a.activePet.skills[0], effect),
             )
           }
@@ -252,7 +254,8 @@ it('keeps authored counters on each battle entity while reusing the same effect 
         a.activePet.currentHp = 20
         const effect = prepared.content.effects[0]
         for (let invocation = 0; invocation < 2; invocation++)
-          effect.innerApply(
+          applyEffect(
+            effect,
             new EffectContext(new TurnContext(battle), EffectTrigger.TurnEnd, a.activePet.skills[0], effect),
           )
         expect(a.activePet.currentHp).toBe(23)

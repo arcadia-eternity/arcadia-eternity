@@ -11,6 +11,7 @@ export class HealPhase extends ContextPhase<HealContext> {
     const hp = prepareHeal(context, battle)
     if (hp === undefined) return
     context.target.currentHp = hp
+    if (hp === 0) context.target.isAlive = false
     notifyHeal(context, battle)
   }
 }

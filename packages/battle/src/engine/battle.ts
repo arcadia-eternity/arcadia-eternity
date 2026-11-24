@@ -17,10 +17,9 @@ import {
 import { publicBattleMessage } from './messageVisibility'
 import { ExecutionBudget } from './execution/budget'
 import { GameRng } from './rng'
-import { ConfigSystem, PhaseType } from './config'
+import { ConfigSystem } from './config'
 import { AddMarkContext, Context, RemoveMarkContext, type TriggerContextMap } from './context'
 import { type EffectContainer } from './effect'
-import { type MarkOwner } from './entity'
 import { type MarkInstance } from './mark'
 import { Pet } from './pet'
 import { Player } from './player'
@@ -51,7 +50,7 @@ export interface BattleActionRecord {
   selection: PlayerSelection
 }
 
-export class Battle extends Context implements MarkOwner {
+export class Battle extends Context {
   private lastStateMessage: BattleState = {} as BattleState
   public id: string = nanoid()
   private readonly logger = createChildLogger('Battle')
@@ -550,21 +549,19 @@ export class Battle extends Context implements MarkOwner {
   public setSelection(selection: PlayerSelection): boolean {
     this.assertRunning()
     const player = [this.playerA, this.playerB].find(p => p.id === selection.player)
-    if (!player) return false
-    const result = player.setSelection(selection)
-    if (result) {
-      this.actionLog.push({
-        sequence: this.actionLog.length,
-        turn: this.currentTurn,
-        phase: this.currentPhase,
-        selection: JSON.parse(JSON.stringify(selection)) as PlayerSelection,
-      })
-      this.checkWaitingResolvers()
+    if (!player || !player.canSelect(selection)) return false
+    player.selection = selection
+    this.actionLog.push({
+      sequence: this.actionLog.length,
+      turn: this.currentTurn,
+      phase: this.currentPhase,
+      selection: JSON.parse(JSON.stringify(selection)) as PlayerSelection,
+    })
+    this.checkWaitingResolvers()
 
-      // 通知TimerManager玩家选择状态变化
-      this.timerManager.handlePlayerSelectionChange(selection.player, true)
-    }
-    return result
+    // 通知TimerManager玩家选择状态变化
+    this.timerManager.handlePlayerSelectionChange(selection.player, true)
+    return true
   }
 
   /** Inputs accepted through setSelection only; runtime IDs are local to this Battle. */
@@ -675,23 +672,6 @@ export class Battle extends Context implements MarkOwner {
     // 停止所有计时器
     this.timerManager.stopAllTimers()
     this.getVictor(true)
-  }
-
-  /** Match historical Skill > Turn > current phase lifetime selection. */
-  getTemporaryEffectPhaseId(): string | undefined {
-    return (
-      this.configSystem.getCurrentPhaseOfType(PhaseType.Skill) ??
-      this.configSystem.getCurrentPhaseOfType(PhaseType.Turn) ??
-      this.phaseManager.getCurrentPhase()
-    )?.id
-  }
-
-  cleanupPhaseEffects(phaseId: string): void {
-    for (const mark of this.marks) mark.clearTemporaryEffects(phaseId)
-    for (const pet of this.petMap.values()) {
-      for (const skill of pet.skills) skill.clearTemporaryEffects(phaseId)
-      for (const mark of pet.marks) mark.clearTemporaryEffects(phaseId)
-    }
   }
 
   toMessage(viewerId?: playerId, showHidden = false): BattleState {

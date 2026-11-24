@@ -1,3 +1,4 @@
+import { applyEffect } from '../../src/engine/phase/effectExecution'
 import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import * as sdk from '../../authoring'
 import { ArenaEffectModule, sandboxPolicy, type SandboxPolicy, type EffectModuleArtifact } from '../../sandbox'
@@ -60,7 +61,7 @@ it('uses the injected SDK with canonical parameters and synchronous custom compu
   `)
   const f = compile(module)
   f.a.activePet.currentHp = 40
-  f.effect.innerApply(f.ctx)
+  applyEffect(f.effect, f.ctx)
   expect(f.a.activePet.currentHp).toBe(53)
   expect(module.state).toBe('ready')
 })
@@ -118,11 +119,11 @@ it('reads current domain state independently on each callback', async () => {
     }`)
   const f = compile(module)
   f.a.activePet.currentHp = 40
-  f.effect.innerApply(f.ctx)
+  applyEffect(f.effect, f.ctx)
   expect(f.a.activePet.currentHp).toBe(44)
   f.a.activePet.currentHp = 30
   const next = new EffectContext(new TurnContext(f.battle), EffectTrigger.TurnEnd, f.a.activePet.skills[0], f.effect)
-  f.effect.innerApply(next)
+  applyEffect(f.effect, next)
   expect(f.a.activePet.currentHp).toBe(33)
   expect(module.state).toBe('ready')
 })
@@ -135,7 +136,7 @@ it('uses native SDK healing and the battle RNG through scoped domain capabilitie
   }`)
   const f = compile(module)
   f.a.activePet.currentHp = 40
-  f.effect.innerApply(f.ctx)
+  applyEffect(f.effect, f.ctx)
   expect(f.a.activePet.currentHp).toBe(43)
 })
 it('latches denied writes even if author code catches the exception', async () => {
@@ -143,7 +144,7 @@ it('latches denied writes even if author code catches the exception', async () =
     sourceKind:'skill',triggers:[sdk.EffectTrigger.TurnEnd],apply(ctx){try{ctx.source.owner.currentHp=0}catch{}}})]}`)
   const f = compile(module),
     hp = f.a.activePet.currentHp
-  expect(() => f.effect.innerApply(f.ctx)).toThrow()
+  expect(() => applyEffect(f.effect, f.ctx)).toThrow()
   expect(f.a.activePet.currentHp).toBe(hp)
   expect(module.state).toBe('faulted')
 })
@@ -180,10 +181,10 @@ it('rejects deliberately retained callback contexts after their scope expires', 
         if(saved) { try { saved.source } catch {} } else saved=ctx;
       }})]}`)
   const f = compile(module)
-  f.effect.innerApply(f.ctx)
+  applyEffect(f.effect, f.ctx)
   // Each trigger supplies a new invocation context. Retaining a previous one must fail closed.
   const next = new EffectContext(new TurnContext(f.battle), EffectTrigger.TurnEnd, f.a.activePet.skills[0], f.effect)
-  expect(() => f.effect.innerApply(next)).toThrow(/Expired/)
+  expect(() => applyEffect(f.effect, next)).toThrow(/Expired/)
   expect(module.state).toBe('faulted')
 })
 
@@ -208,9 +209,9 @@ it('reduces rage through the native context and dispatches loss events', async (
     })];
   }`)
   const f = compile(module)
-  f.a.settingRage(50)
+  f.a.currentRage = 50
   const dispatch = vi.spyOn(f.battle, 'applyEffects')
-  f.effect.innerApply(f.ctx)
+  applyEffect(f.effect, f.ctx)
   expect(f.a.currentRage).toBe(38)
   expect(dispatch.mock.calls.map(call => call[1])).toEqual([EffectTrigger.BeforeRageLoss, EffectTrigger.OnRageLoss])
   expect(module.state).toBe('ready')

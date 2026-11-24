@@ -355,6 +355,7 @@ export class TransformationSystem {
       if (currentHpRatio !== undefined) {
         const newCurrentHp = Math.floor(target.stat.maxHp * currentHpRatio)
         target.currentHp = newCurrentHp
+        if (newCurrentHp === 0) target.isAlive = false
       }
     } else if (target instanceof SkillInstance) {
       const skillStrategy = strategy as TransformationStrategy<SkillEntity, SkillPrototype, EntityType.Skill>

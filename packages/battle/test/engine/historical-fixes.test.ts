@@ -1,3 +1,4 @@
+import { addStatStage } from '../../src/engine/phase/AddMarkPhase'
 import {
   BaseSkill,
   DamageContext,
@@ -32,8 +33,8 @@ afterEach(async () => {
 it('keeps a stat-stage mark and modifier attached when the level changes sign', () => {
   const { a, battle } = fixture(),
     ctx = context(battle)
-  a.activePet.addStatStage(ctx, StatTypeWithoutHp.atk, 1)
-  a.activePet.addStatStage(ctx, StatTypeWithoutHp.atk, -2)
+  addStatStage(ctx, a.activePet, StatTypeWithoutHp.atk, 1)
+  addStatStage(ctx, a.activePet, StatTypeWithoutHp.atk, -2)
   expect(battle.phaseManager.getPhasesByState(PhaseState.Failed)).toHaveLength(0)
   expect(a.activePet.stat.atk).toBeCloseTo(55 * 0.66)
   expect(a.activePet.marks[0].owner).toBe(a.activePet)

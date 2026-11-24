@@ -1,27 +1,21 @@
 import { EffectTrigger, BattleMessageType } from '@arcadia-eternity/const'
-import type { Battle } from '../battle'
 import { RemoveMarkContext, ConsumeStackContext, type EffectContext, type DamageContext } from '../context'
 import type { MarkInstance } from '../mark'
 import { Pet } from '../pet'
-import { SynchronousPhase } from './base'
+import { ContextPhase } from './base'
 
-export class ConsumeStackPhase extends SynchronousPhase<ConsumeStackContext> {
-  constructor(
-    battle: Battle,
-    private readonly parentContext: EffectContext<EffectTrigger> | DamageContext,
-    private readonly mark: MarkInstance,
-    private readonly requestedAmount: number,
-    id?: string,
-  ) {
-    super(battle, id)
-  }
+export function consumeMarkStacks(
+  parent: EffectContext<EffectTrigger> | DamageContext,
+  mark: MarkInstance,
+  amount: number,
+): number {
+  const event = new ConsumeStackContext(parent, mark, amount, amount)
+  return parent.battle.phaseManager.run(new ConsumeStackPhase(event)).success ? event.actualAmount : 0
+}
 
-  protected createContext(): ConsumeStackContext {
-    return new ConsumeStackContext(this.parentContext, this.mark, this.requestedAmount, this.requestedAmount)
-  }
-
+class ConsumeStackPhase extends ContextPhase<ConsumeStackContext> {
   protected executeOperation(): void {
-    const context = this._context!
+    const context = this.event
     const battle = this.battle
 
     const mark = context.mark

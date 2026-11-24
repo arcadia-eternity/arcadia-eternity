@@ -1,3 +1,4 @@
+import { applyEffect } from '../../src/engine/phase/effectExecution'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
   effectAuthoring,
@@ -87,7 +88,7 @@ it.each(['heal', 'stage', 'assign', 'consume', 'add-stacks'] as const)(
     )
     const context = new EffectContext(new TurnContext(f.battle), EffectTrigger.TurnStart, source, effect)
     const before = target.stat.def
-    expect(() => f.battle.executionBudget.run(f.battle.currentTurn, () => effect.innerApply(context))).toThrow(
+    expect(() => f.battle.executionBudget.run(f.battle.currentTurn, () => applyEffect(effect, context))).toThrow(
       'Cross-battle',
     )
     expect(target.currentHp).toBe(10)

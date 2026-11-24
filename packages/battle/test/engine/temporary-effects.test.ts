@@ -1,5 +1,8 @@
 import {
   BaseMark,
+  RemoveMarkContext,
+  HealPhase,
+  HealContext,
   BattleMessageType,
   Effect,
   EffectContext,
@@ -50,14 +53,35 @@ it('clearing one phase preserves permanent effects and other phase additions', (
   const f = fixture(),
     target = f.targets[0]
   target.effects.push(f.effect)
-  target.addTemporaryEffect(f.effect, 'one')
-  target.addTemporaryEffect(f.effect, 'two')
+  const event = new HealContext(f.ctx, f.ctx.source, f.a.activePet, 1)
+  const one = new HealPhase(event, 'one')
+  const two = new HealPhase(event, 'two')
+  one.addTemporaryEffect(target, f.effect)
+  two.addTemporaryEffect(target, f.effect)
   expect(target.getEffects(EffectTrigger.TurnEnd)).toHaveLength(3)
-  target.clearTemporaryEffects('one')
+  one.cleanup()
   expect(target.getEffects(EffectTrigger.TurnEnd)).toHaveLength(2)
-  target.clearTemporaryEffects('two')
+  two.cleanup()
   expect(target.getEffects(EffectTrigger.TurnEnd)).toEqual([f.effect])
 })
+it('releases a temporary effect when its mark leaves the battle during the phase', () => {
+  const f = fixture()
+  const mark = f.battle.marks[0]
+  const phase = new HealPhase(new HealContext(f.ctx, f.ctx.source, f.a.activePet, 1))
+  phase.addTemporaryEffect(mark, f.effect)
+  f.a.activePet.skills[0].effects.push(
+    new Effect<EffectTrigger>(
+      'fixture/remove-temporary-target' as effectId,
+      [EffectTrigger.OnBeforeHeal],
+      ctx => f.battle.removeMark(new RemoveMarkContext(ctx, mark)),
+      0,
+    ),
+  )
+  f.battle.phaseManager.run(phase)
+  expect(f.battle.marks).not.toContain(mark)
+  expect(mark.getEffects(EffectTrigger.TurnEnd)).not.toContain(f.effect)
+})
+
 it('rejects active phase lifetimes at checkpoints and round trips after cleanup', async () => {
   const f = fixture()
   let ready!: () => void
@@ -73,9 +97,10 @@ it('rejects active phase lifetimes at checkpoints and round trips after cleanup'
   catalog.registerEffect(f.effect.id, f.effect)
   const baseEffects = [...f.a.team, ...f.b.team].flatMap(p => p.skills.flatMap(s => s.base.effects))
   for (const effect of baseEffects) catalog.registerEffect(effect.id, effect)
-  for (const target of f.targets) target.addTemporaryEffect(f.effect, 'active-phase')
+  const phase = new HealPhase(new HealContext(f.ctx, f.ctx.source, f.a.activePet, 1))
+  for (const target of f.targets) phase.addTemporaryEffect(target, f.effect)
   expect(() => snapshotBattle(f.battle, catalog)).toThrow('active temporary effects')
-  f.battle.cleanupPhaseEffects('active-phase')
+  phase.cleanup()
   const data = JSON.parse(JSON.stringify(snapshotBattle(f.battle, catalog)))
   await f.battle.cleanup()
   await run

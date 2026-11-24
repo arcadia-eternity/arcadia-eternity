@@ -1,3 +1,7 @@
+import { consumeMarkStacks } from '../../phase/consumeStack'
+import { addMarkStacks } from '../../phase/MarkStackPhase'
+import { reverseStatStages } from '../../phase/RemoveMarkPhase'
+import { addStatStage } from '../../phase/AddMarkPhase'
 import {
   DamagePhase,
   setEffectHp,
@@ -8,7 +12,7 @@ import {
 import { deferSkillDamage } from '../../phase/skill'
 import { nanoid } from 'nanoid'
 import type { TSchema } from '@sinclair/typebox'
-import { ConfigModifier, ConfigDurationType, ConfigModifierType } from '../../config'
+import { ConfigModifier, ConfigDurationType, ConfigModifierType, PhaseType } from '../../config'
 import { Modifier, DurationType } from '../../attributeSystem'
 import {
   DamageType,
@@ -920,7 +924,7 @@ function addAttributeModifier<T extends Pet | SkillInstance>(
       )
       const cleanup = target.attributeSystem.addModifier(attribute, modifier)
       modifier.followsMarkOwner = isOwnerContribution(engine(ctx).effect)
-      if (source instanceof MarkInstanceImpl) source.addAttributeModifierCleanup(cleanup)
+      if (source instanceof MarkInstanceImpl) source.attributeModifierCleanups.push(cleanup)
     }
   }
 }
@@ -941,7 +945,7 @@ function parameterModifier(
       assertWriteTarget(ctx, target)
       const source = engine(ctx)
       const cleanup = install(source, target, value, rank)
-      if (source.source instanceof MarkInstanceImpl) source.source.addAttributeModifierCleanup(cleanup)
+      if (source.source instanceof MarkInstanceImpl) source.source.attributeModifierCleanups.push(cleanup)
     }
   }
 }
@@ -971,13 +975,17 @@ const operatorFactories: typeof C.ops = {
     }
   },
   addTemporaryEffect: input => (ctx, selected) => {
-    const phaseId = engine(ctx).battle.getTemporaryEffectPhaseId()
-    if (!phaseId) return
+    const { battle } = engine(ctx)
+    const phase =
+      battle.configSystem.getCurrentPhaseOfType(PhaseType.Skill) ??
+      battle.configSystem.getCurrentPhaseOfType(PhaseType.Turn) ??
+      battle.phaseManager.getCurrentPhase()
+    if (!phase) return
     for (const target of selected) assertWriteTarget(ctx, target)
     const effect = input instanceof Effect ? input : read(ctx, input)
     if (effect === undefined) return
     if (!(effect instanceof Effect)) throw new Error('Expected effect input')
-    for (const target of selected) target.addTemporaryEffect(effect, phaseId)
+    for (const target of selected) phase.addTemporaryEffect(target, effect)
   },
   setRage: amount =>
     numeric(amount, (ctx, target, n) => {
@@ -1241,14 +1249,14 @@ const operatorFactories: typeof C.ops = {
       if (!mark.config.persistent && duration !== undefined) mark.duration = duration
     }
   },
-  addStacks: amount => numeric(amount, (_ctx, mark, n) => mark.addStack(n), assertMarkLifecycleTarget),
+  addStacks: amount => numeric(amount, (_ctx, mark, n) => addMarkStacks(mark, n), assertMarkLifecycleTarget),
   consumeStacks: amount => (ctx, selected) => {
     // A removal callback may detach a later member of this operation's selected collection.
     // Keep that identity valid only for this invocation, after initial ownership validation.
     const validated = new Set<MarkInstance>()
     numeric<MarkInstance>(
       amount,
-      (frame, mark, n) => mark.consumeStack(engine(frame), n),
+      (frame, mark, n) => consumeMarkStacks(engine(frame), mark, n),
       (frame, mark) => {
         if (validated.has(mark) && !mark.isActive && mark.owner === null) return
         assertMarkLifecycleTarget(frame, mark)
@@ -1263,7 +1271,7 @@ const operatorFactories: typeof C.ops = {
       for (const pet of selected) assertWriteTarget(ctx, pet)
       for (const pet of selected) {
         assertWriteTarget(ctx, pet)
-        pet.reverseStatStage(engine(ctx), strategy, ...stats)
+        reverseStatStages(engine(ctx), pet, strategy, stats)
       }
     }
   },
@@ -1302,13 +1310,13 @@ const operatorFactories: typeof C.ops = {
       for (const mark of source.getClearableStatStageMarks(strategy, ...stats)) {
         assertWriteTarget(ctx, source)
         assertWriteTarget(ctx, target)
-        target.addStatStage(engine(ctx), mark.statType, mark.level)
+        addStatStage(engine(ctx), target, mark.statType, mark.level)
         ops.removeMark()(ctx, [mark])
       }
     }
   },
   changeStatStage: (stat, amount) =>
-    numeric(amount, (ctx, pet, n) => pet.addStatStage(engine(ctx), stat as StatTypeWithoutHp, n)),
+    numeric(amount, (ctx, pet, n) => addStatStage(engine(ctx), pet, stat as StatTypeWithoutHp, n)),
   add: amount => (ctx, selected) => {
     for (const ref of selected) assertWriteTarget(ctx, ref)
     const delta = read(ctx, amount)
@@ -1400,7 +1408,7 @@ const operatorFactories: typeof C.ops = {
             source.source,
           )
           try {
-            source.source.addAttributeModifierCleanup(config.addScopedConfigModifier(parameter, modifier, target))
+            source.source.attributeModifierCleanups.push(config.addScopedConfigModifier(parameter, modifier, target))
           } catch (error) {
             value.complete()
             throw error

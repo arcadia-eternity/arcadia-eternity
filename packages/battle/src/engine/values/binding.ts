@@ -289,7 +289,7 @@ export function installValueModifier<A>(options: InstallValueModifier<A>): Value
   modifier.addCleanup(dispose)
   try {
     const cleanup = options.target.attributeSystem.addModifier(options.attribute, modifier)
-    options.source.addAttributeModifierCleanup(cleanup)
+    options.source.attributeModifierCleanups.push(cleanup)
     return bindingHandle(bound, cleanup)
   } catch (error) {
     getModifierCleanup(options.target.attributeSystem, modifier)?.()

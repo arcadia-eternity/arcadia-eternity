@@ -139,7 +139,13 @@ it('makes state available during creation and releases it when creation fails', 
     f.debuff.config,
   )
   pet.addMark(new AddMarkContext(ctx, pet, base))
-  expect(getEffectState(ctx, pet.marks.find(mark => mark.base === base)!, hits)).toBe(5)
+  expect(
+    getEffectState(
+      ctx,
+      pet.marks.find(mark => mark.base === base)!,
+      hits,
+    ),
+  ).toBe(5)
   const failing = new BaseMark(
     'state/failed' as baseMarkId,
     [
@@ -155,13 +161,14 @@ it('makes state available during creation and releases it when creation fails', 
     f.debuff.config,
   )
   const mark = failing.createInstance()
+  vi.spyOn(failing, 'createInstance').mockReturnValue(mark)
   const apply = f.battle.applyEffects.bind(f.battle)
   const spy = vi.spyOn(f.battle, 'applyEffects').mockImplementation((parent, trigger, ...sources) => {
     if (trigger === EffectTrigger.OnAnyMarkAdded) throw new Error('creation failed')
     return apply(parent, trigger, ...sources)
   })
   try {
-    expect(() => mark.OnMarkCreated(pet, new AddMarkContext(ctx, pet, failing))).toThrow('creation failed')
+    expect(() => f.battle.addMark(new AddMarkContext(ctx, pet, failing))).toThrow('creation failed')
     expect(f.battle.configSystem.exportSnapshotState().scopedBase.has(mark)).toBe(false)
   } finally {
     spy.mockRestore()

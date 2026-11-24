@@ -29,8 +29,8 @@ import {
   RemoveMarkContext,
   SwitchPetContext,
 } from './context'
-import type { Instance, MarkOwner, OwnedEntity, Prototype } from './entity'
-import { BaseMark, CreateStatStageMark, type MarkInstance, StatLevelMarkInstanceImpl } from './mark'
+import type { Instance, OwnedEntity, Prototype } from './entity'
+import { BaseMark, type MarkInstance, StatLevelMarkInstanceImpl } from './mark'
 import { Player } from './player'
 import { BaseSkill, SkillInstance } from './skill'
 import { PetAttributeSystem } from './attributeSystem'
@@ -53,7 +53,7 @@ export interface Species extends Prototype {
 }
 
 // 精灵类
-export class Pet implements OwnedEntity, MarkOwner, Instance {
+export class Pet implements OwnedEntity, Instance {
   public emitter?: Emitter<Events>
 
   public gender: Gender = Gender.NoGender
@@ -132,9 +132,6 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
 
   set currentHp(value: number) {
     this.attributeSystem.setCurrentHp(value)
-    if (value === 0) {
-      this.isAlive = false
-    }
   }
 
   get stat(): StatOnBattle {
@@ -151,10 +148,6 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
 
   public isActive() {
     return this.owner?.activePet === this
-  }
-
-  public settingRage(value: number) {
-    this.owner?.settingRage(value)
   }
 
   public addRage(context: RageContext) {
@@ -337,19 +330,6 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     return this.getEffectiveStat()
   }
 
-  // Recalculate base stats and update attribute system
-  recalculate() {
-    const newStat = this.calculateStats()
-
-    // Update base values in attribute system
-    Object.entries(newStat).forEach(([key, value]) => {
-      this.attributeSystem.updateBaseValue(key, value)
-    })
-
-    // Note: Effects that previously used OnUpdateStat trigger should now
-    // use the modifyStat operator which works directly with the Pet's attribute system
-  }
-
   public getEffectiveStat(ignoreMark = false, ignoreStageStrategy = IgnoreStageStrategy.none): StatOnBattle {
     // If we're ignoring marks, get base stats without any modifiers
     if (ignoreMark) {
@@ -424,22 +404,6 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
     }, {} as StatOnBattle)
   }
 
-  public addStatStage(context: EffectContext<EffectTrigger>, statType: StatTypeWithoutHp, value: number) {
-    const upMark = CreateStatStageMark(statType, value)
-    this.addMark(new AddMarkContext(context, this, upMark, value))
-  }
-
-  // 清理能力等级时同时清除相关印记
-  public clearStatStage(
-    context: EffectContext<EffectTrigger>,
-    cleanStageStrategy = CleanStageStrategy.positive,
-    ...statTypes: StatTypeWithoutHp[]
-  ) {
-    for (const mark of this.getClearableStatStageMarks(cleanStageStrategy, ...statTypes)) {
-      context.battle.removeMark(new RemoveMarkContext(context, mark))
-    }
-  }
-
   /** Snapshot each stat's members when reached, then test each level immediately before yielding. */
   public *getClearableStatStageMarks(
     cleanStageStrategy = CleanStageStrategy.positive,
@@ -469,45 +433,6 @@ export class Pet implements OwnedEntity, MarkOwner, Instance {
           yield mark
       }
     }
-  }
-
-  // 反转能力等级（正变负，负变正）
-  public reverseStatStage(
-    context: EffectContext<EffectTrigger>,
-    cleanStageStrategy = CleanStageStrategy.positive,
-    ...statTypes: StatTypeWithoutHp[]
-  ) {
-    if (!statTypes || statTypes.length === 0) {
-      statTypes = [
-        StatTypeWithoutHp.atk,
-        StatTypeWithoutHp.def,
-        StatTypeWithoutHp.spa,
-        StatTypeWithoutHp.spd,
-        StatTypeWithoutHp.spe,
-      ]
-    }
-    statTypes.forEach(statType => {
-      // Find all stat stage marks for this stat type
-      const statStageMarks = this.marks.filter(
-        mark => mark instanceof StatLevelMarkInstanceImpl && mark.statType === statType,
-      ) as StatLevelMarkInstanceImpl[]
-
-      statStageMarks.forEach(mark => {
-        const stage = mark.level
-        const shouldReverse =
-          cleanStageStrategy === CleanStageStrategy.all ||
-          (cleanStageStrategy === CleanStageStrategy.positive && stage > 0) ||
-          (cleanStageStrategy === CleanStageStrategy.negative && stage < 0)
-
-        if (shouldReverse) {
-          // Remove the existing mark using RemoveMarkPhase
-          const removeMarkContext = new RemoveMarkContext(context, mark)
-          context.battle.removeMark(removeMarkContext)
-          // Add a new mark with reversed stage
-          this.addStatStage(context, statType, -stage)
-        }
-      })
-    })
   }
 
   public transferMarks(context: SwitchPetContext | EffectContext<EffectTrigger>, ...marks: MarkInstance[]) {

@@ -1,3 +1,4 @@
+import { applyEffect } from '../../src/engine/phase/effectExecution'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
   AddMarkContext,
@@ -111,7 +112,7 @@ it('injects the official domain constructors and executes repeated native code u
   expect(f.battle.random()).toBe(expected.next())
   const wrongSource = f.b.activePet.skills[0]
   expect(() =>
-    uses[0].effect.innerApply(new EffectContext(attack(f), EffectTrigger.OnHit, wrongSource, uses[0].effect)),
+    applyEffect(uses[0].effect, new EffectContext(attack(f), EffectTrigger.OnHit, wrongSource, uses[0].effect)),
   ).toThrow('Mismatched')
 })
 
@@ -214,7 +215,7 @@ it('keeps native parameters scoped to each use and exposes the actual typed cont
     f.a.activePet.currentHp = 1
     expect(compiled.effect.condition!(context)).toBe(true)
     expect(admitted.at(-1)).toBe(context)
-    compiled.effect.innerApply(context)
+    applyEffect(compiled.effect, context)
     expect(seen.at(-1)).toBe(context)
     expect(f.a.activePet.currentHp).toBe(8 + index)
   }
