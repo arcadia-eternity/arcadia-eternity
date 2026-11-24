@@ -125,20 +125,14 @@ export class KelipuEffects {
         when: conditions.selfUsesSkill,
         apply: addIllum,
       },
-      effect_skill_set_field_yutian_after_check: {
-        triggers: [EffectTrigger.AfterUseSkillCheck] as const,
-        priority: 0,
-        when: conditions.selfUsesSkill,
-        apply: contexts.battle.apply(ops.addMark(requireMark(marks, 'mark_global_yutian'), { stack: 1 })),
-      },
       effect_skill_add_mark_self_chubeixiang_2_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck] as const,
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: targets.ownerPet.apply(ops.addMark(reserve, { stack: 2 })),
       },
-      effect_skill_add_mark_opponent_qiandidan_after_check: {
-        triggers: [EffectTrigger.AfterUseSkillCheck] as const,
+      effect_skill_add_mark_opponent_qiandidan_on_hit: {
+        triggers: [EffectTrigger.OnHit] as const,
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: addBuried,

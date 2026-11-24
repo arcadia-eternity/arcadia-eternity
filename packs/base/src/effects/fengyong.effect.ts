@@ -4,13 +4,14 @@ import {
   contexts,
   defineEffects,
   EffectTrigger,
+  checks,
   ops,
   targets,
   values,
   type Action,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
-import { activeOpponentMarks, requireMark } from './mark-queries'
+import { activeOpponentMarks, activeOwnerMarks, requireMark } from './mark-queries'
 
 const FENGWEN = 'mark_fengwen'
 const ZHONGDU = 'mark_zhongdu'
@@ -18,6 +19,7 @@ const MABI = 'mark_mabi'
 const QINGFENGZHIWU = 'mark_qingfengzhiwu'
 
 const FENGWEN_MAX = 3
+const FENGWEN_DAMAGE_PER_STACK = 30
 
 @effectGroup({ id: 'fengyong' })
 export class FengyongEffects {
@@ -29,7 +31,7 @@ export class FengyongEffects {
     const opponentFengwen = activeOpponentMarks(FENGWEN)
     const opponentFengwenStack = opponentFengwen.first().attribute('stack')
 
-    const opponentHasFengwen = opponentFengwen.condition((_, list) => list.length > 0)
+    const opponentHasFengwen = opponentFengwen.condition(checks.exists())
     const opponentHasZhongdu = activeOpponentMarks(ZHONGDU).condition((_, list) => list.length > 0)
 
     const addFengwen = targets.opponentActive.apply(ops.addMark(fengwen, { stack: 1 }))
@@ -38,29 +40,8 @@ export class FengyongEffects {
     const spendOneFengwen = opponentFengwen.apply(ops.consumeStacks(1))
     const spendAllFengwen = opponentFengwen.apply(ops.consumeStacks(opponentFengwen.first().attribute('stack')))
 
-    function spendFengwenFor(action: Action, otherwise?: Action): Action {
-      return actions.choose(opponentHasFengwen, actions.sequence(spendOneFengwen, action), otherwise)
-    }
-
-    function statusSelfBuffWithFengwenBonus(
-      baseStat: 'atk' | 'def' | 'spa' | 'spd' | 'spe',
-      baseAmount: number,
-      bonusStat: 'atk' | 'def' | 'spa' | 'spd' | 'spe',
-      bonusAmount: number,
-    ): Action {
-      const baseApply = targets.ownerPet.apply(ops.changeStatStage(baseStat, baseAmount))
-      const bonusApply = targets.ownerPet.apply(ops.changeStatStage(bonusStat, bonusAmount))
-      return actions.choose(conditions.selfUsesSkill, spendFengwenFor(bonusApply, baseApply))
-    }
-
-    function statusHealPerFengwen(perStack: number): Action {
-      const healAmount = values.combine(
-        opponentFengwenStack,
-        values.choose(opponentHasFengwen, 1, 0),
-        (stack, present) => (present === 1 ? stack * perStack : 0),
-      )
-      const heal = targets.ownerPet.apply(ops.heal(healAmount))
-      return actions.choose(conditions.selfUsesSkill, actions.sequence(heal, spendAllFengwen))
+    function spendFengwenFor(action: Action): Action {
+      return actions.choose(opponentHasFengwen, actions.sequence(spendOneFengwen, action))
     }
 
     function statusSelfMark(mark: NonNullable<typeof qingfengzhiwu>): Action {
@@ -78,6 +59,21 @@ export class FengyongEffects {
     }
 
     return defineEffects({
+      effect_mark_deal_poison_damage_with_fengwen_bonus_at_turn_end: {
+        triggers: [EffectTrigger.TurnEnd],
+        when: conditions.ownerIsActive,
+        apply: targets.ownerPet.apply(
+          ops.dealDamage(
+            values.combine(
+              targets.ownerPet.select(pet => pet.stat.maxHp).first(),
+              activeOwnerMarks(FENGWEN)
+                .select(mark => mark.stack)
+                .all(),
+              (maxHp, stacks) => Math.floor(maxHp / 8) + (stacks[0] ?? 0) * FENGWEN_DAMAGE_PER_STACK,
+            ),
+          ),
+        ),
+      },
       effect_ability_refresh_opponent_zhongdu_duration_on_damage: {
         triggers: [EffectTrigger.OnDamage] as const,
         priority: 0,
@@ -104,17 +100,21 @@ export class FengyongEffects {
         priority: 0,
         apply: spendFengwenFor(addMabi),
       },
-      effect_skill_consume_opponent_fengwen_1_to_raise_spe_1_stage_else_raise_spa_1_stage: {
+      effect_skill_consume_opponent_fengwen_1_to_raise_spe_1_stage: {
         when: conditions.selfUsesSkill,
         triggers: [EffectTrigger.BeforeHit] as const,
         priority: 0,
-        apply: statusSelfBuffWithFengwenBonus('spa', 1, 'spe', 1),
+        apply: spendFengwenFor(targets.ownerPet.apply(ops.changeStatStage('spe', 1))),
       },
-      effect_skill_heal_self_60_per_opponent_fengwen_and_consume_all: {
-        when: conditions.selfUsesSkill,
-        triggers: [EffectTrigger.AfterUseSkillCheck] as const,
-        priority: 0,
-        apply: statusHealPerFengwen(60),
+      effect_skill_consume_all_opponent_fengwen_heal_60_and_deal_30_damage_per_stack: {
+        when: conditions.all(conditions.selfUsesSkill, opponentHasFengwen),
+        triggers: [EffectTrigger.OnHit],
+        apply: ctx => {
+          const stacks = ctx.read(opponentFengwenStack) ?? 0
+          spendAllFengwen(ctx)
+          targets.ownerPet.apply(ops.heal(stacks * 60))(ctx)
+          targets.opponentActive.apply(ops.dealDamage(stacks * FENGWEN_DAMAGE_PER_STACK))(ctx)
+        },
       },
       effect_skill_consume_opponent_fengwen_1_to_deal_fixed_damage_50: {
         when: conditions.selfUsesSkill,
@@ -139,10 +139,9 @@ export class FengyongEffects {
         priority: 0,
         apply: raiseFengwenToThree(),
       },
-      effect_mark_increase_owner_evasion_50_percent_before_damage: {
-        triggers: [EffectTrigger.OnBeforeCalculateDamage] as const,
-        priority: 0,
-        apply: targets.ownerPet.apply(ops.addAttributeModifier('evasion', 'percent', 50)),
+      effect_mark_increase_evasion_50_percent: {
+        triggers: [EffectTrigger.OnMarkCreated],
+        apply: targets.ownerPet.apply(ops.addAttributeModifier('evasion', 'delta', 50)),
       },
     })
   }

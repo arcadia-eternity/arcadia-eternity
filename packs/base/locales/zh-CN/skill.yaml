@@ -3125,7 +3125,7 @@ skill_suishazhongji:
   description: 先出手时威力2倍
 skill_huixin:
   name: 会心
-  description: 使自身获得25点会心
+  description: 使自身获得会心，5回合内暴击率增加25个百分点。
 skill_suishaboji:
   name: 碎沙搏击
   description: 先出手时威力2倍
@@ -3572,10 +3572,10 @@ skill_mabifengzhen:
   description: 消耗1层蜂纹使对手麻痹
 skill_qunfengjijie:
   name: 群蜂集结
-  description: 强化自身特攻1级 消耗1层蜂纹时强化自身速度1级
+  description: 强化自身特攻1级。有蜂纹时消耗1层，额外强化自身速度1级。
 skill_fengwenfushi:
   name: 蜂纹腐蚀
-  description: 消耗所有蜂纹 每层蜂纹恢复自身60点体力
+  description: 消耗对手的所有蜂纹，每层恢复自身60点体力并对其造成30点固定伤害。
 skill_judafengci:
   name: 巨大蜂刺
   description: 消耗1层蜂纹附加50点固伤
@@ -3881,7 +3881,7 @@ skill_jiancijiaqiao:
   description: 先制+1 使自身获得尖刺甲壳
 skill_jiancichongzhuang:
   name: 尖刺冲撞
-  description: 自身每5点物防值附加1点伤害 最多100点
+  description: 自身每5点物防值附加1点固定伤害，最多100点。
 skill_jiancibaofa:
   name: 尖刺爆发
   description: 使对手获得尖刺爆发
@@ -3929,7 +3929,7 @@ skill_shihunlinggui:
   description: 先制+1 使自身获得噬魂灵柜
 skill_linghunzhifa:
   name: 灵魂之罚
-  description: 自身每5点特防值附加1点伤害 最多100点
+  description: 自身每5点特防值附加1点固定伤害，最多100点。
 skill_linghunsuiji:
   name: 灵魂碎击
   description: 使对手获得灵魂碎击

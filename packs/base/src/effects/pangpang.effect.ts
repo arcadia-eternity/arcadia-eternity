@@ -195,8 +195,8 @@ export class PangpangEffects {
         when: conditions.selfUsesSkill,
         apply: ownerPet.apply(ops.addMark(mianyiMark, { stack: 1, duration: 3 })),
       },
-      effect_skill_add_mark_self_meijiuyouhuo_after_check: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
+      effect_skill_add_mark_self_meijiuyouhuo_on_hit: {
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: ownerPet.apply(ops.addMark(meijiuMark, { stack: 1 })),

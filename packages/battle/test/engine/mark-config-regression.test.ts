@@ -14,6 +14,64 @@ const hasMark = (player: Player, id: string) => player.activePet.marks.some(mark
 const findMark = (player: Player, id: string) =>
   player.activePet.marks.find(mark => mark.baseId === id && mark.isActive)
 
+it.each([
+  ['pet_abubu', 'skill_bengdaitishen', 'mark_bengdaitishen', 'owner'],
+  ['pet_abubu', 'skill_abuzuzhou', 'mark_zuzhou', 'opponent'],
+  ['pet_pangpangtuo', 'skill_quanjiu', 'mark_meijiuyouhuo', 'owner'],
+  ['pet_bengbengshu', 'skill_shanduo', 'mark_shanduo', 'owner'],
+  ['pet_kelipute', 'skill_qiandidan', 'mark_qiandidan', 'opponent'],
+] as const)('%s 的 %s 只有命中才施加 %s', (pet, skill, mark, side) => {
+  const { owner, opponent, use } = petBattle(pet, [skill])
+  const target = side === 'owner' ? owner : opponent
+  use(skill, owner, false)
+  expect(hasMark(target, mark)).toBe(false)
+  use(skill)
+  expect(hasMark(target, mark)).toBe(true)
+})
+
+it('降雨弹落空时不改变天气', () => {
+  const { battle, owner, use } = petBattle('pet_kelipute', ['skill_jiangyudan'])
+  use('skill_jiangyudan', owner, false)
+  expect(battle.marks.some(mark => mark.baseId === 'mark_global_yutian')).toBe(false)
+  use('skill_jiangyudan')
+  expect(battle.marks.some(mark => mark.baseId === 'mark_global_yutian')).toBe(true)
+})
+
+it('会心提高25点暴击率，持续5回合且不被暴击消耗', () => {
+  const { battle, owner, use } = petBattle('pet_bengbengshu', ['skill_huixin', 'skill_paida'])
+  const critRate = owner.activePet.stat.critRate
+  use('skill_huixin')
+  waitTurn(battle)
+  vi.spyOn(battle, 'random').mockReturnValue(0.8)
+  const attack = use('skill_paida')
+  expect(attack.critRate).toBe(critRate + 25)
+  expect(attack.crit).toBe(false)
+  vi.spyOn(battle, 'random').mockReturnValue(0)
+  expect(use('skill_paida').crit).toBe(true)
+  for (let turn = 0; turn < 3; turn++) waitTurn(battle)
+  expect(use('skill_paida').critRate).toBe(critRate + 25)
+  waitTurn(battle)
+  expect(use('skill_paida').critRate).toBe(critRate)
+})
+
+it.each([false, true])('暴走在自然结束或换场时清空蓝波，换场=%s', switchOut => {
+  const skill = 'skill_hongbo'
+  const { battle, owner, use } = petBattle('pet_tuoniqiaoba', [skill], undefined, undefined, [
+    { species: 'pet_dilan', skills: ['skill_paida'] },
+  ])
+  const joeba = owner.activePet
+  for (let i = 0; i < 3; i++) use(skill)
+  expect(findMark(owner, 'mark_lanbo')?.stack).toBe(3)
+  expect(hasMark(owner, 'mark_baozou')).toBe(true)
+  if (switchOut) {
+    battle.phaseManager.run(new SwitchPetPhase(new SwitchPetContext(new TurnContext(battle), owner, owner.team[1]!)))
+  } else {
+    waitTurn(battle)
+  }
+  expect(joeba.marks.some(mark => mark.baseId === 'mark_lanbo')).toBe(false)
+  expect(joeba.marks.some(mark => mark.baseId === 'mark_baozou')).toBe(false)
+})
+
 it('劝酒把美酒诱惑施加给自己，并在下一次受到物攻后使攻击者烂醉', () => {
   const { battle, owner, opponent, use } = petBattle('pet_pangpangtuo', ['skill_quanjiu'])
   use('skill_quanjiu')

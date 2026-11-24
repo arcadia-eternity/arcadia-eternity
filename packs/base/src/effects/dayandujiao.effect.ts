@@ -47,10 +47,9 @@ const lowHpDamageBoost = {
 }
 
 const poisonPowerQuad = {
-  triggers: [EffectTrigger.OnBeforeCalculateDamage] as const,
-  priority: 0,
+  triggers: [EffectTrigger.AfterUseSkillCheck] as const,
   when: conditions.all(conditions.selfUsesSkill, opponentHasPoison),
-  apply: contexts.damage.apply(ops.modifyDamage({ percent: 300, delta: 0 })),
+  apply: contexts.skillUse.apply(ops.amplifyPower(4)),
 }
 
 const bleedDrain = {
@@ -134,7 +133,7 @@ export class DayandujiaoEffects {
       },
       effect_skill_increase_damage_50_percent_if_opponent_hp_below_quarter: lowHpDamageBoost,
       effect_skill_add_power_50_per_consecutive_use_max_100: consecutivePower,
-      effect_skill_increase_damage_300_percent_if_opponent_has_zhongdu: poisonPowerQuad,
+      effect_skill_quadruple_power_if_opponent_has_zhongdu: poisonPowerQuad,
       effect_skill_heal_100_percent_damage_dealt_if_opponent_has_liuxie: bleedDrain,
     })
   }

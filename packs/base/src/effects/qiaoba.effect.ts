@@ -58,11 +58,8 @@ export class QiaobaEffects {
     const selfSkillUse = contexts.skillUse
     const selfSkillPower = selfSkillUse.apply(ops.addPower(35))
     const selfSkillSureHit = selfSkillUse.apply(ops.setSureHit())
-    const selfSkillDoublePower = selfSkillUse.apply(ops.amplifyPower(2))
     const selfSkillSetMultihit4 = selfSkillUse.apply(ops.setMultihit(4))
     const selfSkillFreeRage = selfSkillUse.property('rage').apply(ops.assign(0))
-
-    const firstThisTurn = conditions.firstSkillThisTurn
 
     return defineEffects({
       effect_ability_add_mark_self_lanbo_on_damage: {
@@ -131,12 +128,6 @@ export class QiaobaEffects {
         when: conditions.all(conditions.selfUsesSkill, hasBlueWave(2)),
         apply: selfSkillFreeRage,
       },
-      effect_skill_power_2x_if_first_before_sort: {
-        triggers: [EffectTrigger.BeforeSort],
-        priority: 0,
-        when: conditions.all(conditions.selfUsesSkill, firstThisTurn),
-        apply: selfSkillDoublePower,
-      },
       effect_skill_raise_spa_1_stage_if_lanbo: {
         triggers: [EffectTrigger.BeforeHit],
         priority: 0,
@@ -197,11 +188,9 @@ export class QiaobaEffects {
         ),
         apply: contexts.damage.apply(ops.modifyDamage({ percent: 50, delta: 0 })),
       },
-      effect_mark_remove_self_lanbo_on_baozou_duration_end: {
-        triggers: [EffectTrigger.OnMarkDurationEnd],
-        priority: 0,
-        when: contexts.consumeStack.condition((_, events) => events.some(event => event.mark.baseId === BERSERK)),
-        apply: targets.ownerMarks.where(mark => mark.baseId === BLUE_WAVE).apply(ops.removeMark()),
+      effect_mark_remove_self_lanbo_when_baozou_ends: {
+        triggers: [EffectTrigger.OnOwnerSwitchOut, EffectTrigger.OnMarkDestroy],
+        apply: activeOwnerMarks(BLUE_WAVE).apply(ops.removeMark()),
       },
       effect_mark_evade_targeted_skill_after_check: {
         triggers: [EffectTrigger.AfterUseSkillCheck],

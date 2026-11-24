@@ -2335,7 +2335,7 @@
   ignoreShield: false
   tags: []
   effect:
-    - effect_skill_reduce_opponent_spa_1_stage_5_percent
+    - effect_skill_reduce_opponent_spd_1_stage_5_percent
 - id: skill_jiare
   element: Fire
   category: Status
@@ -12128,7 +12128,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_add_mark_self_huixin_for_1_turn_after_check
+    - effect_skill_add_mark_self_huixin_crit_rate
 - id: skill_suishaboji
   element: Desert
   category: Physical
@@ -12328,7 +12328,7 @@
   accuracy: 95
   target: self
   effect:
-    - effect_skill_add_mark_self_meijiuyouhuo_after_check
+    - effect_skill_add_mark_self_meijiuyouhuo_on_hit
 - id: skill_paida_mingzhong100
   element: Normal
   category: Physical
@@ -12374,7 +12374,7 @@
   accuracy: 95
   target: self
   effect:
-    - effect_skill_add_mark_self_bengdaitishen_after_check
+    - effect_skill_add_mark_self_bengdaitishen_on_hit
 - id: skill_zuzhouzhichu
   element: Psychic
   category: Special
@@ -12392,7 +12392,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_skill_add_mark_opponent_zuzhou_after_check
+    - effect_skill_add_mark_opponent_zuzhou_on_hit
 - id: skill_beishangfanji
   element: Normal
   category: Physical
@@ -13233,7 +13233,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_skill_power_2x_if_first_before_sort
+    - effect_skill_power_2x_if_first_after_check_priority_0
 - id: skill_wanliqianghua
   element: Normal
   category: Status
@@ -13438,7 +13438,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_skill_increase_damage_300_percent_if_opponent_has_zhongdu
+    - effect_skill_quadruple_power_if_opponent_has_zhongdu
 - id: skill_xueyetunshi
   element: Bug
   category: Special
@@ -13492,7 +13492,8 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_consume_opponent_fengwen_1_to_raise_spe_1_stage_else_raise_spa_1_stage
+    - effect_skill_raise_spa_1_stage
+    - effect_skill_consume_opponent_fengwen_1_to_raise_spe_1_stage
 - id: skill_fengwenfushi
   element: Bug
   category: Status
@@ -13501,7 +13502,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_heal_self_60_per_opponent_fengwen_and_consume_all
+    - effect_skill_consume_all_opponent_fengwen_heal_60_and_deal_30_damage_per_stack
 - id: skill_judafengci
   element: Normal
   category: Physical
@@ -14452,7 +14453,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_skill_add_power_by_def_div_5_max_100_pre_damage
+    - effect_skill_deal_fixed_damage_1_per_5_def_max_100
 - id: skill_jiancibaofa
   element: Ground
   category: Special
@@ -14535,7 +14536,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_skill_add_power_by_def_div_10_max_100_pre_damage
+    - effect_skill_add_power_1_per_10_def_max_100
 - id: skill_licifangun
   element: Ground
   category: Physical
@@ -14600,7 +14601,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_skill_add_power_1_per_5_spd_max_100
+    - effect_skill_deal_fixed_damage_1_per_5_spd_max_100
 - id: skill_linghunsuiji
   element: Desert
   category: Physical
@@ -15244,7 +15245,7 @@
   accuracy: 95
   target: self
   effect:
-    - effect_skill_set_field_yutian_after_check
+    - effect_skill_set_field_yutian
 - id: skill_daijizhuangtai
   element: Normal
   category: Status
@@ -15262,7 +15263,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_skill_add_mark_opponent_qiandidan_after_check
+    - effect_skill_add_mark_opponent_qiandidan_on_hit
 - id: skill_xuanguang
   element: Normal
   category: Status
@@ -15410,6 +15411,7 @@
   effect:
     - effect_skill_reduce_opponent_spd_1_stage_5_percent
 - id: skill_hailangzhenpao
+  tags: [zhenpao]
   element: Water
   category: Special
   power: 65
@@ -15488,7 +15490,7 @@
   accuracy: 100
   target: opponent
   effect:
-    - effect_skill_double_damage_against_grass_water_desert_trait
+    - effect_skill_double_power_against_grass_water_desert_trait
 - id: skill_mouwangjunshi
   element: Water
   category: Climax
@@ -15510,6 +15512,7 @@
   effect:
     - effect_skill_reduce_opponent_spe_1_stage_20_percent
 - id: skill_mouwangzhenpao
+  tags: [zhenpao]
   element: Water
   category: Special
   power: 80
@@ -15589,7 +15592,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_skill_add_power_35_unless_critical_damage_after_check
+    - effect_skill_add_power_35_if_not_critical
 - id: skill_hanguang
   element: Ice
   category: Status
@@ -15663,7 +15666,7 @@
   accuracy: 95
   target: opponent
   effect:
-    - effect_skill_add_power_40_unless_critical_damage_after_check
+    - effect_skill_add_power_40_if_not_critical
 - id: skill_daxuebeng
   element: Ice
   category: Physical

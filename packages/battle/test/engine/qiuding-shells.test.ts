@@ -95,9 +95,25 @@ it('迪兰用拍打命中尖刺甲壳，当次实际伤害决定反弹的体力'
   expect(hasShell()).toBe(false)
 })
 
+it('尖刺冲撞命中飞行系时仍结算附加的固定伤害', () => {
+  const skill = 'skill_jiancichongzhuang'
+  const { owner, opponent, use } = petBattle(
+    'pet_qiuji',
+    [skill],
+    undefined,
+    undefined,
+    [],
+    [{ species: 'pet_kelipute', skills: ['skill_paida'] }],
+  )
+  owner.activePet.attributeSystem.updateBaseValue('def', 500)
+  const hp = opponent.activePet.currentHp
+  expect(use(skill).typeMultiplier).toBe(0)
+  expect(opponent.activePet.currentHp).toBe(hp - 100)
+})
+
 it('沙之厉在施放者换下后继续为队友的沙漠系攻击增伤', () => {
   const { owner, opponent, battle, use } = petBattle('pet_qiuji', ['skill_shazhili'], undefined, undefined, [
-    { species: 'pet_baduo', skills: ['skill_linghunzhifa'] },
+    { species: 'pet_baduo', skills: ['skill_lihunsuiji'] },
   ])
   use('skill_shazhili')
   owner.selection = { type: 'switch-pet', player: owner.id, pet: owner.team[1]!.id }
@@ -113,7 +129,7 @@ it('沙之厉在施放者换下后继续为队友的沙漠系攻击增伤', () =
     )
       hits.push(message.data.result)
   })
-  use('skill_linghunzhifa')
+  use('skill_lihunsuiji')
   expect(hits).toHaveLength(1)
   const { intent, modifiedDamage } = hits[0]!
   expect(modifiedDamage).toBe(Math.floor(intent.baseDamage * intent.randomFactor * 1.5))

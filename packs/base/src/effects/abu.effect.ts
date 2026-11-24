@@ -76,14 +76,14 @@ export class AbuEffects {
         when: repeatedHit,
         apply: opponentActive.apply(ops.changeStatStage('spe', -1)),
       },
-      effect_skill_add_mark_self_bengdaitishen_after_check: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
+      effect_skill_add_mark_self_bengdaitishen_on_hit: {
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: ownerPet.apply(ops.addMark(bandageSubstitute, { stack: 1 })),
       },
-      effect_skill_add_mark_opponent_zuzhou_after_check: {
-        triggers: [EffectTrigger.AfterUseSkillCheck],
+      effect_skill_add_mark_opponent_zuzhou_on_hit: {
+        triggers: [EffectTrigger.OnHit],
         priority: 0,
         when: conditions.selfUsesSkill,
         apply: opponentActive.apply(ops.addMark(curse, { stack: 1 })),
