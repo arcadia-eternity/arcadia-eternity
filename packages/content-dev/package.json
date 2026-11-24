@@ -1,6 +1,6 @@
 {
   "name": "@arcadia-eternity/content-sdk",
-  "version": "4.19.1",
+  "version": "5.0.0",
   "license": "MIT",
   "type": "module",
   "engines": {
