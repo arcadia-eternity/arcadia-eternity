@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.0.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v5.0.0...arcadia-eternity-v5.0.1) (2026-11-24)
+
+
+### 🐛 Bug Fixes
+
+* align bundled content with Arcadia 5 ([45336d5](https://github.com/arcadia-eternity/arcadia-eternity/commit/45336d5b9e0b67c28bf4f26b0a7a84da1c576541))
+
 ## [5.0.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.19.1...arcadia-eternity-v5.0.0) (2026-11-24)
 
 
