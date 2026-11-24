@@ -20,24 +20,16 @@ async function fixture(name, run) {
     JSON.stringify({ dependencies: { '@test/content': 'file:./content.tgz' } }),
   )
   await writeFile(join(directory, 'package-lock.json'), '{}')
-  let status = { status: 'idle' }
-  const host = {
-    status: () => status,
-    start: async () => {
-      status = { status: 'running' }
-      return status
-    },
-  }
   const file = join(root, name, 'catalog.json')
-  const manager = new ContentProjectManager({ file, host, run: run ?? (async () => ({ format: 'ok' })) })
-  return { manager, directory, file, host }
+  const manager = new ContentProjectManager({ file, run: run ?? (async () => ({ format: 'ok' })) })
+  return { manager, directory, file }
 }
 it('persists named projects, deduplicates canonical paths and never removes project files', async () => {
-  const { manager, directory, file, host } = await fixture('catalog')
+  const { manager, directory, file } = await fixture('catalog')
   const id = await manager.add(directory)
   assert.equal(await manager.add(join(directory, '.')), id)
   await manager.rename(id, '朋友服')
-  const restored = new ContentProjectManager({ file, host, run: async () => {} })
+  const restored = new ContentProjectManager({ file, run: async () => {} })
   assert.equal((await restored.list())[0].name, '朋友服')
   assert.equal((await restored.list())[0].installed, false)
   await restored.forget(id)
@@ -53,6 +45,7 @@ it('rejects unregistered paths, unknown operations and invalid names before call
   const id = await manager.add(directory)
   await assert.rejects(manager.operate(directory, 'install'), /未登记/)
   await assert.rejects(manager.operate(id, 'exec'), /不支持/)
+  await assert.rejects(manager.operate(id, 'start'), /不支持/)
   await assert.rejects(manager.operate(id, '__proto__'), /不支持/)
   await assert.rejects(manager.rename(id, ' '), /名称/)
   assert.deepEqual(calls, [])
@@ -99,13 +92,6 @@ it('uses fixed approval and install arguments and clears outdated inspection on 
   assert.deepEqual(calls[1], ['content', 'npm', 'install', directory, '--offline'])
   await manager.operate(id, 'approve', { profile: 'official' })
   assert.deepEqual(calls[2], ['content', 'npm', 'approve', directory, '--profile', 'local-development'])
-})
-it('keeps a running environment registered and blocks conflicting mutations', async () => {
-  const { manager, directory } = await fixture('running')
-  const id = await manager.add(directory)
-  await manager.start(id)
-  await assert.rejects(manager.forget(id), /先停止/)
-  await assert.rejects(manager.operate(id, 'install'), /先停止/)
 })
 it('serializes mutations and leaves a missing external project registered for recovery', async () => {
   let release

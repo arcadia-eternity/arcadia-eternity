@@ -8,7 +8,7 @@ Electron 主进程提供独立本机对战子进程管理，并作为客户端�
 
 桌面桥的写入入口为 `localServer(request)`：
 
-- `status` 只读取状态；`start` 首次接收开服配置，之后不传配置即沿用已保存服务器；`start-project` 仅接受已登记项目 ID。
+- `status` 只读取状态；`start` 首次接收开服配置，之后不传配置即沿用已保存服务器。
 - `stop` 先停止接纳新局并等待现有对局结束；明确确认后才使用 `force`。`restart` 排空后重新启动；强制停止会取消正在等待的重启。
 - `recover` 以仅本机模式打开已配置服务器，便于修复网络设置；`getLocalBattleStatus()` 保留为连接授权使用的只读状态接口。
 
@@ -38,7 +38,7 @@ pnpm --filter @arcadia-eternity/web-ui build:desktop:preview
 
 此命令生成名称为 `Arcadia Eternity Preview` 的未发布应用目录，输出到 `packages/web-ui/release-preview/`；它允许许可证清单待补，但仍在打包前后校验运行时摘要及实际复制的资源。清单保留待核对项和真实的 `releaseReady` 值。预览命令不会推送或发布。
 
-当前 Renderer 的启动、状态和连接界面需与桌面桥一同使用；完整安装版离线资源与跨服场景按 #258/#259 的对应证据验收。`local-battle-host.test.mjs` 使用真实本机回环端口及模拟 CLI，检查启动、错误、身份、退出和父进程异常；设置 `ARCADIA_DESKTOP_REAL_HOST=1` 后运行 `local-battle-real.test.mjs`，可通过本机 Node 子进程离线安装并启动真实示例、检查 CORS、本地修改无需重新准入及无效准入记录拒绝。macOS ARM64 的本机测试目录已用打包内 Electron、npm、CLI 和 Base 运行真实 UGC 测试，验证批准项目启动、本地修改后启动及无效准入记录的拒绝。真实安装包的首次运行、同版本替换与数据保留证据另见后续验证记录。
+当前 Renderer 的启动、状态和连接界面需与桌面桥一同使用；完整安装版离线资源与跨服场景按 #258/#259 的对应证据验收。`local-battle-host.test.mjs` 使用真实本机回环端口及模拟 CLI，检查启动、错误、身份、退出和父进程异常；设置 `ARCADIA_DESKTOP_REAL_HOST=1` 后，`local-battle-real.test.mjs` 验证项目离线安装、校验、导出及重新安装，`desktop-managed-host-real.test.mjs` 验证本机服务器复用并发布客户端已就绪的环境。真实安装包的首次运行、同版本替换与数据保留证据另见后续验证记录。
 
 ### Remote play permission boundary (#251)
 

@@ -464,25 +464,25 @@ class ContentWorkspaceImplementation implements OwnedContentWorkspace {
       const aliases = { ...this.builtinEnvironmentAliases }
       const retiring = new Map<string, string>()
       for (const key of keys) {
-        const previous = Object.hasOwn(this.builtinEnvironmentIds, key)
-          ? this.builtinEnvironmentIds[key]
-          : Object.hasOwn(adopted, key)
-            ? adopted[key]
-            : undefined
-        if (previous === key) continue
+        const registered = Object.hasOwn(this.builtinEnvironmentIds, key) ? this.builtinEnvironmentIds[key] : undefined
         // An unregistered custom draft may already own the requested ID.
         if (
-          await lstat(this.#directory(key)).catch(error => {
+          registered !== key &&
+          (await lstat(this.#directory(key)).catch(error => {
             if (errorCode(error) !== 'ENOENT') throw error
             return undefined
-          })
+          }))
         )
           throw contentError('BUILTIN_ENVIRONMENT_ID_CONFLICT', key)
-        if (previous !== undefined) {
-          checkId(previous, envId)
-          if (Object.hasOwn(ids, previous)) throw contentError('BUILTIN_ENVIRONMENT_ID_CONFLICT', previous)
-          retiring.set(previous, key)
-        }
+        const previous =
+          registered && registered !== key ? registered : Object.hasOwn(adopted, key) ? adopted[key] : undefined
+        if (previous === undefined || previous === key) continue
+        checkId(previous, envId)
+        if (Object.hasOwn(ids, previous)) throw contentError('BUILTIN_ENVIRONMENT_ID_CONFLICT', previous)
+        const target = retiring.get(previous) ?? (Object.hasOwn(aliases, previous) ? aliases[previous] : undefined)
+        if (target === key) continue
+        if (target !== undefined) throw contentError('BUILTIN_ENVIRONMENT_ID_CONFLICT', previous)
+        retiring.set(previous, key)
       }
       for (const [oldId, id] of retiring) {
         // Preserve the previous installation intact. A restart can repeat this step before the metadata commits.

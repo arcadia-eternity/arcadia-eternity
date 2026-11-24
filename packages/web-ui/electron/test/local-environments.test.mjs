@@ -410,7 +410,7 @@ test('recovering an interrupted import archives legacy declarations before repla
 
 test('migrates the generated default to the shared installation, preserves edits and protects every write path', async t => {
   const f = await fixture(t)
-  const id = 'desktop-host'
+  const id = 'builtin-server'
   const old = 'local-' + randomUUID()
   const edited = 'local-' + randomUUID()
   const builtin = { ...document, id, name: '默认环境' }

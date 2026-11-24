@@ -38,6 +38,7 @@ export async function openBuiltinEnvironment({
   workspace,
   library,
   catalog,
+  previousEnvironmentId,
   validate,
   synchronizeShippedEnvironments,
 }) {
@@ -46,7 +47,7 @@ export async function openBuiltinEnvironment({
     await synchronizeShippedEnvironments(
       workspace,
       catalog,
-      {},
+      previousEnvironmentId ? { [catalog.defaultEnvironment]: previousEnvironmentId } : {},
       async (document, expectedRevision) => {
         const input = { environmentId: document.id, document, expectedRevision }
         if (

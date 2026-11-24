@@ -57,14 +57,12 @@ export class LocalServerController {
   #error
   constructor({
     host,
-    library,
-    startProject,
+    defaultProject,
     profile = () => loadLocalServerProfile(host.stateDirectory),
     wait = () => delay(1000),
   }) {
     this.host = host
-    this.library = library
-    this.startProject = startProject
+    this.defaultProject = defaultProject
     this.profile = profile
     this.wait = wait
   }
@@ -81,27 +79,20 @@ export class LocalServerController {
     if (
       !input ||
       typeof input !== 'object' ||
-      !['status', 'start', 'start-project', 'stop', 'restart', 'recover'].includes(input.action)
+      !['status', 'start', 'stop', 'restart', 'recover'].includes(input.action)
     )
       throw fail('INVALID_REQUEST', '服务器操作无效')
     const keys =
       input.action === 'start'
         ? ['action', 'configuration']
-        : input.action === 'start-project'
-          ? ['action', 'projectId']
-          : input.action === 'stop'
-            ? ['action', 'force']
-            : ['action']
+        : input.action === 'stop'
+          ? ['action', 'force']
+          : ['action']
     if (
       Object.keys(input).some(key => !keys.includes(key)) ||
       (input.force !== undefined && typeof input.force !== 'boolean')
     )
       throw fail('INVALID_REQUEST', '服务器操作参数无效')
-    if (
-      input.action === 'start-project' &&
-      (typeof input.projectId !== 'string' || !input.projectId || input.projectId.length > 200)
-    )
-      throw fail('INVALID_REQUEST', '请选择已登记项目')
     if (input.configuration !== undefined) launchConfiguration(input.configuration)
     if (input.action === 'status') return this.snapshot()
     if (this.#closed) throw fail('HOST_CLOSED', '客户端正在退出')
@@ -152,29 +143,15 @@ export class LocalServerController {
     this.#phase = 'idle'
   }
   async #run(input, firstLaunchOnly) {
-    if (input.action === 'start-project') {
-      if (!this.startProject) throw fail('UNSUPPORTED', '此宿主不支持项目启动')
-      if (this.host.status().status === 'running') throw fail('HOST_RUNNING', '请先在服务器页停止当前托管')
-      this.#phase = 'starting'
-      await this.startProject(input.projectId)
-      this.#phase = 'ready'
-      return
-    }
     if (input.action === 'stop') return this.#stop(input.force)
     if (input.action === 'restart') {
       await this.#stop(false)
       if (!this.#cancelRestart && !this.#closed) return this.#start()
       return
     }
-    if (input.action === 'recover') {
-      this.#phase = 'starting'
-      await this.host.startLocalRecovery()
-      this.#phase = 'ready'
-      return
-    }
-    return this.#start(input.configuration, firstLaunchOnly)
+    return this.#start(input.configuration, firstLaunchOnly, input.action === 'recover')
   }
-  async #start(configuration, firstLaunchOnly = false) {
+  async #start(configuration, firstLaunchOnly = false, localRecovery = false) {
     const profile = await this.profile()
     const running = this.host.status().status === 'running'
     if (firstLaunchOnly && (running || profile.projectDirectory)) {
@@ -186,33 +163,27 @@ export class LocalServerController {
     }
     // Quick start can arrive before the renderer has read the saved profile.
     const config = !profile.projectDirectory && configuration ? launchConfiguration(configuration) : undefined
-    if (!profile.projectDirectory && !config) throw fail('LAUNCH_REQUIRED', '请先设置服务器名称与连接范围')
+    if (!profile.projectDirectory && !config && !localRecovery)
+      throw fail('LAUNCH_REQUIRED', '请先设置服务器名称与连接范围')
     this.#phase = 'preparing'
-    let lease
-    try {
-      if (!profile.projectDirectory) {
-        lease = await this.library().acquireDefaultProject()
-        if (!lease.directory) throw fail('CONTENT_NOT_READY', '官方基础环境尚未就绪')
-      }
-      if (this.#closed) throw fail('HOST_CLOSED', '客户端正在退出')
-      this.#phase = 'starting'
-      await this.host.start(profile.projectDirectory ?? lease.directory, {
-        publishClientEnvironments: true,
-        ...(config
-          ? {
-              launch: {
-                name: config.name,
-                host: config.scope === 'local' ? '127.0.0.1' : '0.0.0.0',
-                port: config.port,
-                publicOrigin: config.publicOrigin ?? null,
-                officialContent: true,
-              },
-            }
-          : {}),
-      })
-      this.#phase = 'ready'
-    } finally {
-      await lease?.release()
-    }
+    const directory = await this.defaultProject()
+    if (!directory) throw fail('CONTENT_NOT_READY', '官方基础环境尚未就绪')
+    if (this.#closed) throw fail('HOST_CLOSED', '客户端正在退出')
+    this.#phase = 'starting'
+    await this.host.start(directory, {
+      publishClientEnvironments: true,
+      ...(localRecovery ? { localRecovery: true } : {}),
+      ...(config
+        ? {
+            launch: {
+              name: config.name,
+              host: config.scope === 'local' ? '127.0.0.1' : '0.0.0.0',
+              port: config.port,
+              publicOrigin: config.publicOrigin ?? null,
+            },
+          }
+        : {}),
+    })
+    this.#phase = 'ready'
   }
 }

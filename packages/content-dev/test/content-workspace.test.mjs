@@ -402,6 +402,23 @@ test('registering shipped IDs preserves a conflicting custom draft', async t => 
   assert.deepEqual(workspace.builtinEnvironmentIds, {})
 })
 
+test('an already installed builtin can adopt a saved server environment whose directory is gone', async t => {
+  const { open } = await fixture(t)
+  const workspace = await open()
+  const builtin = 'builtin-server'
+  const oldId = 'previous-builtin'
+  await workspace.registerBuiltinEnvironments([builtin], {})
+  const original = await workspace.saveDraft({ document: { ...document, id: builtin }, expectedRevision: null })
+  await workspace.registerBuiltinEnvironments([builtin], { [builtin]: oldId })
+  assert.deepEqual(workspace.builtinEnvironmentAliases, { [oldId]: builtin })
+  assert.deepEqual(await workspace.getDraft(builtin), original)
+  await workspace.close()
+  const reopened = await open()
+  await reopened.registerBuiltinEnvironments([builtin], { [builtin]: oldId })
+  assert.deepEqual(reopened.builtinEnvironmentAliases, { [oldId]: builtin })
+  assert.deepEqual(await reopened.getDraft(builtin), original)
+})
+
 test('online backup stamp detects edits to installed files and is single use', async t => {
   const { open } = await fixture(t)
   const workspace = await open()

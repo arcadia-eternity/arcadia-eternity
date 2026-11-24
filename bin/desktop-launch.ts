@@ -5,7 +5,6 @@ export interface DesktopLaunch {
   host: string
   port: number
   publicOrigin: string | null
-  officialContent?: true
 }
 
 /** Accepted only on the private desktop CLI channel, before binding a listener. */
@@ -15,14 +14,13 @@ export function parseDesktopLaunch(raw: string): DesktopLaunch {
     !value ||
     typeof value !== 'object' ||
     Array.isArray(value) ||
-    Object.keys(value).some(key => !['name', 'host', 'port', 'publicOrigin', 'officialContent'].includes(key)) ||
+    Object.keys(value).some(key => !['name', 'host', 'port', 'publicOrigin'].includes(key)) ||
     typeof value.name !== 'string' ||
     !value.name.trim() ||
     value.name.length > 80 ||
     !['127.0.0.1', '0.0.0.0'].includes(value.host) ||
     typeof value.port !== 'number' ||
-    (value.publicOrigin !== null && typeof value.publicOrigin !== 'string') ||
-    (value.officialContent !== undefined && value.officialContent !== true)
+    (value.publicOrigin !== null && typeof value.publicOrigin !== 'string')
   )
     throw new Error('Invalid desktop launch configuration')
   normalizeServerSettings({

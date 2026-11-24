@@ -9,7 +9,6 @@ export interface LocalServerConfiguration {
 export type LocalServerRequest =
   | { action: 'status' | 'restart' | 'recover' }
   | { action: 'start'; configuration?: LocalServerConfiguration }
-  | { action: 'start-project'; projectId: string }
   | { action: 'stop'; force?: boolean }
 export interface LocalServerSnapshot {
   host: LocalBattleHostStatus

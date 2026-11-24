@@ -1,12 +1,13 @@
 import { createServer } from 'node:http'
-import { basename } from 'node:path'
-import { join } from 'node:path'
+import { once } from 'node:events'
+import { basename, join } from 'node:path'
 import { writeFile } from 'node:fs/promises'
 import { writeFileSync } from 'node:fs'
 
 const args = process.argv.slice(2)
 const option = name => args[args.indexOf(name) + 1]
-const project = basename(option('--npm-project'))
+const [{ directory }] = await once(process, 'message')
+const project = basename(directory)
 const managed = args.includes('--desktop-managed-network')
 if (
   args[0] !== 'server' ||
@@ -29,16 +30,16 @@ if (project === 'unapproved') {
 } else {
   if (project === 'slow') await new Promise(resolve => setTimeout(resolve, 5000))
   const serverId = option('--server-id')
-  await writeFile(join(option('--npm-project'), 'cache-marker'), process.env.ARCADIA_DESKTOP_TEMP)
+  await writeFile(join(directory, 'cache-marker'), process.env.ARCADIA_DESKTOP_TEMP)
   if (project === 'runtime-paths')
     await writeFile(
-      join(option('--npm-project'), 'runtime-paths.json'),
+      join(directory, 'runtime-paths.json'),
       JSON.stringify({
         npmCliPath: process.env.ARCADIA_NPM_CLI,
         packsDirectory: process.env.ARCADIA_PACKS_DIR,
       }),
     )
-  process.once('exit', () => writeFileSync(join(option('--npm-project'), 'clean-exit'), 'yes'))
+  process.once('exit', () => writeFileSync(join(directory, 'clean-exit'), 'yes'))
   const server = createServer((_req, res) => {
     res.setHeader('Content-Type', 'application/json')
     res.end(JSON.stringify({ serverId }))
