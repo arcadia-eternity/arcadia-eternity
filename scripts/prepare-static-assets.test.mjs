@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { fileURLToPath } from 'node:url'
+import { readContentSources } from '../packages/content-dev/src/lib/content.ts'
+import { buildPresentation } from '../packages/content-dev/src/lib/presentation.ts'
 import { assetPath, collectOfficialAssetUrls, verifyAsset } from './prepare-static-assets.mjs'
 
 test('the static mirror includes the base pack’s linked battle interface resources', async () => {
@@ -17,6 +20,26 @@ test('the static mirror includes the base pack’s linked battle interface resou
   ])
     assert.ok(urls.includes(url), `${url} must be available without its CDN`)
   for (const url of urls) assert.ok(assetPath(url).startsWith('resource/') || assetPath(url).startsWith('pet/'))
+})
+
+test('every base pack mark has an image binding', async () => {
+  const root = fileURLToPath(new URL('../packs/base/', import.meta.url))
+  const sources = await readContentSources(root)
+  const { bindings, resources } = await buildPresentation(root, sources, { includeLocales: false })
+  const imageIds = new Set(
+    resources.filter(resource => resource.mime.startsWith('image/')).map(resource => resource.id),
+  )
+  const marksWithImages = new Set(
+    bindings
+      .filter(binding => binding.target.kind === 'marks' && imageIds.has(binding.icon))
+      .map(binding => binding.target.id),
+  )
+  const marks = sources.filter(source => source.kind === 'marks').flatMap(source => source.records)
+  assert.deepEqual(
+    marks.filter(mark => !marksWithImages.has(mark.id)).map(mark => mark.id),
+    [],
+    'Base pack marks without images',
+  )
 })
 
 test('only official origins can enter the mirrored build output', () => {
