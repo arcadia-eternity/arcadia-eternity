@@ -81,9 +81,10 @@ it('passes only the current selection member to sandbox predicates and projectio
   expect(f.battle.executionBudget.run(f.battle.currentTurn, () => f.effect.condition!(f.ctx))).toBe(true)
 })
 it.each([
-  { host: 'browser', policy: browserSandboxPolicy, delay: 750, succeeds: true },
-  { host: 'browser', policy: browserSandboxPolicy, delay: 2_001, succeeds: false },
-  { host: 'server', policy: sandboxPolicy, delay: 750, succeeds: false },
+  { host: 'browser', policy: browserSandboxPolicy, delay: 2_500, succeeds: true },
+  { host: 'browser', policy: browserSandboxPolicy, delay: 4_001, succeeds: false },
+  { host: 'server', policy: sandboxPolicy, delay: 750, succeeds: true },
+  { host: 'server', policy: sandboxPolicy, delay: 2_001, succeeds: false },
 ])('enforces the $host effect deadline after a $delay ms scheduling delay', async ({ policy, delay, succeeds }) => {
   const module = await prepare(
     `export function createEffects({sdk,id}) {
@@ -160,11 +161,13 @@ it('lets a host extend the catalog deadline separately from ordinary module prep
   `)
   const clock = vi.spyOn(performance, 'now')
   try {
-    clock.mockReturnValueOnce(0).mockReturnValue(11_000)
-    expect(module.createCatalog(new Map(), undefined, 25_000).effects.size).toBe(0)
-    expect(() => module.createCatalog(new Map(), undefined, 25_001)).toThrow(/Invalid catalog time limit/)
+    clock.mockReturnValueOnce(0).mockReturnValue(30_000)
+    expect(module.createCatalog(new Map(), undefined, 40_000).effects.size).toBe(0)
+    expect(() => module.createCatalog(new Map(), undefined, 40_001)).toThrow(/Invalid catalog time limit/)
 
-    clock.mockReturnValueOnce(0).mockReturnValue(11_000)
+    clock.mockReturnValueOnce(0).mockReturnValue(12_000)
+    expect(module.createEffects({ sdk, marks: new Map(), id: id => id })).toEqual([])
+    clock.mockReturnValueOnce(0).mockReturnValue(15_001)
     expect(() => module.createEffects({ sdk, marks: new Map(), id: id => id })).toThrow(/budget exceeded/)
   } finally {
     clock.mockRestore()
