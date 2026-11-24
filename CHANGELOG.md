@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.19.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.19.0...arcadia-eternity-v4.19.1) (2026-11-24)
+
+
+### 🐛 Bug Fixes
+
+* **desktop:** remove unused project entry binding ([ca3ccb9](https://github.com/arcadia-eternity/arcadia-eternity/commit/ca3ccb940953f213b123706b2a2ef5c4287b9a4b))
+* **desktop:** reuse client environments for local hosting ([a82f72a](https://github.com/arcadia-eternity/arcadia-eternity/commit/a82f72a810d12f074fb5c03184e1399b662c7f13))
+
 ## [4.19.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.18.0...arcadia-eternity-v4.19.0) (2026-11-24)
 
 
