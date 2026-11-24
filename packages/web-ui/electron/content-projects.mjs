@@ -233,7 +233,7 @@ export class ContentProjectManager {
   }
   async forget(id) {
     return this.#exclusive(async () => {
-      const entry = await this.#entry(id)
+      await this.#entry(id)
       await this.#save(this.#entries.filter(entry => entry.id !== id))
       this.#inspections.delete(id)
     })
