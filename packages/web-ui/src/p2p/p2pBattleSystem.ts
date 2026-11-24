@@ -12,6 +12,7 @@ import {
   type playerId,
 } from '@arcadia-eternity/const'
 import type { IBattleSystem } from '@arcadia-eternity/interface'
+import { browserSandboxStartup } from '@arcadia-eternity/battle/sandbox'
 import {
   createSandboxWebBattleSession,
   type WebBattleHost,
@@ -557,7 +558,8 @@ export class P2PPeerBattleSystem implements IBattleSystem {
       const initPromise = new Promise<BattleState>(resolve => {
         this.initWaiters.push(resolve)
       })
-      const syncDeadline = Date.now() + 10_000
+      // The transport can connect before the host has created its battle worker.
+      const syncDeadline = Date.now() + browserSandboxStartup.initializeMs
       while (!this.battleState && Date.now() < syncDeadline) {
         await this.waitForPending(
           this.bridge.sendMessage('p2p-battle-sync-request', {

@@ -963,6 +963,28 @@ describe('P2P terminal delivery', () => {
     }
   })
 
+  test('accepts the initial snapshot after a slow host starts its battle sandbox', async () => {
+    vi.useFakeTimers()
+    const peer = await connectedPeer()
+    try {
+      const state = activeState()
+      const synced = expect(peer.system.getState()).resolves.toEqual(state)
+      void synced.catch(() => {})
+
+      await vi.advanceTimersByTimeAsync(12_000)
+      await peer.hostTransport.send({
+        type: 'p2p-battle-init',
+        payload: createInitPayload(state, [availableAction]),
+      })
+
+      await synced
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      await peer.cleanup()
+      vi.useRealTimers()
+    }
+  })
+
   test('rejects an outstanding initial snapshot wait during cleanup without leaving retry timers', async () => {
     vi.useFakeTimers()
     const peer = await connectedPeer()
