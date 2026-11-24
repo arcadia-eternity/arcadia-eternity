@@ -1,5 +1,9 @@
 import {
   BattleMessageType,
+  codeEffectDefinition,
+  EffectContext,
+  HealContext,
+  heal,
   compileBehaviorUse,
   defineNativeEffect,
   EffectTrigger,
@@ -10,14 +14,8 @@ import {
   type Battle,
   type effectId,
 } from '@arcadia-eternity/battle/engine'
-import {
-  actions,
-  codeEffectDefinition,
-  compileEffect,
-  defineCodeEffect,
-  ops,
-  targets,
-} from '@arcadia-eternity/battle/authoring'
+import { compileEffect } from '../../src/engine/content/authoring'
+import { actions, defineCodeEffect, ops, targets } from '@arcadia-eternity/battle/authoring'
 import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { makeScenario } from './scenario'
 
@@ -162,14 +160,14 @@ it('preserves cumulative computation limits across roots and rejects malformed s
 })
 
 it('meters native SDK recursion through the same dispatcher and preserves the original failure', () => {
-  const { battle, source } = setup()
+  const { battle, source, a } = setup()
   const native = defineCodeEffect({
     id: 'sdk:recursive',
     sourceKind: 'skill',
-    triggers: [EffectTrigger.TurnEnd],
-    apply(context) {
+    triggers: [EffectTrigger.OnBeforeHeal],
+    apply(ctx) {
       try {
-        context.battle.applyEffects(context.parent, EffectTrigger.TurnEnd, context.source)
+        targets.ownerPet.apply(ops.heal(1))(ctx)
       } catch {
         /* A callback cannot clear a latched engine fault. */
       }
@@ -186,12 +184,12 @@ it('meters native SDK recursion through the same dispatcher and preserves the or
   if (!compiled.ok) throw new Error(JSON.stringify(compiled.diagnostics))
   compiled.parameters.install(battle.configSystem)
   source.effects.splice(0, source.effects.length, compiled.effect)
-  expect(() => battle.applyEffects(new TurnContext(battle), EffectTrigger.TurnEnd, source)).toThrow(
-    ExecutionBudgetExceeded,
-  )
+  const context = new EffectContext(new TurnContext(battle), EffectTrigger.TurnEnd, source)
+  const trigger = () => heal(new HealContext(context, source, a.activePet, 1))
+  expect(trigger).toThrow(ExecutionBudgetExceeded)
   const fault = battle.executionBudget.fault
   expect(fault?.dimension).toBe('depth')
-  expect(() => battle.applyEffects(new TurnContext(battle), EffectTrigger.TurnEnd, source)).toThrow(fault)
+  expect(trigger).toThrow(fault)
 })
 
 it.each(['selector', 'sequence', 'branch'] as const)(

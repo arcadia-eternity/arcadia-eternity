@@ -1,19 +1,21 @@
-import { dealDamage } from '@arcadia-eternity/battle/engine'
+import { compileEffect } from '../../src/engine/content/authoring/runtime'
+import {
+  type Battle,
+  BaseMark,
+  UseSkillContext,
+  DamageContext,
+  TurnContext,
+  dealDamage,
+} from '@arcadia-eternity/battle/engine'
 import { afterEach, expect, it } from 'vitest'
 import {
   AttackTargetOpinion,
-  BaseMark,
-  DamageContext,
-  UseSkillContext,
   DamageType,
   EffectTrigger,
-  TurnContext,
-  compileEffect,
   contexts,
   ops,
   selectFrom,
   targets,
-  type Battle,
   type DamageResult,
   type baseMarkId,
 } from '@arcadia-eternity/battle/authoring'

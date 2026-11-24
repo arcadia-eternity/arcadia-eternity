@@ -65,15 +65,13 @@ function environment(): SandboxEnvironment {
       artifact: {
         format: 'arcadia.effect-module',
         version: 1,
-        sdkApi: 3,
+        sdkApi: 4,
         packageId: `p${index}`,
         // Each module deliberately declares the same lexical names and exports.
         source: `const amount=${amount};
           export function createCatalog(){
-            const effect=sdk.defineNativeEffect({id:'p${index}/heal',triggers:[sdk.EffectTrigger.TurnEnd],
-              apply(ctx){const pet=ctx.source.owner;
-                sdk.heal(new sdk.HealContext(ctx,ctx.source,pet,amount));
-              }});
+            const effect=sdk.compileEffect({id:'p${index}/heal',triggers:[sdk.EffectTrigger.TurnEnd],
+              apply:sdk.targets.ownerPet.apply(sdk.ops.heal(amount))});
             return {effects:new Map([[effect.id,effect]]),parameters:new Map()};
           }`,
       },
@@ -225,12 +223,12 @@ it('keeps authored counters on each battle entity while reusing the same effect 
         source: `
     const hits=sdk.defineEffectState({id:'p0:hits',type:'number',default:0});
     export function createCatalog(){
-      const effect=sdk.defineNativeEffect({id:'p0/heal',triggers:[sdk.EffectTrigger.TurnEnd],
+      const effect=sdk.compileEffect({id:'p0/heal',triggers:[sdk.EffectTrigger.TurnEnd],
         apply(ctx){
-          const n=sdk.getEffectState(ctx,ctx.source,hits)+1;
-          sdk.setEffectState(ctx,ctx.source,hits,n);
-          const pet=ctx.source.owner;
-          sdk.heal(new sdk.HealContext(ctx,ctx.source,pet,n));
+          const skill=ctx.read(sdk.targets.sourceSkill.first());
+          const n=ctx.getEffectState(skill,hits)+1;
+          ctx.ops.setEffectState(skill,hits,n);
+          sdk.targets.ownerPet.apply(sdk.ops.heal(n))(ctx);
         }});
       return {effects:new Map([[effect.id,effect]]),parameters:new Map()};
     }`,
@@ -275,7 +273,7 @@ it('resets the per-session call budget while retaining a fault permanently', asy
     {
       format: 'arcadia.effect-module',
       version: 1,
-      sdkApi: 3,
+      sdkApi: 4,
       packageId: 'budget',
       source: 'export function createEffects(){return []}',
     },

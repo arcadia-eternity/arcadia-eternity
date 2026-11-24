@@ -11,7 +11,7 @@
 
 ## 从一次事件找到自己的来源
 
-技能和印记都可能监听同一时机。技能只在自己命中时生效，用 `context.source === context.parent.skill` 筛选。若印记响应持有者出招，应比较持有者与本次事件的行动者。`NativeEffectContext<T>` 会按触发点推导父上下文，`context.battle` 指向当前对局。[霜击的完整回调](./on-hit.md)
+技能和印记都可能监听同一时机。技能只在自己命中时生效，用 `conditions.selfUsesSkill(context)` 筛选。若印记响应持有者出招，应比较持有者与本次事件的行动者。`NativeEffectContext<T>` 会按触发点推导父上下文，可以用选择器读取本局的来源与持有者。[霜击的完整回调](./on-hit.md)
 
 ## 例子：命中后给自己回复体力
 
@@ -22,9 +22,9 @@ import {
   effect,
   on,
   EffectTrigger,
-  Pet,
-  heal,
-  HealContext,
+  conditions,
+  targets,
+  ops,
   type NativeEffectContext,
 } from '@arcadia-eternity/content-sdk'
 
@@ -32,9 +32,7 @@ import {
 export class HealOnHit {
   @on(EffectTrigger.OnHit)
   static apply(context: NativeEffectContext<EffectTrigger.OnHit>) {
-    if (context.source !== context.parent.skill) return
-    const owner = context.source.owner
-    if (owner instanceof Pet) heal(new HealContext(context, context.source, owner, 20))
+    if (conditions.selfUsesSkill(context)) targets.ownerPet.apply(ops.heal(20))(context)
   }
 }
 ```

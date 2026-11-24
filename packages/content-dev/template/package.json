@@ -29,7 +29,7 @@
     "projectId": "example-content-pack",
     "namespace": "example-pack",
     "content": "dist/content.json",
-    "sdkApi": 3,
+    "sdkApi": 4,
     "presentation": "dist/presentation.json",
     "effectSources": "src/effects",
     "effectArtifact": "dist/arcadia-effects.json"

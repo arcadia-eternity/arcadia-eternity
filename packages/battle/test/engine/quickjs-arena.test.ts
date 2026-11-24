@@ -1,3 +1,4 @@
+import { codeEffectDefinition } from '../../engine'
 import { getQuickJS } from 'quickjs-emscripten'
 import { Arena } from 'quickjs-emscripten-sync'
 import { expect, it } from 'vitest'
@@ -43,7 +44,7 @@ it('preserves native SDK registrations and parameter identities without a custom
     })()`)
     expect(exports[0].id).toBe('probe/heal')
     const result = compileBehaviorUse(
-      sdk.codeEffectDefinition(exports[0]),
+      codeEffectDefinition(exports[0]),
       {
         useId: 'probe',
         definitionId: exports[0].id,

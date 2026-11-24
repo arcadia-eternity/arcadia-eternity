@@ -13,7 +13,7 @@
     "presentation": "dist/presentation.json",
     "effectArtifact": "dist/arcadia-effects.json",
     "catalog": "dist/catalog.json",
-    "sdkApi": 3
+    "sdkApi": 4
   },
   "scripts": {
     "generate:lockfile": "pnpm --filter @arcadia-eternity/pack-loader run generate:lockfile -- ../../packs/base/pack.json ../../packs/base/pack-lock.yaml --workspace @arcadia-eternity/data-pack-base#pack.json",

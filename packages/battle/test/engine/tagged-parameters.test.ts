@@ -21,7 +21,7 @@ import {
 
 import { Type } from '@sinclair/typebox'
 import { afterEach, beforeAll, expect, it } from 'vitest'
-import { makeScenario } from './scenario'
+import { engineEffect, makeScenario } from './scenario'
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
 afterEach(async () => {
@@ -30,7 +30,7 @@ afterEach(async () => {
 it('restores tagged modifiers with a fresh catalog and keeps source cleanup working', async () => {
   function freshCatalog(
     f = makeScenario(752),
-    effect = TaggedParametersEffects.build().effect_emblem_increase_skill_trigger_rate_5_percent,
+    effect = engineEffect(TaggedParametersEffects.build().effect_emblem_increase_skill_trigger_rate_5_percent),
   ) {
     if (!battles.includes(f.battle)) battles.push(f.battle)
     const catalog = new SnapshotCatalog('tagged-parameters/1')
@@ -50,7 +50,7 @@ it('restores tagged modifiers with a fresh catalog and keeps source cleanup work
   }
   const source = new BaseMark(
     'fixture/saved-tag-source' as baseMarkId,
-    [TaggedParametersEffects.build().effect_emblem_increase_skill_trigger_rate_5_percent],
+    [engineEffect(TaggedParametersEffects.build().effect_emblem_increase_skill_trigger_rate_5_percent)],
     { ...debuff.config, persistent: true, keepOnSwitchOut: true },
   ).createInstance()
   source.setOwner(a.activePet, battle.emitter)

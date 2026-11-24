@@ -1,6 +1,6 @@
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
 // Reviewed native behavior; edit this TypeScript source directly.
-import type { BaseMark } from '@arcadia-eternity/battle/engine'
+import type { BaseMark } from '@arcadia-eternity/battle/authoring'
 import {
   defineEffects,
   EffectTrigger,

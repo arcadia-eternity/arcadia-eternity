@@ -1,29 +1,32 @@
+import type { EffectStateEntity, EffectStateDefinition, EffectStateValues } from '../effect-state'
+type EffectStateKind = keyof EffectStateValues
 import type { DeferredDamageOptions } from '../../phase/skill'
-import type { Effect } from '../../effect'
-import type { ParameterCatalog } from '../parameters'
-/** Author-facing contracts. Runtime implementations are exported from api.ts. */
+import type { EffectDamageOptions, TriggerContextMap } from '../../context'
 import type {
   AddMarkContext,
   EffectContext,
   StackContext,
   ConsumeStackContext,
   DamageContext,
-  EffectDamageOptions,
   HealContext,
   RageContext,
-  TriggerContextMap,
   UseSkillContext,
   SwitchPetContext,
-} from '../../context'
+  BaseMark,
+  MarkInstance,
+  Pet,
+  Player,
+  BaseSkill,
+  SkillInstance,
+  Battle,
+  Effect,
+  ParameterCatalog,
+  EffectView,
+} from './domain'
 import type { Category, EffectTrigger, Element } from '@arcadia-eternity/const'
-import type { NativeEffectTrigger } from '../../content/native-effect'
-import type { BaseMark, MarkInstance } from '../../mark'
-import type { Pet } from '../../pet'
-import type { Player } from '../../player'
-import type { BaseSkill, SkillInstance } from '../../skill'
-import type { Battle } from '../../battle'
+import type { NativeEffectTrigger } from '../native-effect'
 
-export type EventMap = { [K in NativeEffectTrigger]: TriggerContextMap[K] }
+export type EventMap = { [K in NativeEffectTrigger]: EffectView<TriggerContextMap[K]> }
 export type Trigger = keyof EventMap
 export type Presence = 'required' | 'optional'
 type Scalar = number | string | boolean
@@ -89,8 +92,17 @@ export interface Selector<T> {
 export declare function selectFrom<T>(members: readonly T[]): Selector<T>
 
 interface FrameServices {
+  readonly getEffectState: <K extends EffectStateKind>(
+    entity: EffectView<EffectStateEntity>,
+    definition: EffectStateDefinition<K>,
+  ) => EffectStateValues[K]
   readonly read: <T, P extends Presence>(value: Value<T, P>) => ReadResult<T, P>
   readonly ops: {
+    readonly setEffectState: <K extends EffectStateKind>(
+      entity: EffectView<EffectStateEntity>,
+      definition: EffectStateDefinition<K>,
+      value: EffectStateValues[K],
+    ) => void
     readonly modifyDamage: (event: DamageContext, change: { delta: number; percent: number }) => void
   }
 }

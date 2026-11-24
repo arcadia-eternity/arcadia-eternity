@@ -68,7 +68,7 @@ test('capability requirements are explicitly supported or rejected, never ignore
   assert.throws(() => assertEnvironmentRequirements({ capabilities: ['future-rules'] }), {
     code: 'ENVIRONMENT_CAPABILITY_UNSUPPORTED',
   })
-  assert.doesNotThrow(() => assertEnvironmentRequirements({ engine: '4', sdk: '3' }))
+  assert.doesNotThrow(() => assertEnvironmentRequirements({ engine: '4', sdk: '4' }))
   for (const input of [{ engine: '5' }, { sdk: '2' }])
     assert.throws(() => assertEnvironmentRequirements(input), { code: 'ENVIRONMENT_REQUIREMENT_UNSUPPORTED' })
   for (const input of [null, { engine: '' }, { sdk: 2 }, { capabilities: 'future' }, { command: 'execute' }])

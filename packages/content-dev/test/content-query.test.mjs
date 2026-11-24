@@ -15,7 +15,7 @@ async function fixture(t, extra = {}) {
   await json(root, 'package.json', {
     name: 'query-pack',
     version: '1.0.0',
-    arcadia: { projectId: 'query-pack', namespace: 'query', sdkApi: 3 },
+    arcadia: { projectId: 'query-pack', namespace: 'query', sdkApi: 4 },
     ...extra,
   })
   await json(root, 'data/skills/hit.json', { id: 'hit', power: 40, custom: { preserved: true } })
@@ -44,7 +44,7 @@ async function dependency(root, name, namespace = 'dependency', extras = {}) {
       content: 'dist/content.json',
       presentation: 'dist/presentation.json',
       effects: 'dist/effects.mjs',
-      sdkApi: 3,
+      sdkApi: 4,
     },
     ...extras,
   })

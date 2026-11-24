@@ -2,20 +2,14 @@ import type { CodeEffectModuleContext } from '@arcadia-eternity/battle/authoring
 
 /** Official engine APIs, exercised by packages/battle/test/engine/effect-sdk-native.test.ts. */
 export function createEffects({ sdk, id }: CodeEffectModuleContext) {
-  const { defineCodeEffect, EffectTrigger, Pet, heal, HealContext, targets, ops } = sdk
+  const { defineCodeEffect, EffectTrigger, conditions, values, targets, ops } = sdk
   return [
     defineCodeEffect({
       id: id('recover'),
       sourceKind: 'skill',
       triggers: [EffectTrigger.OnHit],
-      when: context => context.source === context.parent.skill,
-      apply(context) {
-        const owner = context.source.owner
-        if (owner instanceof Pet) {
-          const amount = context.battle.randomInt(3, 7)
-          heal(new HealContext(context, context.source, owner, amount))
-        }
-      },
+      when: conditions.selfUsesSkill,
+      apply: targets.ownerPet.apply(ops.heal(values.randomInt(3, 7))),
     }),
     defineCodeEffect({
       id: id('stack-defense'),

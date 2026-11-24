@@ -55,6 +55,16 @@ import type * as C from './contracts'
 import { AuthoringParameters, declareParameter } from './parameters'
 import { isOwnerContribution, registerOwnerContribution } from '../owner-contributions'
 
+import { getEffectState, setEffectState } from '../effect-state'
+
+import type { EngineValue } from './domain'
+
+type HostArgument<T> = T extends C.Value<infer V, infer P> ? C.Value<EngineValue<V>, P> : EngineValue<T>
+type OperatorFactories = {
+  [K in keyof typeof C.ops]: (typeof C.ops)[K] extends (...args: infer A) => C.Operator<infer V, infer F>
+    ? (...args: { [I in keyof A]: HostArgument<A[I]> }) => C.Operator<EngineValue<V>, F>
+    : never
+}
 type Frame = C.EffectFrame
 type Reader = (ctx: Frame) => unknown
 type BoundReader = (ctx: Frame, evaluation: Evaluation) => { value: unknown; anchor: string }
@@ -76,7 +86,7 @@ const actionBindings = new WeakMap<object, readonly BindingDeclaration[]>()
 const frameBindings = new WeakMap<Frame, ReadonlyMap<string, CompiledBinding>>()
 const effectBindings = new WeakMap<Effect<EffectTrigger>, readonly CompiledBinding[]>()
 const frameParameters = new WeakMap<Frame, AuthoringParameters>()
-const compiledParameters = new WeakMap<Effect<EffectTrigger>, AuthoringParameters>()
+const compiledParameters = new WeakMap<object, AuthoringParameters>()
 function scope(ctx: Frame) {
   const result = scopes.get(ctx)
   if (!result) throw new Error('Foreign authoring scope')
@@ -98,7 +108,8 @@ function bindingFrame(source: MarkInstanceImpl, parameters: AuthoringParameters)
       return unavailable()
     },
     read: (input: unknown) => read(frame as Frame, input),
-    ops: { modifyDamage: unavailable },
+    getEffectState: unavailable,
+    ops: { modifyDamage: unavailable, setEffectState: unavailable },
   } as Frame
   scopes.set(frame, { source, battle })
   frameParameters.set(frame, parameters)
@@ -147,11 +158,11 @@ export function registerEffect(catalog: SnapshotCatalog, effect: Effect<EffectTr
   )
 }
 /** Identify compiled metadata without treating unrecognized effects as authored. */
-export function hasAuthoredParameters(effect: Effect<EffectTrigger>): boolean {
+export function hasAuthoredParameters(effect: object): boolean {
   return compiledParameters.has(effect)
 }
 /** Install in each new battle; restored configuration already contains the saved parameter state. */
-export function effectParameters(effect: Effect<EffectTrigger>) {
+export function effectParameters(effect: object) {
   const parameters = compiledParameters.get(effect)
   if (!parameters) throw new Error('Expected an authored effect')
   return parameters.catalog
@@ -161,10 +172,6 @@ function engine(ctx: Frame) {
   const result = engines.get(ctx)
   if (!result) throw new Error('Persistent queries cannot access a trigger event or perform actions')
   return result
-}
-/** Internal bridge for native code exports; callbacks receive the original engine context. */
-export function nativeEffectContext(ctx: Frame): EffectContext<EffectTrigger> {
-  return engine(ctx)
 }
 /** Keep nested SDK calls in the same root, including calls from custom TS callbacks. */
 function runAction<T extends C.Trigger>(ctx: C.EffectFrame<T>, operation: () => void): void {
@@ -951,7 +958,7 @@ function parameterModifier(
     }
   }
 }
-const operatorFactories: typeof C.ops = {
+const operatorFactories: OperatorFactories = {
   deferSkillDamage: (holder, options) => (ctx, selected) => {
     for (const cast of selected) deferSkillDamage(engine(ctx), cast, holder, options)
   },
@@ -1155,7 +1162,7 @@ const operatorFactories: typeof C.ops = {
       throw new Error('Hit payment requires the current PreDamage context')
     const factor = readDamageAmount(ctx, coefficient)
     if (factor === undefined) return
-    const cast = ctx.parent
+    const cast = selected[0]
     const player = cast.origin
     if (player.currentRage <= 0) return
     if (!Number.isFinite(player.maxRage * factor)) throw new Error('Rage damage bonus must be finite')
@@ -1529,11 +1536,17 @@ export function compileEffect<
       trigger: source.trigger,
       parent: source.parent,
       read: (input: unknown) => read(result as Frame, input),
+      getEffectState: (entity, definition) => getEffectState(source, entity as EngineValue<typeof entity>, definition),
       ops: {
+        setEffectState: (entity, definition, value) =>
+          runAction(result as Frame, () =>
+            setEffectState(source, entity as EngineValue<typeof entity>, definition, value),
+          ),
         modifyDamage: (event: DamageContext, change: { delta: number; percent: number }) => {
           runAction(result as Frame, () => {
             assertEvaluationOperation('modifyDamage', [event], source)
             if (event.battle !== source.battle) throw new Error('Cross-battle damage context')
+            if (!(event instanceof DamageContext)) throw new Error('Expected damage context')
             event.addModified(change.percent, change.delta, damageRuleId(source))
           })
         },

@@ -12,7 +12,8 @@ import {
   type PlayerSelection,
   type baseMarkId,
 } from '@arcadia-eternity/battle/engine'
-import { compileEffect, conditions, contexts, ops } from '@arcadia-eternity/battle/authoring'
+import { compileEffect } from '../../src/engine/content/authoring'
+import { conditions, contexts, ops } from '@arcadia-eternity/battle/authoring'
 import { makeScenario } from './scenario'
 
 export function makeDeferredScenario(

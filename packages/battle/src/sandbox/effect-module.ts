@@ -5,7 +5,8 @@ import { Arena } from 'quickjs-emscripten-sync'
 import type { CodeEffectModule, CodeEffectModuleContext } from '../engine/content/effect-sdk'
 import type { TrustedEffectCatalog } from '../engine/content/definition-catalog'
 import type { BaseMark } from '../engine/mark'
-import { Effect } from '../../authoring'
+import * as sdk from '../../authoring'
+import { Effect } from '../engine/effect'
 import { ArenaEffectSdk } from './sdk'
 import { checkpointArena, releaseArenaSession, type ArenaCheckpoint } from './arena-session'
 import {
@@ -219,8 +220,9 @@ export class ArenaEffectModule implements PreparedEffectModule {
       // A behavior may first read content.marks from an OnHit callback. Prepare the static
       // mark projections with the catalog so that a single lookup never builds them mid-turn.
       this.adapter!.output(context.marks)
-      this.adapter!.output(context)
-      const exports = author.createEffects(context)
+      const moduleContext = { id: context.id, marks: context.marks, sdk }
+      this.adapter!.output(moduleContext)
+      const exports = author.createEffects(moduleContext)
       if (!Array.isArray(exports) || exports.length > 5000)
         throw new SandboxFault('artifact', this.packageId, 'Invalid effect exports')
       const canonical = []

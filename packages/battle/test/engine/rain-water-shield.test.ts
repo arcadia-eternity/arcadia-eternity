@@ -1,6 +1,7 @@
 import { ShieldEffects } from '../../../../packs/base/src/effects/shield.effect'
 import {
   AttackTargetOpinion,
+  ParameterCatalog,
   BaseMark,
   EffectTrigger,
   TurnContext,
@@ -26,7 +27,9 @@ it('samples a scoped assignment once, rejects foreign writes, and validates base
   const shield = ShieldEffects.build({
     mark: () => new BaseMark('mark_shuiwenpingzhang' as baseMarkId, [], debuff.config),
   })
-  shield.parameters.install(battle.configSystem)
+  const parameters = shield.parameters
+  if (!(parameters instanceof ParameterCatalog)) throw new Error('Expected the host parameter catalog')
+  parameters.install(battle.configSystem)
   const { compileEffect, defineEffect, ops, values, targets } = effectAuthoring
   let reads = 0
   let checked = false
@@ -38,7 +41,7 @@ it('samples a scoped assignment once, rejects foreign writes, and validates base
     2,
     1,
   )
-  const assign = ops.setParameter(shield.parameters, alias, amount)
+  const assign = ops.setParameter(parameters, alias, amount)
   const effect = compileEffect(
     defineEffect({
       id: 'fixture/scoped-assignment',
@@ -50,13 +53,9 @@ it('samples a scoped assignment once, rejects foreign writes, and validates base
         expect(reads).toBe(1)
         assign(ctx, [])
         expect(reads).toBe(2)
-        ops.setParameter(
-          shield.parameters,
-          alias,
-          targets.sourceMark.select(mark => mark.stack).first(),
-        )(ctx, [a.activePet])
-        expect(shield.parameters.read(battle.configSystem, alias, a.activePet)).toBe(2)
-        expect(() => ops.setParameter(shield.parameters, alias, NaN)(ctx, [a.activePet])).toThrow()
+        ops.setParameter(parameters, alias, targets.sourceMark.select(mark => mark.stack).first())(ctx, [a.activePet])
+        expect(parameters.read(battle.configSystem, alias, a.activePet)).toBe(2)
+        expect(() => ops.setParameter(parameters, alias, NaN)(ctx, [a.activePet])).toThrow()
         checked = true
       },
     }),
@@ -69,7 +68,7 @@ it('samples a scoped assignment once, rejects foreign writes, and validates base
     source,
   )
   expect(checked).toBe(true)
-  expect(shield.parameters.read(battle.configSystem, alias, b.activePet)).toBe(2)
-  expect(() => shield.parameters.set(battle.configSystem, alias, 'bad', a.activePet)).toThrow('Invalid base')
-  expect(() => shield.parameters.set(foreign.battle.configSystem, alias, 3)).toThrow('not installed')
+  expect(parameters.read(battle.configSystem, alias, b.activePet)).toBe(2)
+  expect(() => parameters.set(battle.configSystem, alias, 'bad', a.activePet)).toThrow('Invalid base')
+  expect(() => parameters.set(foreign.battle.configSystem, alias, 3)).toThrow('not installed')
 })

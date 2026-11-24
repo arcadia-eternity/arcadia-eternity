@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { buildBaseEnvironmentArtifact } from '../../scripts/build-base-environment.mjs'
 
 export default defineConfig({
-  input: { effects: 'effects.ts' },
+  input: { effects: 'effects.ts', 'effect-factories': 'virtual:arcadia-effects' },
   output: { format: 'esm', dir: 'dist' },
   tsconfig: true,
   plugins: [

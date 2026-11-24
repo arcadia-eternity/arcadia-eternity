@@ -19,7 +19,7 @@ import {
   type baseMarkId,
   type effectId,
 } from '@arcadia-eternity/battle/engine'
-import { makeScenario } from './scenario'
+import { engineEffect, makeScenario } from './scenario'
 
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
@@ -36,7 +36,7 @@ function fixture(location: 'outgoing' | 'incoming' | 'opponent' | 'none' = 'outg
   const outgoing = f.a.activePet,
     incoming = f.a.team[1]
   const owner = location === 'incoming' ? incoming : location === 'opponent' ? f.b.activePet : outgoing
-  const mark = new BaseMark('mark_feixuanzhen' as baseMarkId, [SwitchRageProtectionEffects.build()], {
+  const mark = new BaseMark('mark_feixuanzhen' as baseMarkId, [engineEffect(SwitchRageProtectionEffects.build())], {
     ...f.debuff.config,
     persistent: true,
     duration: -1,

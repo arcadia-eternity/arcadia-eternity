@@ -146,7 +146,7 @@ beforeAll(async () => {
         namespace: 'slow',
         content: 'content.json',
         effects: 'effects.js',
-        sdkApi: 3,
+        sdkApi: 4,
       },
     },
     {
@@ -660,10 +660,10 @@ it('rejects incompatible SDKs, escaping paths, and missing referenced effects wi
   const file = join(dir, 'node_modules/@arcadia-test/slow/package.json'),
     original = await readFile(file, 'utf8')
   const manifest = JSON.parse(original)
-  manifest.arcadia.sdkApi = 2
+  manifest.arcadia.sdkApi = 3
   await writeFile(file, JSON.stringify(manifest))
   await expect(inspectNpmProject(dir)).rejects.toThrow('Effect SDK API')
-  manifest.arcadia.sdkApi = 3
+  manifest.arcadia.sdkApi = 4
   manifest.arcadia.content = '../content.json'
   await writeFile(file, JSON.stringify(manifest))
   await expect(inspectNpmProject(dir)).rejects.toThrow('package-relative')
@@ -830,7 +830,7 @@ it('loads an installed official catalog alongside ordinary npm content dependenc
         content: 'content.json',
         catalog: 'catalog.json',
         effectArtifact: 'effects.json',
-        sdkApi: 3,
+        sdkApi: 4,
       },
     },
     {
@@ -845,7 +845,7 @@ it('loads an installed official catalog alongside ordinary npm content dependenc
       'effects.json': JSON.stringify({
         format: 'arcadia.effect-module',
         version: 1,
-        sdkApi: 3,
+        sdkApi: 4,
         packageId: '@arcadia-eternity/data-pack-base',
         source: 'export function createCatalog() { return { effects: new Map(), parameters: new Map() } }',
       }),
@@ -965,7 +965,7 @@ it('prepares a community HP baseline with the official profile and restores scop
         namespace: 'frost',
         content: 'content.json',
         effects: 'effects.js',
-        sdkApi: 3,
+        sdkApi: 4,
       },
     },
     {

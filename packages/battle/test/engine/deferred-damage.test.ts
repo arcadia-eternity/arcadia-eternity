@@ -25,7 +25,8 @@ import {
   type baseMarkId,
   type effectId,
 } from '@arcadia-eternity/battle/engine'
-import { compileEffect, contexts, ops } from '@arcadia-eternity/battle/authoring'
+import { compileEffect } from '../../src/engine/content/authoring'
+import { contexts, ops } from '@arcadia-eternity/battle/authoring'
 import { makeDeferredScenario, advanceDeferredTurn } from './deferred-scenario'
 import { catalogFor } from './snapshot-host'
 

@@ -3,7 +3,15 @@ import { afterEach, beforeAll, expect, it, vi } from 'vitest'
 import * as sdk from '../../authoring'
 import { ArenaEffectModule, sandboxPolicy, type SandboxPolicy, type EffectModuleArtifact } from '../../sandbox'
 import { browserSandboxPolicy } from '../../src/sandbox/contracts'
-import { compileBehaviorUse, EffectContext, EffectTrigger, TurnContext, setGlobalLogger } from '../../engine'
+import {
+  codeEffectDefinition,
+  BaseMark,
+  compileBehaviorUse,
+  EffectContext,
+  EffectTrigger,
+  TurnContext,
+  setGlobalLogger,
+} from '../../engine'
 import { makeScenario } from './scenario'
 
 const modules: ArenaEffectModule[] = [],
@@ -16,7 +24,7 @@ afterEach(async () => {
 const artifact = (source: string): EffectModuleArtifact => ({
   format: 'arcadia.effect-module',
   version: 1,
-  sdkApi: 3,
+  sdkApi: 4,
   packageId: 'test',
   source,
 })
@@ -25,7 +33,7 @@ async function prepare(source: string, policy: SandboxPolicy = sandboxPolicy) {
   modules.push(module)
   return module
 }
-function compile(module: ArenaEffectModule, marks: sdk.BaseMark[] = []) {
+function compile(module: ArenaEffectModule, marks: BaseMark[] = []) {
   const f = makeScenario()
   battles.push(f.battle)
   const exports = module.createEffects({
@@ -34,7 +42,7 @@ function compile(module: ArenaEffectModule, marks: sdk.BaseMark[] = []) {
     id: id => `test:${id}`,
   })
   const result = compileBehaviorUse(
-    sdk.codeEffectDefinition(exports[0]),
+    codeEffectDefinition(exports[0]),
     { useId: 'one', definitionId: exports[0].id },
     {
       owner: { kind: 'skill', id: f.a.activePet.skills[0].baseId },
@@ -94,7 +102,7 @@ it.each([
   const module = await prepare(
     `export function createEffects({sdk,id}) {
     return [sdk.defineCodeEffect({id:id('read'),sourceKind:'skill',triggers:[sdk.EffectTrigger.TurnEnd],
-      when: ctx => ctx.source.owner.currentHp > 0, apply() {}
+      when: ctx => ctx.parent.battle.currentTurn >= 0, apply() {}
     })];
   }`,
     policy,
@@ -115,9 +123,9 @@ it('reads current domain state independently on each callback', async () => {
     export function createEffects({sdk,id}) {
       return [sdk.defineCodeEffect({id:id('read'),sourceKind:'skill',triggers:[sdk.EffectTrigger.TurnEnd],
         apply(ctx){
-          const pet=ctx.source.owner;
-          if(pet!==ctx.source.owner)throw Error('identity');
-          sdk.heal(new sdk.HealContext(ctx,ctx.source,pet,pet.currentHp / 10));
+          const pet=ctx.read(sdk.targets.ownerPet.first());
+          if(pet!==ctx.read(sdk.targets.ownerPet.first()))throw Error('identity');
+          sdk.ops.heal(pet.currentHp / 10)(ctx,[pet]);
         }
       })];
     }`)
@@ -134,8 +142,8 @@ it('reads current domain state independently on each callback', async () => {
 it('uses native SDK healing and the battle RNG through scoped domain capabilities', async () => {
   const module = await prepare(`export function createEffects({sdk,id}){
     return [sdk.defineCodeEffect({id:id('native-heal'),sourceKind:'skill',triggers:[sdk.EffectTrigger.TurnEnd],
-      apply(ctx){const pet=ctx.source.owner;if(pet instanceof sdk.Pet)
-        sdk.heal(new sdk.HealContext(ctx,ctx.source,pet,ctx.battle.randomInt(3,3)));
+      apply(ctx){const pet=ctx.read(sdk.targets.ownerPet.first());if(pet instanceof sdk.Pet)
+        sdk.ops.heal(sdk.values.randomInt(3,3))(ctx,[pet]);
       }})]
   }`)
   const f = compile(module)
@@ -143,21 +151,30 @@ it('uses native SDK healing and the battle RNG through scoped domain capabilitie
   applyEffect(f.effect, f.ctx)
   expect(f.a.activePet.currentHp).toBe(43)
 })
-it('resolves damage and the mark lifecycle through the injected phase functions', async () => {
-  const base = new sdk.BaseMark('test:stack' as sdk.baseMarkId, [])
+it('resolves damage and the mark lifecycle through SDK operators', async () => {
+  const base = new BaseMark('test:stack' as sdk.baseMarkId, [])
   const module = await prepare(`export function createEffects({sdk,id,marks}) {
+    for (const key of ['dealDamage','heal','changeRage','addMark','removeMark','consumeMarkStacks','transferMarks','setEffectState','DamageContext','createContentCatalog']) {
+      if (key in sdk) throw Error('Unexpected SDK export: '+key);
+    }
+    const hits = sdk.defineEffectState({id:id('hits'),type:'number',default:0});
     const base = marks.get(id('stack'));
     return [sdk.defineCodeEffect({id:id('phases'),sourceKind:'skill',triggers:[sdk.EffectTrigger.TurnEnd],
       apply(ctx) {
-        const pet = ctx.source.owner;
-        sdk.dealDamage(new sdk.DamageContext(ctx, ctx.source, pet, 5));
-        sdk.addMark(new sdk.AddMarkContext(ctx, pet, base));
+        const pet = ctx.read(sdk.targets.ownerPet.first());
+        if (pet.setOwner || ctx.parent.battle.applyEffects || base.createInstance || globalThis.core)
+          throw Error('Unexpected host access');
+        ctx.ops.setEffectState(pet,hits,ctx.getEffectState(pet,hits)+1);
+        sdk.ops.dealDamage(ctx.getEffectState(pet,hits)*5)(ctx,[pet]);
+        sdk.ops.addMark(base)(ctx,[pet]);
         const mark = pet.marks.find(mark => mark.base === base);
-        sdk.transferMarks(ctx, pet.owner.team[1], mark);
+        sdk.ops.transferMarks(sdk.selectFrom([mark]).all())(ctx,[pet.owner.team[1]]);
         if (mark.owner !== pet.owner.team[1]) throw Error('Transfer failed');
-        if (sdk.consumeMarkStacks(ctx, mark, 1) !== 1 || mark.isActive) throw Error('Consumption failed');
-        sdk.addMark(new sdk.AddMarkContext(ctx, ctx.battle, base));
-        sdk.removeMark(new sdk.RemoveMarkContext(ctx, ctx.battle.marks.find(mark => mark.base === base)));
+        sdk.ops.consumeStacks(1)(ctx,[mark]);
+        if (mark.isActive) throw Error('Consumption failed');
+        sdk.contexts.battle.apply(sdk.ops.addMark(base))(ctx);
+        const battle = ctx.read(sdk.contexts.battle.first());
+        sdk.ops.removeMark()(ctx,[battle.marks.find(mark => mark.base === base)]);
       }
     })];
   }`)
@@ -168,24 +185,9 @@ it('resolves damage and the mark lifecycle through the injected phase functions'
   expect(pet.currentHp).toBe(hp - 5)
   for (const owner of [f.battle, ...f.a.team]) expect(owner.marks.some(mark => mark.base === base)).toBe(false)
 })
-it('accepts a damage proposal only once per invocation', async () => {
-  const module = await prepare(`export function createEffects({sdk,id}) {
-    return [sdk.defineCodeEffect({id:id('damage'),sourceKind:'skill',triggers:[sdk.EffectTrigger.TurnEnd],
-      apply(ctx) {
-        const event = new sdk.DamageContext(ctx, ctx.source, ctx.source.owner, 5);
-        sdk.dealDamage(event);
-        sdk.dealDamage(event);
-      }
-    })];
-  }`)
-  const f = compile(module)
-  const hp = f.a.activePet.currentHp
-  expect(() => applyEffect(f.effect, f.ctx)).toThrow(/current proposal/)
-  expect(f.a.activePet.currentHp).toBe(hp - 5)
-})
 it('latches denied writes even if author code catches the exception', async () => {
   const module = await prepare(`export function createEffects({sdk,id}){return [sdk.defineCodeEffect({id:id('write'),
-    sourceKind:'skill',triggers:[sdk.EffectTrigger.TurnEnd],apply(ctx){try{ctx.source.owner.currentHp=0}catch{}}})]}`)
+    sourceKind:'skill',triggers:[sdk.EffectTrigger.TurnEnd],apply(ctx){try{ctx.read(sdk.targets.ownerPet.first()).currentHp=0}catch{}}})]}`)
   const f = compile(module),
     hp = f.a.activePet.currentHp
   expect(() => applyEffect(f.effect, f.ctx)).toThrow()
@@ -222,7 +224,7 @@ it('rejects deliberately retained callback contexts after their scope expires', 
   const module = await prepare(`let saved;
     export function createEffects({sdk,id}){return [sdk.defineCodeEffect({id:id('expired'),
       sourceKind:'skill',triggers:[sdk.EffectTrigger.TurnEnd],apply(ctx){
-        if(saved) { try { saved.source } catch {} } else saved=ctx;
+        if(saved) { try { saved.parent } catch {} } else saved=ctx;
       }})]}`)
   const f = compile(module)
   applyEffect(f.effect, f.ctx)
@@ -232,22 +234,19 @@ it('rejects deliberately retained callback contexts after their scope expires', 
   expect(module.state).toBe('faulted')
 })
 
-it.each(['new sdk.Signal(1)', 'new sdk.Pet()', 'new sdk.Modifier()'])(
-  'rejects host-only construction: %s',
-  async expression => {
-    const module = await prepare(`export function createEffects({sdk}) { ${expression}; return [] }`)
-    expect(() => module.createEffects({ sdk, marks: new Map(), id: id => id })).toThrow('Domain construction denied')
-    expect(module.state).toBe('faulted')
-  },
-)
+it.each(['new sdk.Pet()', 'new sdk.BaseMark()'])('rejects host-only construction: %s', async expression => {
+  const module = await prepare(`export function createEffects({sdk}) { ${expression}; return [] }`)
+  expect(() => module.createEffects({ sdk, marks: new Map(), id: id => id })).toThrow('Domain construction denied')
+  expect(module.state).toBe('faulted')
+})
 
 it('reduces rage through the native context and dispatches loss events', async () => {
   const module = await prepare(`export function createEffects({sdk,id}) {
     return [sdk.defineCodeEffect({id:id('reduce-rage'),sourceKind:'skill',triggers:[sdk.EffectTrigger.TurnEnd],
       apply(ctx) {
-        const pet = ctx.source.owner;
+        const pet = ctx.read(sdk.targets.ownerPet.first());
         if (pet instanceof sdk.Pet && pet.owner) {
-          sdk.changeRage(new sdk.RageContext(ctx, pet.owner, 'effect', 'reduce', 12));
+          sdk.ops.reduceRage(12)(ctx,[pet.owner]);
         }
       }
     })];
@@ -262,39 +261,20 @@ it('reduces rage through the native context and dispatches loss events', async (
 })
 
 // Included in tsconfig.test.json; never execute invalid author programs.
-function injectedSdkTypeContract(
-  { sdk: injected }: sdk.CodeEffectModuleContext,
-  candidate: unknown,
-  petArgs: ConstructorParameters<typeof sdk.Pet>,
-  modifierArgs: ConstructorParameters<typeof sdk.Modifier>,
-) {
-  // @ts-expect-error Signal construction belongs to trusted host code.
-  new injected.Signal(1)
-  // @ts-expect-error Domain classes are only available for identity checks.
-  new injected.Pet(...petArgs)
-  // @ts-expect-error Modifier construction is unavailable in the sandbox.
-  new injected.Modifier(...modifierArgs)
-  // @ts-expect-error Host infrastructure is not an injected capability.
-  injected.setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} })
-  // @ts-expect-error Low-level reactive functions are not injected capabilities.
-  void injected.projectValue
+function injectedSdkTypeContract({ sdk: injected }: sdk.CodeEffectModuleContext, candidate: unknown) {
+  // @ts-expect-error Host lifecycle functions are unavailable to effects.
+  void injected.setGlobalLogger
+  // @ts-expect-error Effects change rage through ops.
+  void injected.changeRage
   if (candidate instanceof injected.Pet) {
-    const pet: sdk.Pet = candidate
-    // @ts-expect-error Rage changes are submitted through the phase function.
-    void pet.addRage
+    // @ts-expect-error Effects cannot change a pet's ownership.
+    void candidate.damage
   }
   injected.defineCodeEffect({
     id: 'test:rage',
     sourceKind: 'skill',
     triggers: [injected.EffectTrigger.TurnEnd],
-    apply(ctx) {
-      const pet = ctx.source.owner
-      if (pet instanceof injected.Pet && pet.owner)
-        injected.changeRage(new injected.RageContext(ctx, pet.owner, 'effect', 'reduce', 12))
-    },
+    apply: injected.targets.selfPlayer.apply(injected.ops.reduceRage(12)),
   })
-  new injected.ParameterCatalog([])
-  // Trusted authoring remains constructible.
-  new sdk.Signal(1)
 }
 void injectedSdkTypeContract

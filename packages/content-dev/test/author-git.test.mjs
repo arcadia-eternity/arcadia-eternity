@@ -268,7 +268,7 @@ test('HTTPS clone, fetch, clean pull, explicit branch and tag pushes use a dispo
       version: '1.0.0',
       files: ['content.json'],
       scripts: { prepare: 'exit 91' },
-      arcadia: { content: 'content.json', projectId: 'test', namespace: 'test', sdkApi: 3 },
+      arcadia: { content: 'content.json', projectId: 'test', namespace: 'test', sdkApi: 4 },
     }),
   )
   await writeFile(join(built, 'content.json'), '{"data":{"skills":[],"species":[],"marks":[]}}')

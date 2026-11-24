@@ -25,7 +25,7 @@
     "projectId": "example-slow",
     "namespace": "example-slow",
     "content": "content.json",
-    "sdkApi": 3,
+    "sdkApi": 4,
     "effectSources": "src/effects",
     "effectArtifact": "dist/arcadia-effects.json"
   },

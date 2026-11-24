@@ -63,7 +63,7 @@ test(
       await session.close()
       await rm(temporary, { recursive: true, force: true })
     })
-    assert.equal((await session.describe()).project.sdkApi, 3)
+    assert.equal((await session.describe()).project.sdkApi, 4)
     for (const kind of ['check', 'test', 'demo']) {
       const job = await finish(session, kind)
       assert.equal(job.state, 'succeeded', job.output)
@@ -71,7 +71,7 @@ test(
       if (kind !== 'check') {
         assert.match(job.result.candidate.integrity, /^sha512-/)
         assert.ok(job.result.candidate.build)
-        assert.equal(job.result.candidate.sdkApi, 3)
+        assert.equal(job.result.candidate.sdkApi, 4)
       }
       if (kind === 'test') {
         assert.match(job.output, /# pass 4/)
@@ -101,7 +101,7 @@ test('MCP uses the same file versions and diagnostics, and execution is opt-in',
   await mkdir(join(root, 'data/skills'), { recursive: true })
   await writeFile(
     join(root, 'package.json'),
-    JSON.stringify({ name: 'mcp-test', arcadia: { projectId: 'mcp-test', namespace: 'mcp-test', sdkApi: 3 } }),
+    JSON.stringify({ name: 'mcp-test', arcadia: { projectId: 'mcp-test', namespace: 'mcp-test', sdkApi: 4 } }),
   )
   await writeFile(join(root, 'data/skills/hit.json'), '{"id":"hit","power":40}')
   const transport = new StdioClientTransport({

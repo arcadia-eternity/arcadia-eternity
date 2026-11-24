@@ -1,8 +1,8 @@
 # Effect SDK：使用现有战斗 API 编写 TypeScript 效果
 
-从 `@arcadia-eternity/content-sdk` 导入装饰器和效果类型，在 `src/effects/*.effect.ts` 中声明效果。效果接口版本通过 `arcadia.sdkApi: 3` 声明。npm 效果由 [Arena / Comlink 宿主](effect-sandbox.md) 执行，沙箱开放明确允许的效果能力。
+从 `@arcadia-eternity/content-sdk` 导入装饰器和效果类型，在 `src/effects/*.effect.ts` 中声明效果。效果接口版本通过 `arcadia.sdkApi: 4` 声明。npm 效果由 [Arena / Comlink 宿主](effect-sandbox.md) 执行，沙箱开放明确允许的效果能力。
 
-从 API 2 迁移时，把实体上的写方法改为下表中的阶段函数。目标仍由上下文指定，例如将 `owner.heal(event)` 改为 `heal(event)`。将内容包的 `arcadia.sdkApi` 更新为 `3`，用新版 SDK 重新构建效果产物。
+从 API 3 迁移时，将直接调用阶段函数的代码改为在当前回调执行 `ops`，再将内容包的 `arcadia.sdkApi` 更新到 `4` 并重新构建。
 
 ## 从一个效果开始
 
@@ -11,9 +11,9 @@ import {
   effect,
   on,
   EffectTrigger,
-  Pet,
-  heal,
-  HealContext,
+  conditions,
+  targets,
+  ops,
   type NativeEffectContext,
 } from '@arcadia-eternity/content-sdk'
 
@@ -21,55 +21,31 @@ import {
 export class HealOnHit {
   @on(EffectTrigger.OnHit)
   static apply(context: NativeEffectContext<EffectTrigger.OnHit>) {
-    if (context.source !== context.parent.skill) return
-    const owner = context.source.owner
-    if (owner instanceof Pet) heal(new HealContext(context, context.source, owner, 20))
+    if (conditions.selfUsesSkill(context)) targets.ownerPet.apply(ops.heal(20))(context)
   }
 }
 ```
 
-`@on` 的静态方法收到原生战斗上下文，调用阶段函数提交对应的上下文。需要参数、绑定或组合工具时，可在装饰类中实现 `static create(context)`，返回 `defineCodeEffect` 定义；其 `build({ effectId, sourceMark })` 仍支持原有能力。参见 [装饰器装载设计](effect-loading-redesign.md) 和 [slow 示例](../../examples/ugc/slow/src/effects/slow.effect.ts)。
+`@on` 的静态方法收到与 `defineEffect` 相同的效果上下文。需要参数或绑定时，可在装饰类的 `static create(context)` 中返回 `defineCodeEffect`。见 [slow 示例](../../examples/ugc/slow/src/effects/slow.effect.ts)。
 
 在技能或印记的 `behaviors` 中通过独立 `useId` 引用效果 ID。SDK 从 `effectSources` 指定的目录发现装饰类，构建 `effectArtifact`；加载器在准入后读取产物，检查实际效果是否适用于引用它的对象。未被内容引用的效果不会注册。完整格式见 [npm 内容包](npm-content.md)。
 
-固定内容目录仍可用 `defineNativeEffect` 构造内核 `Effect`，或用 `defineEffects({ effectId: { triggers, apply } })` 编译一组效果；基础包的目录由 `@effectGroup` 自动收集。普通 npm 内容包使用 `@effect` 与 `@on`。
+基础包用 `defineEffects` 编译固定效果，由 `@effectGroup` 汇总。普通 npm 内容包使用 `@effect` 与 `@on`。两种写法均通过 `ops` 提交战斗操作。
 
-## 现有 API 索引
+## 事件与操作
 
-| 用途               | 公开 API 与常用操作                                                                                                                            |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| 触发与上下文       | `EffectTrigger`、`nativeEffectTriggers`、`EffectContext`、`UseSkillContext`、`TurnContext`；`NativeEffectContext<T>` 根据触发类型推导 `parent` |
-| 领域对象           | `Battle`、`Player`、`Pet`、`BaseSkill`、`SkillInstance`、`BaseMark`、`MarkInstanceImpl`，以及原有实例类型与枚举                                |
-| 伤害和治疗         | `DamageContext`、`HealContext`；`dealDamage(context)`、`heal(context)`；伤害事件的 `addModified(percent, delta)`                               |
-| 怒气               | `RageContext`；`changeRage(context)`；由 `RageContext.modifiedType` 的 `add` / `reduce` 选择获得或损失事件                                     |
-| 印记               | `addMark(context)`、`removeMark(context)`、`consumeMarkStacks(context, mark, amount)`、`transferMarks(context, target, ...marks)`              |
-| 属性贡献           | `Modifier`、`DurationType`、`attributeSystem.addModifier`；`Signal`、`ReactiveValue`、`projectValue`、`combineValues`                          |
-| 参数               | `numberParam`、`booleanParam`、`stringParam`；`parameterAddress`、`ParameterCatalog`、`defineParameter`、`ConfigSystem`、`ConfigModifier`      |
-| 实体状态           | `defineEffectState`、`getEffectState`、`setEffectState`；技能、印记、精灵、玩家或 Battle 的独立状态                                            |
-| 即时选择与操作工具 | 原有 `targets`、`contexts`、`conditions`、`values`、`ops`、`actions`，按需使用                                                                 |
-| 持续取值工具       | 原有 capture/follow、`bindings`；底层值计划集中在 `sdk.valuePlans`，避免与即时 `sdk.values` 混淆                                               |
-| 执行预算           | `executionBudgetPolicy`、`ExecutionBudgetExceeded`；本局的 `battle.executionBudget`                                                            |
+`context.parent` 提供当前触发事件的只读字段。多触发回调用 `context.trigger` 缩窄类型。条件收集与结算之间可能发生其他效果，需要最新目标或数值时，在执行操作时重新读取。伤害提交与结果的时机见[伤害结算](damage-resolution.md)。
 
-注入的 `EffectSdk` 仅声明可调用的顶层函数和构造器。领域类可用于 `instanceof`，但不能在沙箱中自行构造；例如 `new sdk.Signal(...)` 不受支持。`@arcadia-eternity/battle/authoring` 的完整导出供可信宿主使用，上表中的低层属性贡献与响应式基础设施不属于沙箱构造能力。
+| 用途                         | SDK                                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------------------ |
+| 确认本技能出招、取得实际目标 | `conditions.selfUsesSkill(context)`、`context.parent.actualTarget`                               |
+| 定量伤害与治疗               | `ops.dealDamage(amount)`、`ops.heal(amount)`                                                     |
+| 怒气变化                     | `ops.addRage(amount)`、`ops.reduceRage(amount)`                                                  |
+| 印记生命周期                 | `ops.addMark(mark)`、`ops.removeMark()`、`ops.consumeStacks(amount)`、`ops.transferMarks(marks)` |
+| 当前伤害提案                 | `context.ops.modifyDamage(event, { percent, delta })`                                            |
+| 读取参数、抽样               | `context.read(params.amount)`、`context.read(values.randomInt(min, max))`                        |
 
-这是现有实现的统一入口；可直接阅读 [官方效果](../../packs/base/src/effects/)，使用相同的领域方法。`EffectModuleContext` 提供当前内容上下文，`EffectSdk` 是注入对象的类型。
-
-## 上下文和执行顺序
-
-`context.source` 是当前技能或印记实例，`context.parent` 是当前触发对应的真实事件，`context.battle` 是本局。比如 `OnHit` 的 parent 是 `UseSkillContext`，`OnDamage` 是 `DamageContext`。多个触发用 `context.trigger` 缩窄类型。
-
-触发收集会遍历相关来源。声明 `OnHit` 本身不意味着只有该来源使用技能时才运行，示例通过 `context.source === context.parent.skill` 明确这一条件。印记若监听持有者出招，需比较 `source.owner` 和事件的 `pet`。通过 contexts.damageResult 查询已提交的伤害。对反伤、延迟伤害等情形，用结果的 origin 识别原施法者、技能与持有者。见[伤害结算与时序](damage-resolution.md)。
-
-效果的条件判断在收集时执行，按优先级结算前还会触发 `BeforeEffect`。回调应重新读取可能变化的 HP、目标、归属或印记状态。回调同步执行；顺序、分支、循环和复用直接使用 TypeScript。原生领域方法保留原有检查；操作其他对局的对象需要作者自行避免，选择器工具的跨局写入校验并不覆盖任意直接调用。
-
-## 身份、参数和持久状态
-
-- 装饰器中的局部 `id` 在 namespace 下生成稳定的导出 ID。文件名和 npm 包名不替代内容身份；`static create(context)` 可用 `context.id(localId)` 解析它。
-- 内容的 `useId` 决定每次使用的编译身份，运行时在 `context.effect.id` 取得；同一导出的多次使用互不共用参数地址。
-- `context.source.id` 区分本局的来源实例。跨触发状态必须保存于引擎管理的实体状态、配置或支持恢复的绑定与属性贡献中，遵守下述状态归属合同。
-- 可修改参数用现有 `numberParam` 等声明在 `parameters` 中。原生回调通过 `context.battle.configSystem.get(parameterAddress(context.effect!.id, 'parameters', 'amount'), context.source)` 读取当前来源作用域；检查返回值类型。持续跟随参数可使用现有 `amount.follow(...)` 与绑定工具。
-
-随机值使用 `context.battle.random()`、`randomInt(min, max)` 或 `shuffle`，复用本局 RNG；`randomInt` 包含两端。不要使用模块共享 RNG、`Math.random` 或时间决定战斗结果。持续刷新不得重复抽样；需要保存的随机结果应进入引擎支持的持久状态。
+选择器可以直接执行操作，例如 `targets.ownerPet.apply(ops.heal(20))(context)`。已有目标时，可写 `ops.heal(20)(context, [target])`。随机整数使用本局 RNG，包含两个端点。
 
 ### 状态归属与引用生命周期
 
@@ -80,20 +56,6 @@ Effect 保存逻辑和不可变定义；影响后续触发结果的可变状态�
 - 模块变量、工厂闭包、对象或函数属性、类静态字段、Map/WeakMap 等作者私有容器，不得保存这类状态。`const` 声明不代表引用的对象不可变。
 - `context`、`context.parent`、辅助 frame 及其操作能力仅用于当前同步回调。不得将它们保存到外层变量、返回的延迟回调或异步任务中供以后使用。
 - 后续触发应从新的上下文重新取得来源和目标。需要持续追踪或捕获实体时，使用 SDK 管理的绑定和稳定引用；不要自行在长驻逻辑中保存本局领域对象。不可变内容定义和 SDK 声明句柄可以按各自合同复用。
-
-例如，下列计数依赖类静态字段，属于不支持的效果写法，即使当前一次试打中看起来正常：
-
-```ts
-@effect({ id: 'hit-counter', sourceKind: 'skill' })
-export class HitCounter {
-  static hits = 0 // 不支持：跨对局共享
-
-  @on(EffectTrigger.OnHit)
-  static apply(context: NativeEffectContext<EffectTrigger.OnHit>) {
-    if (context.source === context.parent.skill) this.hits++
-  }
-}
-```
 
 作者不能依赖模块或工厂只执行一次、每局重新执行、某个包独占 VM，或 Worker 的创建与复用顺序来决定战斗结果。相同内容、输入、引擎状态和 RNG 应产生相同结果，与作者模块之前处理过哪些对局无关。
 
@@ -112,10 +74,11 @@ export class HitCounter {
       id: id('hit-counter'),
       sourceKind: 'skill',
       triggers: [sdk.EffectTrigger.OnHit],
-      when: context => context.source === context.parent.skill,
+      when: sdk.conditions.selfUsesSkill,
       apply(context) {
-        const previous = sdk.getEffectState(context, context.source, hits)
-        sdk.setEffectState(context, context.source, hits, previous + 1)
+        const skill = context.parent.skill
+        const previous = context.getEffectState(skill, hits)
+        context.ops.setEffectState(skill, hits, previous + 1)
       },
     })
   }
@@ -124,17 +87,13 @@ export class HitCounter {
 
 字段 ID 使用包命名空间，例如 `id('hit-count')`。同一实体上的同一 ID 指向同一个字段；不同实体互不共享，不继承持有者或 Battle 的值，也不参与参数修饰器计算。同一 ID 的类型和默认值必须一致，快照恢复后仍检查这一约束。
 
-状态支持有限数值、布尔值和最多 16,384 个 UTF-16 代码单元的字符串。对象、函数和实体引用不能作为字段值；持续实体引用使用既有绑定 API。读写必须传入当前回调的 `context` 以及属于本局的 Battle、玩家、精灵、技能或印记。实体随等待点快照一起保存和恢复，下一局重新使用默认值。
+状态支持有限数值、布尔值和最多 16,384 个 UTF-16 代码单元的字符串。对象、函数和实体引用不能作为字段值；持续实体引用使用既有绑定 API。读写通过当前回调访问属于本局的 Battle、玩家、精灵、技能或印记。实体随等待点快照一起保存和恢复，下一局重新使用默认值。
 
 印记创建回调可以初始化该印记的状态。原实例转移时状态随实例保留；被合并吸收、覆盖或销毁的印记释放其状态，不自动合并双方的自定义字段。其他实体状态保留至实体所属对局清理。不能通过随意挂字段或闭包变量绕过这些生命周期。
 
 ## 属性贡献与清理
 
-原生贡献示例见 [native-effects.ts](../../examples/ugc/native-effects.ts)：用 `Modifier(DurationType.binding, ..., source)` 关联来源，通过 `projectValue` 跟随印记层数，并把 `addModifier` 返回的清理函数交给来源印记。这样沿用既有抑制、销毁和快照支持。
-
-需要随印记转移到新持有者的贡献，声明 `rebindOnOwnerTransfer: true`，并设置 `modifier.followsMarkOwner = true`。初始化只允许无条件、无层数消费的 `OnMarkCreated`，内容必须是可重建的属性贡献，避免混入治疗、抽样或加印记等一次性动作。普通目标绑定沿用原语义。
-
-`projectValue` 使用内核已有的可恢复计算描述。任意 `derived(() => ...)` 闭包和临时订阅并不自动具备持久恢复能力；复杂捕获、跟随和缺失输入行为参见 [效果编写](effect-authoring.md)。
+使用 `ops.bindAttribute` 声明属性贡献，通过 `lifetime: 'sourceMark'` 指定印记生命周期，通过 `follow` 跟随层数或参数。需随印记转移时，在创建定义中指定 `rebindOnOwnerTransfer: true`。完整示例见 [native-effects.ts](../../examples/ugc/native-effects.ts)。
 
 快照只支持既有普通选择、强制／奖励换宠和队伍预选等待点。恢复须提供匹配的内容、代码与构建，以及原有参数和绑定工厂；不保存任意函数，不扩展到阶段中断点。
 
@@ -144,7 +103,7 @@ export class HitCounter {
 
 预算耗尽锁存本局的 `ExecutionBudgetExceeded`，停止计时、释放等待并阻止继续进入引擎结算；捕获异常、消息监听器重入或 skipOnError 不重置预算。它不选择胜负，也不回滚此前操作。普通条件错误跳过该次收集；普通 apply 错误产生 `EffectApplyFail` 并按既有规则继续，已有副作用不回滚。
 
-计数覆盖引擎入口和已计费工具调用。原生参考运行中的直接领域方法、独立底层 Effect、任意 JS 循环和外部 I/O 不因此自动受逐步计费或抢占。npm 作者代码运行于宿主按包或按环境分组的 Arena VM；局级 Worker 看门狗、VM 执行限额和故障锁存另见 [沙箱执行宿主](effect-sandbox.md)。
+计数覆盖引擎入口和已计费工具调用。任意 JS 循环和外部 I/O 不因此自动受逐步计费或抢占。npm 作者代码运行于宿主按包或按环境分组的 Arena VM；局级 Worker 看门狗、VM 执行限额和故障锁存另见 [沙箱执行宿主](effect-sandbox.md)。
 
 核心／SDK 的构建身份保留，内容元数据、依赖图和策略参与环境身份；本地代码不做逐文件摘要准入，相同元数据不证明代码语义相同。版本更新准备新环境，活动对局保留原环境。见 [npm 环境生命周期](npm-content.md#环境生命周期)。
 

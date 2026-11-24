@@ -1,18 +1,17 @@
 import { applyEffect } from '../../src/engine/phase/effectExecution'
 import { afterEach, beforeAll, expect, it } from 'vitest'
 import {
+  codeEffectDefinition,
+  effectAuthoring,
   addMark,
-  heal,
   removeMark,
   transferMarks,
   AddMarkContext,
   AttackTargetOpinion,
   BaseMark,
-  DamageContext,
   EffectContext,
   EffectTrigger,
   GameRng,
-  HealContext,
   Pet,
   RemoveMarkContext,
   SnapshotCatalog,
@@ -43,7 +42,7 @@ function compile(kind: 'recover' | 'stack-defense', useId = 'first', sourceMark?
   const exports = createEffects({ sdk, marks: new Map(), id: id => `sdk:${id}` })
   const native = exports.find(effect => effect.id === `sdk:${kind}`)!
   const result = compileBehaviorUse(
-    sdk.codeEffectDefinition(native),
+    codeEffectDefinition(native),
     { useId, definitionId: native.id },
     {
       owner: kind === 'recover' ? { kind: 'skill', id: 'fixture/setup' } : { kind: 'petMark', id: sourceMark!.id },
@@ -79,7 +78,7 @@ function addSource(f: ReturnType<typeof fixture>) {
 }
 function snapshotCatalog(
   f: ReturnType<typeof fixture>,
-  authored: Parameters<typeof sdk.registerEffect>[1][],
+  authored: Parameters<typeof effectAuthoring.registerEffect>[1][],
   source: BaseMark,
 ) {
   const catalog = new SnapshotCatalog('effect-sdk/native/1')
@@ -87,15 +86,13 @@ function snapshotCatalog(
   for (const pet of [...f.a.team, ...f.b.team])
     for (const skill of pet.skills) for (const effect of skill.effects) catalog.registerEffect(effect.id, effect)
   for (const effect of f.debuff.effects) catalog.registerEffect(effect.id, effect)
-  for (const effect of authored) sdk.registerEffect(catalog, effect)
+  for (const effect of authored) effectAuthoring.registerEffect(catalog, effect)
   return catalog
 }
 
 it('injects the official domain constructors and executes repeated native code uses with independent battle RNG', () => {
   expect(sdk.Pet).toBe(Pet)
   expect(sdk.BaseMark).toBe(BaseMark)
-  expect(sdk.HealContext).toBe(HealContext)
-  expect(sdk.DamageContext).toBe(DamageContext)
   const f = fixture(),
     other = fixture(),
     expected = new GameRng(242)
@@ -179,29 +176,24 @@ it('keeps native parameters scoped to each use and exposes the actual typed cont
   const f = fixture(),
     seen: unknown[] = [],
     admitted: unknown[] = []
+  const amount = sdk.numberParam({ default: 5 })
   const native = sdk.defineCodeEffect({
     id: 'sdk:configured',
     sourceKind: 'skill',
     triggers: [EffectTrigger.OnHit],
-    parameters: { amount: sdk.numberParam({ default: 5 }) },
+    parameters: { amount },
     when(context) {
       admitted.push(context)
-      return context.source === context.parent.skill
+      return sdk.conditions.selfUsesSkill(context)
     },
     apply(context) {
       seen.push(context)
-      const owner = context.source.owner
-      const amount = context.battle.configSystem.get(
-        sdk.parameterAddress(context.effect!.id, 'parameters', 'amount'),
-        context.source,
-      )
-      if (owner instanceof Pet && typeof amount === 'number')
-        heal(new HealContext(context, context.source, owner, amount))
+      sdk.targets.ownerPet.apply(sdk.ops.heal(context.read(amount)))(context)
     },
   })
   for (const [index, useId] of ['one', 'two'].entries()) {
     const compiled = compileBehaviorUse(
-      sdk.codeEffectDefinition(native),
+      codeEffectDefinition(native),
       { useId, definitionId: native.id },
       {
         owner: { kind: 'skill', id: 'fixture/setup' },
@@ -218,9 +210,9 @@ it('keeps native parameters scoped to each use and exposes the actual typed cont
     const context = new EffectContext(attack(f), EffectTrigger.OnHit, f.a.activePet.skills[0], compiled.effect)
     f.a.activePet.currentHp = 1
     expect(compiled.effect.condition!(context)).toBe(true)
-    expect(admitted.at(-1)).toBe(context)
+    expect(admitted.at(-1)).toMatchObject({ parent: context.parent })
     applyEffect(compiled.effect, context)
-    expect(seen.at(-1)).toBe(context)
+    expect(seen.at(-1)).toMatchObject({ parent: context.parent })
     expect(f.a.activePet.currentHp).toBe(8 + index)
   }
 })
@@ -232,10 +224,7 @@ it('captures native declaration fields before compiling uses and validates unsup
     id: 'sdk:immutable',
     sourceKind: 'skill' as const,
     triggers: [EffectTrigger.TurnEnd] as EffectTrigger.TurnEnd[],
-    apply(context: EffectContext<EffectTrigger.TurnEnd>) {
-      const owner = context.source.owner
-      if (owner instanceof Pet) heal(new HealContext(context, context.source, owner, 3))
-    },
+    apply: sdk.targets.ownerPet.apply(sdk.ops.heal(3)),
   }
   const native = sdk.defineCodeEffect(input)
   input.triggers.length = 0
@@ -243,7 +232,7 @@ it('captures native declaration fields before compiling uses and validates unsup
     throw new Error('mutated input')
   }
   const compiled = compileBehaviorUse(
-    sdk.codeEffectDefinition(native),
+    codeEffectDefinition(native),
     { useId: 'immutable', definitionId: native.id },
     {
       owner: { kind: 'skill', id: 'fixture/setup' },
@@ -261,7 +250,7 @@ it('captures native declaration fields before compiling uses and validates unsup
     apply() {},
   })
   const rejected = compileBehaviorUse(
-    sdk.codeEffectDefinition(invalid),
+    codeEffectDefinition(invalid),
     { useId: 'invalid', definitionId: invalid.id },
     {
       owner: { kind: 'skill', id: 'fixture/setup' },

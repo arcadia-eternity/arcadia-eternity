@@ -273,7 +273,7 @@ it('relays a mark-held skill hit through the sandbox P2P host after both players
         artifact: {
           format: 'arcadia.effect-module',
           version: 1,
-          sdkApi: 3,
+          sdkApi: 4,
           packageId: 'p2p-test',
           source: `export function createCatalog(marks) {
             const effect = sdk.compileEffect({

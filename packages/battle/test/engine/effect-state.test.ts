@@ -18,7 +18,7 @@ import {
   type baseMarkId,
   type effectId,
 } from '../../engine'
-import { defineEffectState, getEffectState, setEffectState } from '../../authoring'
+import { defineEffectState, getEffectState, setEffectState } from '../../engine'
 import { makeScenario } from './scenario'
 
 const battles: Battle[] = []

@@ -51,7 +51,7 @@ test('reconnected sessions discover paginated compact jobs and retain candidate 
     output: 'old log\n'.repeat(10000),
     diagnostics: Array.from({ length: 101 }, (_, index) => ({ code: 'TEST', message: `failure ${index}` })),
     result: {
-      candidate: { packageName: 'example', integrity: 'sha512-example', build: 'build-id', sdkApi: 3 },
+      candidate: { packageName: 'example', integrity: 'sha512-example', build: 'build-id', sdkApi: 4 },
       preview: { endpoint: 'http://127.0.0.1:12345/private', clientPath: '/preview', url: 'http://example/preview' },
       environmentLock: { file: 'debug/environments/test.package-lock.json', version: 'lock' },
       sourceRevisions: { '@example/dependency': 'revision' },

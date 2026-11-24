@@ -107,7 +107,7 @@ export const creatorSections = [
         'NativeEffectContext',
         'HealContext',
       ),
-      page('api/on-hit', '命中后施加印记 · OnHit', 'effects', 'EffectTrigger.OnHit', 'addMark', 'AddMarkContext'),
+      page('api/on-hit', '命中后施加印记 · OnHit', 'effects', 'EffectTrigger.OnHit', 'ops.addMark', 'AddMarkContext'),
       page(
         'api/bind-attribute',
         '绑定速度 · bindAttribute',

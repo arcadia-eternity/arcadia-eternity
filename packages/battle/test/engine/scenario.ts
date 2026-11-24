@@ -1,3 +1,5 @@
+import type { Effect as AuthoredEffect } from '@arcadia-eternity/battle/authoring'
+
 import { addStatStage } from '../../src/engine/phase/AddMarkPhase'
 // Custom mechanism fixture, not a substitute for the official Effect catalog.
 import {
@@ -39,6 +41,12 @@ import {
   type effectId,
   type speciesId,
 } from '@arcadia-eternity/battle/engine'
+
+/** Mount an authored definition in a fixture that drives the host engine directly. */
+export function engineEffect(effect: AuthoredEffect<EffectTrigger>): Effect<EffectTrigger> {
+  if (!(effect instanceof Effect)) throw new TypeError('Expected a compiled battle effect')
+  return effect
+}
 
 export function makeScenario(
   seed = 201,

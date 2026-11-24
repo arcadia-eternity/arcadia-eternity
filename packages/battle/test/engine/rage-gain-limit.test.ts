@@ -13,7 +13,7 @@ import {
   type baseMarkId,
   type effectId,
 } from '@arcadia-eternity/battle/engine'
-import { makeScenario } from './scenario'
+import { engineEffect, makeScenario } from './scenario'
 
 const id = 'effect_mark_limit_rage_gain'
 const battles: Battle[] = []
@@ -28,7 +28,7 @@ function fixture(stack = 3) {
     pet.marks.splice(0)
     for (const skill of pet.skills) skill.effects.splice(0)
   }
-  const mark = new BaseMark('mark_xinlingzhiyue' as baseMarkId, [RageGainLimitEffects.build()], {
+  const mark = new BaseMark('mark_xinlingzhiyue' as baseMarkId, [engineEffect(RageGainLimitEffects.build())], {
     ...f.debuff.config,
     maxStacks: 100,
     persistent: true,

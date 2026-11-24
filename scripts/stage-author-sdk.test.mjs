@@ -30,7 +30,7 @@ test(
       const index = await stageAuthorSdk(bundle)
       const versions = new Map(index.packages.map(pkg => [pkg.name, pkg.version]))
       assert.equal(index.releaseReady, false)
-      assert.equal(index.sdkApi, 3)
+      assert.equal(index.sdkApi, 4)
       assert.match(index.build.coreBuildId, /^[a-f0-9]{64}$/)
       assert.match(index.build.registryBuildId, /^[a-f0-9]{64}$/)
       assert.ok(index.packages.some(pkg => pkg.name === '@arcadia-eternity/pack-loader'))

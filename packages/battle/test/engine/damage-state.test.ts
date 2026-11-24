@@ -16,7 +16,7 @@ import {
   type effectId,
 } from '@arcadia-eternity/battle/engine'
 import { ExecuteLowHealthEffects } from '../../../../packs/base/src/effects/execute-low-health.effect'
-import { makeScenario } from './scenario'
+import { engineEffect, makeScenario } from './scenario'
 
 const battles: Battle[] = []
 afterEach(async () => {
@@ -112,7 +112,7 @@ it('credits the official on-hit execution once even though the status move dealt
   const f = fixture()
   const use = new UseSkillContext(f.turn, f.a, f.actor, f.skill.target, f.skill)
   f.target.currentHp = 10
-  const execute = ExecuteLowHealthEffects.build().effect_skill_execute_opponent_hp_under_75_hit_or_miss
+  const execute = engineEffect(ExecuteLowHealthEffects.build().effect_skill_execute_opponent_hp_under_75_hit_or_miss)
   effectAuthoring.effectParameters(execute).install(f.battle.configSystem)
   f.skill.effects.push(execute)
   const phase = new SkillPhase(use)

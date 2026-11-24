@@ -47,7 +47,7 @@ async function fixture(name: string) {
         namespace: 'example-slow',
         content: 'content.json',
         effects: 'dist/effects.js',
-        sdkApi: 3,
+        sdkApi: 4,
       },
     }),
   )

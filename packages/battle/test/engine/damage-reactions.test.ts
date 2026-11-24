@@ -19,7 +19,7 @@ import {
 } from '@arcadia-eternity/battle/engine'
 import { officialDamageBenefitEffects } from '../../../../packs/base/src/effects/damage-benefits.effect'
 import { VitalSequencesGeneratedEffects } from '../../../../packs/base/src/effects/vital-sequences.generated.effect'
-import { makeScenario } from './scenario'
+import { engineEffect, makeScenario } from './scenario'
 
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
@@ -58,12 +58,12 @@ it('reflects a committed hit and awards the skill drain only for HP lost by its 
   const defender = b.activePet
   const reflector = new BaseMark(
     'fixture/reflect' as baseMarkId,
-    [VitalSequencesGeneratedEffects.build().effect_mark_reflect_damage_1_4],
+    [engineEffect(VitalSequencesGeneratedEffects.build().effect_mark_reflect_damage_1_4)],
     debuff.config,
   ).createInstance()
   reflector.setOwner(defender, battle.emitter)
   defender.marks.push(reflector)
-  skill.effects.push(officialDamageBenefitEffects.effect_skill_heal_25_percent_damage_dealt)
+  skill.effects.push(engineEffect(officialDamageBenefitEffects.effect_skill_heal_25_percent_damage_dealt))
 
   attacker.currentHp = 70
   defender.currentHp = 32
@@ -130,7 +130,7 @@ it('two reflecting marks may each react once on the same damage chain', () => {
   // The same printed effect on two distinct instances can respond independently.
   const mirror = new BaseMark(
     'fixture/mirror' as baseMarkId,
-    [VitalSequencesGeneratedEffects.build().effect_mark_reflect_damage_1_4],
+    [engineEffect(VitalSequencesGeneratedEffects.build().effect_mark_reflect_damage_1_4)],
     debuff.config,
   )
   for (const pet of [a.activePet, b.activePet]) {
@@ -192,7 +192,7 @@ it('retains the reflecting pet after its final mark stack pays the reaction cost
   const defender = b.activePet
   const reflector = new BaseMark(
     'fixture/consumed-mirror' as baseMarkId,
-    [VitalSequencesGeneratedEffects.build().effect_mark_reflect_damage],
+    [engineEffect(VitalSequencesGeneratedEffects.build().effect_mark_reflect_damage)],
     debuff.config,
   ).createInstance({ stack: 1 })
   reflector.setOwner(defender, battle.emitter)

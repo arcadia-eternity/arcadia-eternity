@@ -1,4 +1,4 @@
-import { BaseMark } from '@arcadia-eternity/battle/engine'
+import { BaseMark } from '@arcadia-eternity/battle/authoring'
 import { checks, EffectTrigger, targets, type Condition } from '@arcadia-eternity/battle/authoring'
 
 export function requireMark(marks: ReadonlyMap<string, BaseMark>, id: string): BaseMark {

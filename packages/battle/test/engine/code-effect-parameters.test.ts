@@ -1,5 +1,5 @@
-import { afterEach, expect, it } from 'vitest'
 import {
+  codeEffectDefinition,
   addMark,
   removeMark,
   AddMarkContext,
@@ -15,7 +15,8 @@ import {
   type Battle,
   type baseMarkId,
 } from '@arcadia-eternity/battle/engine'
-import { codeEffectDefinition, defineCodeEffect, numberParam, ops, targets } from '@arcadia-eternity/battle/authoring'
+import { afterEach, expect, it } from 'vitest'
+import { defineCodeEffect, numberParam, ops, targets } from '@arcadia-eternity/battle/authoring'
 import { makeScenario } from './scenario'
 
 const battles: Battle[] = []

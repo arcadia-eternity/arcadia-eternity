@@ -11,7 +11,7 @@ import {
   type Battle,
   type effectId,
 } from '@arcadia-eternity/battle/engine'
-import { makeScenario } from './scenario'
+import { engineEffect, makeScenario } from './scenario'
 
 const battles: Battle[] = []
 beforeAll(() => setGlobalLogger({ debug() {}, info() {}, warn() {}, error() {} }))
@@ -110,7 +110,9 @@ it('setting bypasses gain/loss hooks and retains its message even for unavailabl
 })
 it('minimum rage observes the settled loss and emits the nested assignment before the outer loss message', () => {
   const { battle, a } = fixture()
-  a.activePet.skills[0].effects.push(RageAssignmentGeneratedEffects.build().effect_ability_keep_rage_at_least_25)
+  a.activePet.skills[0].effects.push(
+    engineEffect(RageAssignmentGeneratedEffects.build().effect_ability_keep_rage_at_least_25),
+  )
   const changes: unknown[] = []
   battle.registerListener(m => {
     if (m.type === BattleMessageType.RageChange) changes.push([m.data.before, m.data.after])

@@ -1,8 +1,6 @@
-import type { BaseMark } from '../mark'
+import type { BaseMark } from './authoring/domain'
 import type { EffectDefinition, Parameter, Trigger } from './authoring/contracts'
 import { defineNativeBehavior, type BehaviorDefinition, type NativeBehaviorExport } from './behaviors'
-import type { NativeEffectContext, NativeEffectDefinition, NativeEffectTrigger } from './native-effect'
-import { nativeEffectContext } from './authoring/runtime'
 
 export { effectSdkApiVersion } from '@arcadia-eternity/const'
 
@@ -12,21 +10,13 @@ export interface CodeEffectContext {
   readonly sourceMark?: BaseMark
 }
 
-/** Official native-effect fields with the existing runtime parameter and binding metadata. */
-export type NativeCodeEffectDefinition<
-  T extends NativeEffectTrigger,
-  P extends Readonly<Record<string, Parameter<unknown>>> = Record<never, never>,
-> = Omit<NativeEffectDefinition<T>, 'id'> & {
-  readonly id: string
-} & Pick<EffectDefinition<Trigger, P>, 'parameters' | 'bindings' | 'rebindOnOwnerTransfer'>
-
 type CodeExport = { readonly id: string; readonly sourceKind: 'skill' | 'petMark' }
 
 /** Native shorthand: the host supplies each use's stable compiled identity. */
 export function defineCodeEffect<
-  const T extends NativeEffectTrigger,
+  const T extends Trigger,
   const P extends Readonly<Record<string, Parameter<unknown>>> = Record<never, never>,
->(input: CodeExport & Omit<NativeCodeEffectDefinition<T, P>, 'id'>): NativeBehaviorExport
+>(input: CodeExport & EffectDefinition<T, P>): NativeBehaviorExport
 
 /** Ordinary TypeScript implementation without a required editor form or serialized configuration schema.
  * Runtime parameters declared on the definition retain their addresses, tags, modifiers and per-battle values.
@@ -44,34 +34,23 @@ export function defineCodeEffect<
 export function defineCodeEffect(input: CodeExport & object): NativeBehaviorExport {
   type Parameters = Readonly<Record<string, Parameter<unknown>>>
   type Definition = EffectDefinition<Trigger, Parameters>
-  const declared = input as CodeExport & NativeCodeEffectDefinition<NativeEffectTrigger, Parameters>
-  const direct =
-    'build' in input
-      ? undefined
-      : {
-          ...declared,
-          triggers: [...declared.triggers],
-          tags: declared.tags ? [...declared.tags] : undefined,
-          parameters: declared.parameters ? { ...declared.parameters } : undefined,
-          bindings: declared.bindings ? { ...declared.bindings } : undefined,
-        }
-  // The overloads retain each callback's trigger type; compilation validates the actual definition below.
-  const build =
-    'build' in input
-      ? (input.build as (context: CodeEffectContext) => Definition)
-      : (context: CodeEffectContext): Definition => {
-          const { when, apply, ...metadata } = direct!
-          if (typeof apply !== 'function') throw new Error('Native code effect requires an apply callback')
-          // Preserve native context identity; authored factories already receive an authoring frame.
-          return {
-            ...metadata,
-            id: context.effectId,
-            when: when
-              ? frame => when(nativeEffectContext(frame) as NativeEffectContext<NativeEffectTrigger>)
-              : undefined,
-            apply: frame => apply(nativeEffectContext(frame) as NativeEffectContext<NativeEffectTrigger>),
-          }
-        }
+  let build: (context: CodeEffectContext) => Definition
+  if ('build' in input) {
+    build = input.build as typeof build
+  } else {
+    const { triggers, tags, parameters, bindings, ...definition } = input as CodeExport & Definition
+    const direct = {
+      ...definition,
+      triggers: [...triggers],
+      tags: tags && [...tags],
+      parameters: parameters && { ...parameters },
+      bindings: bindings && { ...bindings },
+    }
+    build = ({ effectId }) => {
+      if (typeof direct.apply !== 'function') throw new Error('Native code effect requires an apply callback')
+      return { ...direct, id: effectId }
+    }
+  }
   if (typeof build !== 'function') throw new Error('Code effect requires a definition factory')
   return defineNativeBehavior({
     id: input.id,

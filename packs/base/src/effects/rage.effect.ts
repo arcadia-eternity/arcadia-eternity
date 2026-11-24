@@ -1,8 +1,17 @@
 import { effectGroup } from '@arcadia-eternity/battle/effect-loading'
 import { Type } from '@sinclair/typebox'
-import { EffectTrigger, compileEffect, conditions, targets, ops, numberParam } from '@arcadia-eternity/battle/authoring'
-import { ConfigModifierType } from '@arcadia-eternity/battle/engine'
-import { defineParameter, parameterAddress, ParameterCatalog } from '@arcadia-eternity/battle/engine'
+import {
+  EffectTrigger,
+  compileEffect,
+  conditions,
+  targets,
+  ops,
+  numberParam,
+  ConfigModifierType,
+  defineParameter,
+  parameterAddress,
+  ParameterCatalog,
+} from '@arcadia-eternity/battle/authoring'
 
 const id = 'effect_skill_add_rage_20_if_rage_below_40'
 const value = defineParameter({

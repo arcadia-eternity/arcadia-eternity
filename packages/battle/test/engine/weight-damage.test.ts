@@ -14,7 +14,7 @@ import {
   type Battle,
   type baseMarkId,
 } from '@arcadia-eternity/battle/engine'
-import { makeScenario } from './scenario'
+import { engineEffect, makeScenario } from './scenario'
 
 const effects = WeightDamageEffects.build()
 const ids = Object.keys(effects) as (keyof typeof effects)[]
@@ -43,7 +43,7 @@ function setup(id: keyof typeof effects, stacks = 3) {
   mark.setOwner(owner, f.battle.emitter)
   owner.marks.push(mark)
   const source = defensive ? mark : owner.skills[0]
-  source.effects.push(effects[id])
+  source.effects.push(engineEffect(effects[id]))
   const use = new UseSkillContext(
     new TurnContext(f.battle),
     f.a,

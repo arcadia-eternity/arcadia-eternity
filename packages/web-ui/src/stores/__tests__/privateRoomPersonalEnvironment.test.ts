@@ -135,7 +135,7 @@ function prepared(key = 'a'): PreparedPersonalEnvironment & { release: ReturnTyp
         artifact: {
           format: 'arcadia.effect-module' as const,
           version: 1 as const,
-          sdkApi: 3 as const,
+          sdkApi: 4 as const,
           packageId: 'official',
           source: `PRIVATE_AUTHOR_SOURCE_${key}`,
         },

@@ -40,14 +40,15 @@ export function effectModulePlugin(
 }
 
 export function builtinEffectsPlugin(): Plugin {
+  const effects = fileURLToPath(import.meta.resolve('@arcadia-eternity/data-pack-base/effects'))
   const module = {
-    entry: fileURLToPath(import.meta.resolve('@arcadia-eternity/data-pack-base/effects')),
+    entry: resolve(dirname(effects), 'effect-factories.js'),
     packageId: '@arcadia-eternity/data-pack-base',
   }
   return effectModulePlugin(
     {
       '@arcadia-eternity/data-pack-base/effects?effect-module': module,
-      [`${module.entry}?effect-module`]: module,
+      [`${effects}?effect-module`]: module,
     },
     fileURLToPath(new URL('../', import.meta.url)),
   )

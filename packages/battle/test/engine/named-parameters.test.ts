@@ -29,7 +29,7 @@ import {
 } from '@arcadia-eternity/battle/engine'
 
 import { afterEach, beforeAll, expect, it } from 'vitest'
-import { makeScenario } from './scenario'
+import { engineEffect, makeScenario } from './scenario'
 
 function catalogs() {
   const effects = {
@@ -44,7 +44,7 @@ function catalogs() {
   return new Map(
     namedParameterModifierDependencies.map(id => [
       id,
-      id === officialRageCandidate.effect.id
+      id === engineEffect(officialRageCandidate.effect).id
         ? officialRageCandidate.parameters
         : effectAuthoring.effectParameters(effects[id as keyof typeof effects]),
     ]),
@@ -72,17 +72,19 @@ it('the rage consumer reads the modified canonical parameter and returns to base
     pet.marks.splice(0)
     for (const skill of pet.skills) skill.effects.splice(0)
   }
-  officialRageCandidate.parameters.install(battle.configSystem)
+  const parameters = officialRageCandidate.parameters
+  if (!(parameters instanceof ParameterCatalog)) throw new Error('Expected the host parameter catalog')
+  parameters.install(battle.configSystem)
   const mark = new BaseMark(
     'fixture/rage-emblem' as baseMarkId,
-    [candidates.effect_emblem_fengbaozhixing_rage_boost_5],
+    [engineEffect(candidates.effect_emblem_fengbaozhixing_rage_boost_5)],
     debuff.config,
   ).createInstance()
   mark.setOwner(a.activePet, battle.emitter)
   a.activePet.marks.push(mark)
   battle.applyEffects(battle, EffectTrigger.OnBattleStart, mark)
   const skill = a.activePet.skills[0]
-  skill.effects.push(officialRageCandidate.effect)
+  skill.effects.push(engineEffect(officialRageCandidate.effect))
   const use = new UseSkillContext(new TurnContext(battle), a, a.activePet, AttackTargetOpinion.opponent, skill)
   a.currentRage = 0
   battle.applyEffects(use, EffectTrigger.OnHit, skill)
@@ -100,14 +102,16 @@ it('a captured parameter factor stays captured while its mark stack follows; new
     pet.marks.splice(0)
     for (const skill of pet.skills) skill.effects.splice(0)
   }
-  const dependency = AttributeContributionsGeneratedEffects.build().effect_mark_increase_crit_rate_20_percent_per_stack
+  const dependency = engineEffect(
+    AttributeContributionsGeneratedEffects.build().effect_mark_increase_crit_rate_20_percent_per_stack,
+  )
   const catalog = effectAuthoring.effectParameters(dependency)
   catalog.install(battle.configSystem)
   const all = new Map(dependencies)
   all.set(dependency.id, catalog)
   const emblem = new BaseMark(
     'fixture/crit-emblem' as baseMarkId,
-    [NamedParametersEffects.build({ parameters: all }).effect_emblem_dianhe_crit_rate_boost_5_percent],
+    [engineEffect(NamedParametersEffects.build({ parameters: all }).effect_emblem_dianhe_crit_rate_boost_5_percent)],
     debuff.config,
   ).createInstance()
   const pet = a.activePet
