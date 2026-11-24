@@ -82,7 +82,6 @@ export async function runServerCli(args: string[]): Promise<number> {
     )
     .addOption(new Option('--desktop-base-root <directory>').hideHelp())
     .option('--desktop-client-environments', 'Publish prepared environments from the desktop client library')
-    .option('--desktop-project <directory>', 'Trusted desktop host initial content project')
     .option('--desktop-managed-network', 'Trusted desktop owner controls persistent listener settings')
     .option('--desktop-origin <origin>', 'Trusted desktop renderer origin')
     .option('--desktop-launch <json>', 'Private desktop launch settings')
@@ -137,7 +136,6 @@ export async function runServerCli(args: string[]): Promise<number> {
       dataDir?: string
       workspaceRoot?: string
       desktopClientEnvironments?: boolean
-      desktopProject?: string
       basePackVersion?: string
       basePackAutoUpdate: boolean
       desktopBaseRoot?: string
@@ -197,11 +195,7 @@ export async function runServerCli(args: string[]): Promise<number> {
       throw new Error('Set ACCOUNT_MODE=g3 when configuring durable accounts')
     const desktopControl = process.connected && process.env.ARCADIA_DESKTOP_CONTROL === '1'
     if (
-      (options.desktopBaseRoot ||
-        options.desktopProject ||
-        options.desktopManagedNetwork ||
-        options.desktopOrigin ||
-        options.desktopLaunch) &&
+      (options.desktopBaseRoot || options.desktopManagedNetwork || options.desktopOrigin || options.desktopLaunch) &&
       !desktopControl
     )
       throw new Error('Desktop options require the private desktop host')
@@ -418,6 +412,12 @@ export async function runServerCli(args: string[]): Promise<number> {
         ? undefined
         : resolve(options.webRoot ?? resolve(dirname(fileURLToPath(import.meta.url)), 'web'))
     if (options.publicOrigin && !corsOrigins.includes(options.publicOrigin)) corsOrigins.push(options.publicOrigin)
+    if (options.desktopManagedNetwork && !defaultBuiltinId)
+      throw new Error('Desktop builtin environment is unavailable')
+    const desktopInitialization =
+      options.desktopManagedNetwork && defaultBuiltinId
+        ? { kind: 'builtin' as const, environmentId: defaultBuiltinId }
+        : undefined
     server = createSingleProcessApp({
       officialBase,
       knowsOfficialMaterial:
@@ -453,14 +453,7 @@ export async function runServerCli(args: string[]): Promise<number> {
         clientEnvironments: options.desktopClientEnvironments ? desktopWorkspace : undefined,
         allowThirdPartyExecution: desktopControl || options.allowThirdPartyExecution,
         initialization: desktopControl
-          ? options.desktopProject
-            ? {
-                kind: desktopLaunch?.officialContent ? 'builtin' : 'desktop',
-                environmentId: desktopLaunch?.officialContent
-                  ? (desktopWorkspace?.builtinEnvironmentId ?? 'desktop-host')
-                  : 'desktop-host',
-              }
-            : undefined
+          ? desktopInitialization
           : options.npmProject?.[0]
             ? { kind: 'npm', environmentId: 'startup-npm' }
             : { kind: 'builtin', environmentId: defaultBuiltinId! },
@@ -476,15 +469,12 @@ export async function runServerCli(args: string[]): Promise<number> {
     const builtinId = server.environments.descriptor().id
     if (desktopControl && ((!options.desktopManagedNetwork && options.host !== '127.0.0.1') || accounts))
       throw new Error('Invalid desktop host')
-    if (desktopControl && options.desktopProject) {
+    if (desktopInitialization) {
       const { initializeDesktopHost } = await import('./desktop-host-initialize')
-      const pending = await server.management!.pendingInitializationInfo()
       await initializeDesktopHost({
         management: server.management!,
         workspace,
-        builtinId: desktopWorkspace?.builtinEnvironmentId,
-        projectDirectory: options.desktopProject,
-        kind: desktopLaunch?.officialContent || (!desktopLaunch && pending?.kind === 'builtin') ? 'builtin' : 'desktop',
+        environmentId: desktopInitialization.environmentId,
       })
     } else if (!desktopControl && options.npmProject?.[0]) {
       const initialize = (projectDirectory: string) =>

@@ -90,12 +90,10 @@ export class ContentProjectManager {
   #loading
   #inspections = new Map()
   #busy = false
-  #activeId
   #idle
   #controller = new AbortController()
-  constructor({ file, host, run }) {
+  constructor({ file, run }) {
     this.file = file
-    this.host = host
     this.run = run
   }
   async close() {
@@ -170,11 +168,6 @@ export class ContentProjectManager {
     if ((await realpath(entry.directory)) !== entry.directory) throw new Error('项目目录已改变，请重新登记')
     return entry.directory
   }
-  #running(entry) {
-    return this.host.projectDirectory
-      ? this.host.projectDirectory() === entry.directory
-      : this.host.status().status === 'running' && this.#activeId === entry.id
-  }
   async list() {
     await this.#load()
     return Promise.all(
@@ -200,7 +193,6 @@ export class ContentProjectManager {
             exported: await exists(join(entry.directory, 'arcadia-deployment.json')),
             dependencies: { ...manifest.dependencies, ...manifest.optionalDependencies },
             inspection: this.#inspections.get(entry.id),
-            running: this.#running(entry),
           }
         } catch {
           return {
@@ -208,7 +200,6 @@ export class ContentProjectManager {
             installed: false,
             approved: false,
             dependencies: {},
-            running: false,
             error: '项目目录或文件不可用，请恢复项目后重试',
           }
         }
@@ -242,8 +233,7 @@ export class ContentProjectManager {
   }
   async forget(id) {
     return this.#exclusive(async () => {
-      const entry = await this.#entry(id)
-      if (this.#running(entry)) throw new Error('请先停止此项目的本机服务')
+      await this.#entry(id)
       await this.#save(this.#entries.filter(entry => entry.id !== id))
       this.#inspections.delete(id)
     })
@@ -260,7 +250,6 @@ export class ContentProjectManager {
         verify: ['content', 'project', 'verify', directory],
       }
       if (!Object.hasOwn(args, action)) throw new Error('不支持的内容操作')
-      if (['install', 'approve'].includes(action) && this.#running(entry)) throw new Error('请先停止此项目的本机服务')
       if (['inspect', 'install'].includes(action)) this.#inspections.delete(id)
       const result = await this.run(args[action], this.#controller.signal)
       if (action === 'inspect' || action === 'install') {
@@ -296,16 +285,6 @@ export class ContentProjectManager {
         })
       }
       return result.format
-    })
-  }
-  async start(id) {
-    return this.#exclusive(async () => {
-      const entry = await this.#entry(id)
-      const directory = await this.#directory(entry)
-      if (this.#controller.signal.aborted) throw new Error('内容管理已关闭')
-      const result = await this.host.start(directory)
-      this.#activeId = id
-      return result
     })
   }
   async export(id, destination, includeLocalArtifacts) {

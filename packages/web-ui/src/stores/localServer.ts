@@ -30,19 +30,14 @@ export const useLocalServerStore = defineStore('localServer', () => {
     error.value = ''
     snapshot.value = {
       ...snapshot.value,
-      phase:
-        input.action === 'start'
-          ? 'preparing'
-          : ['recover', 'start-project'].includes(input.action)
-            ? 'starting'
-            : 'draining',
+      phase: input.action === 'start' ? 'preparing' : input.action === 'recover' ? 'starting' : 'draining',
     }
     try {
       const result = await window.arcadiaDesktop!.localServer!(input)
       ++sequence
       snapshot.value = result
       if (result.error) throw new Error(result.error.message)
-      if ((input.action === 'start' || input.action === 'start-project') && result.host.status === 'running') {
+      if (input.action === 'start' && result.host.status === 'running') {
         await enterLocalServer()
       }
       return result

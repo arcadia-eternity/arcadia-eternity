@@ -28,14 +28,18 @@ async function project(name) {
   return directory
 }
 function host(options = {}) {
-  return new LocalBattleHost({
+  const instance = new LocalBattleHost({
     executable: process.execPath,
     cli,
     rendererOrigin: 'http://localhost:5173',
     startupTimeoutMs: 4000,
     shutdownTimeoutMs: 1000,
+    attachWorkspace: child => {
+      queueMicrotask(() => child.send({ directory: instance.projectDirectory() }, () => {}))
+    },
     ...options,
   })
+  return instance
 }
 async function closed(url) {
   return new Promise(resolve => {
@@ -53,7 +57,7 @@ describe('local authority host', () => {
     try {
       await assert.rejects(instance.start(directory), { code: 'LISTENER_ADDRESS_IN_USE' })
       const saved = JSON.parse(await readFile(join(stateDirectory, 'server.json'), 'utf8'))
-      const recovered = await instance.startLocalRecovery()
+      const recovered = await instance.start(directory, { localRecovery: true, publishClientEnvironments: true })
       assert.equal(recovered.serverId, saved.serverId)
       assert.equal(recovered.projectName, 'occupied-listener')
       assert.equal(recovered.localRecovery, true)
@@ -63,7 +67,7 @@ describe('local authority host', () => {
       await instance.stopHosting()
       const fresh = host({ stateDirectory, workspaceRoot: root })
       try {
-        assert.equal((await fresh.startLocalRecovery()).serverId, saved.serverId)
+        assert.equal((await fresh.start(directory, { localRecovery: true })).serverId, saved.serverId)
       } finally {
         await fresh.stop()
       }

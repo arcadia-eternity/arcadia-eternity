@@ -286,7 +286,6 @@ test(
       stateDirectory: join(root, 'server'),
       workspaceRoot: join(root, 'workspace'),
       officialBaseRoot: () => library.officialPackageRoot,
-      builtinId: () => defaultId,
       attachWorkspace: child => owner.attach(child),
       startupTimeoutMs: 60000,
       shutdownTimeoutMs: 5000,
@@ -357,11 +356,10 @@ test(
       assert.notEqual(previous.id, legacy.id)
       const envId = await synchronize()
       defaultId = envId
-      const startup = await library.acquireDefaultProject()
+      const startup = await workspace.getInstallation(defaultId)
       const launched = await host.start(startup.directory, {
-        launch: { name: '更新测试', host: '127.0.0.1', port: 0, publicOrigin: null, officialContent: true },
+        launch: { name: '更新测试', host: '127.0.0.1', port: 0, publicOrigin: null },
       })
-      await startup.release()
       const liveVersions = async () => {
         const response = await fetchFromHost(launched.url + '/api/v1/environments')
         return (await response.json()).environments.map(env => env.packages.find(pkg => pkg.name === name).version)

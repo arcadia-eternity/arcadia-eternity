@@ -11,6 +11,7 @@ import { promises as fs } from 'node:fs'
 import { desktopMediaCache } from './media-cache.mjs'
 import { LocalBattleHost } from './local-battle-host.mjs'
 import { LocalServerController } from './local-server-controller.mjs'
+import { readLocalBuiltinEnvironmentId } from './local-server-profile.mjs'
 import { isTrustedDesktopRequest } from './local-battle-ipc.mjs'
 import { createRemotePlayController, protectDesktopNavigation, normalizeRemoteBackend } from './remote-play.mjs'
 import { createSwfHost } from './swf-host.mjs'
@@ -64,7 +65,6 @@ const localBattleHost = new LocalBattleHost({
   rendererOrigin: devServerUrl ? new URL(devServerUrl).origin : CLIENT_ORIGIN,
   stateDirectory: path.join(app.getPath('userData'), 'local-server'),
   workspaceRoot: path.join(app.getPath('userData'), 'content-packages'),
-  builtinId: () => builtinEnvironment?.id,
   officialBaseRoot: () => contentLibrary?.officialPackageRoot,
   attachWorkspace: (child, publish) =>
     getManagementWorkspaceOwner().attach(child, publish ? () => getLocalEnvironments().hostingWorkspace() : undefined),
@@ -78,10 +78,11 @@ const localBattleHost = new LocalBattleHost({
 
 const localServerController = new LocalServerController({
   host: localBattleHost,
-  library: () => ({
-    acquireDefaultProject: () => getContentLibrary().acquireDefaultProject(),
-  }),
-  startProject: id => getContentProjects().start(id),
+  defaultProject: async () => {
+    const workspace = await getManagementWorkspaceOwner().ready()
+    await builtinSync
+    return (await workspace.getInstallation(builtinEnvironment.id)).directory
+  },
 })
 
 let personalProfile
@@ -517,12 +518,21 @@ async function refreshDesktopEnvironments(workspace) {
     pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/content-sdk/management-workspace')).href
   )
   const catalog = await library.officialEnvironmentCatalog()
+  const previousEnvironmentId = await readLocalBuiltinEnvironmentId(
+    localBattleHost.stateDirectory,
+    workspace.workspaceId,
+    async input => {
+      const { openStorage } = await import(pathToFileURL(runtimeRequire.resolve('@arcadia-eternity/database')).href)
+      return openStorage(input)
+    },
+  )
   await workspace.refreshBuiltinRules(catalog.environments)
   builtinEnvironment = await openBuiltinEnvironment({
     workspace,
     library,
     validate: validateWorkspaceProject,
     catalog,
+    previousEnvironmentId,
     synchronizeShippedEnvironments,
   })
   await localBattleHost.refreshBuiltinBindings()
@@ -586,7 +596,6 @@ function getLocalContentSessions() {
 function getContentProjects() {
   contentProjects ??= new ContentProjectManager({
     file: path.join(app.getPath('userData'), 'content-projects.json'),
-    host: localBattleHost,
     run: (args, signal) => runContentCommand(localBattleHost, args, signal),
   })
   return contentProjects

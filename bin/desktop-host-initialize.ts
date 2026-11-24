@@ -6,27 +6,18 @@ import { initializeHostEnvironment } from './host-environment-initialize'
 export async function initializeDesktopHost({
   management,
   workspace,
-  projectDirectory,
-  kind,
-  timeoutMs,
-  builtinId,
+  environmentId,
 }: {
   management: ManagementService
   workspace: ContentWorkspace
-  projectDirectory: string
-  kind: 'builtin' | 'desktop'
-  builtinId?: string
-  timeoutMs?: number
+  environmentId: string
 }): Promise<void> {
   await initializeHostEnvironment({
     management,
     workspace,
-    projectDirectory,
-    kind,
-    environmentId: kind === 'builtin' && builtinId ? builtinId : 'desktop-host',
-    name: kind === 'builtin' && builtinId ? '默认环境' : '本机服务器环境',
+    kind: 'builtin',
+    environmentId,
     matchmakingEnabled: true,
-    timeoutMs,
   })
   await upgradeDesktopMatchmakingDefault(management)
 }

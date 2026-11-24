@@ -48,7 +48,7 @@ test(
     const originalAddonDigest = createHash('sha256')
       .update(await readFile(sourceAddon))
       .digest('hex')
-    let owner, playerConnection
+    let owner, playerConnection, builtin
     const host = new LocalBattleHost({
       executable: process.env.ARCADIA_DESKTOP_EXECUTABLE ?? process.execPath,
       cli: process.env.ARCADIA_DESKTOP_CLI ?? resolve(repository, 'dist/cli.js'),
@@ -74,7 +74,10 @@ test(
       withDefaultArchive: defaultArchive,
       run: (args, signal) => runContentCommand({ ...host, npmCacheDirectory: join(root, 'cache') }, args, signal),
     })
-    const controller = new LocalServerController({ host, library: () => library })
+    const controller = new LocalServerController({
+      host,
+      defaultProject: async () => (await builtin.workspace.getInstallation(builtin.id)).directory,
+    })
     const personal = await ContentWorkspace.open(join(root, 'local-environments'), {
       retentions: { list: async () => [] },
     })
@@ -82,6 +85,20 @@ test(
       root: join(root, 'library'),
       library,
       openWorkspace: ContentWorkspace.open,
+      builtinId: () => builtin?.id,
+      synchronize: async workspace => {
+        const runtimeRequire = createRequire(join(dirname(cli), 'package.json'))
+        builtin = await openBuiltinEnvironment({
+          workspace,
+          library,
+          validate: validateWorkspaceProject,
+          catalog: await readOfficialEnvironments(
+            dirname(runtimeRequire.resolve('@arcadia-eternity/data-pack-base/package.json')),
+            runtimeRequire.resolve,
+          ),
+          synchronizeShippedEnvironments,
+        })
+      },
     })
     const request = async (method, path, body, headers) => {
       const response = await host.managementRequest({
@@ -138,17 +155,40 @@ test(
         { packages: { [fixtureManifest.name]: fixtureManifest.version }, sources: [] },
         { offline: true },
       )
+      try {
+        await personal.prepareEnvironment(
+          {
+            environmentId: 'local-competition',
+            expectedRevision: null,
+            document: {
+              schemaVersion: 2,
+              id: 'local-competition',
+              name: '本机比赛环境',
+              packages: { [fixtureManifest.name]: fixtureManifest.version },
+              sources: [],
+              rules: { schemaVersion: 1 },
+              requires: {},
+            },
+            projectDirectory: local.directory,
+          },
+          validateWorkspaceProject,
+        )
+      } finally {
+        await local.release()
+      }
       const existingProjects = await readdir(join(root, 'library/projects'))
-      await host.start(local.directory, {
-        launch: { name: '好友开服测试', host: '127.0.0.1', port: 0, publicOrigin: null },
+      await controller.request({
+        action: 'start',
+        configuration: { name: '好友开服测试', scope: 'local', port: 0 },
       })
       const first = host.status()
       assert.equal(first.status, 'running')
       const { environments } = await (await fetch(first.url + '/api/v1/environments')).json()
       assert.deepEqual(
-        environments.find(item => item.isDefault).packages.map(item => item.name),
+        environments.find(item => item.environmentId === 'local-competition').packages.map(item => item.name),
         [fixtureManifest.name],
       )
+      assert.equal(environments.find(item => item.isDefault).environmentId, builtin.id)
       const capabilities = await request('GET', '/capabilities')
       assert.equal(capabilities.workspaceId, workspace.workspaceId)
       const firstServer = (await request('GET', '/servers')).servers[0]
@@ -158,10 +198,14 @@ test(
       const firstBindings = (await request('GET', `/servers/${first.serverId}/bindings`)).bindings
       const binding = firstBindings.find(item => item.id === firstServer.defaultBindingId)
       assert.equal(binding.condition, 'available')
+      assert.equal(binding.environmentId, builtin.id)
       const version = await workspace.getInstallation(binding.environmentId)
       assert.equal(version.directory, join(workspace.root, 'environments', binding.environmentId))
+      assert.equal(
+        JSON.parse(await readFile(join(root, 'server/server.json'), 'utf8')).projectDirectory,
+        version.directory,
+      )
       assert.deepEqual(await readdir(join(root, 'library/projects')), existingProjects)
-      await local.release()
       const packagesBeforeManagement = (await library.list()).packages.map(item => item.id)
       const preparation = await request(
         'POST',
@@ -198,7 +242,8 @@ test(
       )
       await library.uninstall(installed)
       assert.equal(
-        (await request('GET', `/servers/${first.serverId}/bindings`)).bindings[0].environmentId,
+        (await request('GET', `/servers/${first.serverId}/bindings`)).bindings.find(item => item.id === binding.id)
+          .environmentId,
         binding.environmentId,
       )
       const anonymous = await fetch(`${first.url}/api/management/v1/servers`)
@@ -231,7 +276,7 @@ test(
       )
       assert.equal(restored.environmentId, binding.environmentId)
       assert.equal(restored.condition, 'available')
-      assert.equal((await workspace.listInstallations()).filter(item => item.status === 'ready').length, 2)
+      assert.equal((await workspace.listInstallations()).filter(item => item.status === 'ready').length, 3)
     } finally {
       await playerConnection?.close()
       await host.stop()
@@ -272,7 +317,6 @@ test(
       rendererOrigin: 'http://localhost:5173',
       stateDirectory: join(root, 'server'),
       workspaceRoot: join(root, 'library'),
-      builtinId: () => builtin?.id,
       attachWorkspace: (child, publish) => owner.attach(child, publish ? () => personal : undefined),
       startupTimeoutMs: 60000,
       shutdownTimeoutMs: 5000,
@@ -305,7 +349,10 @@ test(
         })
       },
     })
-    const controller = new LocalServerController({ host, library: () => library })
+    const controller = new LocalServerController({
+      host,
+      defaultProject: async () => (await builtin.workspace.getInstallation(builtin.id)).directory,
+    })
     try {
       await owner.ready()
       const lease = await library.acquireInitialEnvironment()
@@ -339,6 +386,7 @@ test(
         configuration: { name: '官方玩法好友服', scope: 'local', port: 0 },
       })
       assert.equal(launched.host.status, 'running', JSON.stringify(launched.error))
+      assert.equal(launched.host.projectName, 'builtin-server')
       const { environments } = await (await fetch(launched.host.url + '/api/v1/environments')).json()
       assert.deepEqual(
         environments.find(item => item.isDefault).packages.map(item => item.name),

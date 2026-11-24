@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import { ElInput, ElButton, ElCheckbox, ElSelect, ElOption } from 'element-plus'
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import type { ContentProjectSummary, ContentProjectAction, LocalBattleHostStatus } from '@/types/desktop'
-import { useLocalServerStore } from '@/stores/localServer'
-import type { ContentLibrarySnapshot } from '@/types/contentPackages'
+import { onMounted, ref } from 'vue'
+import type { ContentProjectSummary, ContentProjectAction } from '@/types/desktop'
 const api = window.arcadiaDesktop
-const library = ref<ContentLibrarySnapshot>()
 const projects = ref<ContentProjectSummary[]>([])
 const selected = ref('')
 const name = ref('')
@@ -15,20 +12,8 @@ const busy = ref(false),
   trusted = ref(false),
   includeLocal = ref(false),
   offline = ref(false)
-const status = ref<LocalBattleHostStatus>({ status: 'idle' })
-let refreshGeneration = 0
-let disposed = false
 async function refresh() {
-  const generation = ++refreshGeneration
-  const [nextLibrary, nextProjects, nextStatus] = await Promise.all([
-    api?.listContentPackages?.(),
-    api?.listContentProjects?.(),
-    api?.getLocalBattleStatus?.(),
-  ])
-  if (disposed || generation !== refreshGeneration) return
-  library.value = nextLibrary
-  projects.value = nextProjects ?? []
-  status.value = nextStatus ?? { status: 'idle' }
+  projects.value = (await api?.listContentProjects?.()) ?? []
 }
 async function run(action: () => Promise<void>) {
   if (busy.value) return
@@ -57,15 +42,6 @@ function selectProject() {
   name.value = projects.value.find(project => project.id === selected.value)?.name ?? ''
   trusted.value = false
 }
-async function startProject() {
-  if (!selected.value) return
-  await run(async () => {
-    const result = await useLocalServerStore().execute({ action: 'start-project', projectId: selected.value })
-    if (!result) return
-    await refresh()
-    notice.value = '服务器已启动，在服务器页查看连接地址和管理设置'
-  })
-}
 async function operate(action: ContentProjectAction['action']) {
   if (!selected.value || (action === 'approve' && !trusted.value)) return
   await run(async () => {
@@ -80,16 +56,8 @@ async function operate(action: ContentProjectAction['action']) {
     notice.value = '操作已完成'
   })
 }
-let refreshTimer: ReturnType<typeof setInterval> | undefined
 onMounted(() => {
   void run(refresh)
-  refreshTimer = setInterval(() => {
-    if (!busy.value && status.value.status === 'running') void refresh().catch(() => undefined)
-  }, 5000)
-})
-onBeforeUnmount(() => {
-  disposed = true
-  clearInterval(refreshTimer)
 })
 </script>
 <template>
@@ -118,8 +86,6 @@ onBeforeUnmount(() => {
           ><ElButton :disabled="busy" @click="operate('inspect')">检查项目</ElButton
           ><ElButton :disabled="busy" @click="operate('install')">安装锁定依赖</ElButton
           ><ElButton :disabled="busy" @click="operate('validate')">校验项目</ElButton
-          ><ElButton :disabled="busy || status.status === 'running'" @click="startProject"
-            >使用此项目托管联机对战</ElButton
           ><ElButton :disabled="busy" @click="operate('forget')">移出列表</ElButton>
         </div>
         <ElCheckbox v-model="offline">仅离线安装</ElCheckbox

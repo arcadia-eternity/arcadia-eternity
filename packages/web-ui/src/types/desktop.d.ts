@@ -104,7 +104,6 @@ export interface ContentProjectSummary {
   directory: string
   installed: boolean
   approved: boolean
-  running: boolean
   exported?: boolean
   dependencies: Record<string, string>
   error?: string

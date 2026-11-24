@@ -30,9 +30,8 @@
 
 | 职责           | 入口                                   | 约束                                                                                           |
 | -------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| 托管生命周期   | `localServer({ action })`              | 主进程 `LocalServerController` 串行处理普通及项目启动、停止、恢复、重启；状态轮询不产生进程    |
+| 托管生命周期   | `localServer({ action })`              | 主进程 `LocalServerController` 串行处理启动、停止、恢复、重启；状态轮询不产生进程              |
 | 首次开服配置   | `start.configuration`                  | 只接受名称、连接范围、端口、公网 origin；不接受路径、命令或执行文件                            |
-| 项目开发启动   | `start-project.projectId`              | 只接受已登记 ID，服在运行时先要求停止；与普通开服共用操作互斥                                  |
 | 持久服务器配置 | ManagementService settings             | CLI 私有启动参数先校验，再经现有 revision-checked PATCH 保存；没有第二套配置文件或 HTTP 写接口 |
 | 内容材料与租约 | ContentLibrary / DesktopWorkspaceOwner | 宿主借用材料；首次准备不更改本地游玩选择；保存绑定继续独立持有版本                             |
 | 当前游玩连接   | `enterLocalServer()`                   | 只在用户明确进入时授权、确认离房并切换；管理不调用                                             |

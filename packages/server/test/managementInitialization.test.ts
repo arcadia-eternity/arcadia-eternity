@@ -17,7 +17,9 @@ afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup()
 }, 30_000)
 
-async function setup() {
+const environmentId = 'initial-environment'
+
+async function setup(kind: 'desktop' | 'builtin' = 'desktop') {
   const directory = await mkdtemp(join(tmpdir(), 'arcadia-initialization-'))
   cleanups.push(() => rm(directory, { recursive: true, force: true }))
   const project = await stageShippedCatalog(directory)
@@ -33,7 +35,7 @@ async function setup() {
     management: {
       storage,
       workspace,
-      initialization: { kind: 'desktop', environmentId: 'desktop-host' },
+      initialization: { kind, environmentId },
     },
   })
   cleanups.push(() => app.stop())
@@ -42,12 +44,12 @@ async function setup() {
 }
 
 const desktopDocument = {
-  schemaVersion: 2,
-  id: 'desktop-host',
+  schemaVersion: 2 as const,
+  id: environmentId,
   name: '本机服务器环境',
   packages: shippedCatalogMembers,
   sources: [],
-  rules: { schemaVersion: 1 },
+  rules: { schemaVersion: 1 as const },
   requires: {},
 }
 
@@ -55,7 +57,7 @@ it('records a pending marker when creating a host-managed server', async () => {
   const { storage } = await setup()
   expect((await storage.get<ManagedServer>('servers', 'initialization-server'))?.value.initialization).toMatchObject({
     kind: 'desktop',
-    environmentId: 'desktop-host',
+    environmentId,
     state: 'pending',
   })
 }, 30_000)
@@ -64,7 +66,7 @@ it('preserves environment rules while synchronizing a deployment project', async
   const { workspace, project, management } = await setup()
   const document = {
     schemaVersion: 2,
-    id: 'desktop-host',
+    id: environmentId,
     name: '管理员草稿',
     packages: shippedCatalogMembers,
     sources: [],
@@ -78,27 +80,26 @@ it('preserves environment rules while synchronizing a deployment project', async
       workspace,
       projectDirectory: project,
       kind: 'desktop',
-      environmentId: 'desktop-host',
+      environmentId,
       name: '本机服务器环境',
       matchmakingEnabled: false,
     }),
   ).resolves.toBeUndefined()
-  expect((await workspace.getDraft('desktop-host')).document).toEqual(document)
+  expect((await workspace.getDraft(environmentId)).document).toEqual(document)
 }, 30_000)
 
 it('publishes the marker-owned binding once and completes the marker', async () => {
-  const { storage, workspace, project, management } = await setup()
-  await initializeDesktopHost({
-    management,
-    workspace,
-    projectDirectory: project,
-    kind: 'desktop',
-  })
+  const { storage, workspace, project, management } = await setup('builtin')
+  await workspace.prepareEnvironment(
+    { environmentId, expectedRevision: null, document: desktopDocument, projectDirectory: project },
+    validateWorkspaceProject,
+  )
+  await initializeDesktopHost({ management, workspace, environmentId })
   const server = (await storage.get<ManagedServer>('servers', 'initialization-server'))!
   expect(server.value.initialization).toMatchObject({ state: 'completed' })
   const binding = (await storage.get<Binding>('bindings', server.value.defaultBindingId!))!
   expect(binding.value).toMatchObject({
-    environmentId: 'desktop-host',
+    environmentId,
     enabled: true,
     visibility: 'public',
     matchmakingEnabled: true,
@@ -111,7 +112,7 @@ it('publishes the marker-owned binding once and completes the marker', async () 
     headers: { 'if-match': String(binding.revision) },
     body: { matchmakingEnabled: false },
   })
-  await initializeDesktopHost({ management, workspace, projectDirectory: project, kind: 'desktop' })
+  await initializeDesktopHost({ management, workspace, environmentId })
   expect((await storage.get<Binding>('bindings', binding.id))?.value.matchmakingEnabled).toBe(false)
 }, 30_000)
 
@@ -122,14 +123,14 @@ it('enables matchmaking for an untouched legacy desktop default when the host re
     workspace,
     projectDirectory: project,
     kind: 'desktop',
-    environmentId: 'desktop-host',
+    environmentId,
     name: '本机服务器环境',
     matchmakingEnabled: false,
   })
   const server = (await storage.get<ManagedServer>('servers', 'initialization-server'))!
   const id = server.value.defaultBindingId!
   expect((await storage.get<Binding>('bindings', id))?.value.matchmakingEnabled).toBe(false)
-  await initializeDesktopHost({ management, workspace, projectDirectory: project, kind: 'desktop' })
+  await initializeDesktopHost({ management, workspace, environmentId })
   expect((await storage.get<Binding>('bindings', id))?.value.matchmakingEnabled).toBe(true)
 }, 30_000)
 
@@ -137,10 +138,10 @@ it('resumes the exact pending marker-owned binding after an interrupted initiali
   const { storage, workspace, project, management } = await setup()
   const draft = await workspace.saveDraft({ document: desktopDocument, expectedRevision: null })
   const version = await workspace.prepareEnvironment(
-    { environmentId: 'desktop-host', expectedRevision: draft.revision, directory: project },
+    { environmentId, expectedRevision: draft.revision, directory: project },
     validateWorkspaceProject,
   )
-  const claimed = (await management.ensureInitializationBinding('desktop', 'desktop-host'))!
+  const claimed = (await management.ensureInitializationBinding('desktop', environmentId))!
   await expect(workspace.clearInstallation(version.installationId)).rejects.toMatchObject({
     code: 'ENVIRONMENT_IN_USE',
     references: expect.arrayContaining([expect.objectContaining({ retentionId: `binding:${claimed.id}` })]),
@@ -150,14 +151,14 @@ it('resumes the exact pending marker-owned binding after an interrupted initiali
     workspace,
     projectDirectory: project,
     kind: 'desktop',
-    environmentId: 'desktop-host',
+    environmentId,
     name: '本机服务器环境',
     matchmakingEnabled: false,
   })
   const server = (await storage.get<ManagedServer>('servers', 'initialization-server'))!
   expect(server.value.initialization).toMatchObject({ state: 'completed', bindingId: claimed.id })
   expect((await storage.get<Binding>('bindings', claimed.id))?.value).toMatchObject({
-    environmentId: 'desktop-host',
+    environmentId,
     condition: 'available',
   })
 }, 30_000)
@@ -166,13 +167,13 @@ it('loads compatible current content without comparing an old preparation hash',
   const { storage, workspace, project, management } = await setup()
   const draft = await workspace.saveDraft({ document: desktopDocument, expectedRevision: null })
   await workspace.prepareEnvironment(
-    { environmentId: 'desktop-host', expectedRevision: draft.revision, directory: project },
+    { environmentId, expectedRevision: draft.revision, directory: project },
     async () => ({
       contentRevision: 'deliberately-wrong-revision',
       packages: Object.entries(shippedCatalogMembers).map(([name, version]) => ({ name, version })),
     }),
   )
-  const binding = (await management.ensureInitializationBinding('desktop', 'desktop-host'))!
+  const binding = (await management.ensureInitializationBinding('desktop', environmentId))!
   await storage.replace('bindings', binding.id, binding.revision, { ...binding.value, condition: 'applying' })
   await management.reconcile()
   expect((await storage.get<Binding>('bindings', binding.id))?.value).toMatchObject({

@@ -3,10 +3,9 @@ import assert from 'node:assert/strict'
 import { LocalServerController, launchConfiguration } from '../local-server-controller.mjs'
 
 const configuration = { name: '好友服', scope: 'lan', port: 8102 }
-function fixture({ saved = false, prepare, start, stop, wait, startProject } = {}) {
+function fixture({ saved = false, prepare, start, stop, wait } = {}) {
   let state = { status: 'idle' }
   const calls = []
-  const lease = { directory: '/owned/official', release: async () => calls.push('release') }
   const host = {
     status: () => state,
     start: async (directory, options) => {
@@ -20,22 +19,14 @@ function fixture({ saved = false, prepare, start, stop, wait, startProject } = {
       await stop?.(options)
       state = { status: 'idle' }
     },
-    startLocalRecovery: async () => {
-      calls.push('recover')
-      state = { status: 'running', localRecovery: true }
-    },
-  }
-  const library = {
-    acquireDefaultProject: async () => {
-      calls.push(['acquire-default'])
-      await prepare?.()
-      return lease
-    },
   }
   const controller = new LocalServerController({
     host,
-    startProject,
-    library: () => library,
+    defaultProject: async () => {
+      calls.push(['default-project'])
+      await prepare?.()
+      return '/owned/environments/builtin-server'
+    },
     profile: async () => (saved ? { projectDirectory: '/owned/saved' } : {}),
     wait: wait ?? (async () => {}),
   })
@@ -46,24 +37,35 @@ test('first launch publishes the client library and keeps the official server de
   const result = await controller.request({ action: 'start', configuration })
   assert.equal(result.host.status, 'running')
   assert.deepEqual(calls, [
-    ['acquire-default'],
+    ['default-project'],
     [
       'start',
-      '/owned/official',
+      '/owned/environments/builtin-server',
       {
         publishClientEnvironments: true,
-        launch: { name: '好友服', host: '0.0.0.0', port: 8102, publicOrigin: null, officialContent: true },
+        launch: { name: '好友服', host: '0.0.0.0', port: 8102, publicOrigin: null },
       },
     ],
-    'release',
   ])
 })
-test('saved hosting ignores later local-play selections and preserves database settings', async () => {
+test('saved hosting uses the current client environment and preserves database settings', async () => {
   const { controller, calls } = fixture({ saved: true })
   await controller.request({ action: 'start', configuration })
-  assert.deepEqual(calls, [['start', '/owned/saved', { publishClientEnvironments: true }]])
+  assert.deepEqual(calls, [
+    ['default-project'],
+    ['start', '/owned/environments/builtin-server', { publishClientEnvironments: true }],
+  ])
   await controller.request({ action: 'start' })
-  assert.equal(calls.length, 1)
+  assert.equal(calls.length, 2)
+})
+test('loopback recovery publishes the same ready client environments', async () => {
+  const { controller, calls } = fixture({ saved: true })
+  const result = await controller.request({ action: 'recover' })
+  assert.equal(result.host.status, 'running')
+  assert.deepEqual(calls, [
+    ['default-project'],
+    ['start', '/owned/environments/builtin-server', { publishClientEnvironments: true, localRecovery: true }],
+  ])
 })
 test('simultaneous launch requests share preparation; status polling is read only', async () => {
   let release
@@ -79,7 +81,7 @@ test('simultaneous launch requests share preparation; status polling is read onl
   await Promise.all([first, second])
   assert.equal(calls.filter(call => call[0] === 'start').length, 1)
 })
-test('failed preparation releases no unacquired lease and leaves the server stopped', async () => {
+test('failed default environment lookup leaves the server stopped', async () => {
   const { controller, calls } = fixture({
     prepare: () => {
       throw new Error('缺少离线依赖')
@@ -143,7 +145,6 @@ test('shutdown during content preparation prevents a late server process', async
   release()
   await starting
   assert.equal(calls.filter(call => call[0] === 'start').length, 0)
-  assert.ok(calls.includes('release'))
 })
 test('rejects directory/command injection and malformed network settings', async () => {
   for (const extra of [
@@ -160,29 +161,13 @@ test('rejects directory/command injection and malformed network settings', async
   await assert.rejects(controller.request({ action: 'restart', configuration }))
 })
 
-test('registered-project hosting shares the same lifecycle lock', async () => {
-  let release
-  const waiting = new Promise(resolve => {
-    release = resolve
+test('the desktop lifecycle rejects starting from a project', async () => {
+  const { controller, calls } = fixture()
+  await assert.rejects(controller.request({ action: 'start-project', projectId: 'registered-project' }), {
+    code: 'INVALID_REQUEST',
   })
-  const projects = []
-  const { controller } = fixture({
-    startProject: async id => {
-      projects.push(id)
-      await waiting
-    },
-  })
-  const pending = controller.request({ action: 'start-project', projectId: 'registered-project' })
-  await new Promise(resolve => setImmediate(resolve))
-  await assert.rejects(controller.request({ action: 'start', configuration }), { code: 'HOST_BUSY' })
-  await assert.rejects(controller.request({ action: 'start-project', projectId: 'other-project' }), {
-    code: 'HOST_BUSY',
-  })
-  release()
-  assert.equal((await pending).phase, 'ready')
-  assert.deepEqual(projects, ['registered-project'])
+  assert.deepEqual(calls, [])
 })
-
 test('the authenticated player route delegates status, first launch, graceful restart and explicit force stop to the existing controller', async () => {
   const { playerLibraryRequest } = await import('../player-library-bridge.mjs')
   const { controller, calls } = fixture()
@@ -208,7 +193,6 @@ test('the authenticated player route delegates status, first launch, graceful re
     host: '127.0.0.1',
     port: 0,
     publicOrigin: null,
-    officialContent: true,
   })
   await assert.rejects(server('start', { configuration }), { code: 'SERVER_ALREADY_CONFIGURED' })
   assert.equal((await server('status')).phase, 'ready')
@@ -218,7 +202,7 @@ test('the authenticated player route delegates status, first launch, graceful re
   assert.ok(calls.some(entry => entry[0] === 'stop' && entry[1].force === false))
   assert.deepEqual(calls.filter(entry => entry[0] === 'start').at(-1), [
     'start',
-    '/owned/saved',
+    '/owned/environments/builtin-server',
     { publishClientEnvironments: true },
   ])
   assert.equal((await server('stop', { force: true })).host.status, 'idle')

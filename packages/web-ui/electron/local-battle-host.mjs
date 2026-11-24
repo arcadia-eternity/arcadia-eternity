@@ -3,7 +3,7 @@ import { constants } from 'node:fs'
 import { access, mkdtemp, readFile, realpath, rm, stat } from 'node:fs/promises'
 import { get } from 'node:http'
 import { tmpdir } from 'node:os'
-import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { managementRequest } from './desktop-management.mjs'
@@ -70,11 +70,13 @@ export function workerEnvironment(cache, npmCliPath, packsDirectory) {
   }
 }
 
-async function verifyProject(directory, managed = false) {
+async function verifyProject(directory, workspaceRoot) {
   if (typeof directory !== 'string' || !isAbsolute(directory))
     throw problem('PROJECT_INVALID', '请选择本机服务器项目目录')
   try {
-    if (!(await stat(directory)).isDirectory()) throw new Error()
+    const projectDirectory = await realpath(directory)
+    const managed = workspaceRoot && dirname(projectDirectory) === join(await realpath(workspaceRoot), 'environments')
+    if (!(await stat(projectDirectory)).isDirectory()) throw new Error()
     for (const name of ['package.json', managed ? '.arcadia-prepared.json' : 'arcadia-admission.json'])
       if (!(await stat(join(directory, name))).isFile()) throw new Error()
     if (!(await stat(join(directory, 'node_modules'))).isDirectory()) throw new Error()
@@ -83,6 +85,7 @@ async function verifyProject(directory, managed = false) {
     } catch {
       if (!(await stat(join(directory, 'package-lock.json'))).isFile()) throw new Error()
     }
+    return projectDirectory
   } catch {
     throw problem('PROJECT_NOT_READY', '项目需要已安装依赖、npm 锁文件和明确的代码准入记录')
   }
@@ -129,7 +132,6 @@ export class LocalBattleHost {
   #projectDirectory
   #projects = new Map()
   #uncertainProjects = new Set()
-  #lastProject
   constructor({
     executable,
     cli,
@@ -140,7 +142,6 @@ export class LocalBattleHost {
     stateDirectory,
     workspaceRoot,
     attachWorkspace,
-    builtinId,
     officialBaseRoot,
     startupTimeoutMs = 60000,
     shutdownTimeoutMs = 5000,
@@ -154,7 +155,6 @@ export class LocalBattleHost {
     this.stateDirectory = stateDirectory
     this.workspaceRoot = workspaceRoot
     this.officialBaseRoot = officialBaseRoot
-    this.builtinId = builtinId
     this.attachWorkspace = attachWorkspace
     this.startupTimeoutMs = startupTimeoutMs
     this.shutdownTimeoutMs = shutdownTimeoutMs
@@ -245,12 +245,6 @@ export class LocalBattleHost {
     ++this.#generation
     this.#child?.kill('SIGKILL')
   }
-  async startLocalRecovery() {
-    const saved =
-      this.#lastProject ?? (this.stateDirectory ? await loadLocalServerProfile(this.stateDirectory) : undefined)
-    if (!saved?.projectDirectory) throw problem('PROJECT_NOT_READY', '请先选择本机托管的内容或服务器项目')
-    return this.start(saved.projectDirectory, { localRecovery: true })
-  }
   async start(directory, { localRecovery = false, launch, publishClientEnvironments = false } = {}) {
     if (this.#child || ['starting', 'stopping', 'running'].includes(this.#state.status))
       throw problem('HOST_BUSY', '本机对战服务已经启动或正在启动')
@@ -285,12 +279,7 @@ export class LocalBattleHost {
           throw problem('BASE_PACK_MISSING', '未找到打包的官方基础内容')
         }
       }
-      const builtinId = this.builtinId?.() ?? 'desktop-host'
-      const sharedDirectory = this.workspaceRoot && join(this.workspaceRoot, 'environments', builtinId)
-      const projectHostDirectory = this.workspaceRoot && join(this.workspaceRoot, 'environments', 'desktop-host')
-      await verifyProject(directory, [sharedDirectory, projectHostDirectory].includes(resolve(directory)))
-      const projectDirectory = await realpath(directory)
-      this.#lastProject = { projectDirectory }
+      const projectDirectory = await verifyProject(directory, this.workspaceRoot)
       cache = await mkdtemp(join(tmpdir(), 'arcadia-desktop-server-'))
       if (generation !== this.#generation) throw problem('HOST_STOPPED', '本机对战服务已停止')
       const serverId = this.stateDirectory
@@ -318,9 +307,6 @@ export class LocalBattleHost {
           serverId,
           ...(this.stateDirectory ? ['--data-dir', this.stateDirectory] : []),
           ...(this.workspaceRoot ? ['--workspace-root', this.workspaceRoot] : []),
-          ...(this.workspaceRoot ? ['--desktop-project', projectDirectory] : []),
-          '--npm-project',
-          projectDirectory,
         ],
         {
           cwd: cache,
@@ -448,22 +434,7 @@ export class LocalBattleHost {
       if (this.#refreshAfterStart) await this.refreshBuiltinBindings()
       const descriptor = await this.#request('describe')
       this.#projects.set(descriptor.id, new Set([projectDirectory]))
-      if (this.stateDirectory) {
-        // Managed startup adopts its source into this persistent environment.
-        // The library project is only a launch lease and can be collected later.
-        const managedDirectory =
-          launch?.officialContent || projectDirectory === sharedDirectory ? sharedDirectory : projectHostDirectory
-        const persistent = managedDirectory
-          ? await stat(join(managedDirectory, 'package.json')).then(
-              () => managedDirectory,
-              error => {
-                if (error.code !== 'ENOENT') throw error
-                return projectDirectory
-              },
-            )
-          : projectDirectory
-        await saveLocalServerProject(this.stateDirectory, persistent)
-      }
+      if (this.stateDirectory) await saveLocalServerProject(this.stateDirectory, projectDirectory)
       return this.status()
     } catch (error) {
       const wasCurrent = generation === this.#generation
