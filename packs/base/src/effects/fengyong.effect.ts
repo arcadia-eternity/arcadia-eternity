@@ -5,13 +5,14 @@ import {
   defineEffects,
   EffectTrigger,
   checks,
+  numberParam,
   ops,
   targets,
   values,
   type Action,
 } from '@arcadia-eternity/battle/authoring'
 import { effectGroup, type EffectLoadingContext } from '@arcadia-eternity/battle/effect-loading'
-import { activeOpponentMarks, activeOwnerMarks, requireMark } from './mark-queries'
+import { activeOpponentMarks, requireMark } from './mark-queries'
 
 const FENGWEN = 'mark_fengwen'
 const ZHONGDU = 'mark_zhongdu'
@@ -19,7 +20,8 @@ const MABI = 'mark_mabi'
 const QINGFENGZHIWU = 'mark_qingfengzhiwu'
 
 const FENGWEN_MAX = 3
-const FENGWEN_DAMAGE_PER_STACK = 30
+const POISON_DAMAGE_BONUS_TAG = 'mark_poison_damage_bonus'
+const poisonDamageBonus = numberParam({ default: 0, tags: [POISON_DAMAGE_BONUS_TAG] })
 
 @effectGroup({ id: 'fengyong' })
 export class FengyongEffects {
@@ -58,20 +60,37 @@ export class FengyongEffects {
       return actions.choose(conditions.all(conditions.selfUsesSkill, opponentHasFengwen), add)
     }
 
+    const fengwenPoisonBonus = targets.sourceMark
+      .first()
+      .capture({ key: 'fengwen', scope: 'binding' })
+      .attribute('stack')
+      .follow({ key: 'stacks' })
+      .map(stacks => stacks * 30)
+
     return defineEffects({
-      effect_mark_deal_poison_damage_with_fengwen_bonus_at_turn_end: {
+      effect_mark_deal_poison_damage_at_turn_end: {
         triggers: [EffectTrigger.TurnEnd],
         when: conditions.ownerIsActive,
+        parameters: { bonusDamage: poisonDamageBonus },
         apply: targets.ownerPet.apply(
           ops.dealDamage(
             values.combine(
               targets.ownerPet.select(pet => pet.stat.maxHp).first(),
-              activeOwnerMarks(FENGWEN)
-                .select(mark => mark.stack)
-                .all(),
-              (maxHp, stacks) => Math.floor(maxHp / 8) + (stacks[0] ?? 0) * FENGWEN_DAMAGE_PER_STACK,
+              poisonDamageBonus,
+              (maxHp, bonus) => Math.floor(maxHp / 8) + bonus,
             ),
           ),
+        ),
+      },
+      effect_mark_add_30_poison_damage_per_fengwen_stack: {
+        triggers: [EffectTrigger.OnMarkCreated],
+        apply: targets.ownerPet.apply(
+          ops.bindTaggedParameter({
+            tag: POISON_DAMAGE_BONUS_TAG,
+            key: 'fengwen-poison-damage',
+            operation: 'delta',
+            value: fengwenPoisonBonus,
+          }),
         ),
       },
       effect_ability_refresh_opponent_zhongdu_duration_on_damage: {
@@ -106,14 +125,13 @@ export class FengyongEffects {
         priority: 0,
         apply: spendFengwenFor(targets.ownerPet.apply(ops.changeStatStage('spe', 1))),
       },
-      effect_skill_consume_all_opponent_fengwen_heal_60_and_deal_30_damage_per_stack: {
+      effect_skill_heal_self_60_per_opponent_fengwen_and_consume_all: {
         when: conditions.all(conditions.selfUsesSkill, opponentHasFengwen),
         triggers: [EffectTrigger.OnHit],
         apply: ctx => {
           const stacks = ctx.read(opponentFengwenStack) ?? 0
           spendAllFengwen(ctx)
           targets.ownerPet.apply(ops.heal(stacks * 60))(ctx)
-          targets.opponentActive.apply(ops.dealDamage(stacks * FENGWEN_DAMAGE_PER_STACK))(ctx)
         },
       },
       effect_skill_consume_opponent_fengwen_1_to_deal_fixed_damage_50: {

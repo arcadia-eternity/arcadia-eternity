@@ -261,7 +261,7 @@ mark_emblem_mimi:
   description: 崩坏时减少25点自损伤害和受到伤害
 mark_emblem_xiaoxiaoemo:
   name: 还魂纹章
-  description: 队友全部战败时，受到的暴击伤害减少20%。
+  description: 【实际效果】 队友全部战败时受到暴击伤害减少20% 【设计效果A】 队友全部战败时受到暴击伤害减少20% 【设计效果B】 换下场时恢复45点体力
 mark_emblem_kadunjiujiu_171:
   name: 心锁纹章
   description: 使心灵锁必中
@@ -294,7 +294,7 @@ mark_emblem_aisa:
   description: 具有彩霞之心时命中率提高5%
 mark_emblem_moumou:
   name: 震炮纹章
-  description: 海浪震炮和哞王震炮的威力增加10点。
+  description: 增加震炮类技能10点威力
 mark_emblem_langpu:
   name: 冰魄纹章
   description: 暴击伤害增加15%

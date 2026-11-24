@@ -13502,7 +13502,7 @@
   accuracy: 100
   target: self
   effect:
-    - effect_skill_consume_all_opponent_fengwen_heal_60_and_deal_30_damage_per_stack
+    - effect_skill_heal_self_60_per_opponent_fengwen_and_consume_all
 - id: skill_judafengci
   element: Normal
   category: Physical

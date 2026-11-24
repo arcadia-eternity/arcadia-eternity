@@ -220,7 +220,7 @@
   tags:
     - status
   effect:
-    - effect_mark_deal_poison_damage_with_fengwen_bonus_at_turn_end
+    - effect_mark_deal_poison_damage_at_turn_end
     - effect_mark_decrease_heal
 - id: mark_liuxie
   tags:
@@ -3062,6 +3062,8 @@
     persistent: true
     stackable: true
     stackStrategy: stack
+  effect:
+    - effect_mark_add_30_poison_damage_per_fengwen_stack
 - id: mark_qingfengzhiwu
   config:
     duration: 3

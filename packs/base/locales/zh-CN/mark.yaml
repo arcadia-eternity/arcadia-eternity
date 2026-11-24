@@ -555,7 +555,7 @@ mark_huixin:
   description: 下一次使用非属性类技能必定暴击
 mark_huixin_crit_rate:
   name: 会心
-  description: 5回合内暴击率增加25个百分点。
+  description: 5回合使致命一击率增加25%
 mark_zhaocai:
   name: 招财
   description: 造成伤害提升25%

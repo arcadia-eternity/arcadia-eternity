@@ -1,4 +1,10 @@
-import { BattleMessageType, DamageType, EffectTrigger, individualValueSpread } from '@arcadia-eternity/const'
+import {
+  BattleMessageType,
+  DamageType,
+  EffectTrigger,
+  individualValueSpread,
+  type DamageResult,
+} from '@arcadia-eternity/const'
 import {
   dealDamage,
   executeTurnOperation,
@@ -36,7 +42,7 @@ it('群蜂集结先强化特攻，有蜂纹时额外消耗一层强化速度', (
   expect(opponent.activePet.marks.some(mark => mark.baseId === 'mark_fengwen')).toBe(false)
 })
 
-it('蜂纹每层增加30点中毒伤害，蜂纹腐蚀消耗所有层数并按层结算', () => {
+it('蜂纹逐层提高中毒印记的同一次伤害，蜂纹腐蚀只消耗蜂纹并回复体力', () => {
   const { battle, owner, opponent, use } = petBattle('pet_qingfeng', [
     'skill_fengwenzhike',
     'skill_judufengzhen',
@@ -45,26 +51,45 @@ it('蜂纹每层增加30点中毒伤害，蜂纹腐蚀消耗所有层数并按�
   const target = opponent.activePet
   target.attributeSystem.updateBaseValue('maxHp', 1600)
   target.currentHp = 1600
-  const tick = (expected: number) => {
-    const hp = target.currentHp
-    waitTurn(battle)
-    expect(hp - target.currentHp).toBe(expected)
-  }
+  const damage: DamageResult[] = []
+  battle.registerListener(message => {
+    if (message.type === BattleMessageType.Damage && message.data.target === target.id && message.data.result) {
+      damage.push(message.data.result)
+    }
+  })
+  const poisonMark = () => target.marks.find(mark => mark.baseId === 'mark_zhongdu')
   const poisonDamage = Math.floor(target.stat.maxHp / 8)
+  const expectPoisonTick = (bonus: number) => {
+    const source = poisonMark()
+    expect(source).toBeDefined()
+    damage.length = 0
+    waitTurn(battle)
+    expect(damage).toEqual([
+      expect.objectContaining({
+        hpLoss: poisonDamage + bonus,
+        origin: expect.objectContaining({ trigger: 'effect', executorId: source?.id }),
+        intent: expect.objectContaining({ damageType: DamageType.Effect }),
+      }),
+    ])
+  }
   use('skill_fengwenzhike')
-  tick(0)
-  use('skill_fengwenzhike')
+  damage.length = 0
+  waitTurn(battle)
+  expect(damage).toEqual([])
+
   use('skill_judufengzhen')
-  expect(target.marks.some(mark => mark.baseId === 'mark_zhongdu')).toBe(true)
-  tick(poisonDamage + 60)
+  expectPoisonTick(30)
+  use('skill_fengwenzhike')
+  expectPoisonTick(60)
+
   owner.activePet.attributeSystem.updateBaseValue('maxHp', 500)
   owner.activePet.currentHp = 250
-  const hp = target.currentHp
+  damage.length = 0
   use('skill_fengwenfushi')
   expect(owner.activePet.currentHp).toBe(370)
-  expect(hp - target.currentHp).toBe(60)
+  expect(damage).toEqual([])
   expect(target.marks.some(mark => mark.baseId === 'mark_fengwen')).toBe(false)
-  tick(poisonDamage)
+  expectPoisonTick(0)
 })
 
 it('毒液腐蚀根据对手是否中毒使用原威力或四倍威力', () => {
