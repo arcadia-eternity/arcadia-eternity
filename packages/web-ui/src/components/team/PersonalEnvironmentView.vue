@@ -297,22 +297,36 @@ const currentGroup = computed(() => {
   return current ? groupKey(current.preference) : '@current'
 })
 const groupId = computed(() => (preference.value ? groupKey(preference.value) : currentGroup.value))
+const defaultSource = desktop ? '本机' : hasPreparedWebEnvironment() ? '网页内置' : '网页内容包'
+const sourceName = (choice: Choice) => (choice.server ? '服务器' : defaultSource)
+const activeSource = computed(() => {
+  if (busy.value || problem.value || !displayed.value) return undefined
+  return selected.value ? sourceName(selected.value) : defaultSource
+})
+type PickerOption = { name: string; detail?: string; sources: Set<string> }
 const options = computed(() => {
-  const names = new Map([[currentGroup.value, defaultName.value]])
+  const groups = new Map<string, PickerOption>()
+  groups.set(currentGroup.value, { name: defaultName.value, sources: new Set([defaultSource]) })
   for (const choice of choices.value) {
     const id = groupKey(choice.preference)
-    if (!names.has(id)) names.set(id, choice.name)
+    const row = groups.get(id) ?? { name: choice.name, sources: new Set<string>() }
+    if (selected.value === choice || (choice.preference.environmentId === currentId.value && !choice.server))
+      row.name = choice.name
+    row.sources.add(sourceName(choice))
+    row.detail ??= choice.preference.environmentVersion?.slice(0, 8) ?? choice.preference.environmentId
+    groups.set(id, row)
   }
-  if (selected.value) names.set(groupId.value, selected.value.name)
-  else if (preference.value && !names.has(groupId.value)) names.set(groupId.value, preference.value.environmentId)
-  const labels = new Map(names)
-  for (const [id, name] of names) {
-    if ([...names.values()].filter(label => label === name).length > 1) {
-      const pref = choices.value.find(choice => groupKey(choice.preference) === id)?.preference ?? preference.value
-      if (pref) labels.set(id, name + ' · ' + (pref.environmentVersion?.slice(0, 8) ?? pref.source))
-    }
-  }
-  return labels
+  const saved = preference.value
+  if (saved && !groups.has(groupId.value))
+    groups.set(groupId.value, {
+      name: saved.environmentId,
+      detail: saved.environmentVersion?.slice(0, 8),
+      sources: new Set(),
+    })
+  const counts = new Map<string, number>()
+  for (const { name } of groups.values()) counts.set(name, (counts.get(name) ?? 0) + 1)
+  for (const row of groups.values()) if (counts.get(row.name) === 1) row.detail = undefined
+  return groups
 })
 function selectGroup(id: string) {
   const previousMax =
@@ -345,12 +359,26 @@ function retrySelection() {
         @change="selectGroup"
       >
         <el-option
-          v-for="[id, name] in options"
+          v-for="[id, row] in options"
           :key="id"
           :value="id"
-          :label="name"
+          :label="row.detail ? row.name + ' · ' + row.detail : row.name"
+          class="environment-option"
           :disabled="id !== currentGroup && id === groupId && !candidates.length"
-        />
+        >
+          <span class="option-name">{{ row.name }}</span>
+          <span class="option-meta">
+            <span v-for="source in row.sources" :key="source" class="source-tag">{{ source }}</span>
+            <span v-if="!row.sources.size && !discovering" class="source-tag">不可用</span>
+            <small v-if="row.detail" class="option-version">{{ row.detail }}</small>
+          </span>
+        </el-option>
+        <template #label="{ label }">
+          <span class="selected-environment" :title="label">
+            <span class="option-name">{{ options.get(groupId)?.name ?? label }}</span>
+            <span v-if="activeSource" class="source-tag">{{ activeSource }}</span>
+          </span>
+        </template>
         <template #footer>
           <div class="flex items-center justify-between gap-2">
             <el-text size="small" type="info">{{
@@ -410,6 +438,43 @@ function retrySelection() {
 .environment-field .el-select {
   min-width: 0;
   width: min(100%, 14rem);
+}
+.selected-environment,
+.option-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.option-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.environment-option {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  height: auto;
+  min-height: 52px;
+  line-height: 1.25;
+  padding-inline: 14px;
+}
+.source-tag {
+  flex: none;
+  padding: 1px 5px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 4px;
+  color: var(--el-text-color-regular);
+  background: var(--el-bg-color);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 14px;
+}
+.option-version {
+  margin-inline-start: auto;
+  color: var(--el-text-color-regular);
+  font-family: var(--el-font-family-monospace, monospace);
+  font-weight: 400;
 }
 .environment-placeholder {
   max-width: 76rem;

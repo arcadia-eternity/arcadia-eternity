@@ -44,7 +44,7 @@ it.each([true, false])(
           installations: [
             {
               status: 'ready',
-              document: { name: '本地规则' },
+              document: { name: '训练环境' },
               environmentId: 'training-120',
               draftRevision: 'local-r',
               contentRevision: 'local-c',
@@ -57,7 +57,7 @@ it.each([true, false])(
     const descriptor = {
       previousEnvironmentIds: ['builtin-previous'],
       environmentId: 'training-120',
-      environmentName: '联机规则',
+      environmentName: '训练环境',
       id: 'remote-publication',
       environmentVersion: 'server-version',
       packages: [],
@@ -82,6 +82,11 @@ it.each([true, false])(
           .findAllComponents(ElOption)
           .filter(item => String(item.props('value')).startsWith('version/'))
       expect(options()).toHaveLength(equal ? 1 : 2)
+      const tags = () => options().map(item => item.findAll('.source-tag').map(tag => tag.text()))
+      const activeTag = () => environment().find('.selected-environment .source-tag')
+      expect(tags()).toEqual(equal ? [['本机', '服务器']] : [['本机'], ['服务器']])
+      expect(options().map(item => item.find('.option-version').exists())).toEqual(equal ? [false] : [true, true])
+      expect(activeTag().text()).toBe('服务器')
       expect(prepare).toHaveBeenCalledWith(client.serverUrl, descriptor, expect.any(Function), expect.any(AbortSignal))
       await page.setProps({ warehouse: true })
       expect(picker('环境来源')).toBeUndefined()
@@ -89,6 +94,7 @@ it.each([true, false])(
       client.isConnected = false
       await flushPromises()
       expect(options()).toHaveLength(equal ? 1 : 2)
+      expect(activeTag().exists() ? activeTag().text() : undefined).toBe(equal ? '本机' : undefined)
       if (equal) expect(capture).toHaveBeenCalledWith('training-120', false)
       else expect(capture).not.toHaveBeenCalled()
       expect(team.environmentPreference).toEqual({
@@ -100,6 +106,7 @@ it.each([true, false])(
       prepare.mockRejectedValueOnce(new Error('服务器连接已中断'))
       client.isConnected = true
       await flushPromises()
+      expect(activeTag().exists() ? activeTag().text() : undefined).toBe(equal ? '本机' : undefined)
       if (equal) expect(capture).toHaveBeenCalledWith('training-120', false)
       else expect(capture).not.toHaveBeenCalled()
       if (equal) expect(page.find('[role="alert"]').exists()).toBe(false)
