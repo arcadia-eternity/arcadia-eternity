@@ -23,6 +23,7 @@
     "generate": "pnpm --filter @arcadia-eternity/schema run generate",
     "cli": "tsx ./bin/cli.ts",
     "web:dev": "pnpm --filter @arcadia-eternity/web-ui run dev",
+    "desktop:dev": "pnpm --filter @arcadia-eternity/web-ui run dev:desktop",
     "lint": "run-s lint:workspace lint:battle lint:server lint:p2p lint:web lint:unused",
     "format": "pnpm exec prettier --write .",
     "format:check": "pnpm exec prettier --check .",
