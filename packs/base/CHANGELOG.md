@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.14.2](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v4.14.1...data-pack-base-v4.14.2) (2026-11-24)
+
+
+### 🐛 Bug Fixes
+
+* **base:** reuse shared skills and resolve stat changes before damage ([6d831fe](https://github.com/arcadia-eternity/arcadia-eternity/commit/6d831feeecd7c5af1321dbbbd9b5c46654ee0f40))
+
 ## [4.14.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v4.14.0...data-pack-base-v4.14.1) (2026-11-23)
 
 

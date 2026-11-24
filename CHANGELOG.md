@@ -1,5 +1,25 @@
 # Changelog
 
+## [4.18.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.17.1...arcadia-eternity-v4.18.0) (2026-11-24)
+
+
+### ✨ Features
+
+* **web-ui:** make UGC creation and AI onboarding discoverable ([e6794f8](https://github.com/arcadia-eternity/arcadia-eternity/commit/e6794f86bf453b25294dae5d5935fc38469ff046))
+* **web-ui:** show sources in the environment picker ([a365d31](https://github.com/arcadia-eternity/arcadia-eternity/commit/a365d316b65288c5dabb120a36fd767be4964a96))
+
+
+### 🐛 Bug Fixes
+
+* **base:** reuse shared skills and resolve stat changes before damage ([6d831fe](https://github.com/arcadia-eternity/arcadia-eternity/commit/6d831feeecd7c5af1321dbbbd9b5c46654ee0f40))
+* **battle:** preserve sprite readiness across equivalent catalogs ([d72027f](https://github.com/arcadia-eternity/arcadia-eternity/commit/d72027f4522a796fa3a9855c49dfe590cf784b31))
+* **battle:** raise Effect sandbox budgets ([4454e24](https://github.com/arcadia-eternity/arcadia-eternity/commit/4454e2459d56bab453fb37025e43e62e19abf8c4))
+* **battle:** restore local training panel controls ([26db2db](https://github.com/arcadia-eternity/arcadia-eternity/commit/26db2dba77135e668b5b0aae3330d702e985767f))
+* **ci:** cover slow P2P startup and static environment selection ([54b7d86](https://github.com/arcadia-eternity/arcadia-eternity/commit/54b7d8609dcac278d8dd1b30a90b6b5f4b5b979d))
+* **ci:** restore battle regression checks ([897f1be](https://github.com/arcadia-eternity/arcadia-eternity/commit/897f1be970fe6fd7888c89201faf7aaf0de9fc54))
+* **environments:** merge sources only for identical prepared versions ([ef02e9d](https://github.com/arcadia-eternity/arcadia-eternity/commit/ef02e9ddd0ad08206f5144a22a6b3e104ed17b82))
+* **web-ui:** preserve local battles and retain environments with remaining sources ([e909a35](https://github.com/arcadia-eternity/arcadia-eternity/commit/e909a358633353784478e1f69e4350ce9d22b8d8))
+
 ## [4.17.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v4.17.0...arcadia-eternity-v4.17.1) (2026-11-23)
 
 
