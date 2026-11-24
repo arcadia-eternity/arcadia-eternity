@@ -22,7 +22,9 @@ const visibleGroups = computed(() => {
   const term = query.value.trim().toLowerCase()
   return [...groups.value].filter(([, rows]) =>
     rows.some(row =>
-      [row.name, row.id, ...(row.sources ?? [row.source])].some(value => value.toLowerCase().includes(term)),
+      [row.name, row.id, row.environmentVersion ?? '', ...(row.sources ?? [row.source])].some(value =>
+        value.toLowerCase().includes(term),
+      ),
     ),
   )
 })

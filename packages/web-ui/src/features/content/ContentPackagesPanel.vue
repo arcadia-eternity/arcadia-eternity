@@ -15,6 +15,9 @@ import { getBackendOrigin } from '@/bootstrap/deployment'
 import { contentTaskError } from '@/utils/contentTaskMessages'
 import { useRouter } from 'vue-router'
 import PackageEnvironmentTargets from './PackageEnvironmentTargets.vue'
+import EnvironmentFingerprint from './EnvironmentFingerprint.vue'
+import EnvironmentPackagePreview from './EnvironmentPackagePreview.vue'
+import { indexPackagePreviews, packagePreview, type PackagePreview } from './environmentPackagePreview'
 import { createLocalContentLibraryClient } from './contentLibraryClient'
 import { authorCall, type AuthorJob, type SourceProject } from '@/features/authoring/types'
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
@@ -44,6 +47,7 @@ interface PackageView {
   source: string
   counts?: { species: number; skills: number; marks: number }
   graph?: PackageGraphEntry[]
+  preview?: PackagePreview
   contentIds?: ContentIds
   builtin?: boolean
   project?: SourceProject
@@ -104,6 +108,7 @@ const serverEnvironmentId = ref('')
 const serverLoading = ref(false)
 const serverError = ref('')
 const remoteContent = shallowRef<ServerEnvironmentContent>()
+const remotePreviews = computed(() => indexPackagePreviews(remoteContent.value))
 const remoteLoading = ref(false)
 const remoteError = ref('')
 const adding = ref(false)
@@ -220,9 +225,7 @@ const packages = computed<PackageView[]>(() => {
         description: '',
         source: mode.value === 'room' ? (room.value?.personalEnvironment ? '私人环境' : '房间服务器') : '当前服务器',
         contentIds: ids,
-        counts: remoteContent.value
-          ? { species: ids.species.length, skills: ids.skills.length, marks: ids.marks.length }
-          : undefined,
+        preview: packagePreview(remotePreviews.value, pkg),
       }
     })
   const sources: PackageView[] = (props.projects ?? []).map(project => ({
@@ -498,6 +501,11 @@ onBeforeUnmount(() => {
     :class="{ 'detail-open': detailOpen && selected, 'remote-packages': props.location && props.location !== 'local' }"
   >
     <span v-if="readonly" class="scope">只读</span>
+    <EnvironmentFingerprint
+      v-if="readonly && remoteEnvironment?.environmentVersion"
+      :key="remoteEnvironment.environmentVersion"
+      :value="remoteEnvironment.environmentVersion"
+    />
     <p v-if="error" class="message error" role="alert">{{ error }}</p>
     <p v-if="notice" class="message" role="status">{{ notice }}</p>
     <div class="workspace">
@@ -648,7 +656,8 @@ onBeforeUnmount(() => {
               <ElTabs v-model="detailTab" aria-label="包详情">
                 <ElTabPane label="简介" name="overview"
                   ><p v-if="selected.description">{{ selected.description }}</p>
-                  <p v-if="selected.counts" class="detail-subtitle">
+                  <EnvironmentPackagePreview v-if="selected.preview" :preview="selected.preview" />
+                  <p v-else-if="selected.counts" class="detail-subtitle">
                     {{ selected.counts.species }} 只精灵 · {{ selected.counts.skills }} 个技能 ·
                     {{ selected.counts.marks }} 个印记
                   </p>

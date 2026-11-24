@@ -15,11 +15,13 @@ import { readEnvironmentJson } from './serverEnvironment'
 import { validateEnvironmentContent } from './serverContentValidation'
 import type { EffectMarkRelations } from './skillMarkRelationService'
 
+type PreparedWebPackage = { name: string; version: string; namespace?: string }
+
 type BuiltinWebEnvironment = {
   id: string
   name: string
   material: string
-  packages: { name: string; version: string }[]
+  packages: PreparedWebPackage[]
   rules: EnvironmentRules
   environmentVersion?: string
   gameplayRevision: string

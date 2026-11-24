@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import EnvironmentLayout from './EnvironmentLayout.vue'
 import EnvironmentDirectory from './EnvironmentDirectory.vue'
 import EnvironmentPanel from './EnvironmentPanel.vue'
 import EnvironmentDetailHeading from './EnvironmentDetailHeading.vue'
 import EnvironmentPackageRow from './EnvironmentPackageRow.vue'
+import EnvironmentPackagePreview from './EnvironmentPackagePreview.vue'
 import { Refresh } from '@element-plus/icons-vue'
 import { ElButton, ElTag, ElSkeleton, ElAlert, ElEmpty } from 'element-plus'
 import { getBackendOrigin } from '@/bootstrap/deployment'
-import { listServerEnvironments } from '@/services/serverEnvironment'
-import type { ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
-import { readPreparedWebCatalog } from '@/services/preparedWebEnvironment'
+import { listServerEnvironments, readServerEnvironmentContent } from '@/services/serverEnvironment'
+import type { ServerEnvironmentContent, ServerEnvironmentDescriptor } from '@arcadia-eternity/protocol'
+import { readBuiltinWebEnvironment, readPreparedWebCatalog } from '@/services/preparedWebEnvironment'
 import type { EnvironmentLocation } from './environmentGroups'
+import { indexPackagePreviews, packagePreview } from './environmentPackagePreview'
 const props = defineProps<{ bundled?: boolean; selection?: string | null }>()
 const emit = defineEmits<{ catalog: [rows: EnvironmentLocation[]] }>()
 const heading = computed(() => (props.bundled ? '网页内置环境' : '公开环境'))
@@ -19,22 +21,50 @@ type EnvironmentRow = Pick<
   ServerEnvironmentDescriptor,
   'id' | 'environmentVersion' | 'environmentId' | 'environmentName' | 'isDefault' | 'executionPolicy'
 > & {
-  packages: { name: string; version: string }[]
+  packages: { name: string; version: string; namespace?: string; projectId?: string }[]
 }
 const environments = ref<EnvironmentRow[]>([])
 const selectedId = ref('')
 const logicalId = (row: EnvironmentRow) => row.environmentId ?? row.id
 const sourceKey = (row: EnvironmentRow) => (props.bundled ? row.id : 'publication/' + row.id)
-const selected = computed(() =>
-  props.selection
-    ? environments.value.find(item => sourceKey(item) === props.selection)
-    : (environments.value.find(item => sourceKey(item) === selectedId.value) ??
-      environments.value.find(item => item.isDefault) ??
-      environments.value[0]),
-)
+const selected = computed(() => {
+  if (props.selection === null) return undefined
+  if (props.selection) return environments.value.find(item => sourceKey(item) === props.selection)
+  return (
+    environments.value.find(item => sourceKey(item) === selectedId.value) ??
+    environments.value.find(item => item.isDefault) ??
+    environments.value[0]
+  )
+})
 const loading = ref(false)
 const initialized = ref(false)
 const error = ref('')
+const content = shallowRef<ServerEnvironmentContent>()
+const previewLoading = ref(false)
+const previewError = ref(false)
+const previews = computed(() => indexPackagePreviews(content.value))
+const packages = computed(
+  () => selected.value?.packages.map(pkg => ({ ...pkg, preview: packagePreview(previews.value, pkg) })) ?? [],
+)
+watch(selected, async (environment, _, onCleanup) => {
+  content.value = undefined
+  previewError.value = false
+  previewLoading.value = !!environment?.packages.length
+  if (!environment?.packages.length) return
+  const request = new AbortController()
+  const { signal } = request
+  onCleanup(() => request.abort())
+  try {
+    const catalog = props.bundled
+      ? (await readBuiltinWebEnvironment(environment.id)).content
+      : await readServerEnvironmentContent(getBackendOrigin(), environment.id, fetch, signal)
+    if (!signal.aborted) content.value = catalog
+  } catch {
+    if (!signal.aborted) previewError.value = true
+  } finally {
+    if (!signal.aborted) previewLoading.value = false
+  }
+})
 const name = (environment: EnvironmentRow) =>
   environment.environmentName || (environment.isDefault ? '默认环境' : `环境 ${environment.id.slice(0, 8)}`)
 const entries = computed(() =>
@@ -102,7 +132,7 @@ onBeforeUnmount(() => controller?.abort())
           :description="bundled ? '暂无网页内置环境。' : '服务器暂无公开环境。'"
         />
         <article v-else-if="selected" :aria-label="heading + '详情'">
-          <EnvironmentDetailHeading :name="name(selected)" readonly>
+          <EnvironmentDetailHeading :name="name(selected)" :environment-version="selected.environmentVersion" readonly>
             <template #status>
               <ElTag v-if="selected.isDefault" size="small">默认</ElTag>
               <ElTag v-if="!bundled" size="small" type="info">{{
@@ -111,14 +141,20 @@ onBeforeUnmount(() => controller?.abort())
             </template>
           </EnvironmentDetailHeading>
           <h4>环境内的内容包</h4>
+          <p v-if="previewLoading" class="preview-status" role="status">正在读取内容预览…</p>
+          <p v-else-if="previewError" class="preview-status" role="status">无法读取内容预览</p>
           <EnvironmentPackageRow
-            v-for="pkg in selected.packages"
-            :key="pkg.name"
+            v-for="pkg in packages"
+            :key="JSON.stringify([selected.id, pkg.name, pkg.version])"
             :name="pkg.name"
             :version="pkg.version"
-          />
-          <ElEmpty v-if="!selected.packages.length" :image-size="48" description="暂无内容包" />
-          <details>
+          >
+            <template v-if="pkg.preview" #default>
+              <EnvironmentPackagePreview :preview="pkg.preview" />
+            </template>
+          </EnvironmentPackageRow>
+          <ElEmpty v-if="!packages.length" :image-size="48" description="暂无内容包" />
+          <details class="environment-identifier">
             <summary>环境标识</summary>
             <code>{{ selected.id }}</code>
           </details>
@@ -134,7 +170,12 @@ h4 {
   font-weight: 600;
   margin: 0 0 8px;
 }
-details {
+.preview-status {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  margin: 8px 0;
+}
+.environment-identifier {
   border-top: 1px solid var(--el-border-color-lighter);
   padding-top: 12px;
   font-size: 13px;
