@@ -160,8 +160,8 @@ const handleImageError = () => {
 watch(portraitLoadError, error => {
   if (error) handleImageError()
 })
-const setState = async (state: ActionState) => {
-  if (inited.value) await player?.setState(state)
+const setState = async (state: ActionState, effect?: ArrayBuffer) => {
+  if (inited.value) await player?.setState(state, effect)
 }
 const getState = async () => (inited.value ? player?.getState() : ActionState.IDLE)
 defineExpose({ setState, getState, availableState, ready, activateLoadedSwf })

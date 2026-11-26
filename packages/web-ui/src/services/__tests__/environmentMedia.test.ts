@@ -7,6 +7,7 @@ import {
   battleUiUrl,
   loadMedia,
   mediaEnvironment,
+  peekMediaBytes,
   readMediaBytes,
   registerMediaEnvironment,
   type MediaResource,
@@ -402,6 +403,38 @@ it('waits for the current roster and shares its resolved element icons with the 
     const environment = mediaEnvironment(catalog)
     expect(await readMediaBytes(battleUiUrl('element:Ice', true, environment), { environment })).toEqual(png)
     expect(fetcher).toHaveBeenCalledOnce()
+  } finally {
+    preloader.stop()
+  }
+})
+
+it('reports the team ready before its skill VFX and keeps the VFX bytes for playback', async () => {
+  const vfx = 'https://cdn.test/vfx/hit.swf'
+  const swf = new Uint8Array([70, 87, 83, 9, 8, 0, 0, 0])
+  const catalog = {
+    species: [],
+    marks: [],
+    skills: [{ id: 'hit', presentation: { sfx: 'https://cdn.test/hit.mp3', vfx } }],
+  } as unknown as Parameters<typeof mediaEnvironment>[0] & object
+  registerMediaEnvironment(catalog, 'vfx', [])
+  const environment = mediaEnvironment(catalog)
+  const effect = Promise.withResolvers<Response>()
+  const fetcher = vi.fn((address: string) =>
+    address === vfx ? effect.promise : Promise.resolve(new Response(Uint8Array.of(73, 68, 51))),
+  )
+  vi.stubGlobal('fetch', fetcher)
+  const preloader = createMediaPreloader('当前对战')
+  try {
+    preloader.update(catalog, [{ species: 'pet', skills: ['hit'] }], {
+      battleRenderer: 'seer2-swf',
+      background: 'random',
+      battleMusic: 'random',
+    })
+    expect(await preloader.ready).toBe(0)
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledWith(vfx, expect.anything()))
+    expect(peekMediaBytes(vfx, 'swf', environment)).toBeUndefined()
+    effect.resolve(new Response(swf))
+    await vi.waitFor(() => expect(peekMediaBytes(vfx, 'swf', environment)).toEqual(swf))
   } finally {
     preloader.stop()
   }

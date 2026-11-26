@@ -14,6 +14,9 @@ export function resolveSkillSfxUrl(
 ): string {
   return typeof skill?.presentation?.sfx === 'string' ? officialAssetUrl(skill.presentation.sfx) : ''
 }
+export function resolveSkillVfxUrl(skill: SkillSchemaType | undefined): string {
+  return typeof skill?.presentation?.vfx === 'string' ? officialAssetUrl(skill.presentation.vfx) : ''
+}
 export function resolveSpeciesSpriteAsset(
   species: SpeciesSchemaType | undefined,
   _getPetSwf?: (id: string) => string | null,

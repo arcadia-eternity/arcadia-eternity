@@ -82,7 +82,8 @@ export function validCommand(x: unknown): x is SwfCommand {
     if (!validBytes(bytes?.container) || !validBytes(bytes?.movie)) return false
     return x.runtime === undefined || validSwfRuntime(x.runtime)
   }
-  if (x.type === 'play') return typeof x.state === 'string' && STATES.includes(x.state)
+  if (x.type === 'play')
+    return typeof x.state === 'string' && STATES.includes(x.state) && (x.effect === undefined || validBytes(x.effect))
   if (x.type === 'configure') {
     const bounds = x.bounds as Partial<Record<keyof SwfBounds, unknown>> | undefined
     return (

@@ -23,7 +23,7 @@ import { useBattleAnimations } from '@/composition/useBattleAnimations'
 import { waitForAnimationOperation } from '@/composition/animationTask'
 import { planAnimationMessages } from '@/composition/animationMessageBatch'
 import { AnimationController, type AnimationTask } from '@/composition/animationController'
-import { activeMediaCatalog, mediaEnvironment } from '@/services/mediaLoader'
+import { activeMediaCatalog, mediaEnvironment, peekMediaBytes, readMediaBytes } from '@/services/mediaLoader'
 import { battleScene, createMediaPreloader, resetBattleScene } from '@/services/environmentMedia'
 import { useMediaImage } from '@/composition/useMediaImage'
 import { useMobile } from '@/composition/useMobile'
@@ -37,7 +37,7 @@ import { useBattleViewStore } from '@/stores/battleView'
 import { useGameDataStore } from '@/stores/gameData'
 import { useGameSettingStore } from '@/stores/gameSetting'
 import { useResourceStore } from '@/stores/resource'
-import { resolveSpeciesSpriteAsset } from '@/utils/resourceResolver'
+import { resolveSkillVfxUrl, resolveSpeciesSpriteAsset } from '@/utils/resourceResolver'
 import { officialAssetUrl } from '@/utils/officialAssetUrl'
 import { logMessagesKey } from '@/symbol/battlelog'
 import { battleTooltipPortalKey, battleTooltipsDisabledKey } from '@/symbol/battleTooltip'
@@ -1494,7 +1494,17 @@ async function useSkillAnimate(messages: BattleMessage[]): Promise<void> {
     void animationWait.complete.then(() => execution?.signal.removeEventListener('abort', animationWait.cancel))
     const hitPromise = animationWait.hit
     const animateCompletePromise = animationWait.complete
-    if (!useImageEffect && source) await withDeadline(source.setState(state), expectedDuration).catch(() => {})
+    if (!useImageEffect && source) {
+      // VFX is cosmetic: play it only when the bytes are already in memory, and fetch them for a later cast.
+      const vfxUrl = messages.some(msg => msg.type === BattleMessageType.SkillMiss)
+        ? ''
+        : resolveSkillVfxUrl(baseSkillData)
+      const vfx = vfxUrl ? peekMediaBytes(vfxUrl, 'swf') : undefined
+      if (vfxUrl && !vfx) void readMediaBytes(vfxUrl, { kind: 'swf' }).catch(() => {})
+      await withDeadline(source.setState(state, vfx?.buffer as ArrayBuffer | undefined), expectedDuration).catch(
+        () => {},
+      )
+    }
 
     await hitPromise
     assertExecution(execution)

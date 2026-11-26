@@ -269,6 +269,22 @@ describe('owned desktop canvas playback', () => {
     h.player.dispose()
   })
 
+  it('plays the attack with valid VFX bytes and without invalid ones', async () => {
+    const h = harness(),
+      loading = h.load()
+    await vi.waitFor(() => expect(h.sent).toHaveLength(1))
+    h.ready()
+    h.frame(h.image())
+    await loading
+    await h.player.setState('物理攻击', data)
+    await h.player.setState('物理攻击', new Uint8Array([1, 2, 3]).buffer)
+    await vi.waitFor(() => expect(h.sent.filter(command => command.type === 'play')).toHaveLength(2))
+    const plays = h.sent.filter(command => command.type === 'play') as Extract<SwfCommand, { type: 'play' }>[]
+    expect(plays.map(command => command.state)).toEqual(['物理攻击', '物理攻击'])
+    expect(plays.map(command => 'effect' in command)).toEqual([true, false])
+    h.player.dispose()
+  })
+
   it('requires the frame capability instead of silently mounting a native view', async () => {
     const h = harness()
     Object.assign(h.bridge, { onFrame: undefined })

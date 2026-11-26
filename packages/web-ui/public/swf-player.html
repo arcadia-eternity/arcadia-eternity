@@ -57,6 +57,7 @@
           complete = false,
           disposed = false,
           count = 0,
+          effectUrl = '',
           epoch = Date.now()
         const blobs = []
         const send = (type, extra = {}) => {
@@ -76,6 +77,7 @@
           player = null
           for (const url of blobs) URL.revokeObjectURL(url)
           blobs.length = 0
+          effectUrl = ''
           active = false
         }
         async function receive(x) {
@@ -113,6 +115,7 @@
               return
             }
             if (x.type === 'stop') {
+              player?.clearEffect?.()
               player?.ruffle().suspend()
               active = false
               return
@@ -130,11 +133,26 @@
             }
             if (x.type === 'play') {
               if (!states.includes(x.state) || !player) return
+              const effect = x.effect
+              if (
+                effect !== undefined &&
+                !(effect instanceof ArrayBuffer && effect.byteLength >= 8 && effect.byteLength <= 16777216)
+              )
+                return
               current = x.state
               hit = false
               complete = false
               active = true
               player.ruffle().resume()
+              if (effectUrl) {
+                URL.revokeObjectURL(effectUrl)
+                blobs.splice(blobs.indexOf(effectUrl), 1)
+                effectUrl = ''
+              }
+              if (effect && typeof player.armEffect === 'function') {
+                effectUrl = blob(effect, 'application/x-shockwave-flash')
+                player.armEffect(effectUrl)
+              }
               player.setState(current)
               return
             }

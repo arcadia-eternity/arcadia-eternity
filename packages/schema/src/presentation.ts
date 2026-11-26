@@ -50,6 +50,7 @@ export const ContentPresentationSchema = Type.Object(
     portrait: Type.Optional(ResourceReferenceSchema),
     cry: Type.Optional(ResourceReferenceSchema),
     sfx: Type.Optional(ResourceReferenceSchema),
+    vfx: Type.Optional(ResourceReferenceSchema),
     background: Type.Optional(ResourceReferenceSchema),
     music: Type.Optional(ResourceReferenceSchema),
     battle: Type.Optional(

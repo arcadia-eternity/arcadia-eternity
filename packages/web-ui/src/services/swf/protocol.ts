@@ -40,7 +40,7 @@ export type SwfEvent = SwfEnvelope &
 export type SwfCommand = SwfEnvelope &
   (
     | { type: 'load'; bytes: SwfBytes; runtime?: Record<string, ArrayBuffer> }
-    | { type: 'play'; state: string }
+    | { type: 'play'; state: string; effect?: ArrayBuffer }
     | { type: 'configure'; bounds: SwfBounds }
     | { type: 'stop' | 'dispose' }
   )
@@ -106,7 +106,8 @@ export function validSwfFrame(value: unknown): value is SwfFrame {
 }
 export interface SwfPlayer {
   load(bytes: SwfBytes): Promise<string[]>
-  setState(state: string): Promise<void>
+  /** `effect` is a skill VFX SWF started by this state's first hit. */
+  setState(state: string, effect?: ArrayBuffer): Promise<void>
   getState(): string
   configure(bounds: SwfBounds): void
   stop(): void

@@ -16,7 +16,7 @@ export function presentationIndex(manifests: readonly PresentationManifest[] = [
       const key = `${target.kind}:${target.id}`
       if (result.has(key)) throw new Error(`Duplicate presentation target: ${key}`)
       const presentation: ContentPresentation = {}
-      for (const slot of ['icon', 'portrait', 'cry', 'sfx', 'background', 'music'] as const)
+      for (const slot of ['icon', 'portrait', 'cry', 'sfx', 'vfx', 'background', 'music'] as const)
         if (slots[slot]) presentation[slot] = resolve(slots[slot])
       if (slots.battle)
         presentation.battle = {

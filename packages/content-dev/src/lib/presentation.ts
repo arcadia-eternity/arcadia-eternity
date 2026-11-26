@@ -21,7 +21,7 @@ const remote = (value: string) => /^https?:\/\//.test(value)
 export function resourceReferences(presentation: unknown): unknown[] {
   if (!presentation) return []
   if (!isRecord(presentation)) throw new Error('presentation must be an object')
-  const keys = ['icon', 'portrait', 'cry', 'sfx', 'background', 'music', 'battle']
+  const keys = ['icon', 'portrait', 'cry', 'sfx', 'vfx', 'background', 'music', 'battle']
   for (const key of Object.keys(presentation))
     if (!keys.includes(key)) throw new Error(`Unknown presentation field: ${key}`)
   const refs = keys
@@ -217,7 +217,10 @@ export async function buildPresentation(
             if (kindOf(ref.source) && kindOf(ref.source) !== (ref.renderer === 'image' ? 'image' : 'swf'))
               throw new Error('Battle resource type mismatch')
             if (kindOf(ref.fallback) && kindOf(ref.fallback) !== 'image') throw new Error('Fallback must be an image')
-          } else if (kindOf(ref) && kindOf(ref) !== (['sfx', 'cry', 'music'].includes(slot) ? 'audio' : 'image'))
+          } else if (
+            kindOf(ref) &&
+            kindOf(ref) !== (slot === 'vfx' ? 'swf' : ['sfx', 'cry', 'music'].includes(slot) ? 'audio' : 'image')
+          )
             throw new Error(`Resource type mismatch: ${slot}`)
         }
         bindings.push(record)

@@ -241,6 +241,20 @@ export async function ensureMediaCached(url: string, options: MediaReadOptions, 
   await warmMedia(url, { ...options, environment }, present === false)
 }
 
+// Returns verified bytes already held in memory, without waiting for storage or the network.
+export function peekMediaBytes(url: string, kind: MediaKind, environment = mediaEnvironment()) {
+  if (mediaLease(url, mediaDigest(environment, url))) return
+  const hash = mediaDigest(environment, url) ?? aliases.get(JSON.stringify([environment.scope, url]))
+  const bytes = hash ? memory.get(hash) : undefined
+  if (!bytes || bytes.byteLength > mediaLimits[kind]) return
+  try {
+    inspectOwnedMedia(kind, bytes)
+    return bytes.slice()
+  } catch {
+    return
+  }
+}
+
 export async function readMediaBytes(url: string, options?: MediaReadOptions) {
   return (await warmMedia(url, options)).bytes.slice()
 }

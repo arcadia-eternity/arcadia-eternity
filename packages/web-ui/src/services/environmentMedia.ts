@@ -187,6 +187,18 @@ function teamMediaAssets(
   return [...scene, ...elements, ...presentationMedia(content, pets, settings.battleRenderer !== 'image', globalMarks)]
 }
 
+// Skill VFX are optional, so battle readiness does not wait for them.
+function teamEffectAssets(content: MediaCatalog, pets: readonly MediaPet[], settings: PreloadSettings): Asset[] {
+  if (settings.battleRenderer === 'image') return []
+  const skills = new Set(pets.flatMap(p => p.skills ?? []))
+  return content.skills.flatMap(row => {
+    const url = row.presentation?.vfx
+    return skills.has(row.id) && typeof url === 'string' && url
+      ? [{ url: officialAssetUrl(url), kind: 'swf' as const, label: `${row.name || row.id} · 特效` }]
+      : []
+  })
+}
+
 function preloadEnvironment(
   assets: Asset[],
   environment: MediaEnvironment,
@@ -244,6 +256,9 @@ export function createMediaPreloader(label: string, scope: 'team' | 'environment
             new Set(assets.map(asset => asset.url)),
           )
         : preloadMedia(assets, environment, controller.signal, { label })
+      const effects = full ? [] : teamEffectAssets(content, pets, settings)
+      if (effects.length)
+        void done.finally(() => preloadMedia(effects, environment, controller.signal, { label: `${label} · 特效` }))
       current = { environment, key, controller, done }
       // Join shared reads before releasing the previous selection's subscriptions.
       previous?.controller.abort()

@@ -283,11 +283,18 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
       }
       return ready
     },
-    async setState(state: string) {
+    async setState(state: string, effect?: ArrayBuffer) {
       if (disposed || !SWF_STATES.includes(state as (typeof SWF_STATES)[number]))
         throw new Error('Invalid animation state')
+      // An invalid optional VFX is dropped; the attack itself still plays.
+      if (effect)
+        effect = await validateSwfFile(effect).then(
+          () => effect,
+          () => undefined,
+        )
+      if (disposed) throw new Error('Playback disposed')
       current = state
-      send({ ...command({ type: 'play' }), state } as SwfCommand)
+      send({ ...command({ type: 'play' }), state, ...(effect && { effect }) } as SwfCommand)
     },
     getState: () => current,
     configure(bounds: SwfBounds) {

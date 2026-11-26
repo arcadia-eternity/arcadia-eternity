@@ -7,6 +7,10 @@ test('bounded cosmetic protocol rejects arbitrary methods, URLs and malformed al
     assert.equal(validCommand({ ...envelope, type, url: 'https://example.org' }), false)
   assert.equal(validCommand({ ...envelope, type: 'play', state: '物理攻击' }), true)
   assert.equal(validCommand({ ...envelope, type: 'play', state: 'execute' }), false)
+  const effect = new Uint8Array([0x46, 0x57, 0x53, 10, 8, 0, 0, 0]).buffer
+  assert.equal(validCommand({ ...envelope, type: 'play', state: '物理攻击', effect }), true)
+  for (const bad of ['https://example.org/fx.swf', new ArrayBuffer(8), new Uint8Array(8)])
+    assert.equal(validCommand({ ...envelope, type: 'play', state: '物理攻击', effect: bad }), false)
   assert.equal(
     validCommand({
       ...envelope,

@@ -204,7 +204,9 @@ const mediaOptions = computed(() =>
         ? asset.kind === 'audio'
         : mediaPick.value === 'battle.source'
           ? ['image', 'swf'].includes(asset.kind)
-          : asset.kind === 'image',
+          : mediaPick.value === 'vfx'
+            ? asset.kind === 'swf'
+            : asset.kind === 'image',
     )
     .map(asset => ({ id: asset.id, label: asset.name || asset.id, detail: asset.source })),
 )
@@ -234,7 +236,7 @@ const media = computed(() =>
   props.kind === 'species'
     ? { icon: '图标', portrait: '肖像', 'battle.source': '战斗素材', 'battle.fallback': '备用图片', cry: '叫声' }
     : props.kind === 'skills'
-      ? { sfx: '技能音效' }
+      ? { sfx: '技能音效', vfx: '技能特效' }
       : { icon: '印记图标' },
 )
 </script>

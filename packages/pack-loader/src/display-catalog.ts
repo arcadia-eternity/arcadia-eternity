@@ -26,7 +26,7 @@ export function mapPresentationResources(
   resolve: (reference: ResourceReference) => ResourceReference,
 ): ContentPresentation {
   const result = { ...presentation }
-  for (const key of ['icon', 'portrait', 'cry', 'sfx', 'background', 'music'] as const) {
+  for (const key of ['icon', 'portrait', 'cry', 'sfx', 'vfx', 'background', 'music'] as const) {
     const reference = presentation[key]
     if (reference !== undefined) result[key] = resolve(reference)
   }
