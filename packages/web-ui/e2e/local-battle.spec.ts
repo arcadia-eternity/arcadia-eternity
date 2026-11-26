@@ -163,6 +163,33 @@ test('battle log accumulates entries across turns', async ({ page }) => {
   expect(unexpectedConsoleErrors).toEqual([])
 })
 
+test('battle log stays visible and opens a turn-grouped detail window', async ({ page }) => {
+  const unexpectedConsoleErrors = await collectUnexpectedConsole(page)
+  await startLocalBattle(page)
+
+  await page.getByRole('button', { name: /^气力 ·/ }).click()
+  await waitForOpponentTurn(page)
+
+  const logButton = page.getByRole('button', { name: '战斗日志', exact: true })
+  await logButton.click()
+  const detail = page.getByRole('dialog', { name: '战斗日志' })
+  await expect(detail).toBeVisible()
+  await expect(detail.getByRole('heading', { name: '第 1 回合' })).toBeVisible()
+  await expect(detail.getByText(/休罗斯 使用 气力/).first()).toBeVisible()
+  await expect(page.getByRole('log', { name: '战斗记录' })).toBeVisible()
+
+  await page.keyboard.press('Escape')
+  await expect(detail).toBeHidden()
+  await expect(logButton).toBeFocused()
+
+  await page.getByRole('button', { name: '日志详情' }).click()
+  await expect(detail).toBeVisible()
+  await detail.getByRole('button', { name: '关闭' }).click()
+  await expect(detail).toBeHidden()
+  await expect(page.getByRole('log', { name: '战斗记录' })).toBeVisible()
+  expect(unexpectedConsoleErrors).toEqual([])
+})
+
 test('skills become available again after opponent turn', async ({ page }) => {
   const unexpectedConsoleErrors = await collectUnexpectedConsole(page)
   await startLocalBattle(page)

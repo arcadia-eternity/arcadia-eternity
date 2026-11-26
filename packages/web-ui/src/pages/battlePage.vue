@@ -8,6 +8,7 @@ import BattleFrame from '@/components/battle/BattleFrame.vue'
 import { useBattlePreparation, withDeadline } from '@/composition/useBattlePreparation'
 import { usePreferredReducedMotion } from '@vueuse/core'
 import BattleLogPanel from '@/components/battle/BattleLogPanel.vue'
+import BattleLogDetail from '@/components/battle/BattleLogDetail.vue'
 import BattleStatus from '@/components/battle/BattleStatus.vue'
 import TrainingPanel from '@/components/battle/TrainingPanel.vue'
 import TeamSelectionPanel from '@/components/battle/TeamSelectionPanel.vue'
@@ -453,6 +454,7 @@ watchEffect(() => {
 onUnmounted(() => {
   battleMedia.stop()
   resetBattleScene()
+  battleViewStore.closeLogDetail()
 })
 const { playSkillSound, playPetSound, playVictorySound, prepareVictorySound } = useSound()
 
@@ -893,7 +895,8 @@ provide(
       !isFullyLoaded.value ||
       showOrientationHint.value ||
       (showTeamSelectionPanel.value && !isSpectatorMode.value) ||
-      showCustomConfirm.value,
+      showCustomConfirm.value ||
+      battleViewStore.showLogDetail,
   ),
 )
 
@@ -2638,7 +2641,7 @@ watch(
 
         <!-- 回放模式控制界面 -->
         <div v-if="isReplayMode" class="battle-replay-dock flex">
-          <div v-if="battleViewStore.showLogPanel" class="w-1/5 h-full p-2">
+          <div class="w-1/5 h-full p-2">
             <BattleLogPanel />
           </div>
 
@@ -2804,6 +2807,12 @@ watch(
             </div>
           </div>
         </Transition>
+
+        <BattleLogDetail
+          v-if="battleViewStore.showLogDetail"
+          :class="Z_INDEX_CLASS.LOG_DETAIL"
+          @close="battleViewStore.closeLogDetail()"
+        />
 
         <!-- 训练面板 -->
         <TrainingPanel v-if="isTrainingMode && isTrainingPanelOpen" @close="isTrainingPanelOpen = false" />

@@ -16,6 +16,7 @@ declare module 'vue' {
     BattleFrame: typeof import('./src/components/battle/BattleFrame.vue')['default']
     BattleGlyph: typeof import('./src/components/battle/BattleGlyph.vue')['default']
     BattleLoading: typeof import('./src/components/battle/BattleLoading.vue')['default']
+    BattleLogDetail: typeof import('./src/components/battle/BattleLogDetail.vue')['default']
     BattleLogEntry: typeof import('./src/components/battle/BattleLogEntry.vue')['default']
     BattleLogPanel: typeof import('./src/components/battle/BattleLogPanel.vue')['default']
     BattleMarkInfo: typeof import('./src/components/battle/BattleMarkInfo.vue')['default']
