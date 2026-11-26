@@ -6,6 +6,7 @@ import { useMediaImage } from '@/composition/useMediaImage'
 import { createSwfPlayer } from '@/services/swf/adapter'
 import type { SwfPlayer } from '@/services/swf/protocol'
 import { mediaEnvironment, loadMedia } from '@/services/mediaLoader'
+import { waitForMediaPriority } from '@/services/mediaPriority'
 
 type AnimationCompleteEventDetail = PetRendererEvent['animationComplete'] extends CustomEvent<infer D> ? D : never
 type HitEventDetail = PetRendererEvent['hit'] extends CustomEvent<infer D> ? D : never
@@ -46,6 +47,9 @@ const portraitLoaded = ref(false)
 let generation = 0
 let resolveReady: (() => void) | undefined
 let rejectReady: ((error: Error) => void) | undefined
+// Settles when the current movie is loaded or has failed; never rejects.
+const movieReady = ref<Promise<void>>(Promise.resolve())
+let settleMovie: (() => void) | undefined
 
 watch(
   [() => props.swfUrl, () => props.imageUrl, () => props.imageOnly, () => props.fallbackImageUrl, mediaScope],
@@ -61,6 +65,10 @@ watch(
       resolveReady = resolve
       rejectReady = reject
     })
+    settleMovie?.()
+    movieReady.value = new Promise<void>(resolve => {
+      settleMovie = resolve
+    })
     // A source can fail before the battle preparation starts awaiting it.
     void ready.value.catch(() => {})
   },
@@ -73,14 +81,18 @@ watch(
     loadAbort?.abort()
     player?.dispose()
     player = undefined
+    if (!url || props.imageUrl || props.imageOnly) settleMovie?.()
     if (!url || !element || props.imageUrl || props.imageOnly) return
     const current = generation
     const finish = resolveReady
     const fail = rejectReady
+    const settled = settleMovie
     const controller = new AbortController()
     loadAbort = controller
     try {
-      const bytes = await loadMedia('swf', url, controller.signal)
+      await waitForMediaPriority('deferred', controller.signal)
+      controller.signal.throwIfAborted()
+      const bytes = await loadMedia('swf', url, controller.signal, 'deferred')
       if (current !== generation || controller.signal.aborted) return
       const renderer = createSwfPlayer(element, event => {
         if (current !== generation) return
@@ -110,8 +122,10 @@ watch(
       })
       loadedStates.value = states as ActionState[]
       finish?.()
+      settled?.()
     } catch (error) {
       if (current !== generation || controller.signal.aborted) return
+      settled?.()
       if (props.fallbackImageUrl) {
         fallbackActive.value = true
         if (imageFailed.value || portraitLoadError.value) fail?.(new Error('精灵图片加载失败'))
@@ -147,10 +161,13 @@ onUnmounted(() => {
   loadAbort?.abort()
   player?.dispose()
   rejectReady?.(new Error('精灵组件已卸载'))
+  settleMovie?.()
 })
+// A declared fallback image makes the sprite ready; its SWF replaces it once loaded and recovery is allowed.
 const handleImageLoad = () => {
   portraitLoaded.value = true
-  if (props.imageOnly || props.imageUrl || fallbackActive.value || usesPlaceholder.value) resolveReady?.()
+  if (props.imageOnly || props.imageUrl || props.fallbackImageUrl || fallbackActive.value || usesPlaceholder.value)
+    resolveReady?.()
 }
 const handleImageError = () => {
   imageFailed.value = true
@@ -164,7 +181,7 @@ const setState = async (state: ActionState, effect?: ArrayBuffer) => {
   if (inited.value) await player?.setState(state, effect)
 }
 const getState = async () => (inited.value ? player?.getState() : ActionState.IDLE)
-defineExpose({ setState, getState, availableState, ready, activateLoadedSwf })
+defineExpose({ setState, getState, availableState, ready, movieReady, activateLoadedSwf })
 </script>
 <template>
   <div class="w-full h-full overflow-visible">

@@ -83,6 +83,21 @@ describe('isolated PetSprite readiness', () => {
     expect(sprite.vm.availableState).toEqual(['待机'])
     sprite.unmount()
   })
+  it('is ready on its fallback image while the movie keeps loading', async () => {
+    const sprite = mount(PetSprite, { props: { swfUrl: '/slow.swf', fallbackImageUrl: unknownPet } })
+    await flushPromises()
+    const movie = vi.fn()
+    void sprite.vm.movieReady.then(movie)
+    await sprite.get('img').trigger('load')
+    await sprite.vm.ready
+    expect(movie).not.toHaveBeenCalled()
+    expect(sprite.find('[data-testid="pet-static-fallback"]').exists()).toBe(true)
+    pending.resolve?.(['待机'])
+    await flushPromises()
+    expect(movie).toHaveBeenCalledOnce()
+    expect(sprite.vm.availableState).toEqual(['待机'])
+    sprite.unmount()
+  })
   it('settles readiness when the fallback portrait fails before the movie', async () => {
     const sprite = mount(PetSprite, { props: { swfUrl: '/broken.swf', fallbackImageUrl: unknownPet } })
     await flushPromises()

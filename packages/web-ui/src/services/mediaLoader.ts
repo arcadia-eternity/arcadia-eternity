@@ -7,6 +7,7 @@ import { hasOwnedResource, readResourceBytes, ResourceSizeError, RESOURCE_MAX_BY
 import { SharedReads } from './sharedRead'
 import { inspectMedia, mediaLimits, type MediaKind } from '../../shared/media-formats.mjs'
 import { readSwfContainer } from './swf/assets'
+import { fetchPriority, type MediaPriority } from './mediaPriority'
 
 import {
   localMediaFiles,
@@ -120,7 +121,7 @@ function inspectOwnedMedia(kind: MediaKind, bytes: Uint8Array) {
   inspected.set(bytes, { kind, mime })
   return mime
 }
-type SourceReadOptions = { signal: AbortSignal; maxBytes: number; cache?: RequestCache }
+type SourceReadOptions = { signal: AbortSignal; maxBytes: number; cache?: RequestCache; priority?: RequestPriority }
 async function readVerifiedSource(url: string, options: SourceReadOptions, digest?: string) {
   const bytes = await readResourceBytes(url, options)
   if (validBytes(bytes, options.maxBytes, digest)) return bytes
@@ -197,7 +198,12 @@ type MediaReadOptions = {
   kind?: MediaKind
   background?: boolean
   requireSave?: boolean
+  priority?: MediaPriority
 }
+
+// Movies are cosmetic: sprites and skills fall back to images while they load.
+const requestPriority = (priority: MediaPriority | undefined, kind?: MediaKind) =>
+  priority ? fetchPriority(priority) : kind === 'swf' ? fetchPriority('deferred') : undefined
 
 function mediaLimit(maxBytes = RESOURCE_MAX_BYTES, kind?: MediaKind) {
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > RESOURCE_MAX_BYTES)
@@ -300,7 +306,7 @@ export async function warmMedia(url: string, options: MediaReadOptions = {}, mis
 
 async function acquireMediaBytes(
   url: string,
-  { environment = mediaEnvironment(), signal, kind, maxBytes = RESOURCE_MAX_BYTES }: MediaReadOptions = {},
+  { environment = mediaEnvironment(), signal, kind, maxBytes = RESOURCE_MAX_BYTES, priority }: MediaReadOptions = {},
   foreground = true,
 ): Promise<MediaContent> {
   signal?.throwIfAborted()
@@ -314,7 +320,7 @@ async function acquireMediaBytes(
     if (lease && (live || url.startsWith('blob:')) && !lease()) throw new Error('本地资源已释放')
   }
   assertLive()
-  if (foreground) environment.promote?.(url)
+  if (foreground) environment.promote?.(url, priority)
   const knownHash = digest ?? aliases.get(alias)
   const hit = live && knownHash && memory.get(knownHash)
   if (hit && knownHash) {
@@ -330,7 +336,8 @@ async function acquireMediaBytes(
   // Unregistered loopback tokens must still be read through the owning server.
   const key = live ? (digest ?? alias) : JSON.stringify(['local', url, digest])
   const flight = pending.get(key, { url, maxBytes }, async readSignal => {
-    const options = { signal: readSignal, maxBytes }
+    const fetchHint = requestPriority(priority, kind)
+    const options = { signal: readSignal, maxBytes, ...(fetchHint && { priority: fetchHint }) }
     assertLive()
     let bytes: Uint8Array | undefined
     if (!lease) {
@@ -364,7 +371,7 @@ async function acquireMediaBytes(
     const retryLimit = error instanceof ResourceSizeError && maxBytes > flight.source.maxBytes
     const retryMirror = digest && flight.source.url !== url
     if ((retryLimit || retryMirror) && !signal?.aborted && (!live || !lease || lease()))
-      return acquireMediaBytes(url, { environment, signal, maxBytes, kind }, foreground)
+      return acquireMediaBytes(url, { environment, signal, maxBytes, kind, priority }, foreground)
     throw error
   }
   signal?.throwIfAborted()
@@ -446,13 +453,19 @@ export function loadMedia(
   kind: 'swf',
   source: MediaSource,
   signal: AbortSignal,
+  priority?: MediaPriority,
 ): Promise<{ movie: ArrayBuffer; container: ArrayBuffer }>
-export function loadMedia(kind: 'image' | 'audio', source: MediaSource, signal: AbortSignal): Promise<Blob>
-export async function loadMedia(kind: MediaKind, source: MediaSource, signal: AbortSignal) {
+export function loadMedia(
+  kind: 'image' | 'audio',
+  source: MediaSource,
+  signal: AbortSignal,
+  priority?: MediaPriority,
+): Promise<Blob>
+export async function loadMedia(kind: MediaKind, source: MediaSource, signal: AbortSignal, priority?: MediaPriority) {
   signal.throwIfAborted()
   const data =
     typeof source === 'string'
-      ? warmMedia(source, { kind, signal }).then(result => result.bytes)
+      ? warmMedia(source, { kind, signal, priority }).then(result => result.bytes)
       : acquireDraftBytes(source, kind, signal)
   if (kind === 'swf') {
     const [bytes, container] = await Promise.all([data, readSwfContainer(signal)])

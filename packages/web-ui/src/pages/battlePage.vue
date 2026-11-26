@@ -280,7 +280,7 @@ const showOrientationHint = computed(
 // VueUse的useFullscreen会自动处理全屏状态变化，无需手动监听
 
 // 初始化音乐但不自动播放
-const { startMusic, stopMusic, whenMusicReady } = useMusic(false)
+const { startMusic, stopMusic } = useMusic(false)
 
 provide(logMessagesKey, store.log)
 const preferredMotion = usePreferredReducedMotion()
@@ -1006,10 +1006,10 @@ const initializeBattleResources = async () => {
           prepareFeedbackArtwork(),
           koBannerRef.value?.decode() ?? Promise.resolve(),
           climaxEffectRef.value?.whenReady() ?? Promise.resolve(),
-          whenMusicReady(),
-          prepareVictorySound(),
           waitForTeamMedia(),
         ])
+        // Music starts when it arrives; the KO sound is first needed at the end of the battle.
+        void prepareVictorySound().catch(() => {})
       },
     },
     {
@@ -1034,7 +1034,7 @@ const initializeBattleResources = async () => {
       id: 'pets',
       label: '首发精灵',
       required: false,
-      timeoutMs: petStartupTimeoutMs,
+      timeoutMs: startupTimeoutMs,
       run: checkPetSpritesReady,
     },
     ...(!props.replayMode
@@ -1080,7 +1080,7 @@ const initializeBattleResources = async () => {
             id: 'scene-pets',
             label: '场上精灵',
             required: false,
-            timeoutMs: petStartupTimeoutMs,
+            timeoutMs: startupTimeoutMs,
             run: () => waitForMediaGroup([checkPetSpritesReady(), waitForTeamMedia()]),
           },
         ]
@@ -1294,6 +1294,7 @@ async function animatePetTransition(
   return Promise.resolve()
 }
 
+const switchMovieWaitMs = 3000
 async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitchMessage: PetSwitchMessage) {
   const execution = runningExecution
   assertExecution(execution)
@@ -1338,9 +1339,11 @@ async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitc
     }
 
     gsapSet(newPetSprite.$el, { x: offScreenX, opacity: 0 })
-    // The player and resource transport handle load failures. A cold download
-    // can outlast the tween without requiring an image-only entrance.
+    // The static image is enough to enter. A movie that finishes shortly enters animated;
+    // a cold download continues in the background and replaces the image between tasks.
     await waitForAnimationOperation(newPetSprite.ready, execution.signal).catch(() => {})
+    assertExecution(execution)
+    await waitForAnimationOperation(newPetSprite.movieReady, execution.signal, switchMovieWaitMs).catch(() => {})
     assertExecution(execution)
     newPetSprite.activateLoadedSwf()
     await nextTick()

@@ -12,6 +12,7 @@ import {
 } from './mediaLoader'
 import { startMediaPreload } from './mediaPreloadProgress'
 import { withPreloadBackoff } from './mediaPreloadRetry'
+import { beginMediaPriority, waitForMediaPriority, type MediaPriority } from './mediaPriority'
 
 type Asset = { url: string; kind?: MediaKind; limit?: number; label?: string }
 export type MediaPet = {
@@ -22,10 +23,7 @@ export type MediaPet = {
   emblem?: string
   marks?: readonly string[]
 }
-function presentationAssets(
-  row: { id: string; name?: string; presentation?: ContentPresentation },
-  movies: boolean,
-): Asset[] {
+function presentationAssets(row: { id: string; name?: string; presentation?: ContentPresentation }): Asset[] {
   const p = row.presentation
   if (!p) return []
   const assets: Asset[] = []
@@ -33,12 +31,11 @@ function presentationAssets(
     if (typeof url === 'string' && url)
       assets.push({ url: officialAssetUrl(url), kind, label: `${row.name || row.id} · ${label}` })
   }
-  if (p.battle?.renderer !== 'seer2-swf' || movies)
-    add(
-      p.battle?.source,
-      p.battle?.renderer === 'seer2-swf' ? 'SWF 动画' : '战斗图像',
-      p.battle?.renderer === 'seer2-swf' ? 'swf' : 'image',
-    )
+  add(
+    p.battle?.source,
+    p.battle?.renderer === 'seer2-swf' ? 'SWF 动画' : '战斗图像',
+    p.battle?.renderer === 'seer2-swf' ? 'swf' : 'image',
+  )
   add(p.icon, '图标')
   add(p.battle?.fallback, '备用图像')
   add(p.portrait, '立绘')
@@ -49,34 +46,14 @@ function presentationAssets(
   return assets
 }
 
-function presentationMedia(
-  content: MediaCatalog,
-  pets?: readonly MediaPet[],
-  movies = true,
-  globalMarks: readonly string[] = [],
-): Asset[] {
-  if (!pets)
-    return [content.species, content.skills, content.marks].flatMap(rows =>
-      rows.flatMap(row => presentationAssets(row, movies)),
-    )
-  const bySpecies = new Map(content.species.map(row => [row.id as string, row]))
-  const skills = new Set(pets.flatMap(p => p.skills ?? []))
-  const marks = new Set([...globalMarks, ...pets.flatMap(p => [p.ability, p.emblem, ...(p.marks ?? [])])])
-  return [
-    ...pets.flatMap(p => {
-      const species = bySpecies.get(p.species)
-      return species ? presentationAssets(species, movies) : []
-    }),
-    ...content.skills.filter(row => skills.has(row.id)).flatMap(row => presentationAssets(row, movies)),
-    ...content.marks.filter(row => marks.has(row.id)).flatMap(row => presentationAssets(row, movies)),
-  ]
-}
-
 export function allEnvironmentAssets(content: MediaCatalog, environment: MediaEnvironment): Asset[] {
   const declared = environment.resources.map(row => {
     return { url: officialAssetUrl(row.source), label: row.id, kind: mediaKindForResource(row) }
   })
-  return [...presentationMedia(content), ...declared]
+  const presentations = [content.species, content.skills, content.marks].flatMap(rows =>
+    rows.flatMap(row => presentationAssets(row)),
+  )
+  return [...presentations, ...declared]
 }
 
 export async function preloadMedia(
@@ -89,12 +66,14 @@ export async function preloadMedia(
     background = false,
     teamUrls,
     failedUrls,
+    priority = save || background ? 'background' : 'critical',
   }: {
     save?: (completed: number, total: number, failed: number) => void
     label?: string
     background?: boolean
     teamUrls?: ReadonlySet<string>
     failedUrls?: Set<string>
+    priority?: MediaPriority
   } = {},
 ) {
   const unique = new Map<string, Asset>()
@@ -113,28 +92,41 @@ export async function preloadMedia(
   save?.(0, items.length, 0)
   if (!items.length || signal.aborted) return 0
   const batch = startMediaPreload(label, items.length, signal, save, index => failedUrls?.add(items[index]!.url))
+  const endPriority = beginMediaPriority(priority)
   const waiting = background ? new Map(items.map((item, index) => [item.url, index])) : undefined
   const promoted = new Set<Promise<void>>()
   let next = 0
-  function processItem(index: number, urgent = false) {
+  function processItem(index: number, urgent = false, requested?: MediaPriority) {
     const { url, kind, limit, label } = items[index]!
     return batch.run(index, label ?? `资源 ${index + 1}`, () => {
       if (typeConflicts.has(url)) throw new Error('同一资源地址声明了不同的媒体类型')
-      const options = { environment, signal, kind, maxBytes: limit, background, requireSave: !!save }
+      const options = {
+        environment,
+        signal,
+        kind,
+        maxBytes: limit,
+        background,
+        requireSave: !!save,
+        priority: urgent ? requested : priority,
+      }
       if (save || (background && !urgent)) return ensureMediaCached(url, options, teamUrls?.has(url))
       return warmMedia(url, options)
     })
   }
-  function promote(url: string) {
+  // The promoted read starts the shared flight, so it carries the requesting consumer's priority.
+  function promote(url: string, requested?: MediaPriority) {
     const index = waiting?.get(url)
     if (index === undefined || signal.aborted) return
     waiting!.delete(url)
-    const task = processItem(index, true)
+    const task = processItem(index, true, requested)
     promoted.add(task)
     void task.then(() => promoted.delete(task))
   }
   async function worker() {
     while (!signal.aborted && next < items.length) {
+      // A higher-priority batch takes the network between items. Promoted items do not wait.
+      await waitForMediaPriority(priority, signal)
+      if (signal.aborted || next >= items.length) break
       const index = next++
       if (!waiting || waiting.delete(items[index]!.url)) await processItem(index)
     }
@@ -145,6 +137,7 @@ export async function preloadMedia(
     await Promise.all(promoted)
   } finally {
     if (waiting && environment.promote === promote) delete environment.promote
+    endPriority()
     batch.finish()
   }
   return batch.failed
@@ -161,42 +154,64 @@ export function battleScene(environment: MediaEnvironment, tag: 'music' | 'backg
 }
 
 type PreloadSettings = { battleRenderer: string; battleMusic: string; background: string }
+type TeamMedia = {
+  /** Assets the battle page waits for. */
+  critical: Asset[]
+  /** Music, pet SWF animations, cries and skill sounds. Sprites show their static image until the movie is ready. */
+  deferred: Asset[]
+  /** Skill VFX are optional and are played only from memory. */
+  effects: Asset[]
+}
 function teamMediaAssets(
   content: MediaCatalog,
   env: MediaEnvironment,
   pets: readonly MediaPet[],
   settings: PreloadSettings,
   globalMarks: readonly string[] = [],
-) {
-  const scene = (['background', 'music'] as const).flatMap(tag => {
-    const url = battleScene(env, tag, tag === 'music' ? settings.battleMusic : settings.background)
-    return url
-      ? [
-          {
-            url,
-            label: tag === 'music' ? '战斗音乐' : '战斗背景',
-            kind: tag === 'music' ? ('audio' as const) : ('image' as const),
-          },
-        ]
-      : []
-  })
+): TeamMedia {
+  const critical: Asset[] = []
+  const movies: Asset[] = []
+  const sounds: Asset[] = []
+  const effects: Asset[] = []
+  const animated = settings.battleRenderer !== 'image'
+  const add = (list: Asset[], url: unknown, kind: MediaKind, label: string) => {
+    if (typeof url === 'string' && url) list.push({ url: officialAssetUrl(url), kind, label })
+  }
+  const background = battleScene(env, 'background', settings.background)
+  if (background) critical.push({ url: background, kind: 'image', label: '战斗背景' })
+  const music = battleScene(env, 'music', settings.battleMusic)
+  if (music) movies.push({ url: music, kind: 'audio', label: '战斗音乐' })
   const elements = [...new Set(pets.flatMap(pet => pet.elements ?? []))].flatMap(element => {
     const url = battleUiUrl('element:' + element, true, env)
     return url ? [{ url, kind: 'image' as const, label: element }] : []
   })
-  return [...scene, ...elements, ...presentationMedia(content, pets, settings.battleRenderer !== 'image', globalMarks)]
-}
-
-// Skill VFX are optional, so battle readiness does not wait for them.
-function teamEffectAssets(content: MediaCatalog, pets: readonly MediaPet[], settings: PreloadSettings): Asset[] {
-  if (settings.battleRenderer === 'image') return []
+  critical.push(...elements)
+  const bySpecies = new Map(content.species.map(row => [row.id as string, row]))
+  for (const pet of pets) {
+    const row = bySpecies.get(pet.species)
+    const p = row?.presentation
+    if (!p) continue
+    const name = row.name || row.id
+    add(critical, p.icon, 'image', `${name} · 图标`)
+    // The battle sprite shows this image until its SWF animation is ready.
+    if (p.battle?.renderer === 'image') add(critical, p.battle.source, 'image', `${name} · 战斗图像`)
+    else if (p.battle?.renderer === 'seer2-swf') {
+      add(critical, p.battle.fallback ?? p.portrait, 'image', `${name} · 备用图像`)
+      if (animated) add(movies, p.battle.source, 'swf', `${name} · SWF 动画`)
+    } else add(critical, p.portrait, 'image', `${name} · 立绘`)
+    add(sounds, p.cry, 'audio', `${name} · 叫声`)
+  }
   const skills = new Set(pets.flatMap(p => p.skills ?? []))
-  return content.skills.flatMap(row => {
-    const url = row.presentation?.vfx
-    return skills.has(row.id) && typeof url === 'string' && url
-      ? [{ url: officialAssetUrl(url), kind: 'swf' as const, label: `${row.name || row.id} · 特效` }]
-      : []
-  })
+  for (const row of content.skills) {
+    if (!skills.has(row.id) || !row.presentation) continue
+    const name = row.name || row.id
+    add(sounds, row.presentation.sfx, 'audio', `${name} · 音效`)
+    if (animated) add(effects, row.presentation.vfx, 'swf', `${name} · 特效`)
+  }
+  const marks = new Set([...globalMarks, ...pets.flatMap(p => [p.ability, p.emblem, ...(p.marks ?? [])])])
+  for (const row of content.marks)
+    if (marks.has(row.id)) add(critical, row.presentation?.icon, 'image', `${row.name || row.id} · 图标`)
+  return { critical, deferred: [...movies, ...sounds], effects }
 }
 
 function preloadEnvironment(
@@ -244,21 +259,31 @@ export function createMediaPreloader(label: string, scope: 'team' | 'environment
         : JSON.stringify([pets, globalMarks, settings.battleRenderer, settings.background, settings.battleMusic])
       if (current?.environment === environment && current.key === key) return false
 
-      const assets = teamMediaAssets(content, environment, pets, settings, globalMarks)
+      const { critical, deferred, effects } = teamMediaAssets(content, environment, pets, settings, globalMarks)
       const previous = current
       const controller = new AbortController()
-      const done = full
-        ? preloadEnvironment(
-            [...assets, ...allEnvironmentAssets(content, environment)],
-            environment,
-            controller.signal,
-            label,
-            new Set(assets.map(asset => asset.url)),
+      const { signal } = controller
+      let done: Promise<number>
+      if (full) {
+        const team = [...critical, ...deferred, ...effects]
+        done = preloadEnvironment(
+          [...team, ...allEnvironmentAssets(content, environment)],
+          environment,
+          signal,
+          label,
+          new Set(team.map(asset => asset.url)),
+        )
+      } else {
+        // `ready` covers only what the battle page waits for. Deferred reads yield to it between items.
+        done = preloadMedia(critical, environment, signal, { label })
+        const later = deferred.length
+          ? preloadMedia(deferred, environment, signal, { label: `${label} · 动画与音效`, priority: 'deferred' })
+          : Promise.resolve(0)
+        if (effects.length)
+          void later.finally(() =>
+            preloadMedia(effects, environment, signal, { label: `${label} · 特效`, priority: 'deferred' }),
           )
-        : preloadMedia(assets, environment, controller.signal, { label })
-      const effects = full ? [] : teamEffectAssets(content, pets, settings)
-      if (effects.length)
-        void done.finally(() => preloadMedia(effects, environment, controller.signal, { label: `${label} · 特效` }))
+      }
       current = { environment, key, controller, done }
       // Join shared reads before releasing the previous selection's subscriptions.
       previous?.controller.abort()

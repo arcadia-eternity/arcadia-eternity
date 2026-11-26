@@ -440,6 +440,49 @@ it('reports the team ready before its skill VFX and keeps the VFX bytes for play
   }
 })
 
+it('reports the team ready after its static images and loads pet movies afterwards at low priority', async () => {
+  const movie = 'https://cdn.test/pet/movie.swf'
+  const fallback = 'https://cdn.test/pet/fallback.png'
+  const catalog = {
+    marks: [],
+    skills: [],
+    species: [
+      {
+        id: 'pet',
+        presentation: { battle: { renderer: 'seer2-swf', source: movie, fallback }, cry: 'https://cdn.test/pet/cry' },
+      },
+    ],
+  } as unknown as Parameters<typeof mediaEnvironment>[0] & object
+  registerMediaEnvironment(catalog, 'deferred-movie', [])
+  const image = Promise.withResolvers<Response>()
+  const reads = new Map<string, RequestInit>()
+  const fetcher = vi.fn((address: string, init: RequestInit) => {
+    reads.set(address, init)
+    return address === fallback ? image.promise : new Promise<Response>(() => {})
+  })
+  vi.stubGlobal('fetch', fetcher)
+  const preloader = createMediaPreloader('当前对战')
+  try {
+    preloader.update(catalog, [{ species: 'pet' }], {
+      battleRenderer: 'seer2-swf',
+      background: 'random',
+      battleMusic: 'random',
+    })
+    await vi.waitFor(() => expect(reads.has(fallback)).toBe(true))
+    expect(reads.get(fallback)?.priority).toBe('high')
+    expect(reads.has(movie)).toBe(false)
+    const png = new Uint8Array(24)
+    png.set([137, 80, 78, 71, 13, 10, 26, 10])
+    png.set([73, 72, 68, 82], 12)
+    png[19] = png[23] = 1
+    image.resolve(new Response(png))
+    expect(await preloader.ready).toBe(0)
+    await vi.waitFor(() => expect(reads.get(movie)?.priority).toBe('low'))
+  } finally {
+    preloader.stop()
+  }
+})
+
 it('validates during preload, retries corrected content and plays the warmed bytes without another fetch', async () => {
   const address = 'https://cdn.test/extensionless-sound'
   const fetcher = vi
