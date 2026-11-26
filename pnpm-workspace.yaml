@@ -38,6 +38,7 @@ minimumReleaseAgeExclude:
   - '@typescript-eslint/utils@8.72.3-alpha.6'
   - '@typescript-eslint/visitor-keys@8.72.3-alpha.6'
   - typescript-eslint@8.72.3-alpha.6
+  - seer2-pet-animator@0.0.38
 overrides:
   # Keep the classic TypeScript API surface while running type checks on tsgo.
   typescript: 'npm:typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2'

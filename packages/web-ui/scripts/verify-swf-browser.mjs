@@ -45,7 +45,7 @@ try {
       const movieResponse = await fetch(source, { cache: 'no-store', credentials: 'omit', redirect: 'error' })
       if (!movieResponse.ok) throw Error(`Original movie HTTP ${movieResponse.status}`)
       const movie = await movieResponse.arrayBuffer()
-      const container = await fetch('/node_modules/seer2-pet-animator/dist/assets/0a23df2694577cca.swf', {
+      const container = await fetch('/node_modules/seer2-pet-animator/dist/assets/37f0cd22be23b7c7.swf', {
         cache: 'no-store',
       }).then(response => response.arrayBuffer())
       window.compatEvents = []

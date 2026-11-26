@@ -164,6 +164,7 @@ const fieldNames: Record<string, string> = {
   fallback: '备用图片',
   cry: '叫声',
   sfx: '音效',
+  vfx: '特效',
   tags: '标签',
 }
 export const fieldLabel = (path: (string | number)[]) =>

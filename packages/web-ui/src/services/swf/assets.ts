@@ -2,6 +2,7 @@ import { sha256Hex } from '@arcadia-eternity/const'
 import { readBundledSwfContainer, readBundledRuffleFile } from '../resourceTransport'
 import { startMediaPreload } from '../mediaPreloadProgress'
 import { withPreloadBackoff } from '../mediaPreloadRetry'
+import { waitForMediaPriority } from '../mediaPriority'
 import { SharedReads } from '../sharedRead'
 
 const runtimeFiles = Object.keys(__RUFFLE_RUNTIME_SHA256__)
@@ -56,6 +57,8 @@ export async function readSwfRuntime(signal: AbortSignal) {
 
 export async function preloadSwfPlayer(signal: AbortSignal) {
   await withPreloadBackoff(signal, async () => {
+    await waitForMediaPriority('deferred', signal)
+    if (signal.aborted) return 0
     const files = ['container', ...(hasNativePlayer() ? [] : runtimeFiles)].filter(name => !ready.has(name))
     if (!files.length) return 0
     const batch = startMediaPreload('动画播放器', files.length, signal)

@@ -1,5 +1,18 @@
 # Changelog
 
+## [5.1.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v5.0.3...arcadia-eternity-v5.1.0) (2026-11-26)
+
+
+### ✨ Features
+
+* play original skill VFX at the attacker's hit ([704b835](https://github.com/arcadia-eternity/arcadia-eternity/commit/704b835325397f9a4421aefdffdd6f4b25fdacc5))
+
+
+### 🐛 Bug Fixes
+
+* **web:** prioritize battle-critical media and stop pet SWFs blocking battle entry ([18c2b26](https://github.com/arcadia-eternity/arcadia-eternity/commit/18c2b26d25ea369ecad57f0edbfd2008698f0de9))
+* **web:** release desktop SWF instances through a single idempotent dispose ([f991625](https://github.com/arcadia-eternity/arcadia-eternity/commit/f991625e710f4d01d1f0bb2c39669c837d973e35))
+
 ## [5.0.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v5.0.2...arcadia-eternity-v5.0.3) (2026-11-24)
 
 

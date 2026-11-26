@@ -99,7 +99,7 @@ export async function preparePresentation(
         if (key === 'battle') {
           check(presentation.battle!.source, presentation.battle!.renderer === 'image' ? 'image' : 'swf')
           if (presentation.battle!.fallback) check(presentation.battle!.fallback, 'image')
-        } else check(value, ['sfx', 'cry', 'music'].includes(key) ? 'audio' : 'image')
+        } else check(value, key === 'vfx' ? 'swf' : ['sfx', 'cry', 'music'].includes(key) ? 'audio' : 'image')
       }
     }
   }

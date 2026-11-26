@@ -103,7 +103,7 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
     if (notify) onEvent({ v: 1, instance, task, seq: ++incoming, type: 'error', message: message.slice(0, 240) })
     if (boundsFrame !== undefined) cancelAnimationFrame(boundsFrame)
     boundsFrame = undefined
-    void desktop?.dispose({ instance }).catch(() => {})
+    if (nativeCreated) void desktop?.dispose({ instance }).catch(() => {})
     nativeCreated = undefined
     nativeReady = false
     nativeLoaded = false
@@ -283,11 +283,18 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
       }
       return ready
     },
-    async setState(state: string) {
+    async setState(state: string, effect?: ArrayBuffer) {
       if (disposed || !SWF_STATES.includes(state as (typeof SWF_STATES)[number]))
         throw new Error('Invalid animation state')
+      // An invalid optional VFX is dropped; the attack itself still plays.
+      if (effect)
+        effect = await validateSwfFile(effect).then(
+          () => effect,
+          () => undefined,
+        )
+      if (disposed) throw new Error('Playback disposed')
       current = state
-      send({ ...command({ type: 'play' }), state } as SwfCommand)
+      send({ ...command({ type: 'play' }), state, ...(effect && { effect }) } as SwfCommand)
     },
     getState: () => current,
     configure(bounds: SwfBounds) {
@@ -305,14 +312,15 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
     },
     dispose() {
       if (disposed) return
-      send(command({ type: 'dispose' }))
+      // Desktop releases the native instance through desktop.dispose below; a dispose command would race it.
+      if (!desktop) send(command({ type: 'dispose' }))
       disposed = true
       if (boundsFrame !== undefined) cancelAnimationFrame(boundsFrame)
       reject?.(new Error('Playback disposed'))
       cleanup()
       unsubscribe?.()
       unsubscribeFrames?.()
-      void desktop?.dispose({ instance }).catch(() => {})
+      if (nativeCreated) void desktop?.dispose({ instance }).catch(() => {})
     },
   }
 }

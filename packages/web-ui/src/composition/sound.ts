@@ -68,7 +68,7 @@ export function useSound() {
     const source = victorySource()
     const environment = mediaEnvironment()
     if (!source || (victory?.source === source && victory.environment === environment)) return
-    const blob = await loadMedia('audio', source, preload.signal)
+    const blob = await loadMedia('audio', source, preload.signal, 'deferred')
     preload.signal.throwIfAborted()
     victory = { source, environment, blob }
   }

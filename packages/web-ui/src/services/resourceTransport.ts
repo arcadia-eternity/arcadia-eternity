@@ -58,6 +58,7 @@ export async function readResourceBytes(
     timeoutMs?: number
     bundledEnvironment?: boolean
     cache?: RequestCache
+    priority?: RequestPriority
   } = {},
   request: typeof fetch = fetch,
 ): Promise<Uint8Array> {
@@ -78,10 +79,11 @@ export async function readResourceBytes(
 }
 
 // This installed application asset is also available through Electron's local application protocol.
-const playerReadOptions = { idleTimeoutMs: 5 * 60_000, cache: 'default' } as const
+// Pets show static images until the player is ready, so its files never outrank battle media.
+const playerReadOptions = { idleTimeoutMs: 5 * 60_000, cache: 'default', priority: 'low' } as const
 
 export function readBundledSwfContainer(signal: AbortSignal) {
-  const url = new URL('../../node_modules/seer2-pet-animator/dist/assets/0a23df2694577cca.swf', import.meta.url)
+  const url = new URL('../../node_modules/seer2-pet-animator/dist/assets/37f0cd22be23b7c7.swf', import.meta.url)
   return readBytes(url, { ...playerReadOptions, signal, maxBytes: mediaLimits.swf }, fetch)
 }
 
@@ -98,6 +100,7 @@ async function readBytes(
     timeoutMs?: number
     idleTimeoutMs?: number
     cache?: RequestCache
+    priority?: RequestPriority
   },
   request: typeof fetch,
   owned?: OwnedResource,
@@ -144,6 +147,7 @@ async function readBytes(
             credentials: 'omit',
             redirect: 'error',
             referrerPolicy: 'no-referrer',
+            ...(options.priority && { priority: options.priority }),
             signal: controller.signal,
           }),
       aborted,

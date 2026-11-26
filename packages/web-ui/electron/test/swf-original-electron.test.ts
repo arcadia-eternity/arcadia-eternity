@@ -16,7 +16,7 @@ test(
       const playerPath = process.env.ARCADIA_SWF_PLAYER_PATH || join(base, '../public/swf-player.html')
       const runtimeDirectory = join(base, '../node_modules/@ruffle-rs/ruffle')
       const container = Array.from(
-          await readFile(join(base, '../node_modules/seer2-pet-animator/dist/assets/0a23df2694577cca.swf')),
+          await readFile(join(base, '../node_modules/seer2-pet-animator/dist/assets/37f0cd22be23b7c7.swf')),
         ),
         movie = Array.from(await readFile(process.env.ARCADIA_SWF_MOVIE))
       await writeFile(
@@ -118,8 +118,25 @@ test(
       )
       await owner.waitForFunction(() => window.events.some(x => x.type === 'hit'), { timeout: 10000 })
       await owner.waitForFunction(() => window.events.some(x => x.type === 'complete'), { timeout: 10000 })
+      if (process.env.ARCADIA_SWF_VFX) {
+        const effect = Array.from(await readFile(process.env.ARCADIA_SWF_VFX))
+        await owner.evaluate(async effect => {
+          window.events = window.events.filter(x => x.type !== 'hit' && x.type !== 'complete')
+          await window.qa.send({
+            v: 1,
+            instance: 'original-1',
+            task: 1,
+            seq: 3,
+            type: 'play',
+            state: '物理攻击',
+            effect: new Uint8Array(effect).buffer,
+          })
+        }, effect)
+        await owner.waitForFunction(() => window.events.some(x => x.type === 'hit'), { timeout: 10000 })
+        await owner.waitForFunction(() => window.events.some(x => x.type === 'complete'), { timeout: 10000 })
+      }
       await owner.evaluate(() =>
-        window.qa.send({ v: 1, instance: 'original-1', task: 1, seq: 3, type: 'play', state: '被打' }),
+        window.qa.send({ v: 1, instance: 'original-1', task: 1, seq: 4, type: 'play', state: '被打' }),
       )
       await owner.waitForFunction(() => window.events.some(x => x.type === 'complete' && x.state === '被打'), {
         timeout: 10000,

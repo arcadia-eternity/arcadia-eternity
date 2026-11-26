@@ -67,7 +67,7 @@ export function useMusic(autoPlay: boolean = true) {
         howlerInstance.value = null
         if (url) URL.revokeObjectURL(url)
       })
-      ready = loadMedia('audio', source, controller.signal).then(blob => {
+      ready = loadMedia('audio', source, controller.signal, 'deferred').then(blob => {
         controller.signal.throwIfAborted()
         const sourceUrl = URL.createObjectURL(blob)
         url = sourceUrl

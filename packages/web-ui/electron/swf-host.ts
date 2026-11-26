@@ -298,7 +298,12 @@ export function createSwfHost({
       if (!r.commands() || !validBounds(input)) throw new Error('Invalid SWF bounds')
       applyBounds(r, input)
     })
-    handle('swf:dispose', (event, input) => dispose(owned(event, input?.instance)))
+    handle('swf:dispose', (event, input) => {
+      const owner = controller(event)
+      // Idempotent: the host may already have released the instance (crash, watchdog, owner command).
+      const r = records.get(key(owner.webContents.id, input?.instance))
+      if (r) dispose(r)
+    })
     ipc.on('swf:frame-ack', frameAck)
     ipc.on('swf:heartbeat', heartbeat)
     ipc.on('swf:player-event', playerEvent)

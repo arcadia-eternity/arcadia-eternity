@@ -1,6 +1,7 @@
 import type { ServerEnvironmentContent } from '@arcadia-eternity/protocol'
 import { shallowReactive, toRaw } from 'vue'
 import { officialAssetUrl } from '../utils/officialAssetUrl'
+import type { MediaPriority } from './mediaPriority'
 
 export type MediaResource = {
   id: string
@@ -16,7 +17,7 @@ export type MediaEnvironment = {
   resources: MediaResource[]
   hashes: Map<string, string>
   battleUi?: Map<string, string>
-  promote?: (url: string) => void
+  promote?: (url: string, priority?: MediaPriority) => void
 }
 const environments = shallowReactive(new WeakMap<object, MediaEnvironment>())
 const localFiles = new Map<string, Set<{ url: string }>>()
