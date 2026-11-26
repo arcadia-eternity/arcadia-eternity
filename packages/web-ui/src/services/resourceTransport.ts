@@ -81,7 +81,7 @@ export async function readResourceBytes(
 const playerReadOptions = { idleTimeoutMs: 5 * 60_000, cache: 'default' } as const
 
 export function readBundledSwfContainer(signal: AbortSignal) {
-  const url = new URL('../../node_modules/seer2-pet-animator/dist/assets/0a23df2694577cca.swf', import.meta.url)
+  const url = new URL('../../node_modules/seer2-pet-animator/dist/assets/37f0cd22be23b7c7.swf', import.meta.url)
   return readBytes(url, { ...playerReadOptions, signal, maxBytes: mediaLimits.swf }, fetch)
 }
 

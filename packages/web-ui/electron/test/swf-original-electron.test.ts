@@ -16,7 +16,7 @@ test(
       const playerPath = process.env.ARCADIA_SWF_PLAYER_PATH || join(base, '../public/swf-player.html')
       const runtimeDirectory = join(base, '../node_modules/@ruffle-rs/ruffle')
       const container = Array.from(
-          await readFile(join(base, '../node_modules/seer2-pet-animator/dist/assets/0a23df2694577cca.swf')),
+          await readFile(join(base, '../node_modules/seer2-pet-animator/dist/assets/37f0cd22be23b7c7.swf')),
         ),
         movie = Array.from(await readFile(process.env.ARCADIA_SWF_MOVIE))
       await writeFile(

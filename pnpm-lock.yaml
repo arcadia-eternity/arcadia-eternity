@@ -789,8 +789,8 @@ importers:
         specifier: 'catalog:'
         version: 7.8.2
       seer2-pet-animator:
-        specifier: ^0.0.37
-        version: 0.0.37
+        specifier: ^0.0.38
+        version: 0.0.38
       semver:
         specifier: 7.8.6
         version: 7.8.6
@@ -6147,8 +6147,8 @@ packages:
   scule@1.3.0:
     resolution: {integrity: sha512-6FtHJEvt+pVMIB9IBY+IcCJ6Z5f1iQnytgyfKMhDKgmzYG+TeH/wx1y3l27rshSbLiSanrR9ffZDrEsmjlQF2g==}
 
-  seer2-pet-animator@0.0.37:
-    resolution: {integrity: sha512-yHcHWeXUdxoZ2GZJeo8sEQKecsphwLV8OfS697XzD8fI4YRe/A2jNl7d0J5oDzWNRhC8T16gtwjmT2egqhbZ/A==}
+  seer2-pet-animator@0.0.38:
+    resolution: {integrity: sha512-rJtaerF5qg2USPJcGIZDOkgo6XHg1jMw22fyY3Cvyx/E6d5yG2u+n8aQdmPWmTbQv8FvVbcE2GnjaVlSz8qb6g==}
 
   semver-compare@1.0.0:
     resolution: {integrity: sha512-YM3/ITh2MJ5MtzaM429anh+x2jiLVjqILF4m4oyQB18W7Ggea7BfqdH/wGMK7dDiMghv/6WG7znWMwUDzJiXow==}
@@ -12474,7 +12474,7 @@ snapshots:
 
   scule@1.3.0: {}
 
-  seer2-pet-animator@0.0.37:
+  seer2-pet-animator@0.0.38:
     dependencies:
       lit: 3.3.3
 
