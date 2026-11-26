@@ -103,7 +103,7 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
     if (notify) onEvent({ v: 1, instance, task, seq: ++incoming, type: 'error', message: message.slice(0, 240) })
     if (boundsFrame !== undefined) cancelAnimationFrame(boundsFrame)
     boundsFrame = undefined
-    void desktop?.dispose({ instance }).catch(() => {})
+    if (nativeCreated) void desktop?.dispose({ instance }).catch(() => {})
     nativeCreated = undefined
     nativeReady = false
     nativeLoaded = false
@@ -312,14 +312,15 @@ export function createSwfPlayer(element: HTMLElement, onEvent: SwfEventHandler):
     },
     dispose() {
       if (disposed) return
-      send(command({ type: 'dispose' }))
+      // Desktop releases the native instance through desktop.dispose below; a dispose command would race it.
+      if (!desktop) send(command({ type: 'dispose' }))
       disposed = true
       if (boundsFrame !== undefined) cancelAnimationFrame(boundsFrame)
       reject?.(new Error('Playback disposed'))
       cleanup()
       unsubscribe?.()
       unsubscribeFrames?.()
-      void desktop?.dispose({ instance }).catch(() => {})
+      if (nativeCreated) void desktop?.dispose({ instance }).catch(() => {})
     },
   }
 }
