@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.1.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v5.0.3...data-pack-base-v5.1.0) (2026-11-26)
+
+
+### ✨ Features
+
+* play original skill VFX at the attacker's hit ([704b835](https://github.com/arcadia-eternity/arcadia-eternity/commit/704b835325397f9a4421aefdffdd6f4b25fdacc5))
+
 ## [5.0.3](https://github.com/arcadia-eternity/arcadia-eternity/compare/data-pack-base-v5.0.2...data-pack-base-v5.0.3) (2026-11-24)
 
 
