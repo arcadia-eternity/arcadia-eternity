@@ -198,10 +198,7 @@ test('the local team-selection preset confirms teams and enters the native battl
   expect(await runtimeFormat(page)).toBe('arcadia.battle.native.v4')
 })
 
-for (const [name, routePattern] of [
-  ['last damage digit', '**/damageNumber/9.png'],
-  ['battle music', '**/music/battle/*.mp3'],
-] as const) {
+for (const [name, routePattern] of [['last damage digit', '**/damageNumber/9.png']] as const) {
   test(`waits for the ${name} before starting a cold battle`, async ({ page }) => {
     await prepareLocalBattle(page)
     const media = Promise.withResolvers<void>()
@@ -231,24 +228,29 @@ for (const [name, routePattern] of [
   })
 }
 
-test('a delayed KO sound does not hold back a cold battle', async ({ page }) => {
-  await prepareLocalBattle(page)
-  const media = Promise.withResolvers<void>()
-  const requested = page.waitForRequest('**/sound/battle/ko.mp3')
-  await page.route('**/sound/battle/ko.mp3', async route => {
-    await media.promise
-    await route.fallback()
+for (const [name, routePattern] of [
+  ['KO sound', '**/sound/battle/ko.mp3'],
+  ['battle music', '**/music/battle/*.mp3'],
+] as const) {
+  test(`a delayed ${name} does not hold back a cold battle`, async ({ page }) => {
+    await prepareLocalBattle(page)
+    const media = Promise.withResolvers<void>()
+    const requested = page.waitForRequest(routePattern)
+    await page.route(routePattern, async route => {
+      await media.promise
+      await route.fallback()
+    })
+    try {
+      await page.goto('/local-battle')
+      await page.getByRole('button', { name: '开始本地对战', exact: true }).click()
+      await requested
+      await expect(page.getByRole('button', { name: /^气力 ·/ })).toBeEnabled()
+      await expect(page.getByTestId('battle-loading-overlay')).toHaveCount(0)
+    } finally {
+      media.resolve()
+    }
   })
-  try {
-    await page.goto('/local-battle')
-    await page.getByRole('button', { name: '开始本地对战', exact: true }).click()
-    await requested
-    await expect(page.getByRole('button', { name: /^气力 ·/ })).toBeEnabled()
-    await expect(page.getByTestId('battle-loading-overlay')).toHaveCount(0)
-  } finally {
-    media.resolve()
-  }
-})
+}
 
 test('cold native startup tolerates delayed portraits without entering animation recovery', async ({ page }) => {
   await prepareLocalBattle(page, 10_000)

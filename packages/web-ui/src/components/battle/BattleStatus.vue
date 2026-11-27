@@ -286,7 +286,7 @@ const petStatsInfo = computed(() => {
 .battle-status {
   position: relative;
   grid-column: 1;
-  width: 508px;
+  width: 572px;
   height: 151px;
 }
 .battle-status--right {
@@ -294,7 +294,7 @@ const petStatsInfo = computed(() => {
 }
 .battle-status__panel {
   position: relative;
-  width: 381px;
+  width: 429px;
   height: 110px;
   scale: calc(4 / 3);
   transform-origin: top left;

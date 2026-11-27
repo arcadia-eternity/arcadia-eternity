@@ -53,14 +53,20 @@ function useMeterTimeline(target: Readonly<Ref<number>>, queueTargets = false) {
     queue.length = 0
   }
 
+  // Move at the original 24 frames per second, interpolated on every display refresh.
   function advance(now: number) {
     animation = undefined
-    // Consume elapsed 24 Hz ticks even when display refresh is slower.
-    while (queue.length && now - lastTick >= frameDuration - 0.0001) {
-      lastTick += frameDuration
-      frame.value += Math.sign(queue[0] - frame.value)
-      if (frame.value === queue[0]) queue.shift()
+    let budget = Math.max(0, now - lastTick) / frameDuration
+    lastTick = now
+    let position = frame.value
+    while (queue.length && budget > 0) {
+      const distance = queue[0] - position
+      const step = Math.min(Math.abs(distance), budget)
+      position += Math.sign(distance) * step
+      budget -= step
+      if (Math.abs(queue[0] - position) < 1e-6) position = queue.shift()!
     }
+    frame.value = position
     if (queue.length) animation = requestAnimationFrame(advance)
   }
 
@@ -93,10 +99,10 @@ const gradientId = useId()
 const hpMultipliers = [256, 244, 236, 229, 223, 219, 214, 210, 206, 201, 195, 188, 179, 167, 147, 118, 81, 45, 18]
 const hpGreen = [255, 242, 228, 215, 201, 188, 174, 161, 148, 134, 121, 107, 94, 81, 67, 54, 40, 27, 13, 0]
 
-function fillColors(frame: number, kind: 'hp' | 'rage') {
+function frameColors(frame: number, kind: 'hp' | 'rage') {
   if (kind === 'hp') {
     if (frame >= 20) {
-      const color = `rgb(255, ${hpGreen[frame - 20]}, 0)`
+      const color = [255, hpGreen[frame - 20], 0]
       return [color, color]
     }
     const multiplier = hpMultipliers[frame - 1]
@@ -113,7 +119,19 @@ function fillColors(frame: number, kind: 'hp' | 'rage') {
 
 function transformColor(base: number[], multiplier: number, red: number, green: number) {
   const add = [red, green, 0]
-  return `rgb(${base.map((value, index) => Math.min(255, Math.round((value * multiplier) / 256 + add[index]))).join(', ')})`
+  return base.map((value, index) => Math.min(255, (value * multiplier) / 256 + add[index]))
+}
+
+// Blend the authored colors of the two neighbouring frames.
+function fillColors(position: number, kind: 'hp' | 'rage') {
+  const from = Math.floor(position)
+  const to = Math.min(emptyFrame - 1, from + 1)
+  const weight = position - from
+  const [a, b] = [frameColors(from, kind), frameColors(to, kind)]
+  return a.map(
+    (color, stop) =>
+      `rgb(${color.map((value, index) => Math.round(value + (b[stop][index] - value) * weight)).join(', ')})`,
+  )
 }
 
 const meters = computed(() =>
@@ -125,11 +143,11 @@ const meters = computed(() =>
         current: props.current,
         max: props.max,
         frame: hpFrame.value,
-        width: 260,
+        width: 306,
         height: 18,
         fullScale: 0.9629822,
         lastScale: 0.007675171,
-        shape: 'M0 3 8 0H268L270 4 257 18H0Z',
+        shape: 'M0 3 8 0H316L318 4 305 18H0Z',
         modifier: analyzeModifierType(props.currentHpModifierInfo, 'currentHp'),
         currentInfo: props.currentHpModifierInfo,
         maxInfo: props.maxHpModifierInfo,
@@ -140,21 +158,25 @@ const meters = computed(() =>
         current: props.rage,
         max: props.maxRage,
         frame: rageFrame.value,
-        width: 246,
+        width: 294,
         height: 12.25,
         fullScale: 1,
         lastScale: 0.004043579,
-        shape: 'M0 3 6 0H246L243 6 237 12.25H0Z',
+        shape: 'M0 3 6 0H294L291 6 285 12.25H0Z',
         modifier: analyzeModifierType(props.rageModifierInfo, 'currentRage'),
         currentInfo: props.rageModifierInfo,
         maxInfo: props.maxRageModifierInfo,
       },
     ] as const
-  ).map(meter => ({
-    ...meter,
-    scale: meter.fullScale - ((meter.fullScale - meter.lastScale) * (meter.frame - 1)) / 38,
-    colors: meter.frame === emptyFrame ? [] : fillColors(meter.frame, meter.kind),
-  })),
+  ).map(meter => {
+    const position = Math.min(meter.frame, emptyFrame - 1)
+    return {
+      ...meter,
+      empty: meter.frame >= emptyFrame,
+      scale: meter.fullScale - ((meter.fullScale - meter.lastScale) * (position - 1)) / 38,
+      colors: meter.frame >= emptyFrame ? [] : fillColors(position, meter.kind),
+    }
+  }),
 )
 </script>
 <template>
@@ -174,10 +196,10 @@ const meters = computed(() =>
           class="battle-bars__visual"
           :width="meter.width"
           :height="meter.height"
-          :data-frame="meter.frame"
+          :data-frame="Math.round(meter.frame)"
           aria-hidden="true"
         >
-          <defs v-if="meter.frame !== emptyFrame">
+          <defs v-if="!meter.empty">
             <linearGradient :id="`${gradientId}-${meter.kind}`" x2="0" y2="1">
               <stop offset="0" :stop-color="meter.colors[1]" />
               <stop offset=".42" :stop-color="meter.colors[0]" />
@@ -185,7 +207,7 @@ const meters = computed(() =>
             </linearGradient>
           </defs>
           <path
-            v-if="meter.frame !== emptyFrame"
+            v-if="!meter.empty"
             class="battle-bars__fill"
             :d="meter.shape"
             :fill="`url(#${gradientId}-${meter.kind})`"
@@ -217,14 +239,14 @@ const meters = computed(() =>
   top: 10px;
   --fill-anchor: 111px;
   --value-top: 3px;
-  --meter-width: 260px;
+  --meter-width: 306px;
   --meter-height: 18px;
 }
 .battle-bars__row--rage {
   top: 33px;
   --fill-anchor: 110px;
   --value-top: 0px;
-  --meter-width: 246px;
+  --meter-width: 294px;
   --meter-height: 12.25px;
 }
 .battle-bars__label {
@@ -252,7 +274,7 @@ const meters = computed(() =>
 }
 .battle-bars__value {
   position: absolute;
-  left: calc(190px - var(--fill-anchor));
+  left: 50%;
   top: var(--value-top);
   display: grid;
   grid-template-columns: 1fr 12px 1fr;
@@ -283,11 +305,6 @@ const meters = computed(() =>
   scale: -1 1;
 }
 .battle-bars--reverse .battle-bars__label {
-  left: 274px;
-}
-.battle-bars--reverse .battle-bars__value {
-  left: auto;
-  right: calc(240px - var(--fill-anchor));
-  transform: translateX(50%);
+  left: 322px;
 }
 </style>

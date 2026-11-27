@@ -198,23 +198,11 @@ const skillMarkRelations = computed(() => {
                 <span class="battle-skill__name">{{ name }}</span>
                 <div class="battle-skill__stat battle-skill__stat--power">
                   <span>{{ i18next.t('power', { ns: 'battle' }) }}</span>
-                  <ModifiedValue
-                    :value="skill.power"
-                    :attribute-info="powerModifierInfo"
-                    :class="{ 'battle-skill__value--base': !powerModifierInfo?.isModified }"
-                    size="sm"
-                    inline
-                  />
+                  <ModifiedValue :value="skill.power" :attribute-info="powerModifierInfo" size="sm" inline />
                 </div>
                 <div class="battle-skill__stat battle-skill__stat--rage">
                   <span>{{ i18next.t('rage', { ns: 'battle' }) }}</span>
-                  <ModifiedValue
-                    :value="skill.rage"
-                    :attribute-info="rageModifierInfo"
-                    :class="{ 'battle-skill__value--base': !rageModifierInfo?.isModified }"
-                    size="sm"
-                    inline
-                  />
+                  <ModifiedValue :value="skill.rage" :attribute-info="rageModifierInfo" size="sm" inline />
                 </div>
               </div>
             </div>
@@ -333,72 +321,45 @@ const skillMarkRelations = computed(() => {
   padding: 0;
   text-align: left;
   cursor: pointer;
-  border-radius: 9px;
+  border-radius: 12px;
+  transition:
+    filter 0.12s,
+    box-shadow 0.12s;
 }
 .battle-skill:disabled {
-  filter: brightness(0.5);
+  opacity: 0.5;
   cursor: not-allowed;
 }
-@media (hover: hover) {
-  .battle-skill:hover:not(:disabled, :active) :deep(.battle-frame--skill) {
-    filter: invert(0.87) hue-rotate(160deg) saturate(1.4) brightness(1.2);
-  }
+.battle-skill:hover:not(:disabled) {
+  filter: brightness(1.22);
+  box-shadow:
+    0 0 12px #66ffff30,
+    inset 0 0 12px #66ffff20;
+}
+.battle-skill:active:not(:disabled) {
+  filter: brightness(0.9);
 }
 .battle-skill:focus-visible {
   outline: 2px solid var(--battle-cyan);
   outline-offset: 4px;
 }
-/* Scale the old brief’s 156 × 83 anchors to the current card. */
+/* UI_FightSkillBrief positions mapped from the original 158 × 85 symbol. */
 .battle-skill__content {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  color: #fff25d;
-  font:
-    400 14px/19px 'SimSun',
-    'Songti SC',
-    'Noto Serif CJK SC',
-    serif;
-  text-shadow:
-    0 0 2px #000,
-    0 0 3px #000,
-    0 1px 2px #000;
+  color: var(--battle-gold);
+  text-shadow: 1px 1px #000;
 }
 .battle-skill__element {
   position: absolute;
-  left: 8.3%;
-  top: 18%;
-  width: 24%;
-  aspect-ratio: 1;
-  max-height: 46%;
+  left: 6.96%;
+  top: 15.29%;
+  width: 25.32%;
+  height: 47.06%;
   display: grid;
   place-items: center;
   border-radius: 50%;
-  isolation: isolate;
-}
-/* Radar medallion behind the element icon, drawn at the icon's position so it follows the card layout. */
-.battle-skill__element::before,
-.battle-skill__element::after {
-  content: '';
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-}
-.battle-skill__element::before {
-  inset: -9%;
-  background:
-    linear-gradient(#8fdcec38, #8fdcec38) center / 100% 1px no-repeat,
-    linear-gradient(#8fdcec38, #8fdcec38) center / 1px 100% no-repeat,
-    radial-gradient(#8deef930, #8deef908 70%);
-  border: 1px solid #9af4ff48;
-}
-.battle-skill__element::after {
-  inset: 9%;
-  border: 1px dashed #8fdcec40;
-}
-.battle-skill__element :deep(.element-icon) {
-  position: relative;
-  z-index: 1;
 }
 .battle-skill__element--strong {
   box-shadow:
@@ -411,51 +372,51 @@ const skillMarkRelations = computed(() => {
     0 0 5px #08101c;
 }
 .battle-skill__element :deep(img) {
-  width: 74% !important;
-  height: 74% !important;
+  width: 80% !important;
+  height: 80% !important;
   min-height: 0 !important;
   object-fit: contain;
 }
 .battle-skill__category {
   position: absolute;
-  left: 5.13%;
-  top: 71.08%;
-  width: 30%;
+  left: 5.06%;
+  top: 67.06%;
+  width: 29.11%;
+  font-size: 14px;
+  line-height: 19px;
   text-align: center;
 }
 .battle-skill__name {
   position: absolute;
-  left: 40.38%;
-  top: 18.07%;
+  left: 39.87%;
+  top: 15.29%;
   right: 5%;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .battle-skill__stat {
   position: absolute;
-  left: 40.38%;
-  right: 0;
+  left: 39.87%;
+  right: 7%;
   display: grid;
-  grid-template-columns: minmax(max-content, 38.7%) minmax(0, 1fr);
+  grid-template-columns: 41.6% minmax(0, 1fr);
   align-items: center;
+  font-size: 15px;
+  line-height: 19px;
 }
 .battle-skill__stat--power {
-  top: 44.58%;
-}
-.battle-skill__stat--power > span {
-  color: #d3c850;
+  top: 40.59%;
 }
 .battle-skill__stat--rage {
-  top: 71.08%;
+  top: 66.47%;
 }
 .battle-skill__stat :deep(span) {
   font-size: inherit;
   line-height: inherit;
-  font-weight: inherit;
-}
-.battle-skill__value--base :deep(span) {
-  color: inherit;
 }
 .battle-skill--climax:not(:disabled) {
   box-shadow: 0 0 8px #62e7f464;
