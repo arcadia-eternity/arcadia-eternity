@@ -10,6 +10,7 @@ it('classifies only public unicast addresses as reachable', () => {
     '192.168.1.1',
     '169.254.169.254',
     '100.64.0.1',
+    '198.18.0.1',
     '0.0.0.0',
     '224.0.0.1',
     '::1',

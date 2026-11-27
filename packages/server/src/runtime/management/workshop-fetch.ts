@@ -3,7 +3,6 @@ import { request } from 'node:https'
 import { BlockList, isIP, type LookupFunction } from 'node:net'
 import { WorkshopError, type WorkshopFetch } from '@arcadia-eternity/pack-loader/workshop'
 
-// 198.18.0.0/15 stays reachable: fake-IP proxies (for example Clash) answer every name from it.
 const reserved = new BlockList()
 for (const [network, prefix] of [
   ['0.0.0.0', 8],
@@ -16,6 +15,7 @@ for (const [network, prefix] of [
   ['192.0.2.0', 24],
   ['192.88.99.0', 24],
   ['192.168.0.0', 16],
+  ['198.18.0.0', 15],
   ['198.51.100.0', 24],
   ['203.0.113.0', 24],
   ['224.0.0.0', 4],
