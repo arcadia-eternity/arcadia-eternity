@@ -409,6 +409,9 @@ importers:
       semver:
         specifier: 7.8.6
         version: 7.8.6
+      sigstore:
+        specifier: 5.0.1
+        version: 5.0.1(supports-color@10.2.2)
       simple-git:
         specifier: 4.1.0
         version: 4.1.0(supports-color@10.2.2)
@@ -8035,7 +8038,7 @@ snapshots:
     dependencies:
       '@hono/node-server': 2.1.6(hono@4.13.17)
       ajv: 8.20.0
-      ajv-formats: 3.0.1(ajv@8.20.0)
+      ajv-formats: 3.0.1
       content-type: 1.0.5
       cors: 2.8.6
       cross-spawn: 7.0.6
@@ -9792,8 +9795,8 @@ snapshots:
 
   agent-base@9.0.0: {}
 
-  ajv-formats@3.0.1(ajv@8.20.0):
-    optionalDependencies:
+  ajv-formats@3.0.1:
+    dependencies:
       ajv: 8.20.0
 
   ajv@6.15.0:
