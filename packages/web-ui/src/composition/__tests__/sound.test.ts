@@ -1,11 +1,13 @@
 import { mount, flushPromises } from '@vue/test-utils'
-import { defineComponent, h } from 'vue'
+import { defineComponent, h, nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { registerMediaEnvironment } from '@/services/mediaLoader'
 import { useMusic } from '../music'
 import { setServerContentText } from '@/i18n/serverContent'
 import { useSound } from '../sound'
+import { useGameSettingStore } from '@/stores/gameSetting'
+import loadingEnterAudio from '@/assets/battle/sounds/loading-enter.mp3'
 import type { baseSkillId } from '@arcadia-eternity/const'
 
 const mocks = vi.hoisted(() => ({
@@ -209,5 +211,59 @@ it('prepares the declared KO sound before the first playback and reuses its blob
     expect(mocks.bytes).toHaveBeenCalledTimes(1)
   } finally {
     wrapper.unmount()
+  }
+})
+
+it('plays bundled loading audio with the current settings and honors an active pack override', async () => {
+  const catalog = { species: [], skills: [], marks: [] }
+  const override = 'https://audio.test/loading-vanish.ogg'
+  registerMediaEnvironment(catalog, 'loading-test', [
+    { id: 'exit', source: override, tags: ['battle-ui:loading-vanish'] },
+  ])
+  setServerContentText(catalog)
+  mocks.bytes.mockResolvedValue(new Uint8Array([79, 103, 103, 83]))
+  vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:loading-vanish')
+  vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+
+  const playback = vi.fn()
+  vi.stubGlobal(
+    'Audio',
+    class {
+      volume = 1
+      muted = false
+      constructor(source: string) {
+        playback(source, this)
+      }
+      play = vi.fn(async () => {})
+      pause = vi.fn()
+      addEventListener = vi.fn()
+    },
+  )
+  const settings = useGameSettingStore()
+  const { sound, wrapper } = consumer()
+  const previous = { soundVolume: settings.soundVolume, soundMute: settings.soundMute, mute: settings.mute }
+  try {
+    settings.$patch({ soundVolume: 35, soundMute: false, mute: false })
+    sound.playLoadingSound('enter')
+    expect(playback).toHaveBeenCalledWith(loadingEnterAudio, expect.objectContaining({ volume: 0.35, muted: false }))
+    expect(mocks.bytes).not.toHaveBeenCalled()
+
+    settings.soundMute = true
+    sound.playLoadingSound('vanish')
+    await nextTick()
+    expect(mocks.bytes).not.toHaveBeenCalled()
+    expect(playback.mock.calls[0]![1].muted).toBe(true)
+
+    settings.soundMute = false
+    sound.playLoadingSound('vanish')
+    await flushPromises()
+    expect(mocks.bytes).toHaveBeenCalledWith(override, expect.any(Object))
+    expect(playback).toHaveBeenLastCalledWith(
+      'blob:loading-vanish',
+      expect.objectContaining({ volume: 0.35, muted: false }),
+    )
+  } finally {
+    wrapper.unmount()
+    settings.$patch(previous)
   }
 })

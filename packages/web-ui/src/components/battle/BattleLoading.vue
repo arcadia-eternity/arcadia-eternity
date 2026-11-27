@@ -1,84 +1,247 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import loadingGrid from '@/assets/battle/loading-grid.svg'
-import type { PlayerMessage } from '@arcadia-eternity/const'
-import { useGameDataStore } from '@/stores/gameData'
-import PetIcon from '../PetIcon.vue'
-import BattleFrame from './BattleFrame.vue'
-import BattleGlyph from './BattleGlyph.vue'
+import { computed, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
+import { useElementSize, usePreferredReducedMotion } from '@vueuse/core'
+import type { PetMessage, PlayerMessage } from '@arcadia-eternity/const'
 import type { PreparationTask } from '@/composition/useBattlePreparation'
+import { useSound } from '@/composition/sound'
+import { useGameDataStore } from '@/stores/gameData'
+import backdrop from '@/assets/battle/loading/backdrop.svg'
+import tipStrip from '@/assets/battle/loading/tip-strip.svg'
+import shade from '@/assets/battle/loading/shade.svg'
+import band from '@/assets/battle/loading/band.svg'
+import glass from '@/assets/battle/loading/glass.svg'
+import flash from '@/assets/battle/loading/flash.svg'
+import versus from '@/assets/battle/loading/vs.svg'
+// Trusted repository asset; its stroke uses currentColor for the authored tint.
+import versusOutline from '@/assets/battle/loading/vs-outline.svg?raw'
+import gear from '@/assets/battle/loading/gear.svg'
+import spark from '@/assets/battle/loading/spark.svg'
+import levelSign from '@/assets/battle/loading/level-sign.svg'
+import percentSign from '@/assets/battle/loading/percent.svg'
+import ElementIcon from './ElementIcon.vue'
+import PetIcon from '../PetIcon.vue'
+
 const props = defineProps<{
   left?: PlayerMessage | null
   right?: PlayerMessage | null
-  background?: string | null
   tasks: PreparationTask[]
   progress: number
   error: string | null
   replay?: boolean
+  motion?: 'standard' | 'simple' | 'reduced'
 }>()
-defineEmits<{ retry: []; exit: [] }>()
+const emit = defineEmits<{ retry: []; exit: []; finished: [] }>()
 const data = useGameDataStore()
-const teams = computed(() => [props.left, props.right])
-const activeTask = computed(() => props.tasks.find(t => t.state === 'loading')?.label ?? '正在准备战场')
+const { playLoadingSound } = useSound()
+const preferredMotion = usePreferredReducedMotion()
+const animate = computed(() => preferredMotion.value !== 'reduce' && (!props.motion || props.motion === 'standard'))
+// #572 closes when its vanish label (frame 56) reaches frame 81, at 24 fps.
+const exitDuration = computed(() => (animate.value ? Math.round((25 * 1000) / 24) : 140))
+// The entrance reaches its frame-40 resting state after 1,625 ms; hold the matchup briefly before vanishing.
+const minimumDwell = computed(() => (animate.value ? 1625 + 875 : 0))
+
+// The original client scales its 1200×660 loader independently on each axis.
+const root = useTemplateRef<HTMLElement>('root')
+const { width, height } = useElementSize(root)
+const stageScale = computed(() => `scale(${(width.value || 1200) / 1200}, ${(height.value || 660) / 660})`)
+
+const digitGlyphs = import.meta.glob<string>('../../assets/battle/loading/digit-*.svg', {
+  import: 'default',
+  eager: true,
+})
+const gears = [
+  'matrix(.9982,.05997,-.05997,.9982,48.7,.2)',
+  'matrix(.5517,-.0652,.0652,.5517,-1.5,7.15)',
+  'matrix(-.99754,-.07005,-.07005,.99754,60.9,32.5)',
+]
+
+function petIcon(pet?: PetMessage) {
+  const species = pet && !pet.isUnknown ? data.getSpecies(pet.speciesID) : undefined
+  return { id: species?.num ?? 0, species, isUnknown: !pet || pet.isUnknown }
+}
+
+const teams = computed(() =>
+  [props.left, props.right].map(player => {
+    const [lead, ...reserves] = player?.team ?? []
+    return {
+      name: player?.name ?? '等待玩家',
+      level: lead && !lead.isUnknown && lead.level > 0 ? lead.level : undefined,
+      element: lead && !lead.isUnknown ? lead.element : undefined,
+      lead: petIcon(lead),
+      reserves: reserves.map(pet => ({ key: pet.id, icon: petIcon(pet) })),
+    }
+  }),
+)
+const tips = ['留意怒气消耗与属性相性，把握释放必杀的时机。', '出手慢时，试试先制技能。', '遇到不利属性时，考虑换宠。']
+const tipIndex = ref(0)
+let tipTimer: ReturnType<typeof setInterval> | undefined
+const heading = computed(() => (props.replay ? '战斗回放' : '准备对战'))
+const status = computed(() => {
+  if (props.error) return '准备失败'
+  if (props.progress >= 100) return '准备完成'
+  return props.tasks.find(task => task.state === 'loading')?.label ?? '正在准备战场'
+})
+
+const shownProgress = ref(0)
+const exiting = ref(false)
+let exitCuePlayed = false
+// Three right-aligned slots with leading zeroes hidden, as in the original counter.
+const digits = computed(() => {
+  const value = String(shownProgress.value).padStart(3, ' ')
+  return [...value].map(char =>
+    char === ' ' ? undefined : { char, src: digitGlyphs[`../../assets/battle/loading/digit-${char}.svg`] },
+  )
+})
+
+watch(
+  () => props.progress,
+  progress => {
+    if (Number.isFinite(progress))
+      shownProgress.value = Math.max(shownProgress.value, Math.min(100, Math.floor(progress)))
+  },
+  { immediate: true },
+)
+
+const dwellElapsed = ref(false)
+const dwellRun = ref(0)
+let dwellStart = Date.now()
+watch(
+  [minimumDwell, dwellRun],
+  ([dwell], _, onCleanup) => {
+    const remaining = dwellStart + dwell - Date.now()
+    dwellElapsed.value = remaining <= 0
+    if (remaining <= 0) return
+    const timer = setTimeout(() => (dwellElapsed.value = true), remaining)
+    onCleanup(() => clearTimeout(timer))
+  },
+  { immediate: true },
+)
+
+function restart() {
+  shownProgress.value = 0
+  dwellStart = Date.now()
+  dwellRun.value++
+  emit('retry')
+}
+
+onMounted(() => {
+  if (!props.error) playLoadingSound('enter')
+  tipTimer = setInterval(() => {
+    tipIndex.value = (tipIndex.value + 1) % tips.length
+  }, 3000)
+
+  watch(
+    [() => props.progress, () => props.error, exitDuration, dwellElapsed],
+    ([progress, error, duration, elapsed], _, onCleanup) => {
+      const ready = Number.isFinite(progress) && progress >= 100 && !error
+      exiting.value = ready && (exiting.value || elapsed)
+      if (!exiting.value) return
+      if (!exitCuePlayed) {
+        exitCuePlayed = true
+        playLoadingSound('vanish')
+      }
+      const exitTimer = setTimeout(() => emit('finished'), duration)
+      onCleanup(() => clearTimeout(exitTimer))
+    },
+    { immediate: true },
+  )
+})
+onUnmounted(() => clearInterval(tipTimer))
 </script>
+
 <template>
-  <section class="battle-loading" data-testid="battle-loading-overlay" :aria-busy="!error" aria-label="准备对战">
-    <div class="battle-loading__backdrop" :style="{ backgroundImage: `url(${loadingGrid})` }" aria-hidden="true">
-      <div class="battle-loading__scan"></div>
-    </div>
-    <div class="battle-loading__content">
-      <div class="battle-loading__eyebrow">ARCADIA ETERNITY</div>
-      <h1>{{ replay ? '战斗回放' : '准备对战' }}</h1>
-      <div class="battle-loading__versus">
-        <div v-for="(team, side) in teams" :key="side" class="battle-loading__team">
-          <BattleFrame :reverse="side === 1" />
-          <span class="battle-loading__side">{{ side === 0 ? '我方阵容' : '对方阵容' }}</span>
-          <h2>{{ team?.name || '等待玩家' }}</h2>
-          <div class="battle-loading__pets">
-            <div v-for="pet in team?.team || []" :key="pet.id" class="battle-loading__pet">
-              <PetIcon
-                :id="pet.isUnknown ? 0 : (data.getSpecies(pet.speciesID)?.num ?? 0)"
-                :is-unknown="!!pet.isUnknown"
-                :species="pet.isUnknown ? undefined : data.getSpecies(pet.speciesID)"
-                :reverse="side === 1"
-              />
-            </div>
-            <BattleGlyph v-if="!team?.team?.length" name="shield" />
+  <section
+    ref="root"
+    class="battle-loading"
+    :class="{ 'battle-loading--animated': animate, 'battle-loading--exiting': exiting }"
+    :style="{ '--loading-exit-duration': `${exitDuration}ms` }"
+    data-testid="battle-loading-overlay"
+    :aria-busy="!error && !exiting"
+    :aria-label="heading"
+  >
+    <div class="battle-loading__stage" :style="{ transform: stageScale }">
+      <h1 class="sr-only">{{ heading }}</h1>
+      <img class="battle-loading__backdrop" :src="backdrop" alt="" />
+
+      <div v-if="!error" class="battle-loading__animation" aria-hidden="true">
+        <img class="battle-loading__shade" :src="shade" alt="" />
+        <div class="battle-loading__band-mask"><img :src="band" alt="" /></div>
+        <!-- eslint-disable-next-line vue/no-v-html -->
+        <div class="battle-loading__outline"><span v-html="versusOutline"></span></div>
+        <img class="battle-loading__flash" :src="flash" alt="" />
+        <div class="battle-loading__glass battle-loading__glass--left"><img :src="glass" alt="" /></div>
+        <div class="battle-loading__glass battle-loading__glass--right"><img :src="glass" alt="" /></div>
+        <div class="battle-loading__gears">
+          <div v-for="matrix in gears" :key="matrix" :style="{ transform: matrix }">
+            <img :src="gear" alt="" />
           </div>
         </div>
-        <div class="battle-loading__vs" aria-label="对阵">
-          <svg viewBox="0 0 100 100" aria-hidden="true">
-            <path d="M50 3 97 50 50 97 3 50Z" />
-            <path d="M50 13 87 50 50 87 13 50Z" /></svg
-          ><span>VS</span>
-        </div>
+        <div class="battle-loading__spark"><img :src="spark" alt="" /></div>
+        <div class="battle-loading__versus"><img :src="versus" alt="" /></div>
       </div>
+
       <div
         class="battle-loading__progress"
         role="progressbar"
         aria-label="战斗准备进度"
-        :aria-valuenow="progress"
+        :aria-valuenow="shownProgress"
+        :aria-valuetext="`${shownProgress}%`"
         :aria-valuemin="0"
         :aria-valuemax="100"
       >
-        <div class="battle-loading__status">
-          <span role="status">{{ error ? '准备失败' : activeTask }}</span
-          ><span>{{ progress }}%</span>
-        </div>
-        <div class="battle-loading__track"><div :style="{ transform: `scaleX(${progress / 100})` }"></div></div>
+        <template v-for="(digit, index) in digits" :key="index">
+          <img
+            v-if="digit"
+            class="battle-loading__digit"
+            :style="{ left: `${565.55 + 23 * index}px` }"
+            :data-digit="digit.char"
+            :src="digit.src"
+            alt=""
+          />
+        </template>
+        <img class="battle-loading__percent" :src="percentSign" alt="" />
+      </div>
+
+      <div v-if="!error" class="battle-loading__matchup">
+        <article
+          v-for="(team, side) in teams"
+          :key="side"
+          class="battle-loading__fighter"
+          :class="`battle-loading__fighter--${side ? 'right' : 'left'}`"
+        >
+          <h2 :title="team.name">{{ team.name }}</h2>
+          <img class="battle-loading__level-sign" :src="levelSign" alt="" />
+          <span v-if="team.level !== undefined" class="battle-loading__level" :aria-label="`等级 ${team.level}`">{{
+            team.level
+          }}</span>
+          <div class="battle-loading__portrait"><PetIcon v-bind="team.lead" :reverse="side === 1" /></div>
+          <ElementIcon v-if="team.element" class="battle-loading__element" :element="team.element" :size="20" />
+          <ul v-if="team.reserves.length" class="battle-loading__reserves" :aria-label="`${team.name}后备精灵`">
+            <li v-for="pet in team.reserves" :key="pet.key"><PetIcon v-bind="pet.icon" :reverse="side === 1" /></li>
+          </ul>
+        </article>
+      </div>
+
+      <div v-if="!error" class="battle-loading__tip">
+        <img :src="tipStrip" alt="" />
+        <p>小贴士:{{ tips[tipIndex] }}</p>
+      </div>
+
+      <div class="battle-loading__readiness">
+        <span class="sr-only" role="status">{{ status }}</span>
         <ol class="battle-loading__tasks">
           <li v-for="task in tasks" :key="task.id" :data-state="task.state">
-            <span class="battle-loading__dot"></span>{{ task.label
-            }}<span v-if="task.state === 'degraded'"> · 简化显示</span>
+            <span class="battle-loading__dot" aria-hidden="true"></span>{{ task.label }}
+            <span v-if="task.state === 'degraded'" class="battle-loading__degraded">简化显示</span>
           </li>
         </ol>
       </div>
+
       <div v-if="error" class="battle-loading__error" role="alert">
         <p>{{ error }}</p>
-        <button class="battle-control" @click="$emit('retry')">重试</button
-        ><button class="battle-control" @click="$emit('exit')">返回</button>
+        <button type="button" class="battle-control" @click="restart">重试</button>
+        <button type="button" class="battle-control" @click="emit('exit')">返回</button>
       </div>
-      <p v-else class="battle-loading__tip">战术提示 · 留意怒气消耗与属性相性，把握释放必杀的时机。</p>
     </div>
   </section>
 </template>

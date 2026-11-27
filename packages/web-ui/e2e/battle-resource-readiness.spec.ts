@@ -48,25 +48,60 @@ async function completeCallbacks(page: Page, index: number) {
     .evaluate(renderer => renderer.dispatchEvent(new Event('test-ready')))
 }
 
-test('the loading radar fits the battle viewport throughout its rotation', async ({ page }) => {
-  await page.addInitScript(() => {
-    const observer = new MutationObserver(() => {
-      const overlay = document.querySelector('[data-testid="battle-loading-overlay"]')
-      const [animation] = overlay?.querySelector('.battle-loading__scan')?.getAnimations() ?? []
-      if (!overlay || !animation) return
-      observer.disconnect()
-      animation.pause()
-      const overflow = [0, 1000, 2000, 3000].map(time => {
-        animation.currentTime = time
-        return overlay.scrollHeight - overlay.clientHeight
-      })
-      document.documentElement.dataset.loadingOverflow = JSON.stringify(overflow)
+test('the loading indicator fits the battle viewport throughout its rotation', async ({ page }, testInfo) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.addInitScript(() => localStorage.setItem('gameSetting.battleMotion', '"standard"'))
+  // Keep the page in its real loading state without depending on a pet renderer.
+  let releaseBackground!: () => void
+  const background = new Promise<void>(resolve => (releaseBackground = resolve))
+  await page.route(/\/src\/composition\/useBattlePreparation\.ts(?:\?|$)/, async route => {
+    const response = await route.fetch()
+    const source = await response.text()
+    const startJob = 'const work = job.run();'
+    expect(source).toContain(startJob)
+    await route.fulfill({
+      response,
+      body: source.replace(
+        startJob,
+        `const work = job.id === 'background' ? fetch('/test-loading-background').then(() => job.run()) : job.run();`,
+      ),
     })
-    observer.observe(document, { childList: true, subtree: true })
+  })
+  await page.route('**/test-loading-background', async route => {
+    await background
+    await route.fulfill({ status: 204 })
   })
   await page.goto('/local-battle')
   await page.getByRole('button', { name: '开始本地对战' }).click()
-  await expect(page.locator('html')).toHaveAttribute('data-loading-overflow', '[0,0,0,0]')
+  const overlay = page.getByTestId('battle-loading-overlay')
+  try {
+    await expect(overlay).toBeVisible()
+    const overflow = await overlay.evaluate(root => {
+      const sweep = root.querySelector('.battle-loading__gears img')!
+      const [rotation] = sweep.getAnimations()
+      if (!rotation) throw new Error('Loading indicator is not rotating')
+      rotation.pause()
+      const viewport = root.getBoundingClientRect()
+      return [0, 1000, 2000, 3000].map(time => {
+        rotation.currentTime = time
+        const bounds = sweep.getBoundingClientRect()
+        return [
+          root.scrollWidth - root.clientWidth,
+          root.scrollHeight - root.clientHeight,
+          bounds.left >= viewport.left && bounds.right <= viewport.right,
+          bounds.top >= viewport.top && bounds.bottom <= viewport.bottom,
+        ]
+      })
+    })
+    expect(overflow).toEqual(Array.from({ length: 4 }, () => [0, 0, true, true]))
+    await overlay.screenshot({ path: testInfo.outputPath('battle-loading-resting.png'), animations: 'disabled' })
+  } finally {
+    releaseBackground()
+  }
+  await expect(overlay.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100')
+  await expect(page.getByRole('button', { name: '战斗', exact: true })).toHaveCount(0)
+  await expect(overlay).toHaveCount(0, { timeout: 30_000 })
+  await expect(page.getByRole('button', { name: '战斗', exact: true })).toBeVisible()
 })
 
 test('waits for both renderer callbacks even beyond the former fallback deadline', async ({ page }) => {
@@ -80,7 +115,7 @@ test('waits for both renderer callbacks even beyond the former fallback deadline
   await expect(page.getByTestId('battle-loading-overlay')).toBeVisible()
   await expect(page.getByRole('button', { name: '战斗', exact: true })).toHaveCount(0)
   await completeCallbacks(page, 1)
-  await page.clock.runFor(1000)
+  await page.clock.runFor(1200)
   await expect(page.getByTestId('battle-loading-overlay')).toHaveCount(0)
   await expect(page.getByRole('button', { name: '战斗', exact: true })).toBeVisible()
 })

@@ -14,6 +14,7 @@ import { useBattleStore } from '@/stores/battle'
 import { useGameDataStore } from '@/stores/gameData'
 import { SkillMarkRelationService } from '@/services/skillMarkRelationService'
 import { getSkillTypeEffectiveness } from '@/utils/typeEffectiveness'
+import climaxEmblem from '@/assets/battle/climax-emblem.svg?inline'
 
 const battleStore = useBattleStore()
 const gameDataStore = useGameDataStore()
@@ -50,6 +51,7 @@ const originalCategory = computed(() => {
   // 如果技能有_originalCategory属性，使用它；否则使用当前category
   return (props.skill as SkillMessage & { _originalCategory?: string })._originalCategory || props.skill.category
 })
+const isClimax = computed(() => originalCategory.value === Category.Climax)
 const name = computed(() =>
   i18next.t(`${props.skill.baseId}.name`, {
     ns: 'skill',
@@ -100,10 +102,10 @@ const typeEffectivenessContainerClass = computed(() => {
   if (props.skill.category !== Category.Status) {
     if (effectiveness > 1) {
       // 效果拔群 - 蓝色边框
-      return 'border-2 border-cyan-300 shadow-lg shadow-cyan-300/60'
+      return 'battle-skill__element--strong'
     } else if (effectiveness < 1) {
       // 效果不佳 - 灰色边框
-      return 'border-2 border-gray-500 shadow-lg shadow-gray-500/40'
+      return 'battle-skill__element--weak'
     }
   }
 
@@ -167,11 +169,7 @@ const skillMarkRelations = computed(() => {
       <template #trigger>
         <div class="battle-skill__trigger">
           <button
-            :class="[
-              'battle-skill',
-              { 'battle-skill--climax': originalCategory === 'Climax' },
-              `z-[${Z_INDEX.SKILL_BUTTON}]`,
-            ]"
+            :class="['battle-skill', { 'battle-skill--climax': isClimax }, `z-[${Z_INDEX.SKILL_BUTTON}]`]"
             data-testid="skill-button"
             :data-skill-id="skill.id"
             :data-skill-base-id="skill.baseId"
@@ -180,7 +178,8 @@ const skillMarkRelations = computed(() => {
             @click="emit('click', skill.id)"
           >
             <BattleFrame variant="skill" />
-            <div v-if="originalCategory === 'Climax' && !disabled" class="battle-skill__particles" aria-hidden="true">
+            <img v-if="isClimax" :src="climaxEmblem" class="battle-skill__emblem" alt="" aria-hidden="true" />
+            <div v-if="isClimax && !disabled" class="battle-skill__particles" aria-hidden="true">
               <span
                 v-for="particle in 8"
                 :key="particle"
@@ -199,11 +198,23 @@ const skillMarkRelations = computed(() => {
                 <span class="battle-skill__name">{{ name }}</span>
                 <div class="battle-skill__stat battle-skill__stat--power">
                   <span>{{ i18next.t('power', { ns: 'battle' }) }}</span>
-                  <ModifiedValue :value="skill.power" :attribute-info="powerModifierInfo" size="sm" inline />
+                  <ModifiedValue
+                    :value="skill.power"
+                    :attribute-info="powerModifierInfo"
+                    :class="{ 'battle-skill__value--base': !powerModifierInfo?.isModified }"
+                    size="sm"
+                    inline
+                  />
                 </div>
                 <div class="battle-skill__stat battle-skill__stat--rage">
                   <span>{{ i18next.t('rage', { ns: 'battle' }) }}</span>
-                  <ModifiedValue :value="skill.rage" :attribute-info="rageModifierInfo" size="sm" inline />
+                  <ModifiedValue
+                    :value="skill.rage"
+                    :attribute-info="rageModifierInfo"
+                    :class="{ 'battle-skill__value--base': !rageModifierInfo?.isModified }"
+                    size="sm"
+                    inline
+                  />
                 </div>
               </div>
             </div>
@@ -280,11 +291,12 @@ const skillMarkRelations = computed(() => {
 }
 .battle-skill__info {
   position: absolute;
-  right: 7px;
-  bottom: 4px;
-  width: 20px;
-  height: 20px;
-  color: var(--battle-muted);
+  right: 6px;
+  bottom: 5px;
+  width: 22px;
+  height: 22px;
+  color: #b6d8e4;
+  border-radius: 50%;
   cursor: pointer;
   z-index: 40;
 }
@@ -295,6 +307,13 @@ const skillMarkRelations = computed(() => {
   fill: none;
   stroke: currentColor;
   stroke-width: 1.4;
+}
+.battle-skill__info svg circle {
+  fill: #112633;
+}
+.battle-skill__info:hover,
+.battle-skill__info[aria-expanded='true'] {
+  color: #ebfcff;
 }
 .battle-skill__info:focus-visible {
   outline: 2px solid var(--battle-cyan);
@@ -314,104 +333,145 @@ const skillMarkRelations = computed(() => {
   padding: 0;
   text-align: left;
   cursor: pointer;
-  border-radius: 12px;
-  transition:
-    filter 0.12s,
-    box-shadow 0.12s;
+  border-radius: 9px;
 }
 .battle-skill:disabled {
-  opacity: 0.5;
+  filter: brightness(0.5);
   cursor: not-allowed;
 }
-.battle-skill:hover:not(:disabled) {
-  filter: brightness(1.22);
-  box-shadow:
-    0 0 12px #66ffff30,
-    inset 0 0 12px #66ffff20;
-}
-.battle-skill:active:not(:disabled) {
-  filter: brightness(0.9);
+@media (hover: hover) {
+  .battle-skill:hover:not(:disabled, :active) :deep(.battle-frame--skill) {
+    filter: invert(0.87) hue-rotate(160deg) saturate(1.4) brightness(1.2);
+  }
 }
 .battle-skill:focus-visible {
   outline: 2px solid var(--battle-cyan);
   outline-offset: 4px;
 }
-/* UI_FightSkillBrief positions mapped from the original 158 × 85 symbol. */
+/* Scale the old brief’s 156 × 83 anchors to the current card. */
 .battle-skill__content {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  color: var(--battle-gold);
-  text-shadow: 1px 1px #000;
+  color: #fff25d;
+  font:
+    400 14px/19px 'SimSun',
+    'Songti SC',
+    'Noto Serif CJK SC',
+    serif;
+  text-shadow:
+    0 0 2px #000,
+    0 0 3px #000,
+    0 1px 2px #000;
 }
 .battle-skill__element {
   position: absolute;
-  left: 6.96%;
-  top: 15.29%;
-  width: 25.32%;
-  height: 47.06%;
+  left: 8.3%;
+  top: 18%;
+  width: 24%;
+  aspect-ratio: 1;
+  max-height: 46%;
   display: grid;
   place-items: center;
   border-radius: 50%;
+  isolation: isolate;
+}
+/* Radar medallion behind the element icon, drawn at the icon's position so it follows the card layout. */
+.battle-skill__element::before,
+.battle-skill__element::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.battle-skill__element::before {
+  inset: -9%;
+  background:
+    linear-gradient(#8fdcec38, #8fdcec38) center / 100% 1px no-repeat,
+    linear-gradient(#8fdcec38, #8fdcec38) center / 1px 100% no-repeat,
+    radial-gradient(#8deef930, #8deef908 70%);
+  border: 1px solid #9af4ff48;
+}
+.battle-skill__element::after {
+  inset: 9%;
+  border: 1px dashed #8fdcec40;
+}
+.battle-skill__element :deep(.element-icon) {
+  position: relative;
+  z-index: 1;
+}
+.battle-skill__element--strong {
+  box-shadow:
+    inset 0 0 0 1px #b0f5ff,
+    0 0 7px #5ad8ec;
+}
+.battle-skill__element--weak {
+  box-shadow:
+    inset 0 0 0 1px #8d9ba8,
+    0 0 5px #08101c;
 }
 .battle-skill__element :deep(img) {
-  width: 80% !important;
-  height: 80% !important;
+  width: 74% !important;
+  height: 74% !important;
   min-height: 0 !important;
   object-fit: contain;
 }
 .battle-skill__category {
   position: absolute;
-  left: 5.06%;
-  top: 67.06%;
-  width: 29.11%;
-  font-size: 14px;
-  line-height: 19px;
+  left: 5.13%;
+  top: 71.08%;
+  width: 30%;
   text-align: center;
 }
 .battle-skill__name {
   position: absolute;
-  left: 39.87%;
-  top: 15.29%;
+  left: 40.38%;
+  top: 18.07%;
   right: 5%;
-  font-size: 16px;
-  line-height: 20px;
-  font-weight: 600;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .battle-skill__stat {
   position: absolute;
-  left: 39.87%;
-  right: 7%;
+  left: 40.38%;
+  right: 0;
   display: grid;
-  grid-template-columns: 41.6% minmax(0, 1fr);
+  grid-template-columns: minmax(max-content, 38.7%) minmax(0, 1fr);
   align-items: center;
-  font-size: 15px;
-  line-height: 19px;
 }
 .battle-skill__stat--power {
-  top: 40.59%;
+  top: 44.58%;
+}
+.battle-skill__stat--power > span {
+  color: #d3c850;
 }
 .battle-skill__stat--rage {
-  top: 66.47%;
+  top: 71.08%;
 }
 .battle-skill__stat :deep(span) {
   font-size: inherit;
   line-height: inherit;
+  font-weight: inherit;
 }
-.battle-skill--climax {
-  box-shadow:
-    0 0 9px #38bdf870,
-    inset 0 0 12px #38bdf830;
+.battle-skill__value--base :deep(span) {
+  color: inherit;
 }
 .battle-skill--climax:not(:disabled) {
-  animation: climax-blue-glow 2.4s ease-in-out infinite;
+  box-shadow: 0 0 8px #62e7f464;
+  animation: climax-cyan-glow 2.4s ease-in-out infinite;
 }
-.battle-skill--climax .battle-skill__name {
-  color: #c4f5ff;
-  text-shadow:
-    0 0 6px #38bdf8,
-    0 0 12px #0284c7;
+.battle-skill__emblem {
+  position: absolute;
+  top: 3px;
+  left: 5px;
+  width: 19px;
+  height: 19px;
+  pointer-events: none;
+  filter: drop-shadow(0 0 4px #62e7f4);
+}
+.battle-skill:disabled .battle-skill__emblem {
+  filter: saturate(0.3);
 }
 .battle-skill__particles {
   position: absolute;
@@ -427,26 +487,22 @@ const skillMarkRelations = computed(() => {
   border-radius: 50%;
   background: #b9f6ff;
   box-shadow:
-    0 0 4px #38bdf8,
-    0 0 8px #0284c7;
+    0 0 4px #63e9f6,
+    0 0 7px #279eae;
   opacity: 0;
-  animation: climax-blue-particle 2.8s ease-out infinite;
+  animation: climax-cyan-particle 2.8s ease-out infinite;
   animation-delay: calc(var(--particle) * -0.35s);
 }
-@keyframes climax-blue-glow {
+@keyframes climax-cyan-glow {
   0%,
   100% {
-    box-shadow:
-      0 0 9px #38bdf870,
-      inset 0 0 12px #38bdf830;
+    box-shadow: 0 0 8px #62e7f464;
   }
   50% {
-    box-shadow:
-      0 0 17px #38bdf8a0,
-      inset 0 0 18px #38bdf850;
+    box-shadow: 0 0 13px #62e7f498;
   }
 }
-@keyframes climax-blue-particle {
+@keyframes climax-cyan-particle {
   0% {
     opacity: 0;
     transform: translate(0, 0) scale(0.6);
@@ -456,22 +512,22 @@ const skillMarkRelations = computed(() => {
   }
   100% {
     opacity: 0;
-    transform: translate(8px, -85px) scale(0.2);
+    transform: translate(6px, -66px) scale(0.2);
   }
 }
 :global(.battle-shell[data-motion='simple'] .battle-skill__particle),
 :global(.battle-shell[data-motion='reduced'] .battle-skill__particle) {
   display: none;
 }
-:global(.battle-shell[data-motion='simple'] .battle-skill--climax),
-:global(.battle-shell[data-motion='reduced'] .battle-skill--climax) {
+:global(.battle-shell[data-motion='simple'] .battle-skill--climax:not(:disabled)),
+:global(.battle-shell[data-motion='reduced'] .battle-skill--climax:not(:disabled)) {
   animation: none;
 }
 @media (prefers-reduced-motion: reduce) {
   .battle-skill__particle {
     display: none;
   }
-  .battle-skill--climax {
+  .battle-skill--climax:not(:disabled) {
     animation: none;
   }
 }

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 381 110" fill="none">
+  <defs>
+    <linearGradient id="shell" x1="0" x2="0" y1="1" y2="71" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#465570"/>
+      <stop offset=".4" stop-color="#252f47"/>
+      <stop offset="1" stop-color="#0e1424"/>
+    </linearGradient>
+    <linearGradient id="frame" x1="0" x2="0" y1="1" y2="108" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#d2d9df"/>
+      <stop offset=".5" stop-color="#68727e"/>
+      <stop offset="1" stop-color="#46505e"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="6" x2="50" y1="6" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7eacdd" stop-opacity=".34"/>
+      <stop offset="1" stop-color="#516d99" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="recess" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#151925"/>
+      <stop offset="1" stop-color="#464646"/>
+    </linearGradient>
+  </defs>
+  <path d="M70 1H372Q380 1 380 9L356 51H174L161 71H70Z" fill="url(#shell)" stroke="url(#frame)" stroke-width="2"/>
+  <path d="M112 9H367L373 13 363 29H107V14Z" fill="url(#recess)" stroke="#101623"/>
+  <path d="M111 32H359L352 46H106V36Z" fill="url(#recess)" stroke="#101623"/>
+  <path d="M84 53H170L160 67H84Z" fill="#0b111f" stroke="#46505e"/>
+  <path d="M1 10Q1 1 10 1H71Q80 1 80 10V73Q80 82 71 82H10Q1 82 1 73Z" fill="#0e1424" stroke="url(#frame)" stroke-width="2"/>
+  <path d="M5 12Q5 5 12 5H69Q76 5 76 11C55 12 27 24 5 56Z" fill="url(#glass)"/>
+  <path d="M1 92Q1 84 9 84H73Q81 84 81 92V100Q81 108 73 108H9Q1 108 1 100Z" fill="#0e1424" stroke="url(#frame)" stroke-width="1.5"/>
+</svg>

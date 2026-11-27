@@ -35,10 +35,12 @@ const digits = computed(() =>
 }
 .battle-bar-number__glyph {
   display: inline-flex;
+  width: 11px;
+  justify-content: center;
 }
 .battle-bar-number__glyph :deep(svg) {
   display: block;
-  height: 16px;
+  height: 12px;
   width: auto;
 }
 </style>
