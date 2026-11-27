@@ -1,4 +1,4 @@
-import { createHash, createPublicKey, verify as verifySignature } from 'node:crypto'
+import { createPublicKey, verify as verifySignature } from 'node:crypto'
 import { lstat, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { Readable } from 'node:stream'
@@ -573,5 +573,3 @@ export async function checkRegistrySource(
     if (!source.projects.some(project => project.id === id)) throw contentError('WORKSHOP_PROJECT_UNKNOWN', id)
   return results
 }
-
-export const archiveSha512 = (archive: Uint8Array) => 'sha512-' + createHash('sha512').update(archive).digest('base64')
