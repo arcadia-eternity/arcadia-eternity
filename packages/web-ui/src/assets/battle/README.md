@@ -2,7 +2,7 @@
 
 Reference: https://github.com/arcadia-star/seer2-fight-ui/tree/1c9d524e89b367fd5bc1d7fc2db1d55da0ad9218
 
-The skill bar draws on the old Arena UI palette and layout. `skill-chrome.svg` is hand-authored radar glass with a cyan rim, reticle, sweep lines, and receiver arcs. CSS gives the glass a pale hover state and dims disabled cards. The live skill brief scales the old `UI_FightSkillBrief` (#300) anchors to the current card size.
+`skill-chrome.svg` is the `UI_FightSkillBtn` vector export (character 444 in `flash/src/_assets/assets.swf` of https://github.com/arcadia-star/seer2-fight-ui/tree/1c9d524e89b367fd5bc1d7fc2db1d55da0ad9218), with exporter metadata removed and a viewBox added. Live Vue text and icons follow `UI_FightSkillBrief` coordinates.
 
 `climax-emblem.svg` is an original hexagonal star accent inspired by the enabled and disabled lighting of `UI_FightSuperSkill` (#901). Eight CSS particles and a cyan edge pulse accompany enabled cards. Simple and reduced motion use a static highlight.
 
@@ -14,4 +14,4 @@ The skill bar draws on the old Arena UI palette and layout. `skill-chrome.svg` i
 
 `numbers/` contains the 20 HP/rage digit symbols and two slash symbols exported from the same reference SWF. Their native outlines, italic silhouettes and strokes are retained; exporter metadata is removed, viewBoxes are added, IDs are namespaced, and white fills use currentColor so live modifier colors remain visible. Values stay dynamic and accessible.
 
-`status-chrome.svg` is an original vector design for the old status layout, with a chamfered indigo portrait bezel and a stepped gauge shelf. The layout and 40-frame meter behavior reference the old PVE controllers and the #228, #369 and #647 placements in `UI_Arena.swf`. The fill paths in `HealthRageBar.vue` are hand-authored, and the HP, rage and level labels use CSS text. The panel and fills contain no exported artwork or embedded rasters.
+`status-chrome.svg` is an original vector design for the old status layout, with a chamfered indigo portrait bezel and a stepped gauge shelf. The layout and 40-frame meter behavior reference the old PVE controllers and the #228, #369 and #647 placements in `UI_Arena.swf`. The gauge shelf and fills are 48 px longer than the original placements. The fill paths in `HealthRageBar.vue` are hand-authored, the meters interpolate between the 24 fps frames on every display refresh, and the HP, rage and level labels use CSS text. The panel and fills contain no exported artwork or embedded rasters.

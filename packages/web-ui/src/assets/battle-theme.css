@@ -75,7 +75,7 @@
   top: 0;
   inset-inline: 0;
   display: grid;
-  grid-template-columns: 508px minmax(0, 1fr) 508px;
+  grid-template-columns: 572px minmax(0, 1fr) 572px;
   align-items: start;
   z-index: 40;
   pointer-events: none;
