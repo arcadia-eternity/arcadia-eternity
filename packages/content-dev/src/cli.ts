@@ -38,6 +38,7 @@ try {
   if (!command || command === '--help' || command === '-h') console.log(help)
   else if (command === 'commands') await commandsCli(args)
   else if (command === 'desktop') await (await import('./desktop-cli.ts')).desktopCli(args)
+  else if (command === 'registry') await (await import('./registry-cli.ts')).registryCli(args)
   else if (command === 'init') await (await import('./init.ts')).initCommand(args)
   else if (command === 'workspace') {
     const { workspaceCli } = await import('./workspace-cli.ts')
