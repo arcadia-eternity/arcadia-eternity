@@ -159,6 +159,8 @@ interface ProjectPreparationOptions {
   offline?: boolean
   onProgress?: PrepareEnvironmentInput['onProgress']
   projectDirectory?: string
+  /** Rejects the installed dependency graph before the environment uses it. */
+  verify?: GraphCheck
 }
 
 interface PackageManifest {
@@ -1407,7 +1409,7 @@ export class ContentLibrary {
    */
   async prepareEnvironmentProject(
     document: EnvironmentDocument,
-    { signal, offline = false, onProgress, projectDirectory }: ProjectPreparationOptions = {},
+    { signal, offline = false, onProgress, projectDirectory, verify }: ProjectPreparationOptions = {},
   ) {
     return this.#exclusive(async () => {
       if (!document || typeof document.packages !== 'object' || !document.packages || Array.isArray(document.packages))
@@ -1567,10 +1569,14 @@ export class ContentLibrary {
         directory = project.directory
         try {
           combined.throwIfAborted()
+          let inspection = project.inspection
+          if (verify) {
+            inspection ??= checkedInspection(await this.run(['content', 'npm', 'inspect', directory], combined))
+            await verify(graphFor(inspection))
+            combined.throwIfAborted()
+          }
           if (this.authorizeEnvironment) {
-            const inspection =
-              project.inspection ??
-              checkedInspection(await this.run(['content', 'npm', 'inspect', directory], combined))
+            inspection ??= checkedInspection(await this.run(['content', 'npm', 'inspect', directory], combined))
             const effects = inspection.packages.filter(
               pkg => !pkg.officialHost && (pkg.manifest?.effects || pkg.manifest?.effectArtifact),
             )

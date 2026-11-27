@@ -81,10 +81,12 @@ interface ApplyOptions {
   expectedRevision: string | null
   copyFrom?: string
   allowDownload?: boolean
+  verifyGraph?: GraphCheck
 }
 
 /** Rejects an acquired recipe before it is applied, for example against a signed workshop index. */
 export type RecipeCheck = (recipe: { directory: string; integrity?: string }) => void | Promise<void>
+type GraphCheck = NonNullable<Parameters<ContentLibrary['prepareEnvironmentProject']>[1]>['verify']
 
 interface RecipeRequest {
   action: 'install-recipe'
@@ -375,7 +377,7 @@ export class LocalEnvironments {
   /** Install an environment recipe into a new environment id. */
   async installRecipe(
     source: RecipeSource,
-    input: { environmentId?: string; allowDownload?: boolean; verify?: RecipeCheck },
+    input: { environmentId?: string; allowDownload?: boolean; verify?: RecipeCheck; verifyGraph?: GraphCheck },
   ) {
     const workspace = await this.ready()
     return this.start('environment.install-recipe', async (signal, onProgress) => {
@@ -399,7 +401,7 @@ export class LocalEnvironments {
         return await this.#apply(
           workspace,
           document,
-          { expectedRevision: null, allowDownload: input.allowDownload },
+          { expectedRevision: null, allowDownload: input.allowDownload, verifyGraph: input.verifyGraph },
           signal,
           onProgress,
           acquired.directory,
@@ -457,7 +459,7 @@ export class LocalEnvironments {
   async #apply(
     workspace: ContentWorkspace,
     document: EnvironmentDocument,
-    { expectedRevision, copyFrom, allowDownload }: ApplyOptions,
+    { expectedRevision, copyFrom, allowDownload, verifyGraph }: ApplyOptions,
     signal: AbortSignal,
     onProgress: (event: OperationProgress) => void,
     recipeDirectory?: string,
@@ -478,6 +480,7 @@ export class LocalEnvironments {
         signal,
         offline: allowDownload !== true,
         onProgress,
+        ...(verifyGraph && { verify: verifyGraph }),
       })
       return safeInstallation(
         await workspace.prepareEnvironment(

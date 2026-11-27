@@ -471,10 +471,10 @@ function getWorkshop() {
     host: {
       listPackages: async () => (await getContentLibrary().list()).packages,
       installPackage: (spec, verify) => getContentLibrary().installNpm(spec, false, verify),
-      installEnvironment: (spec, environmentId, verify) =>
+      installEnvironment: (spec, environmentId, verify, verifyGraph) =>
         getLocalEnvironments().installRecipe(
           { kind: 'npm', spec },
-          { ...(environmentId && { environmentId }), allowDownload: true, verify },
+          { ...(environmentId && { environmentId }), allowDownload: true, verify, verifyGraph },
         ),
     },
   })

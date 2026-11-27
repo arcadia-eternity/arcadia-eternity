@@ -344,9 +344,22 @@ export interface WorkshopGraphPackage {
 }
 
 /**
- * Check an installed or resolved npm graph against a fresh index: the root must be the resolved release,
- * and every listed package must carry the signed integrity of its release. Unlisted dependencies pass unchanged.
+ * Check every package of a graph that this fresh index lists: it must be a known, unrevoked release
+ * carrying the signed integrity. Packages the index does not list pass unchanged.
  */
+export function verifyWorkshopDependencies(view: WorkshopView, graph: readonly WorkshopGraphPackage[]) {
+  if (view.freshness !== 'fresh') fail('WORKSHOP_INDEX_STALE', 'Refresh the workshop index before installing')
+  assertGraphNotRevoked(view, graph)
+  for (const item of graph) {
+    const project = view.index.projects.find(entry => entry.npm === item.name)
+    if (!project) continue
+    const release = project.releases.find(entry => entry.version === item.version)
+    if (!release) fail('WORKSHOP_RELEASE_UNKNOWN', `${item.name}@${item.version}`)
+    if (item.integrity !== release.integrity) fail('WORKSHOP_INTEGRITY_MISMATCH', `${item.name}@${item.version}`)
+  }
+}
+
+/** Check an installed or resolved npm graph whose root must be the resolved release. */
 export function verifyWorkshopGraph(
   view: WorkshopView,
   target: WorkshopInstallTarget,
@@ -356,12 +369,28 @@ export function verifyWorkshopGraph(
   const root = graph.find(item => item.name === target.project.npm)
   if (!root || root.version !== target.release.version || root.integrity !== target.release.integrity)
     fail('WORKSHOP_INTEGRITY_MISMATCH', `${target.project.npm}@${target.release.version}`)
-  assertGraphNotRevoked(view, graph)
-  for (const item of graph) {
-    const project = view.index.projects.find(entry => entry.npm === item.name)
-    if (!project) continue
-    const release = project.releases.find(entry => entry.version === item.version)
-    if (!release) fail('WORKSHOP_RELEASE_UNKNOWN', `${item.name}@${item.version}`)
-    if (item.integrity !== release.integrity) fail('WORKSHOP_INTEGRITY_MISMATCH', `${item.name}@${item.version}`)
+  verifyWorkshopDependencies(view, graph)
+}
+
+/** Fetch and verify a registry's self-signed first root, for review before it is trusted. */
+export async function fetchWorkshopRoot(
+  site: string,
+  fetch: WorkshopFetch = defaultWorkshopFetch,
+  signal?: AbortSignal,
+) {
+  const base = new URL(site)
+  if (base.protocol !== 'https:' || base.search || base.hash || base.username || base.password)
+    fail('WORKSHOP_URL_INVALID')
+  const href = base.href.endsWith('/') ? base.href : base.href + '/'
+  const bytes = await fetch(href + 'root/1.json', ROOT_MAX_BYTES, signal ?? AbortSignal.timeout(30_000))
+  if (!bytes) fail('WORKSHOP_ROOT_MISSING')
+  const envelope = parseEnvelope(parseJsonBytes(bytes, ROOT_MAX_BYTES))
+  const root = parseRoot(envelope.signed)
+  if (root.version !== 1) fail('WORKSHOP_ROOT_VERSION_MISMATCH')
+  await verifyThreshold(envelope as SignedEnvelope<{ type: string }>, root.keys, root.roles.root)
+  return {
+    envelope: envelope as SignedEnvelope<unknown>,
+    root,
+    fingerprint: sha256Hex(new TextEncoder().encode(canonicalJson(envelope))),
   }
 }
