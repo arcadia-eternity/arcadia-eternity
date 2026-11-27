@@ -30,7 +30,14 @@ export interface WorkshopTrustState {
 }
 export interface WorkshopTrustStore {
   read(registry: string): Promise<WorkshopTrustState | undefined>
-  write(registry: string, state: WorkshopTrustState): Promise<void>
+  /**
+   * Atomic compare-and-write: `next` sees the current state and returns the replacement, or `undefined` to keep it.
+   * Implementations shared between processes must hold a cross-process lock across the read and the write.
+   */
+  update(
+    registry: string,
+    next: (current: WorkshopTrustState | undefined) => WorkshopTrustState | undefined,
+  ): Promise<boolean>
 }
 
 export interface WorkshopView {
@@ -146,9 +153,9 @@ export class WorkshopClient {
     const state = await this.#options.store.read(this.registry)
     let rotated: { root: WorkshopRoot; envelope: SignedEnvelope<unknown> } | undefined
     try {
+      const start = await this.#trustedRoot(state)
       const { root, envelope: rootEnvelope } = await this.#updateRoot(state, signal)
-      if (state && parseRoot(parseEnvelope(state.root).signed).version < root.version)
-        rotated = { root, envelope: rootEnvelope }
+      if (start.version < root.version) rotated = { root, envelope: rootEnvelope }
       const previous = state?.snapshot ? this.#previousSnapshot(state.snapshot) : undefined
       const { snapshot, envelope, index, indexText } = await this.#firstValid(root, signal, async base => {
         const bytes = await this.#fetch(base + 'snapshot.json', SNAPSHOT_MAX_BYTES, signal)
@@ -171,20 +178,21 @@ export class WorkshopClient {
         checkedAt,
       })
       if (!written) {
-        // Another process saved newer trusted state while this refresh ran.
+        // Another process saved newer trusted state while this refresh ran. It was verified online before it was
+        // saved, so it is current while its snapshot and root are unexpired; otherwise it is only a stale view.
         const cached = await this.cached()
-        if (cached) return { ...cached, freshness: 'fresh' }
+        if (!cached) fail('WORKSHOP_STATE_CONFLICT')
+        const now = this.#now()
+        const current = Date.parse(cached.snapshot.expires) > now && Date.parse(cached.root.expires) > now
+        return current
+          ? { ...cached, freshness: 'fresh' }
+          : { ...cached, error: { code: 'WORKSHOP_STATE_CONFLICT', message: 'Stored state is newer but expired' } }
       }
       return { registry: this.registry, root, snapshot, index, freshness: 'fresh', checkedAt }
     } catch (error) {
       outer?.throwIfAborted()
       // Keep a verified root rotation even when no snapshot verifies yet, so a revoked snapshot key stays revoked.
-      if (rotated && state?.snapshot && state.index)
-        await this.#writeMonotonic({
-          ...state,
-          root: rotated.envelope,
-          snapshotRoot: state.snapshotRoot ?? state.root,
-        }).catch(() => {})
+      if (rotated) await this.#writeMonotonic({ root: rotated.envelope }).catch(() => {})
       // A rejected update never overwrites trusted state; cached data remains available but stale.
       const cached = await this.cached().catch(() => undefined)
       if (cached) return { ...cached, error: errorInfo(error) }
@@ -193,17 +201,24 @@ export class WorkshopClient {
   }
 
   /** Persist only when no newer root or snapshot was stored concurrently. */
-  async #writeMonotonic(next: WorkshopTrustState) {
-    const stored = await this.#options.store.read(this.registry)
-    if (stored) {
+  #writeMonotonic(next: WorkshopTrustState) {
+    const nextRoot = parseRoot(parseEnvelope(next.root).signed).version
+    const version = (value?: SignedEnvelope<unknown>) =>
+      value ? parseSnapshot(parseEnvelope(value).signed).version : 0
+    return this.#options.store.update(this.registry, stored => {
+      if (!stored) return next
       const storedRoot = parseRoot(parseEnvelope(stored.root).signed).version
-      const nextRoot = parseRoot(parseEnvelope(next.root).signed).version
-      const version = (value?: SignedEnvelope<unknown>) =>
-        value ? parseSnapshot(parseEnvelope(value).signed).version : 0
-      if (storedRoot > nextRoot || version(stored.snapshot) > version(next.snapshot)) return false
-    }
-    await this.#options.store.write(this.registry, next)
-    return true
+      if (storedRoot > nextRoot) return undefined
+      // A root-only write keeps whatever snapshot is stored, which was verified under an older root.
+      if (!next.snapshot) {
+        if (storedRoot === nextRoot) return undefined
+        return stored.snapshot && stored.index
+          ? { ...stored, root: next.root, snapshotRoot: stored.snapshotRoot ?? stored.root }
+          : { root: next.root }
+      }
+      if (version(stored.snapshot) > version(next.snapshot)) return undefined
+      return next
+    })
   }
 
   async #trustedRoot(state: WorkshopTrustState | undefined) {

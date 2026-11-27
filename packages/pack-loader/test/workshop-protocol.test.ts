@@ -111,7 +111,14 @@ async function setup() {
   const stored = new Map<string, WorkshopTrustState>()
   const store = {
     read: async (registry: string) => structuredClone(stored.get(registry)),
-    write: async (registry: string, state: WorkshopTrustState) => void stored.set(registry, structuredClone(state)),
+    update: async (
+      registry: string,
+      next: (current: WorkshopTrustState | undefined) => WorkshopTrustState | undefined,
+    ) => {
+      const state = next(structuredClone(stored.get(registry)))
+      if (state) stored.set(registry, structuredClone(state))
+      return !!state
+    },
   }
   const failing = new Set<string>()
   const requests: string[] = []
@@ -139,8 +146,18 @@ async function setup() {
     requests,
     client,
     fetch,
+    store,
     setRootVersion: (value: number) => (rootVersion = value),
     advance: (ms: number) => (clock += ms),
+  }
+}
+
+/** A store whose first read returns `before`, as if another client saved newer state right after this read. */
+function lagging(t: Awaited<ReturnType<typeof setup>>, before: WorkshopTrustState | undefined) {
+  let reads = 0
+  return {
+    read: async () => (reads++ === 0 ? structuredClone(before) : structuredClone(t.stored.get('test'))),
+    update: t.store.update,
   }
 }
 
@@ -325,14 +342,80 @@ describe('workshop trust state and graph checks', () => {
     await t.client().refresh()
     // This client read state before snapshot 2 was saved and still fetches snapshot 1 from a lagging mirror.
     await t.publish(1, index([project('1.0.0')]))
-    let reads = 0
-    const store = {
-      read: async () => (reads++ === 0 ? structuredClone(before) : structuredClone(t.stored.get('test'))),
-      write: async (_: string, state: WorkshopTrustState) => void t.stored.set('test', state),
-    }
-    const view = await new WorkshopClient({ trustedRoot: t.root1, store, fetch: t.fetch, now: () => now }).refresh()
+    const view = await new WorkshopClient({
+      trustedRoot: t.root1,
+      store: lagging(t, before),
+      fetch: t.fetch,
+      now: () => now,
+    }).refresh()
     expect((t.stored.get('test')!.snapshot!.signed as WorkshopSnapshot).version).toBe(2)
     expect(view.snapshot.version).toBe(2)
+    expect(view.freshness).toBe('fresh')
+  })
+
+  it('does not report newer concurrently saved state as fresh once it has expired', async () => {
+    const t = await setup()
+    await t.publish(1, index([project('1.0.0')]), { expires: now + 30 * day })
+    await t.client().refresh()
+    const before = structuredClone(t.stored.get('test'))
+    await t.publish(2, index([project('2.0.0')]), { expires: now + day })
+    await t.client().refresh()
+    await t.publish(1, index([project('1.0.0')]), { expires: now + 30 * day })
+    const later = now + 2 * day
+    const view = await new WorkshopClient({
+      trustedRoot: t.root1,
+      store: lagging(t, before),
+      fetch: t.fetch,
+      now: () => later,
+    }).refresh()
+    expect(view.snapshot.version).toBe(2)
+    expect(view.freshness).toBe('stale')
+    expect(view.error?.code).toBe('WORKSHOP_STATE_CONFLICT')
+  })
+
+  it('persists a root rotation verified on a cold start before any snapshot under it exists', async () => {
+    const t = await setup()
+    await t.publish(1, index([project()]))
+    const nextRoot = await key()
+    const nextSnapshot = await key()
+    const root2 = await signEnvelope(t.rootFor(2, nextRoot, nextSnapshot), [t.rootKey, nextRoot])
+    t.primary.put('root/2.json', encode(root2))
+    t.mirror.put('root/2.json', encode(root2))
+    // Snapshot 1 is signed for root 1, so nothing verifies under root 2 yet.
+    await expect(t.client().refresh()).rejects.toThrow(/WORKSHOP_MIRRORS_FAILED/)
+    const stored = t.stored.get('test')!
+    expect((stored.root.signed as WorkshopRoot).version).toBe(2)
+    expect(stored.snapshot).toBeUndefined()
+    // The old snapshot key stays revoked for the next start even if root/2.json becomes unreachable.
+    t.primary.files.delete(t.primary.base + 'root/2.json')
+    t.mirror.files.delete(t.mirror.base + 'root/2.json')
+    await expect(t.client().refresh()).rejects.toThrow(/WORKSHOP_MIRRORS_FAILED/)
+    t.setRootVersion(2)
+    await t.publish(2, index([project()]), { signer: nextSnapshot })
+    expect((await t.client().refresh()).freshness).toBe('fresh')
+  })
+
+  it('a root-only update keeps a snapshot saved concurrently under the older root', async () => {
+    const t = await setup()
+    await t.publish(1, index([project()]))
+    await t.client().refresh()
+    const saved = structuredClone(t.stored.get('test'))!
+    const nextRoot = await key()
+    const root2 = await signEnvelope(t.rootFor(2, nextRoot, await key()), [t.rootKey, nextRoot])
+    t.primary.put('root/2.json', encode(root2))
+    t.mirror.put('root/2.json', encode(root2))
+    // This client read empty state; another client saved snapshot 1 under root 1 before this one persists root 2.
+    const view = await new WorkshopClient({
+      trustedRoot: t.root1,
+      store: lagging(t, undefined),
+      fetch: t.fetch,
+      now: () => now,
+    }).refresh()
+    expect(view.freshness).toBe('stale')
+    const stored = t.stored.get('test')!
+    expect((stored.root.signed as WorkshopRoot).version).toBe(2)
+    expect(stored.snapshot).toEqual(saved.snapshot)
+    expect((stored.snapshotRoot!.signed as WorkshopRoot).version).toBe(1)
   })
 
   it('verifies the integrity of the root package and listed dependencies', async () => {
