@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.3.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v5.2.0...arcadia-eternity-v5.3.0) (2026-11-27)
+
+
+### ✨ Features
+
+* **web-ui:** restore the original skill cards and smooth longer HUD meters ([2f3d74b](https://github.com/arcadia-eternity/arcadia-eternity/commit/2f3d74b8f33c395a87d19ff57eeebc0e8fdbf9ee))
+
 ## [5.2.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v5.1.0...arcadia-eternity-v5.2.0) (2026-11-27)
 
 
