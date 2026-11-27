@@ -48,7 +48,13 @@ const routes: RouteRecordRaw[] = [
     component: isDesktop
       ? () => import('@/features/content/CreationPage.vue')
       : () => import('@/features/content/CreationStart.vue'),
-    meta: { title: '创作工坊' },
+    meta: { title: '创作' },
+  },
+  {
+    path: '/workshop',
+    name: 'Workshop',
+    component: () => import('@/features/workshop/WorkshopPage.vue'),
+    meta: { title: '创意工坊' },
   },
   {
     path: '/environments',

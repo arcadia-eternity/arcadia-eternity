@@ -33,7 +33,7 @@ async function copyStarter() {
       '先运行 ' + command + ' commands --json，查看这个版本支持的操作。',
       '根据我的点子选择内容包（init pack）或独立赛制（init environment）。和我确定项目名称和保存位置后，用同一条创作命令在新目录初始化项目。',
       '在同一条命令后加 workspace <项目目录> describe 核对创建结果，告诉我项目的完整路径。读取项目里的 skills/arcadia-content-authoring/SKILL.md，带我完成第一个可验证的小改动。',
-      '如果我想让你读取工作台里选中的对象或未保存的草稿，提醒我在桌面客户端的「创作工坊」打开项目文件夹，进入「AI 助手」复制该项目的连接提示词。',
+      '如果我想让你读取工作台里选中的对象或未保存的草稿，提醒我在桌面客户端的「创作」打开项目文件夹，进入「AI 助手」复制该项目的连接提示词。',
     ].join('\n\n')
     try {
       await navigator.clipboard.writeText(prompt)
@@ -55,7 +55,7 @@ async function copyStarter() {
 <template>
   <section class="creation-start" aria-labelledby="creation-title">
     <header>
-      <h1 id="creation-title">创作工坊</h1>
+      <h1 id="creation-title">创作</h1>
       <CreatorDocsLink @error="message => (error = message)" />
     </header>
     <section class="assistant-start" aria-labelledby="assistant-start-title">

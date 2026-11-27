@@ -200,7 +200,7 @@ test(
       assert.equal(configured.team[0].level, 95)
       await expect(preview.locator('body')).toContainText('霜击')
       await page.getByRole('link', { name: '创作', exact: true }).click()
-      await expect(page.getByRole('heading', { name: '创作工坊' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: '创作' })).toBeVisible()
       const beforeReload = await preview.evaluate(() =>
         window.__APP_DEBUG__.pinia._s.get('battle').battleInterface.getState(undefined, true),
       )

@@ -99,9 +99,10 @@
             >管理后台</el-button
           >
           <el-button @click="router.push('/environments')">环境</el-button>
-          <el-button :disabled="$route.name === 'Creation'" @click="router.push({ name: 'Creation' })"
-            >创作工坊</el-button
+          <el-button :disabled="$route.name === 'Workshop'" @click="router.push({ name: 'Workshop' })"
+            >创意工坊</el-button
           >
+          <el-button :disabled="$route.name === 'Creation'" @click="router.push({ name: 'Creation' })">创作</el-button>
           <!-- 房间状态显示 -->
           <el-button
             v-if="!isStaticMode && privateRoomStore.currentRoom"
@@ -206,10 +207,16 @@
             >环境</router-link
           >
           <router-link
+            :to="{ name: 'Workshop' }"
+            @click="showMobileMenu = false"
+            class="flex items-center gap-4 px-6 py-4 text-gray-600"
+            >创意工坊</router-link
+          >
+          <router-link
             :to="{ name: 'Creation' }"
             @click="showMobileMenu = false"
             class="flex items-center gap-4 px-6 py-4 text-gray-600"
-            >创作工坊</router-link
+            >创作</router-link
           >
           <router-link
             to="/local-battle-reports"
