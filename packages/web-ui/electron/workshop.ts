@@ -300,6 +300,12 @@ export class DesktopWorkshop {
         const spec = `${target.project.npm}@${target.release.version}`
         if (target.project.kind === 'package') {
           if (input.environmentId !== undefined) throw requestError()
+          if (hostProvided({ name: target.project.npm })) {
+            const shipped = (await this.#host.listPackages()).find(
+              item => item.name === target.project.npm && item.version === target.release.version,
+            )
+            if (shipped) return { packageId: shipped.id }
+          }
           return {
             packageId: await this.#host.installPackage(spec, graph => {
               verifyWorkshopGraph(view, target, graph)

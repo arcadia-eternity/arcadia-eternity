@@ -100,7 +100,9 @@ const releaseRevoked = computed(() =>
 )
 const stale = computed(() => summary.value?.freshness === 'stale')
 const environmentIdInvalid = computed(
-  () => !!environmentId.value.trim() && !/^[a-z0-9][a-z0-9_-]{0,79}$/.test(environmentId.value.trim()),
+  () =>
+    !!environmentId.value.trim() &&
+    (!/^[a-z0-9][a-z0-9_-]{0,79}$/.test(environmentId.value.trim()) || environmentId.value.trim() === 'default'),
 )
 const drawerOpen = computed({
   get: () => !!selected.value,
@@ -426,7 +428,9 @@ onBeforeUnmount(() => {
             aria-label="环境标识"
             :disabled="installing"
           />
-          <p v-if="environmentIdInvalid" role="alert" class="field-error">小写字母或数字开头，可含 - 和 _</p>
+          <p v-if="environmentIdInvalid" role="alert" class="field-error">
+            {{ environmentId.trim() === 'default' ? 'default 已被内置环境使用' : '小写字母或数字开头，可含 - 和 _' }}
+          </p>
           <ElAlert
             v-if="stale && source.canInstall"
             type="warning"
@@ -445,7 +449,19 @@ onBeforeUnmount(() => {
               "
               >加入环境</ElButton
             >
-            <ElButton v-else-if="installed" link type="primary" @click="router.push('/environments')"
+            <ElButton
+              v-else-if="installed"
+              link
+              type="primary"
+              @click="
+                router.push({
+                  path: '/environments',
+                  query: {
+                    target: 'local',
+                    ...(installed.environmentId && { environmentId: installed.environmentId }),
+                  },
+                })
+              "
               >查看环境</ElButton
             >
           </ElAlert>

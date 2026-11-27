@@ -448,7 +448,11 @@ onMounted(async () => {
   await poll()
   try {
     await refreshMaterials()
-    const { packageId, projectId, ...query } = route.query
+    const { packageId, projectId, environmentId, ...query } = route.query
+    if (typeof environmentId === 'string') {
+      if (entries.value.some(entry => entry.key === 'local/' + environmentId)) select('local/' + environmentId)
+      if (!disposed && typeof packageId !== 'string' && typeof projectId !== 'string') await router.replace({ query })
+    }
     if (typeof packageId === 'string' || typeof projectId === 'string') {
       if (typeof packageId === 'string') {
         candidate.value = materials.value.find(pkg => pkg.id === packageId)

@@ -374,3 +374,14 @@ test('rejects revoked versions in any staged project, using the cache when offli
   await mkdir(missing, { recursive: true })
   await restarted.checkProject(missing)
 })
+
+test('returns the shipped official base instead of reinstalling the same version', async () => {
+  const base = '@arcadia-eternity/data-pack-base'
+  const r = await registry([], {
+    projects: [project('official.base', 'package', base, [release('5.1.0', integrity('A'))])],
+  })
+  const shipped = host({ installed: [[{ name: base, version: '5.1.0', integrity: integrity('B') }]] })
+  const workshop = new DesktopWorkshop({ directory: join(root, 'shipped'), host: shipped.host, ...r, now: () => now })
+  assert.deepEqual(await workshop.request({ action: 'install', npm: base, version: '5.1.0' }), { packageId: 'p0' })
+  assert.deepEqual(shipped.calls, [])
+})

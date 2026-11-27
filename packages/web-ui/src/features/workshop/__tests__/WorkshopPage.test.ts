@@ -140,6 +140,8 @@ it('waits for the environment operation and blocks installs from a stale index',
   })
   expect(localEnvironment).toHaveBeenCalledWith({ action: 'snapshot' })
   expect(document.body.textContent).toContain('已安装 杯赛 2.0.0')
+  bodyButton('查看环境').click()
+  expect(push).toHaveBeenCalledWith({ path: '/environments', query: { target: 'local', environmentId: 'cup' } })
   page.unmount()
 })
 
