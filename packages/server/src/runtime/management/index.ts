@@ -11,5 +11,7 @@ export type {
 } from './service'
 export { OperationService, OperationError } from './operations'
 export { mountManagementApi, managementFailure } from './http'
+export { createWorkshopGraphCheck } from './workshop'
+export type { WorkshopCheckMode, WorkshopGraphCheck } from './workshop'
 
 export * from './settings'

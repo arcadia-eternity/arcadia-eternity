@@ -364,6 +364,11 @@ export interface WorkshopGraphOptions {
    * locally, so their archive digest differs from npm's. They must still be known, unrevoked releases.
    */
   hostProvided?: (item: WorkshopGraphPackage) => boolean
+  /**
+   * Accept a stale offline view. Its revocations and integrities are still signed, but newer revocations may be
+   * missing, so only hosts that already permit offline installs should set this.
+   */
+  allowStale?: boolean
 }
 
 /**
@@ -375,7 +380,8 @@ export function verifyWorkshopDependencies(
   graph: readonly WorkshopGraphPackage[],
   options: WorkshopGraphOptions = {},
 ) {
-  if (view.freshness !== 'fresh') fail('WORKSHOP_INDEX_STALE', 'Refresh the workshop index before installing')
+  if (view.freshness !== 'fresh' && !options.allowStale)
+    fail('WORKSHOP_INDEX_STALE', 'Refresh the workshop index before installing')
   assertGraphNotRevoked(view, graph)
   for (const item of graph) {
     const project = view.index.projects.find(entry => entry.npm === item.name)

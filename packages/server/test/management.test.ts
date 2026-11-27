@@ -11,6 +11,8 @@ import { createSingleProcessApp } from '../src/runtime/app'
 import { createNpmFixture, shippedCatalogMembers, shippedCatalogRoot, stageShippedCatalog } from './fixtures/npm'
 import type { Binding } from '../src/runtime/management/service'
 import { workspaceRetentions } from '../../../bin/server-persistence'
+import { createWorkshopGraphCheck, type WorkshopGraphCheck } from '../src/runtime/management/workshop'
+import { createWorkshopFixture } from './fixtures/workshop'
 
 const cleanups: (() => Promise<unknown>)[] = []
 afterEach(async () => {
@@ -36,7 +38,7 @@ async function portableFixture(prebuilt = false) {
   })
   return fixture
 }
-async function setup(project?: string, allowThirdPartyExecution = true) {
+async function setup(project?: string, allowThirdPartyExecution = true, workshop?: WorkshopGraphCheck) {
   const directory = await mkdtemp(join(tmpdir(), 'arcadia-management-api-'))
   cleanups.push(() => rm(directory, { recursive: true, force: true }))
   const storage = openStorage({ driver: 'sqlite', filename: join(directory, 'server.sqlite') })
@@ -59,6 +61,7 @@ async function setup(project?: string, allowThirdPartyExecution = true) {
         workspace,
         secureCookies: false,
         allowThirdPartyExecution,
+        workshop,
         transferDirectory: join(directory, 'transfers'),
       },
     })
@@ -544,3 +547,77 @@ it('adds a new package through the API and rejects obsolete or conflicting reque
   expect(stale.response.status).toBe(412)
   expect((await env.workspace.getDraft('membership')).revision).toBe(current.revision)
 }, 30000)
+
+describe('workshop registry checks', () => {
+  async function apply(mode: 'required' | 'available', change: 'revoked' | 'tampered' | 'listed', online = true) {
+    const fixture = await portableFixture()
+    cleanups.push(fixture.dispose)
+    const manifest = JSON.parse(await readFile(join(fixture.directory, 'package.json'), 'utf8'))
+    const lock = JSON.parse(await readFile(join(fixture.directory, 'package-lock.json'), 'utf8'))
+    const name = Object.keys(manifest.dependencies)[0]
+    const locked = lock.packages[`node_modules/${name}`]
+    const registry = await createWorkshopFixture(
+      [
+        {
+          npm: name,
+          version: locked.version,
+          integrity: change === 'tampered' ? 'sha512-' + 'Q'.repeat(86) + '==' : locked.integrity,
+        },
+      ],
+      change === 'revoked' ? [{ npm: name, version: locked.version, reason: 'malicious' }] : [],
+    )
+    registry.setOnline(online)
+    const state = await mkdtemp(join(tmpdir(), 'arcadia-workshop-state-'))
+    cleanups.push(() => rm(state, { recursive: true, force: true }))
+    const check = createWorkshopGraphCheck({
+      mode,
+      directory: state,
+      trustedRoot: registry.trustedRoot,
+      fetch: registry.fetch,
+    })
+    const env = await setup(fixture.directory, true, check)
+    const document = {
+      schemaVersion: 2,
+      id: 'checked',
+      name: 'Checked',
+      packages: { [name]: manifest.dependencies[name] },
+      sources: [],
+      rules: { schemaVersion: 1 },
+      requires: {},
+    }
+    const started = await env.request(
+      `/workspaces/${env.workspace.workspaceId}/environments/apply`,
+      'POST',
+      { document, expectedRevision: null },
+      { 'Idempotency-Key': `workshop-${mode}-${change}-${online}` },
+    )
+    expect(started.response.status).toBe(202)
+    return { env, result: await completed(env.storage, started.body.id) }
+  }
+
+  it('commits a graph whose listed releases carry the signed integrity', async () => {
+    const { env, result } = await apply('required', 'listed')
+    expect(result.status, JSON.stringify(result.error)).toBe('succeeded')
+    expect((await env.workspace.getInstallation('checked')).status).toBe('ready')
+  }, 60000)
+
+  it('rejects revoked or tampered releases before committing the environment', async () => {
+    for (const [change, code] of [
+      ['revoked', 'WORKSHOP_RELEASE_REVOKED'],
+      ['tampered', 'WORKSHOP_INTEGRITY_MISMATCH'],
+    ] as const) {
+      const { env, result } = await apply('required', change)
+      expect(result.status).toBe('failed')
+      expect((result.error as { code?: string }).code).toBe(code)
+      expect(await env.workspace.listInstallations()).toEqual([])
+    }
+  }, 120000)
+
+  it('required mode refuses installs while the registry is unreachable; available mode proceeds', async () => {
+    const required = await apply('required', 'revoked', false)
+    expect(required.result.status).toBe('failed')
+    expect((required.result.error as { code?: string }).code).toBe('WORKSHOP_MIRRORS_FAILED')
+    const available = await apply('available', 'listed', false)
+    expect(available.result.status, JSON.stringify(available.result.error)).toBe('succeeded')
+  }, 120000)
+})

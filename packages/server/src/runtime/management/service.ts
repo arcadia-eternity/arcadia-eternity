@@ -28,6 +28,7 @@ import {
   type ManagementScope,
 } from './auth'
 import { ManagementTransfers } from './transfers'
+import type { WorkshopGraphCheck } from './workshop'
 import { ManagementBackups } from './backups'
 import { ManagementAccounts } from './accounts'
 import type { AccountDirectory } from '../accounts/directory'
@@ -128,6 +129,8 @@ export interface ManagementOptions {
   prepareEnvironment?: (input: PrepareEnvironmentInput, validator: StaticPreparer) => Promise<EnvironmentInstallation>
   /** Official hosts must reject third-party server execution. */
   allowThirdPartyExecution?: boolean
+  /** Signed registry checks applied to every staged project before it is validated and committed. */
+  workshop?: WorkshopGraphCheck
   transferDirectory?: string
   /** Host-owned consistent capture; API callers cannot choose database or filesystem sources. */
   createServerBackup?: (signal: AbortSignal) => Promise<unknown>
@@ -295,6 +298,7 @@ export class ManagementService {
       })
   }
   private readonly validator: StaticPreparer = async input => {
+    await this.options.workshop?.check(input.directory, input.signal)
     return validateWorkspaceProject(input, {
       effectPreparation: this.options.allowThirdPartyExecution ? 'compile' : 'prebuilt-only',
     })

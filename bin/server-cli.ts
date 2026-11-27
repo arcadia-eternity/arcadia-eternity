@@ -28,6 +28,7 @@ import { initializeHostEnvironment } from './host-environment-initialize'
 import { parseDesktopLaunch, saveDesktopLaunch } from './desktop-launch'
 import {
   createSingleProcessApp,
+  createWorkshopGraphCheck,
   validateWorkspaceProject,
   parseBattleCapacityEnv,
   EmailCodeVerifier,
@@ -35,6 +36,7 @@ import {
   getPersistedServerSettings,
   type G3AccountServices,
   type ManagedServer,
+  type WorkshopCheckMode,
 } from '@arcadia-eternity/server'
 
 function portNumber(value: string): number {
@@ -106,6 +108,12 @@ export async function runServerCli(args: string[]): Promise<number> {
       'Community host: explicitly permit approved third-party environments',
       process.env.ARCADIA_ALLOW_THIRD_PARTY_EXECUTION === '1',
     )
+    .addOption(
+      new Option('--workshop-check <mode>', 'Check installed graphs against the signed official workshop registry')
+        .choices(['required', 'available', 'off'])
+        .default('available')
+        .env('ARCADIA_WORKSHOP_CHECK'),
+    )
     .option('--headless', 'Serve API and Socket.IO without the paired website', process.env.ARCADIA_HEADLESS === '1')
     .option('--web-root <directory>', 'Paired website build directory', process.env.ARCADIA_WEB_ROOT)
     .option(
@@ -147,6 +155,7 @@ export async function runServerCli(args: string[]): Promise<number> {
       offlineContent?: boolean
       allowThirdPartyExecution?: boolean
       allowThirdPartyContent?: boolean
+      workshopCheck: WorkshopCheckMode
       corsOrigin: string
       headless: boolean
       webRoot?: string
@@ -452,6 +461,18 @@ export async function runServerCli(args: string[]): Promise<number> {
         builtinEnvironmentId: defaultBuiltinId,
         clientEnvironments: options.desktopClientEnvironments ? desktopWorkspace : undefined,
         allowThirdPartyExecution: desktopControl || options.allowThirdPartyExecution,
+        workshop: desktopControl
+          ? undefined
+          : createWorkshopGraphCheck({
+              mode: options.workshopCheck,
+              directory: join(config.dataDirectory, 'workshop'),
+              offline: options.offlineContent,
+              onUnavailable: error =>
+                console.warn(
+                  'Workshop index unavailable; installing without registry checks:',
+                  error instanceof Error ? error.message : error,
+                ),
+            }),
         initialization: desktopControl
           ? desktopInitialization
           : options.npmProject?.[0]

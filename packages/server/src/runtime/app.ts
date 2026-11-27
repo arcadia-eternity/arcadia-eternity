@@ -60,6 +60,7 @@ export interface SingleProcessAppOptions extends RoomOptions {
     | 'builtinEnvironmentId'
     | 'clientEnvironments'
     | 'allowThirdPartyExecution'
+    | 'workshop'
     | 'transferDirectory'
     | 'createServerBackup'
     | 'initialization'

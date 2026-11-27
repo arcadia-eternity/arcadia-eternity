@@ -1,6 +1,6 @@
 import { after, before, test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
@@ -10,7 +10,7 @@ import {
   sha256Hex,
   signEnvelope,
 } from '@arcadia-eternity/pack-loader/workshop'
-import { DesktopWorkshop, fileTrustStore } from '../workshop.ts'
+import { DesktopWorkshop } from '../workshop.ts'
 
 const now = Date.parse('2026-11-26T00:00:00.000Z')
 const day = 86_400_000
@@ -243,28 +243,6 @@ test('refuses installs from a stale offline index and reports revoked installed 
     /WORKSHOP_INDEX_STALE/,
   )
   assert.deepEqual(h.calls, [])
-})
-
-test('the trust store writes atomically and rejects unsafe registry ids', async () => {
-  const store = fileTrustStore(join(root, 'store'))
-  // Two stores stand in for two processes: only the cross-process lock orders their read-compare-write.
-  const other = fileTrustStore(join(root, 'store'))
-  const bump = (current: { root: { signed: unknown } } | undefined) => ({
-    root: { signed: ((current?.root.signed as number) ?? 0) + 1, signatures: [] },
-  })
-  await Promise.all(Array.from({ length: 20 }, (_, i) => (i % 2 ? store : other).update('reg-1', bump)))
-  const saved = JSON.parse(await readFile(join(root, 'store', 'reg-1.json'), 'utf8'))
-  assert.equal(saved.root.signed, 20)
-  assert.deepEqual(await readdir(join(root, 'store')), ['reg-1.json'])
-  assert.equal(await store.update('reg-1', () => undefined), false)
-  // A lock left by an exited process is reclaimed.
-  await writeFile(join(root, 'store', 'reg-1.json.lock'), '999999999')
-  assert.equal(await store.update('reg-1', bump), true)
-  await assert.rejects(
-    store.update('../x', () => ({ root: { signed: 0, signatures: [] } })),
-    /WORKSHOP_REGISTRY_INVALID/,
-  )
-  assert.equal(await store.read('missing'), undefined)
 })
 
 test('checks the dependency graph an environment resolves at apply time', async () => {

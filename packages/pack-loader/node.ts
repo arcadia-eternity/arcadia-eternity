@@ -20,6 +20,7 @@ export {
 } from './src/npm/official-host'
 export { compileEffectModule } from './src/npm/effect-artifact'
 export { sandboxEnvironmentFor } from './src/effect-environment'
+export { fileWorkshopTrustStore } from './src/workshop/file-store'
 
 /** Static Node resolver boundary; HTTP/browser consumers keep the native-only entry. */
 export class NativeNodePackLoader<Content extends object = ContentCatalog> extends NativePackLoader<Content> {
