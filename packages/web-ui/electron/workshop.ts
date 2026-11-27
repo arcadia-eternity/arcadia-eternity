@@ -24,6 +24,8 @@ import type { WorkshopRequest, WorkshopResult, WorkshopSummary } from '../src/ty
 export type { WorkshopRequest }
 
 const OFFICIAL_REGISTRY = 'official'
+/** The host always materializes the official base from its own shipped or cached copy. */
+const hostProvided = (item: { name: string }) => item.name === '@arcadia-eternity/data-pack-base'
 
 /** Trust state on disk, one file per registry, replaced atomically. */
 export function fileTrustStore(directory: string): WorkshopTrustStore {
@@ -328,7 +330,7 @@ export class DesktopWorkshop {
             for (const other of checkers.slice(1)) verifyWorkshopDependencies(other, pinned)
           },
           graph => {
-            for (const checker of checkers) verifyWorkshopDependencies(checker, graph)
+            for (const checker of checkers) verifyWorkshopDependencies(checker, graph, { hostProvided })
           },
         )
       }

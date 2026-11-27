@@ -343,11 +343,23 @@ export interface WorkshopGraphPackage {
   integrity?: string
 }
 
+export interface WorkshopGraphOptions {
+  /**
+   * Packages the host materializes from its own trusted copy (for example the shipped official base) are repacked
+   * locally, so their archive digest differs from npm's. They must still be known, unrevoked releases.
+   */
+  hostProvided?: (item: WorkshopGraphPackage) => boolean
+}
+
 /**
  * Check every package of a graph that this fresh index lists: it must be a known, unrevoked release
  * carrying the signed integrity. Packages the index does not list pass unchanged.
  */
-export function verifyWorkshopDependencies(view: WorkshopView, graph: readonly WorkshopGraphPackage[]) {
+export function verifyWorkshopDependencies(
+  view: WorkshopView,
+  graph: readonly WorkshopGraphPackage[],
+  options: WorkshopGraphOptions = {},
+) {
   if (view.freshness !== 'fresh') fail('WORKSHOP_INDEX_STALE', 'Refresh the workshop index before installing')
   assertGraphNotRevoked(view, graph)
   for (const item of graph) {
@@ -355,7 +367,8 @@ export function verifyWorkshopDependencies(view: WorkshopView, graph: readonly W
     if (!project) continue
     const release = project.releases.find(entry => entry.version === item.version)
     if (!release) fail('WORKSHOP_RELEASE_UNKNOWN', `${item.name}@${item.version}`)
-    if (item.integrity !== release.integrity) fail('WORKSHOP_INTEGRITY_MISMATCH', `${item.name}@${item.version}`)
+    if (item.integrity !== release.integrity && !options.hostProvided?.(item))
+      fail('WORKSHOP_INTEGRITY_MISMATCH', `${item.name}@${item.version}`)
   }
 }
 
@@ -364,12 +377,13 @@ export function verifyWorkshopGraph(
   view: WorkshopView,
   target: WorkshopInstallTarget,
   graph: readonly WorkshopGraphPackage[],
+  options: WorkshopGraphOptions = {},
 ) {
   if (view.freshness !== 'fresh') fail('WORKSHOP_INDEX_STALE', 'Refresh the workshop index before installing')
   const root = graph.find(item => item.name === target.project.npm)
   if (!root || root.version !== target.release.version || root.integrity !== target.release.integrity)
     fail('WORKSHOP_INTEGRITY_MISMATCH', `${target.project.npm}@${target.release.version}`)
-  verifyWorkshopDependencies(view, graph)
+  verifyWorkshopDependencies(view, graph, options)
 }
 
 /** Fetch and verify a registry's self-signed first root, for review before it is trusted. */

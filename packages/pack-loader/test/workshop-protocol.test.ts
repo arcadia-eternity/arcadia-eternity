@@ -358,6 +358,17 @@ describe('workshop trust state and graph checks', () => {
     expect(() => verifyWorkshopGraph(view, target, [graph[0], { ...graph[1], version: '3.0.1' }])).toThrow(
       'WORKSHOP_RELEASE_UNKNOWN',
     )
+    const hostProvided = (item: { name: string }) => item.name === '@demo/base'
+    const repacked = [graph[0], { ...graph[1], integrity: 'sha512-local' }]
+    expect(() => verifyWorkshopGraph(view, target, repacked, { hostProvided })).not.toThrow()
+    expect(() =>
+      verifyWorkshopGraph(view, target, [graph[0], { ...repacked[1], version: '3.0.1' }], { hostProvided }),
+    ).toThrow('WORKSHOP_RELEASE_UNKNOWN')
+    expect(() =>
+      verifyWorkshopGraph(view, target, [{ ...graph[0], integrity: 'sha512-local' }], {
+        hostProvided: item => item.name === '@demo/pets',
+      }),
+    ).toThrow('WORKSHOP_INTEGRITY_MISMATCH')
   })
 
   it('verifies the bundled official root', async () => {
