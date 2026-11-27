@@ -81,11 +81,17 @@ test(
     const personal = await ContentWorkspace.open(join(root, 'local-environments'), {
       retentions: { list: async () => [] },
     })
+    const checked: string[] = []
+    let rejectNext = false
     const owner = new DesktopWorkspaceOwner({
       root: join(root, 'library'),
       library,
       openWorkspace: ContentWorkspace.open,
       builtinId: () => builtin?.id,
+      checkProject: async directory => {
+        checked.push(directory)
+        if (rejectNext) throw Object.assign(new Error('revoked'), { code: 'WORKSHOP_RELEASE_REVOKED' })
+      },
       synchronize: async workspace => {
         const runtimeRequire = createRequire(join(dirname(cli), 'package.json'))
         builtin = await openBuiltinEnvironment({
@@ -231,6 +237,35 @@ test(
         await new Promise(resolve => setTimeout(resolve, 50))
       }
       assert.equal(prepared.status, 'succeeded', JSON.stringify(prepared.error))
+      assert.equal(checked.length, 1, 'the hosted server checks the staged project before committing')
+      rejectNext = true
+      const refused = await request(
+        'POST',
+        `/workspaces/${workspace.workspaceId}/environments/apply`,
+        {
+          document: {
+            schemaVersion: 2,
+            id: 'refused',
+            name: '被拒环境',
+            packages: { [fixtureManifest.name]: fixtureManifest.version },
+            sources: [],
+            rules: { schemaVersion: 1 },
+            requires: {},
+          },
+          expectedRevision: null,
+        },
+        { 'idempotency-key': 'apply-refused' },
+      )
+      let rejected
+      for (let i = 0; i < 1200; i++) {
+        rejected = await request('GET', `/operations/${refused.id}`)
+        if (!['queued', 'running'].includes(rejected.status)) break
+        await new Promise(resolve => setTimeout(resolve, 50))
+      }
+      rejectNext = false
+      assert.equal(rejected.status, 'failed')
+      assert.equal(rejected.error.code, 'WORKSHOP_RELEASE_REVOKED')
+      assert.ok(!(await workspace.listInstallations()).some(item => item.environmentId === 'refused'))
       assert.deepEqual(
         (await library.list()).packages.map(item => item.id),
         packagesBeforeManagement,

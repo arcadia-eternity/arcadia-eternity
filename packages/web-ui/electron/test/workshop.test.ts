@@ -1,6 +1,6 @@
 import { after, before, test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
@@ -336,4 +336,41 @@ test('adds a third-party registry only after its root fingerprint is confirmed',
     restarted.request({ action: 'remove-registry', registry: 'official' }),
     /WORKSHOP_REQUEST_INVALID/,
   )
+})
+
+test('rejects revoked versions in any staged project, using the cache when offline', async () => {
+  const r = await registry([{ npm: '@demo/base', version: '2.0.0', reason: 'malicious', revokedAt: iso(now) }])
+  const project = join(root, 'staged')
+  const lockWith = (version: string) =>
+    writeFile(
+      join(project, 'package-lock.json'),
+      JSON.stringify({
+        lockfileVersion: 3,
+        packages: {
+          '': {},
+          'node_modules/@demo/pets': { version: '1.0.0', integrity: integrity('A') },
+          'node_modules/@demo/pets/node_modules/@demo/base': { version, integrity: integrity('Q') },
+        },
+      }),
+    )
+  await mkdir(project, { recursive: true })
+  const directory = join(root, 'check')
+  const fresh = new DesktopWorkshop({ directory, host: host().host, ...r, now: () => now })
+  // Without any trusted state and no network, there is nothing to check against.
+  r.setOnline(false)
+  await lockWith('2.0.0')
+  await fresh.checkProject(project)
+  r.setOnline(true)
+  await assert.rejects(fresh.checkProject(project), /WORKSHOP_RELEASE_REVOKED/)
+  // Unlisted versions and digests of local builds are not the workshop's concern here.
+  await lockWith('2.0.1')
+  await fresh.checkProject(project)
+
+  r.setOnline(false)
+  const restarted = new DesktopWorkshop({ directory, host: host().host, ...r, now: () => now })
+  await lockWith('2.0.0')
+  await assert.rejects(restarted.checkProject(project), /WORKSHOP_RELEASE_REVOKED/)
+  const missing = join(root, 'no-lock')
+  await mkdir(missing, { recursive: true })
+  await restarted.checkProject(missing)
 })

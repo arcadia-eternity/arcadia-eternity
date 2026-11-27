@@ -522,6 +522,7 @@ function getLocalEnvironments() {
       })
     },
     validate: async input => {
+      await getWorkshop().checkProject(input.directory, input.signal)
       const { validateWorkspaceProject } = await loadRuntimeModule('@arcadia-eternity/server')
       return validateWorkspaceProject(input)
     },
@@ -575,6 +576,7 @@ function getManagementWorkspaceOwner() {
     builtinId: () => builtinEnvironment?.id,
     library: getContentLibrary(),
     synchronize: synchronizeDesktopEnvironments,
+    checkProject: (directory, signal) => getWorkshop().checkProject(directory, signal),
     openWorkspace: async (root, options) => {
       const { ContentWorkspace } = await loadRuntimeModule('@arcadia-eternity/content-sdk/management-workspace')
       return ContentWorkspace.open(root, {

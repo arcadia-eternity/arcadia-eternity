@@ -6,6 +6,7 @@ import {
   OFFICIAL_WORKSHOP_ROOT,
   OFFICIAL_WORKSHOP_SITE,
   WorkshopClient,
+  assertGraphNotRevoked,
   canonicalJson,
   fetchWorkshopRoot,
   sha256Hex,
@@ -186,6 +187,34 @@ export class DesktopWorkshop {
     if (view.registry === OFFICIAL_REGISTRY) return [view]
     const official = await (await this.#client(OFFICIAL_REGISTRY)).refresh().catch(() => undefined)
     return official?.freshness === 'fresh' ? [view, official] : [view]
+  }
+
+  /**
+   * Check a staged project before any environment commits it: no package version may be revoked by a trusted
+   * registry. Uses a fresh index when reachable within a short timeout, else the verified cache; a registry with
+   * neither is skipped. Local archives and development builds stay allowed, so digests are only checked for
+   * explicit workshop installs.
+   */
+  async checkProject(directory: string, signal?: AbortSignal) {
+    const registries = [OFFICIAL_REGISTRY, ...Object.keys(await this.#load())]
+    const views: WorkshopView[] = []
+    for (const registry of registries) {
+      // A registry removed while this check runs is no longer trusted.
+      const client = await this.#client(registry).catch(() => undefined)
+      if (!client) continue
+      const view = await client
+        .refresh(AbortSignal.any([AbortSignal.timeout(10_000), ...(signal ? [signal] : [])]))
+        .catch(async () => {
+          signal?.throwIfAborted()
+          return client.cached().catch(() => undefined)
+        })
+      if (view) views.push(view)
+    }
+    if (!views.length) return
+    // The validator that runs next checks this lock against the installed tree.
+    const graph = await lockedPackages(directory)
+    signal?.throwIfAborted()
+    for (const view of views) assertGraphNotRevoked(view, graph)
   }
 
   async request(input: WorkshopRequest): Promise<WorkshopResult> {

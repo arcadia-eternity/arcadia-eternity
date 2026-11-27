@@ -55,6 +55,8 @@ interface WorkspaceOwnerOptions {
     ) => Promise<ContentProjectLease>
   }
   synchronize?: (workspace: OwnedContentWorkspace) => void | Promise<void>
+  /** Rejects a staged project before the hosted server validates and commits it, e.g. for revoked releases. */
+  checkProject?: (directory: string, signal: AbortSignal) => Promise<void>
   builtinId?: () => string | undefined
   timeoutMs?: number
 }
@@ -100,11 +102,21 @@ export class DesktopWorkspaceOwner {
   declare readonly library: WorkspaceOwnerOptions['library']
   declare readonly timeoutMs: number
   declare readonly synchronize?: WorkspaceOwnerOptions['synchronize']
-  constructor({ root, openWorkspace, library, synchronize, builtinId, timeoutMs = 120000 }: WorkspaceOwnerOptions) {
+  declare readonly checkProject?: WorkspaceOwnerOptions['checkProject']
+  constructor({
+    root,
+    openWorkspace,
+    library,
+    synchronize,
+    checkProject,
+    builtinId,
+    timeoutMs = 120000,
+  }: WorkspaceOwnerOptions) {
     this.builtinId = builtinId
     this.root = root
     this.openWorkspace = openWorkspace
     this.library = library
+    this.checkProject = checkProject
     this.timeoutMs = timeoutMs
     this.synchronize = synchronize
   }
@@ -230,8 +242,10 @@ export class DesktopWorkspaceOwner {
       if (method === 'prepareEnvironment' || method === 'importEnvironment' || method === 'restoreSnapshot') {
         const controller = controllers.get(id)!
         controller.signal.throwIfAborted()
-        const prepare: StaticPreparer = input =>
-          callback('prepare', { directory: input.directory, draft: input.draft }, id)
+        const prepare: StaticPreparer = async input => {
+          await this.checkProject?.(input.directory, controller.signal)
+          return callback('prepare', { directory: input.directory, draft: input.draft }, id)
+        }
         let projectLease: ContentProjectLease | undefined
         try {
           if (method === 'importEnvironment') {
