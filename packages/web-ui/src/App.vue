@@ -99,7 +99,10 @@
             >管理后台</el-button
           >
           <el-button @click="router.push('/environments')">环境</el-button>
-          <el-button :disabled="$route.name === 'Workshop'" @click="router.push({ name: 'Workshop' })"
+          <el-button
+            :type="$route.name === 'Workshop' ? 'primary' : undefined"
+            :aria-current="$route.name === 'Workshop' ? 'page' : undefined"
+            @click="router.push({ name: 'Workshop' })"
             >创意工坊</el-button
           >
           <el-button :disabled="$route.name === 'Creation'" @click="router.push({ name: 'Creation' })">创作</el-button>

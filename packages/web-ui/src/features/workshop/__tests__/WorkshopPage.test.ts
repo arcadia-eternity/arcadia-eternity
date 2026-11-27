@@ -61,6 +61,9 @@ const summary = (overrides: Partial<WorkshopSummary> = {}): WorkshopSummary => (
   ...overrides,
 })
 
+const bodyButton = (label: string) =>
+  [...document.querySelectorAll<HTMLButtonElement>('button')].find(button => button.textContent?.trim() === label)!
+
 function desktop(handler: (input: { action: string } & Record<string, unknown>) => unknown) {
   const workshop = vi.fn(async (input: { action: string } & Record<string, unknown>) => {
     try {
@@ -82,26 +85,22 @@ it('filters projects, skips revoked releases, and installs a package from the si
     if (input.action === 'view') return summary()
     if (input.action === 'install') return { packageId: 'pkg-1' }
   })
-  const page = mount(WorkshopPage, { props: { source: createWorkshopSource() } })
+  const page = mount(WorkshopPage, { props: { source: createWorkshopSource() }, attachTo: document.body })
   await flushPromises()
-  const items = page.findAll('.workshop-item')
-  expect(items.map(item => item.find('strong').text())).toEqual(['杯赛', '森林'])
+  const items = page.findAll('.workshop-card')
+  expect(items.map(item => item.find('.card-title').text())).toEqual(['杯赛', '森林'])
 
   await page.get('input[aria-label="搜索工坊"]').setValue('精灵')
-  expect(page.findAll('.workshop-item')).toHaveLength(1)
-  await page.get('.workshop-item').trigger('click')
+  expect(page.findAll('.workshop-card')).toHaveLength(1)
+  await page.get('.workshop-card').trigger('click')
   await flushPromises()
-  expect(page.text()).toContain('1.0.0')
-  expect(page.text()).toContain('包含效果代码')
-  const install = page.findAll('button').find(button => button.text() === '安装 1.0.0')!
-  await install.trigger('click')
+  expect(document.body.textContent).toContain('1.0.0')
+  expect(document.body.textContent).toContain('含效果代码')
+  bodyButton('安装').click()
   await flushPromises()
   expect(workshop).toHaveBeenCalledWith({ action: 'install', npm: '@demo/forest', version: '1.0.0' })
-  expect(page.text()).toContain('已安装 森林 1.0.0')
-  await page
-    .findAll('button')
-    .find(button => button.text() === '加入环境')!
-    .trigger('click')
+  expect(document.body.textContent).toContain('已安装 森林 1.0.0')
+  bodyButton('加入环境').click()
   expect(push).toHaveBeenCalledWith({ path: '/environments', query: { target: 'local', packageId: 'pkg-1' } })
   page.unmount()
 })
@@ -113,12 +112,12 @@ it('waits for the environment operation and blocks installs from a stale index',
     if (input.action === 'view' || input.action === 'refresh') return summary({ freshness })
     if (input.action === 'install') return { operationId: 'op' }
   })
-  const page = mount(WorkshopPage, { props: { source: createWorkshopSource() } })
+  const page = mount(WorkshopPage, { props: { source: createWorkshopSource() }, attachTo: document.body })
   await flushPromises()
   expect(page.text()).toContain('离线')
-  await page.findAll('.workshop-item')[0]!.trigger('click')
-  const installButton = () => page.findAll('button').find(button => button.text() === '安装 2.0.0')!
-  expect(installButton().attributes('disabled')).toBeDefined()
+  await page.findAll('.workshop-card')[0]!.trigger('click')
+  await flushPromises()
+  expect(bodyButton('安装').disabled).toBe(true)
 
   freshness = 'fresh'
   await page
@@ -126,8 +125,12 @@ it('waits for the environment operation and blocks installs from a stale index',
     .find(button => button.text() === '刷新')!
     .trigger('click')
   await flushPromises()
-  await page.get('input[aria-label="环境标识"]').setValue('cup')
-  await installButton().trigger('click')
+  const target = document.querySelector<HTMLInputElement>('input[aria-label="环境标识"]')!
+  target.value = 'cup'
+  target.dispatchEvent(new Event('input'))
+  await flushPromises()
+  expect(bodyButton('安装').disabled).toBe(false)
+  bodyButton('安装').click()
   await flushPromises()
   expect(workshop).toHaveBeenCalledWith({
     action: 'install',
@@ -136,7 +139,7 @@ it('waits for the environment operation and blocks installs from a stale index',
     environmentId: 'cup',
   })
   expect(localEnvironment).toHaveBeenCalledWith({ action: 'snapshot' })
-  expect(page.text()).toContain('已安装 杯赛 2.0.0')
+  expect(document.body.textContent).toContain('已安装 杯赛 2.0.0')
   page.unmount()
 })
 
