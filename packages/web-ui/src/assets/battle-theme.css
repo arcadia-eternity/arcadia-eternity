@@ -569,12 +569,12 @@
 .battle-loading__tip img {
   width: 100%;
 }
-/* The client places its 488 px tip field at stage (228,56), independent of the strip. */
+/* Center the tip text within the strip rather than the original client's left-shifted field. */
 .battle-loading__tip p {
   position: absolute;
   top: 4.35px;
-  left: -123.65px;
-  width: 488px;
+  left: 0;
+  width: 100%;
   margin: 0;
   overflow: hidden;
   color: #ffff66;
