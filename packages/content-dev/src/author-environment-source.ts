@@ -15,7 +15,14 @@ import { isRecord } from './types.ts'
 import { contentError } from './workspace-materials.ts'
 
 export type AuthorEnvironmentSource = { kind: 'npm'; name: string; version: string } | { kind: 'archive'; file: string }
-type AcquireOptions = { offline?: boolean; cache?: string; signal?: AbortSignal; clientVersion?: string }
+type AcquireOptions = {
+  offline?: boolean
+  cache?: string
+  signal?: AbortSignal
+  clientVersion?: string
+  /** HTTPS npm registry for npm sources; defaults to the public registry. */
+  registry?: string
+}
 const npmName = /^(?:@[a-z0-9_.-]+\/)?[a-z0-9][a-z0-9_.-]*$/
 const candidate = /^file:candidates\/[a-zA-Z0-9_.-]+\.tgz$/
 const maxBytes = 256 * 1024 * 1024
@@ -81,8 +88,14 @@ async function archiveBytes(source: AuthorEnvironmentSource, options: AcquireOpt
   }
   const { tarball } = (await import('pacote')).default
   const cache = options.cache ?? process.env.npm_config_cache
+  if (options.registry !== undefined) {
+    const url = URL.parse(options.registry)
+    if (!url || url.protocol !== 'https:' || url.username || url.password || url.search || url.hash)
+      throw contentError('INSTALL_DEPENDENCY_SOURCE_FORBIDDEN')
+  }
   return tarball.stream(source.name + '@' + source.version, stream => readArchive(stream, signal), {
     ...(cache && { cache: join(cache, '_cacache') }),
+    ...(options.registry && { registry: options.registry }),
     offline: options.offline ?? process.env.npm_config_offline === 'true',
     preferOffline: true,
     retry: { retries: 0 },

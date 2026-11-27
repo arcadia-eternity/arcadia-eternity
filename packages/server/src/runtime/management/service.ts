@@ -28,7 +28,7 @@ import {
   type ManagementScope,
 } from './auth'
 import { ManagementTransfers } from './transfers'
-import type { WorkshopGraphCheck } from './workshop'
+import type { ServerWorkshop, WorkshopTarget } from './workshop'
 import { ManagementBackups } from './backups'
 import { ManagementAccounts } from './accounts'
 import type { AccountDirectory } from '../accounts/directory'
@@ -129,8 +129,11 @@ export interface ManagementOptions {
   prepareEnvironment?: (input: PrepareEnvironmentInput, validator: StaticPreparer) => Promise<EnvironmentInstallation>
   /** Official hosts must reject third-party server execution. */
   allowThirdPartyExecution?: boolean
-  /** Signed registry checks applied to every staged project before it is validated and committed. */
-  workshop?: WorkshopGraphCheck
+  /**
+   * Signed registries: graph checks applied to every staged project before it is validated and committed, and
+   * exact-release installs selected through the management API.
+   */
+  workshop?: ServerWorkshop
   transferDirectory?: string
   /** Host-owned consistent capture; API callers cannot choose database or filesystem sources. */
   createServerBackup?: (signal: AbortSignal) => Promise<unknown>
@@ -155,6 +158,21 @@ const object = (value: unknown): Record<string, unknown> => {
 const text = (value: unknown, max = 128): string => {
   if (typeof value !== 'string' || !value.length || value.length > max || /\p{Cc}/u.test(value)) fail('INVALID_REQUEST')
   return value as string
+}
+interface WorkshopInstallInput {
+  target: WorkshopTarget
+  environmentId?: string
+  expectedRevision?: string | null
+}
+const workshopInput = (value: Record<string, unknown>): WorkshopInstallInput => {
+  const target = object(value.target)
+  return {
+    target: { registry: text(target.registry, 64), npm: text(target.npm, 214), version: text(target.version, 256) },
+    ...(value.environmentId !== undefined && { environmentId: text(value.environmentId, 80) }),
+    ...(value.expectedRevision !== undefined && {
+      expectedRevision: value.expectedRevision === null ? null : text(value.expectedRevision),
+    }),
+  }
 }
 const revision = (request: ManagementRequest) => {
   const raw = request.headers?.['if-match']
@@ -816,6 +834,7 @@ export class ManagementService {
         ...(this.accounts.enabled ? ['accounts'] : []),
         ...(this.transfers ? ['workspace.transfers'] : []),
         ...(this.backups ? ['server.backup'] : []),
+        ...(this.options.workshop ? ['workspace.workshop'] : []),
       ],
       isAdministrator: actor ? await this.auth.isAdministrator(actor) : false,
       resourceRestrictions: [],
@@ -912,6 +931,82 @@ export class ManagementService {
         }
       },
     )
+  }
+  /**
+   * Install an exact signed release. A package joins an existing environment at that version; an environment
+   * recipe creates a new environment. The host's acquisition and execution policies still apply unchanged.
+   */
+  private async installWorkshop(actor: ManagementActor, request: ManagementRequest, input: WorkshopInstallInput) {
+    const workshop = this.options.workshop ?? fail('WORKSHOP_UNAVAILABLE', 404)
+    const environmentId = input.environmentId
+    await this.auth.authorize(actor, this.workspaceScope, 'edit')
+    await this.auth.authorize(actor, this.workspaceScope, 'prepare')
+    if (environmentId) await this.authorizeEnvironmentUpdate(actor, environmentId)
+    return this.startOperation(actor, request, 'workshop.install', this.workspaceScope, input, async ctx => {
+      const authorize = async (id: string) => {
+        await ctx.checkCurrent()
+        await this.auth.authorize(actor, this.workspaceScope, 'edit')
+        await this.auth.authorize(actor, this.workspaceScope, 'prepare')
+        await this.authorizeEnvironmentUpdate(actor, id)
+      }
+      await ctx.progress({ stage: 'resolving' })
+      const resolved = await workshop.resolve(input.target, ctx.signal)
+      const verify: StaticPreparer = async materials => {
+        await workshop.verifyInstalled(input.target, materials.directory, materials.signal)
+        return this.validator(materials)
+      }
+      const prepare =
+        this.options.prepareEnvironment ?? this.options.workspace.prepareEnvironment.bind(this.options.workspace)
+      if (resolved.target.project.kind === 'package') {
+        if (!environmentId || input.expectedRevision === undefined || input.expectedRevision === null)
+          fail('WORKSHOP_ENVIRONMENT_REQUIRED')
+        await authorize(environmentId!)
+        const change = await resolveEnvironmentPackageChange(this.options.workspace, {
+          environmentId: environmentId!,
+          expectedRevision: input.expectedRevision!,
+          name: resolved.target.project.npm,
+          action: 'add-package',
+          version: resolved.target.release.version,
+        })
+        const installation = await prepare(
+          {
+            environmentId: environmentId!,
+            document: change.document,
+            expectedRevision: change.expectedRevision,
+            projectDirectory: await this.options.resolveProject?.(environmentId!),
+            signal: ctx.signal,
+            onProgress: progress => ctx.progress(progress),
+            beforeCommit: () => authorize(environmentId!),
+          },
+          verify,
+        )
+        await this.reconcile()
+        return safeInstallation(installation)
+      }
+      if (input.expectedRevision !== undefined && input.expectedRevision !== null) fail('INVALID_REQUEST')
+      await ctx.progress({ stage: 'acquiring' })
+      const recipe = await workshop.acquireEnvironment(resolved, ctx.signal)
+      try {
+        const document = normalizeEnvironmentDocument({ ...recipe.document, id: environmentId ?? recipe.document.id })
+        await authorize(document.id)
+        const installation = await prepare(
+          {
+            environmentId: document.id,
+            document,
+            expectedRevision: null,
+            seedDirectory: recipe.directory,
+            signal: ctx.signal,
+            onProgress: progress => ctx.progress(progress),
+            beforeCommit: () => authorize(document.id),
+          },
+          verify,
+        )
+        await this.reconcile()
+        return safeInstallation(installation)
+      } finally {
+        await recipe.release()
+      }
+    })
   }
   private async reload(actor: ManagementActor, request: ManagementRequest, id: string) {
     await this.auth.authorize(actor, this.serverScope, 'publish')
@@ -1137,6 +1232,51 @@ export class ManagementService {
               : { action: 'remove-package', cascade: input.cascade as boolean | undefined }),
           })
           return this.applyEnvironment(actor, request, change.document, change.expectedRevision)
+        }
+      }
+      if (this.options.workshop && parts[2] === 'workshop') {
+        if (method === 'GET' && parts.length === 4 && parts[3] === 'registries') {
+          await this.auth.authorize(actor, this.workspaceScope, 'read')
+          return ok({ registries: this.options.workshop.registries() })
+        }
+        if (method === 'GET' && parts.length === 5 && parts[3] === 'registries') {
+          await this.auth.authorize(actor, this.workspaceScope, 'read')
+          const refresh = new URL(request.path, 'http://management.local').searchParams.get('refresh') === '1'
+          const view = await this.options.workshop.view(parts[4], refresh)
+          const installations = (await this.options.workspace.listInstallations()).filter(
+            (item): item is EnvironmentInstallation => item.status === 'ready',
+          )
+          return ok({
+            registry: view.registry,
+            official: view.registry === 'official',
+            freshness: view.freshness,
+            checkedAt: view.checkedAt,
+            snapshot: view.snapshot.version,
+            expires: view.snapshot.expires,
+            ...(view.error && { error: view.error }),
+            // Only the bundled official registry may mark projects as official.
+            projects:
+              view.registry === 'official'
+                ? view.index.projects
+                : view.index.projects.map(project => ({ ...project, official: false })),
+            revocations: view.index.revocations,
+            revokedInstalled: this.options.workshop.revokedMembers(view, installations),
+          })
+        }
+        if (method === 'POST' && parts.length === 4 && parts[3] === 'install') {
+          const allowed = ['registry', 'npm', 'version', 'environmentId', 'expectedRevision']
+          if (Object.keys(input).some(key => !allowed.includes(key))) fail('INVALID_REQUEST')
+          return this.installWorkshop(actor, request, {
+            target: {
+              registry: input.registry === undefined ? 'official' : text(input.registry, 64),
+              npm: text(input.npm, 214),
+              version: text(input.version, 256),
+            },
+            ...(input.environmentId !== undefined && { environmentId: text(input.environmentId, 80) }),
+            ...(input.expectedRevision !== undefined && {
+              expectedRevision: input.expectedRevision === null ? null : text(input.expectedRevision),
+            }),
+          })
         }
       }
       if (parts[2] === 'installations' && parts.length === 4 && method === 'DELETE') {
@@ -1410,6 +1550,8 @@ export class ManagementService {
             original.expectedRevision === null ? null : text(original.expectedRevision),
             original.copyFrom === undefined ? undefined : text(original.copyFrom),
           )
+        if (op.kind === 'workshop.install')
+          return this.installWorkshop(actor, { ...request, retryOf: op.id }, workshopInput(original))
         if (op.kind === 'binding.reload')
           return this.reload(
             actor,

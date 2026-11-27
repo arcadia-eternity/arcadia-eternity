@@ -11,7 +11,7 @@ import { createSingleProcessApp } from '../src/runtime/app'
 import { createNpmFixture, shippedCatalogMembers, shippedCatalogRoot, stageShippedCatalog } from './fixtures/npm'
 import type { Binding } from '../src/runtime/management/service'
 import { workspaceRetentions } from '../../../bin/server-persistence'
-import { createWorkshopGraphCheck, type WorkshopGraphCheck } from '../src/runtime/management/workshop'
+import { ServerWorkshop, createWorkshopGraphCheck, parseHostRegistryRoots } from '../src/runtime/management/workshop'
 import { createWorkshopFixture } from './fixtures/workshop'
 
 const cleanups: (() => Promise<unknown>)[] = []
@@ -38,7 +38,7 @@ async function portableFixture(prebuilt = false) {
   })
   return fixture
 }
-async function setup(project?: string, allowThirdPartyExecution = true, workshop?: WorkshopGraphCheck) {
+async function setup(project?: string, allowThirdPartyExecution = true, workshop?: ServerWorkshop) {
   const directory = await mkdtemp(join(tmpdir(), 'arcadia-management-api-'))
   cleanups.push(() => rm(directory, { recursive: true, force: true }))
   const storage = openStorage({ driver: 'sqlite', filename: join(directory, 'server.sqlite') })
@@ -620,4 +620,158 @@ describe('workshop registry checks', () => {
     const available = await apply('available', 'listed', false)
     expect(available.result.status, JSON.stringify(available.result.error)).toBe('succeeded')
   }, 120000)
+})
+
+describe('workshop installs through management', () => {
+  async function prepare(options: { revoked?: boolean; community?: boolean; thirdParty?: boolean } = {}) {
+    const fixture = await portableFixture()
+    cleanups.push(fixture.dispose)
+    const manifest = JSON.parse(await readFile(join(fixture.directory, 'package.json'), 'utf8'))
+    const lock = JSON.parse(await readFile(join(fixture.directory, 'package-lock.json'), 'utf8'))
+    const name = Object.keys(manifest.dependencies)[0]
+    const locked = lock.packages[`node_modules/${name}`]
+    const recipe = { npm: '@test/recipe', version: '1.0.0', integrity: 'sha512-' + 'R'.repeat(86) + '==' }
+    const listed = [
+      { npm: name, version: locked.version, integrity: locked.integrity },
+      { ...recipe, kind: 'environment' as const },
+    ]
+    const revocations = options.revoked ? [{ npm: name, version: locked.version, reason: 'malicious' }] : []
+    const official = await createWorkshopFixture(options.community ? [] : listed, options.community ? [] : revocations)
+    const community = await createWorkshopFixture(listed, revocations, 'community')
+    const state = await mkdtemp(join(tmpdir(), 'arcadia-workshop-install-'))
+    cleanups.push(() => rm(state, { recursive: true, force: true }))
+    const recipeDocument = {
+      schemaVersion: 2,
+      id: 'recipe-env',
+      name: 'Recipe',
+      packages: { [name]: manifest.dependencies[name] },
+      sources: [],
+      rules: { schemaVersion: 1 },
+      requires: {},
+    }
+    const workshop = new ServerWorkshop({
+      mode: 'available',
+      directory: state,
+      allowThirdPartyContent: options.thirdParty ?? true,
+      trustedRoot: official.trustedRoot,
+      registries: options.community ? await parseHostRegistryRoots([community.trustedRoot]) : [],
+      fetch: async url => (new URL(url).host.startsWith('community.') ? community : official).fetch(url),
+      acquire: async (target, destination) => {
+        await cp(fixture.directory, destination, { recursive: true })
+        return {
+          document: recipeDocument as never,
+          directory: destination,
+          name: target.project.npm,
+          version: target.release.version,
+          integrity: recipe.integrity,
+        }
+      },
+    })
+    const env = await setup(fixture.directory, true, workshop)
+    const base = `/workspaces/${env.workspace.workspaceId}/workshop`
+    let sequence = 0
+    const install = async (body: Record<string, unknown>) => {
+      const started = await env.request(base + '/install', 'POST', body, { 'Idempotency-Key': `ws-${++sequence}` })
+      expect(started.response.status, JSON.stringify(started.body)).toBe(202)
+      return completed(env.storage, started.body.id)
+    }
+    return { env, base, name, version: locked.version, recipe, install, official, community }
+  }
+  const emptyDraft = (env: Awaited<ReturnType<typeof setup>>) =>
+    env.workspace.saveDraft({
+      expectedRevision: null,
+      document: {
+        schemaVersion: 2,
+        id: 'target',
+        name: 'Target',
+        packages: {},
+        sources: [],
+        rules: { schemaVersion: 1 },
+        requires: {},
+      },
+    })
+
+  it('lists registries and serves the signed index', async () => {
+    const { env, base, name } = await prepare()
+    const registries = await env.request(base + '/registries')
+    expect(registries.body.registries.map((item: { id: string }) => item.id)).toEqual(['official'])
+    const view = await env.request(base + '/registries/official?refresh=1')
+    expect(view.response.status).toBe(200)
+    expect(view.body.freshness).toBe('fresh')
+    expect(view.body.projects.map((item: { npm: string }) => item.npm)).toContain(name)
+    expect((await env.request(base + '/registries/elsewhere')).response.status).toBe(404)
+    expect((await env.request('/capabilities')).body.supportedFeatures).toContain('workspace.workshop')
+  }, 60000)
+
+  it('adds an exact signed package release to an existing environment', async () => {
+    const { env, name, version, install } = await prepare()
+    const draft = await emptyDraft(env)
+    const result = await install({ npm: name, version, environmentId: 'target', expectedRevision: draft.revision })
+    expect(result.status, JSON.stringify(result.error)).toBe('succeeded')
+    const installation = await env.workspace.getInstallation('target')
+    expect(installation.members?.find(member => member.name === name)?.version).toBe(version)
+  }, 60000)
+
+  it('creates an environment from a signed recipe and rejects an unlisted version', async () => {
+    const { env, recipe, install, name } = await prepare()
+    const result = await install({ npm: recipe.npm, version: recipe.version })
+    expect(result.status, JSON.stringify(result.error)).toBe('succeeded')
+    expect((await env.workspace.getInstallation('recipe-env')).members?.some(m => m.name === name)).toBe(true)
+    const unknown = await install({ npm: recipe.npm, version: '9.9.9', environmentId: 'other' })
+    expect((unknown.error as { code?: string }).code).toBe('WORKSHOP_RELEASE_UNKNOWN')
+  }, 60000)
+
+  it('refuses revoked releases and leaves the environment unchanged', async () => {
+    const { env, name, version, install, recipe } = await prepare({ revoked: true })
+    const draft = await emptyDraft(env)
+    const direct = await install({ npm: name, version, environmentId: 'target', expectedRevision: draft.revision })
+    expect((direct.error as { code?: string }).code).toBe('WORKSHOP_RELEASE_REVOKED')
+    // The recipe itself is listed, but its pinned graph contains the revoked package.
+    const viaRecipe = await install({ npm: recipe.npm, version: recipe.version })
+    expect((viaRecipe.error as { code?: string }).code).toBe('WORKSHOP_RELEASE_REVOKED')
+    expect(await env.workspace.listInstallations()).toEqual([])
+    expect((await env.workspace.getDraft('target')).revision).toBe(draft.revision)
+    const view = await env.request(`/workspaces/${env.workspace.workspaceId}/workshop/registries/official`)
+    expect(view.body.revocations).toHaveLength(1)
+  }, 60000)
+
+  it('installs from a host-pinned third-party registry without marking its projects official', async () => {
+    const { env, base, name, version, install } = await prepare({ community: true })
+    const registries = await env.request(base + '/registries')
+    expect(registries.body.registries.map((item: { id: string }) => item.id)).toEqual(['official', 'community'])
+    const view = await env.request(base + '/registries/community?refresh=1')
+    expect(view.body.projects.every((item: { official: boolean }) => !item.official)).toBe(true)
+    const draft = await emptyDraft(env)
+    const fromOfficial = await install({
+      npm: name,
+      version,
+      environmentId: 'target',
+      expectedRevision: draft.revision,
+    })
+    expect((fromOfficial.error as { code?: string }).code).toBe('WORKSHOP_PROJECT_UNKNOWN')
+    const result = await install({
+      registry: 'community',
+      npm: name,
+      version,
+      environmentId: 'target',
+      expectedRevision: draft.revision,
+    })
+    expect(result.status, JSON.stringify(result.error)).toBe('succeeded')
+    expect(await parseHostRegistryRoots([]).then(roots => roots.length)).toBe(0)
+  }, 60000)
+
+  it('refuses non-official releases before downloading when the host forbids third-party content', async () => {
+    const { recipe, install } = await prepare({ thirdParty: false })
+    const result = await install({ npm: recipe.npm, version: recipe.version })
+    expect((result.error as { code?: string }).code).toBe('THIRD_PARTY_CONTENT_NOT_AUTHORIZED')
+  }, 60000)
+
+  it('rejects host registry roots that reuse the official ID or carry a bad signature', async () => {
+    const official = await createWorkshopFixture([])
+    await expect(parseHostRegistryRoots([official.trustedRoot])).rejects.toThrow('WORKSHOP_REGISTRY_EXISTS')
+    const community = await createWorkshopFixture([], [], 'community')
+    const forged = structuredClone(community.trustedRoot) as { signed: { expires: string } }
+    forged.signed.expires = new Date(Date.now() + 1000 * 86_400_000).toISOString()
+    await expect(parseHostRegistryRoots([forged])).rejects.toThrow()
+  })
 })

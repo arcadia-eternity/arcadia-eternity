@@ -28,7 +28,8 @@ import { initializeHostEnvironment } from './host-environment-initialize'
 import { parseDesktopLaunch, saveDesktopLaunch } from './desktop-launch'
 import {
   createSingleProcessApp,
-  createWorkshopGraphCheck,
+  ServerWorkshop,
+  parseHostRegistryRoots,
   validateWorkspaceProject,
   parseBattleCapacityEnv,
   EmailCodeVerifier,
@@ -114,6 +115,11 @@ export async function runServerCli(args: string[]): Promise<number> {
         .default('available')
         .env('ARCADIA_WORKSHOP_CHECK'),
     )
+    .option(
+      '--workshop-registries <file>',
+      'JSON list of signed third-party workshop roots trusted by this host',
+      process.env.ARCADIA_WORKSHOP_REGISTRIES,
+    )
     .option('--headless', 'Serve API and Socket.IO without the paired website', process.env.ARCADIA_HEADLESS === '1')
     .option('--web-root <directory>', 'Paired website build directory', process.env.ARCADIA_WEB_ROOT)
     .option(
@@ -156,6 +162,7 @@ export async function runServerCli(args: string[]): Promise<number> {
       allowThirdPartyExecution?: boolean
       allowThirdPartyContent?: boolean
       workshopCheck: WorkshopCheckMode
+      workshopRegistries?: string
       corsOrigin: string
       headless: boolean
       webRoot?: string
@@ -224,6 +231,14 @@ export async function runServerCli(args: string[]): Promise<number> {
     const desktopLaunch = options.desktopLaunch ? parseDesktopLaunch(options.desktopLaunch) : undefined
     if (desktopLaunch && !options.desktopManagedNetwork)
       throw new Error('Launch settings require managed desktop hosting')
+    let workshopRegistries: Awaited<ReturnType<typeof parseHostRegistryRoots>> | undefined
+    if (options.workshopRegistries) {
+      if (desktopControl) throw new Error('Desktop hosts manage workshop registries in the client')
+      const file = await stat(options.workshopRegistries)
+      if (!file.isFile() || file.size > 2 * 1024 * 1024)
+        throw new Error('Workshop registry list must be a JSON file no larger than 2 MiB')
+      workshopRegistries = await parseHostRegistryRoots(JSON.parse(await readFile(options.workshopRegistries, 'utf8')))
+    }
     const opened = await openServerStorage(options)
     storage = opened.storage
     const serverId = opened.serverId!
@@ -461,18 +476,22 @@ export async function runServerCli(args: string[]): Promise<number> {
         builtinEnvironmentId: defaultBuiltinId,
         clientEnvironments: options.desktopClientEnvironments ? desktopWorkspace : undefined,
         allowThirdPartyExecution: desktopControl || options.allowThirdPartyExecution,
-        workshop: desktopControl
-          ? undefined
-          : createWorkshopGraphCheck({
-              mode: options.workshopCheck,
-              directory: join(config.dataDirectory, 'workshop'),
-              offline: options.offlineContent,
-              onUnavailable: error =>
-                console.warn(
-                  'Workshop index unavailable; installing without registry checks:',
-                  error instanceof Error ? error.message : error,
-                ),
-            }),
+        workshop:
+          desktopControl || options.workshopCheck === 'off'
+            ? undefined
+            : new ServerWorkshop({
+                mode: options.workshopCheck,
+                directory: join(config.dataDirectory, 'workshop'),
+                offline: options.offlineContent,
+                allowThirdPartyContent: options.allowThirdPartyContent || options.allowThirdPartyExecution,
+                registries: workshopRegistries,
+                npm: { registry: options.npmRegistry, cache: join(config.dataDirectory, 'projects', 'npm-cache') },
+                onUnavailable: (registry, error) =>
+                  console.warn(
+                    `Workshop index ${registry} unavailable; installing without its checks:`,
+                    error instanceof Error ? error.message : error,
+                  ),
+              }),
         initialization: desktopControl
           ? desktopInitialization
           : options.npmProject?.[0]

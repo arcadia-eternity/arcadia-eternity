@@ -125,7 +125,21 @@ function failure(error: unknown): OperationFailure {
       : 'OPERATION_FAILED'
   if (error instanceof Error && (code === 'ARCADIA_VERSION_INCOMPATIBLE' || code === 'ARCADIA_VERSION_RANGE_INVALID'))
     return { code, message: error.message, retryable: false }
-  return { code, message: code, retryable: !['FORBIDDEN', 'UNAUTHORIZED', 'OPERATION_INPUT_INVALID'].includes(code) }
+  return {
+    code,
+    message: code,
+    retryable: ![
+      'FORBIDDEN',
+      'UNAUTHORIZED',
+      'OPERATION_INPUT_INVALID',
+      'THIRD_PARTY_CONTENT_NOT_AUTHORIZED',
+      'WORKSHOP_RELEASE_REVOKED',
+      'WORKSHOP_RELEASE_UNKNOWN',
+      'WORKSHOP_PROJECT_UNKNOWN',
+      'WORKSHOP_INTEGRITY_MISMATCH',
+      'WORKSHOP_REGISTRY_UNKNOWN',
+    ].includes(code),
+  }
 }
 
 /** The caller owns the workspace's exclusive writer lock and all authorization checks. */

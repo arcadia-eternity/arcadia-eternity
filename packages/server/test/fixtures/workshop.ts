@@ -11,19 +11,20 @@ const encode = (value: unknown) => new TextEncoder().encode(canonicalJson(value)
 
 /** A signed single-snapshot registry served from memory. */
 export async function createWorkshopFixture(
-  packages: { npm: string; version: string; integrity: string }[],
+  packages: { npm: string; version: string; integrity: string; kind?: 'package' | 'environment' }[],
   revocations: { npm: string; version: string; reason: string }[] = [],
+  registry = 'official',
 ) {
   const now = Date.now()
   const iso = (ms: number) => new Date(ms).toISOString()
-  const base = 'https://workshop.test/'
+  const base = `https://${registry}.workshop.test/`
   const rootKey = await importSigningKey((await generateSigningKey()).pkcs8)
   const snapshotKey = await importSigningKey((await generateSigningKey()).pkcs8)
   const trustedRoot = await signEnvelope(
     {
       type: 'root',
       spec: 1,
-      registry: 'official',
+      registry,
       version: 1,
       expires: iso(now + 365 * day),
       keys: { [rootKey.keyid]: rootKey.publicKey, [snapshotKey.keyid]: snapshotKey.publicKey },
@@ -38,11 +39,11 @@ export async function createWorkshopFixture(
   const index = encode({
     type: 'index',
     spec: 1,
-    registry: 'official',
+    registry,
     generatedAt: iso(now),
     projects: packages.map((pkg, i) => ({
       id: `project-${i}`,
-      kind: 'package',
+      kind: pkg.kind ?? 'package',
       npm: pkg.npm,
       title: pkg.npm,
       summary: '',
@@ -71,7 +72,7 @@ export async function createWorkshopFixture(
     {
       type: 'snapshot',
       spec: 1,
-      registry: 'official',
+      registry,
       version: 1,
       rootVersion: 1,
       expires: iso(now + 7 * day),
