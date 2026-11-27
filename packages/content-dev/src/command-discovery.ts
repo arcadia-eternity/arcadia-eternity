@@ -68,6 +68,28 @@ const commands: Command[] = [
     target: 'project',
     description: 'Run a structured author operation. The default operation is describe.',
   },
+  ...(
+    [
+      ['keygen', '--public-out <file>', 'Generate a Workshop signing key. The private key is printed once to stdout.'],
+      [
+        'root',
+        '--registry <id> --version <n> --root-key <file>... --snapshot-key <file>... --mirror <url>... --out <file>',
+        'Write an unsigned Workshop root metadata file.',
+      ],
+      ['sign', '<envelope.json> --key-env <NAME>', 'Add a signature from the key in an environment variable.'],
+      ['check', '[<directory>] [--project <id>]...', 'Verify Registry declarations and their npm releases.'],
+      [
+        'build',
+        '[<directory>] --out <directory> --key-env <NAME> [--published <url>] [--first]',
+        'Discover npm releases and write a signed Registry site.',
+      ],
+    ] as const
+  ).map(([name, arguments_, description]): Command => ({
+    name: 'registry ' + name,
+    arguments: arguments_,
+    target: 'sdk',
+    description,
+  })),
   {
     name: 'desktop instances',
     arguments: '',

@@ -30,6 +30,11 @@
     "./effect-build": {
       "types": "./dist/effect-build.d.ts",
       "import": "./dist/effect-build.js"
+    },
+    "./workshop": {
+      "types": "./dist/workshop.d.ts",
+      "import": "./dist/workshop.js",
+      "default": "./dist/workshop.js"
     }
   },
   "scripts": {
