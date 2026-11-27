@@ -216,7 +216,7 @@ jobs:
           src/features/development/__tests__/DevelopmentWorkspacePage.test.ts
           src/services/__tests__/authorPreview.test.ts src/features/authoring/__tests__/AuthorPreviewPage.test.ts
       - name: Verify desktop local host lifecycle
-        run: node --test packages/web-ui/electron/test/local-battle-host.test.ts packages/web-ui/electron/test/local-environments.test.ts scripts/desktop-runtime-licenses.test.mjs scripts/stage-desktop-runtime.test.mjs
+        run: node --test packages/web-ui/electron/test/local-battle-host.test.ts packages/web-ui/electron/test/local-environments.test.ts packages/web-ui/electron/test/workshop.test.ts scripts/desktop-runtime-licenses.test.mjs scripts/stage-desktop-runtime.test.mjs
       - name: Install browser
         run: pnpm --filter @arcadia-eternity/web-ui exec playwright install --with-deps chromium
       - name: Verify local battles, team selection, content and connection policy

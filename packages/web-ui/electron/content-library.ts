@@ -102,7 +102,9 @@ type ProjectSource = { kind: 'file'; file: string } | { kind: 'npm'; spec: strin
 type InstallSource =
   | { kind: 'file'; file: string; label: string; provenance?: Record<string, string> }
   | { kind: 'file'; archive: string; label: string }
-  | { kind: 'npm'; spec: string; label: string }
+  | { kind: 'npm'; spec: string; label: string; verify?: GraphCheck }
+/** Rejects a resolved dependency graph before it is recorded, for example against a signed workshop index. */
+export type GraphCheck = (graph: ReturnType<typeof graphFor>) => void | Promise<void>
 interface InstallPlan {
   id: string
   kind: 'install'
@@ -1138,8 +1140,8 @@ export class ContentLibrary {
   async installFile(file: string, offline = false) {
     return this.#installTask(basename(file), signal => this.#stageFile(file, offline, signal))
   }
-  async installNpm(spec: unknown, offline = false) {
-    return this.#installTask(String(spec), signal => this.#stageNpm(spec, offline, signal))
+  async installNpm(spec: unknown, offline = false, verify?: GraphCheck) {
+    return this.#installTask(String(spec), signal => this.#stageNpm(spec, offline, signal, verify))
   }
   async installRemote(descriptor: RemotePackageSource) {
     if (!descriptor || !['url', 'git'].includes(descriptor.kind)) throw sourceError('SOURCE_KIND_UNSUPPORTED')
@@ -1259,10 +1261,10 @@ export class ContentLibrary {
     }
     return id
   }
-  async #stageNpm(spec: unknown, offline = false, signal = this.#controller.signal) {
+  async #stageNpm(spec: unknown, offline = false, signal = this.#controller.signal, verify?: GraphCheck) {
     return this.#exclusive(async () => {
       if (!isExactPackageSpec(spec)) throw new Error('请输入 npm 包名和明确版本，例如 @author/pets@1.0.0')
-      return this.#stageInstall({ kind: 'npm', spec, label: spec }, offline, signal)
+      return this.#stageInstall({ kind: 'npm', spec, label: spec, ...(verify && { verify }) }, offline, signal)
     })
   }
   async #stageInstall(
@@ -1325,6 +1327,7 @@ export class ContentLibrary {
       if (!root?.catalogIds && (!root?.manifest || !root.draft)) throw new Error('该 npm 包没有 Arcadia 内容声明')
       if (provenance && project.inspection.packages.some(pkg => pkg.manifest?.effects && !pkg.manifest.effectArtifact))
         throw new Error('远程安装需要预构建的 Effect 产物，请选择发行归档或预构建目录')
+      if (source.kind === 'npm' && source.verify) await source.verify(graphFor(project.inspection))
       const existing = state.installed.find(item => item.name === root.name && item.version === root.version)
       if (existing) {
         if (source.kind === 'file' && existing.source.kind === 'file') {

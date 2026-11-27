@@ -34,6 +34,7 @@ import {
   openBuiltinEnvironment,
 } from './builtin-environment.ts'
 import { LocalEnvironments } from './local-environments.ts'
+import { DesktopWorkshop, type WorkshopRequest } from './workshop.ts'
 import { DesktopWorkspaceOwner } from './desktop-workspace-owner.ts'
 import { protectStandardStreams } from './stdio.ts'
 import type { ArcadiaDesktopApi, ContentProjectAction } from '../src/types/desktop.d.ts'
@@ -463,6 +464,22 @@ function getContentLibrary() {
   return contentLibrary
 }
 let builtinEnvironment: Awaited<ReturnType<typeof openBuiltinEnvironment>> | undefined
+let workshop: DesktopWorkshop | undefined
+function getWorkshop() {
+  workshop ??= new DesktopWorkshop({
+    directory: path.join(app.getPath('userData'), 'workshop'),
+    host: {
+      listPackages: async () => (await getContentLibrary().list()).packages,
+      installPackage: (spec, verify) => getContentLibrary().installNpm(spec, false, verify),
+      installEnvironment: (spec, environmentId, verify) =>
+        getLocalEnvironments().installRecipe(
+          { kind: 'npm', spec },
+          { ...(environmentId && { environmentId }), allowDownload: true, verify },
+        ),
+    },
+  })
+  return workshop
+}
 let localEnvironments: LocalEnvironments | undefined
 function getLocalEnvironments() {
   localEnvironments ??= new LocalEnvironments({
@@ -920,6 +937,14 @@ function setupIpcHandlers() {
     } catch (error) {
       const problem = error as DesktopError
       return { error: { code: problem.code ?? 'ENVIRONMENT_FAILED', message: problem.message ?? '环境操作失败' } }
+    }
+  })
+  handle('desktop:workshop', async (_event, input: WorkshopRequest) => {
+    try {
+      return { result: await getWorkshop().request(input) }
+    } catch (error) {
+      const problem = error as DesktopError
+      return { error: { code: problem.code ?? problem.message ?? 'WORKSHOP_FAILED', message: problem.message } }
     }
   })
   handle('desktop:management-request', (_event, input: DesktopInput<'managementRequest'>) =>

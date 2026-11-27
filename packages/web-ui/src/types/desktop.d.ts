@@ -31,6 +31,9 @@ export interface ArcadiaDesktopApi {
   profile?: (input: { action: 'read' | 'raw' } | { action: 'activity'; busy: boolean } | { action: 'commit'; expected: import('@arcadia-eternity/local-profile').ProfileExpectation; next: import('@arcadia-eternity/local-profile').Envelope }) => Promise<{ value?: unknown; error?: { code: string; message: string } }>
 
   localEnvironment?: (input: Record<string, unknown>) => Promise<{ result?: unknown; error?: { code: string; message: string } }>
+  workshop?: (
+    input: import('./workshop').WorkshopRequest,
+  ) => Promise<{ result?: unknown; error?: { code: string; message?: string } }>
   managementRequest?: import('./managementIpc').ManagementIpcBridge
   author?: (
     input: Record<string, unknown>,

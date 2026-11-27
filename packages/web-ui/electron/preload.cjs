@@ -10,6 +10,7 @@ const desktopApi = {
   },
   author: input => ipcRenderer.invoke('desktop:author', input),
   localEnvironment: input => ipcRenderer.invoke('desktop:local-environment', input),
+  workshop: input => ipcRenderer.invoke('desktop:workshop', input),
   managementRequest: input => ipcRenderer.invoke('desktop:management-request', input),
   onAuthorChanged: callback => {
     const listener = (_event, value) => callback(value)

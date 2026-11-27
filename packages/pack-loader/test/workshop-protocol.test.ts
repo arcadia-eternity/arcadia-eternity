@@ -4,7 +4,11 @@ import {
   canonicalJson,
   generateSigningKey,
   importSigningKey,
+  OFFICIAL_WORKSHOP_ROOT,
+  OFFICIAL_WORKSHOP_SITE,
   resolveWorkshopRelease,
+  verifyThreshold,
+  verifyWorkshopGraph,
   sha256Hex,
   signEnvelope,
   type SignedEnvelope,
@@ -134,6 +138,7 @@ async function setup() {
     failing,
     requests,
     client,
+    fetch,
     setRootVersion: (value: number) => (rootVersion = value),
     advance: (ms: number) => (clock += ms),
   }
@@ -271,5 +276,99 @@ describe('workshop signed snapshots', () => {
     await t.publish(1, { ...index(), extra: true } as WorkshopIndex)
     await expect(t.client().refresh()).rejects.toThrow(/WORKSHOP_METADATA_INVALID|WORKSHOP_MIRRORS_FAILED/)
     expect(() => canonicalJson({ value: 1.5 })).toThrow('WORKSHOP_METADATA_INVALID')
+  })
+})
+
+describe('workshop trust state and graph checks', () => {
+  it('keeps a verified root rotation when the new snapshot is not yet available', async () => {
+    const t = await setup()
+    await t.publish(1, index([project()]))
+    const client = t.client()
+    await client.refresh()
+    const nextRoot = await key()
+    const nextSnapshot = await key()
+    const root2 = await signEnvelope(t.rootFor(2, nextRoot, nextSnapshot), [t.rootKey, nextRoot])
+    t.primary.put('root/2.json', encode(root2))
+    t.mirror.put('root/2.json', encode(root2))
+    const view = await client.refresh()
+    expect(view.freshness).toBe('stale')
+    expect(view.snapshot.version).toBe(1)
+    const stored = t.stored.get('test')!
+    expect((stored.root.signed as WorkshopRoot).version).toBe(2)
+    expect((stored.snapshotRoot!.signed as WorkshopRoot).version).toBe(1)
+    expect((await t.client().cached())?.snapshot.version).toBe(1)
+    // The old snapshot key cannot advance the index once root 2 is trusted.
+    await t.publish(2, index(), { signer: t.snapshotKey })
+    expect((await client.refresh()).error?.message).toMatch(/WORKSHOP_ROOT_VERSION_MISMATCH|WORKSHOP_SIGNATURE/)
+    t.setRootVersion(2)
+    await t.publish(2, index([project('2.0.0')]), { signer: nextSnapshot })
+    const fresh = await client.refresh()
+    expect(fresh.freshness).toBe('fresh')
+    expect(t.stored.get('test')!.snapshotRoot).toBeUndefined()
+  })
+
+  it('rejects the same snapshot version with a different expiry', async () => {
+    const t = await setup()
+    await t.publish(1, index([project()]))
+    const client = t.client()
+    await client.refresh()
+    await t.publish(1, index([project()]), { expires: now + 30 * day })
+    expect((await client.refresh()).error?.message).toMatch(/WORKSHOP_ROLLBACK/)
+  })
+
+  it('does not overwrite newer state saved concurrently by another client', async () => {
+    const t = await setup()
+    await t.publish(1, index([project('1.0.0')]))
+    await t.client().refresh()
+    const before = structuredClone(t.stored.get('test'))
+    await t.publish(2, index([project('2.0.0')]))
+    await t.client().refresh()
+    // This client read state before snapshot 2 was saved and still fetches snapshot 1 from a lagging mirror.
+    await t.publish(1, index([project('1.0.0')]))
+    let reads = 0
+    const store = {
+      read: async () => (reads++ === 0 ? structuredClone(before) : structuredClone(t.stored.get('test'))),
+      write: async (_: string, state: WorkshopTrustState) => void t.stored.set('test', state),
+    }
+    const view = await new WorkshopClient({ trustedRoot: t.root1, store, fetch: t.fetch, now: () => now }).refresh()
+    expect((t.stored.get('test')!.snapshot!.signed as WorkshopSnapshot).version).toBe(2)
+    expect(view.snapshot.version).toBe(2)
+  })
+
+  it('verifies the integrity of the root package and listed dependencies', async () => {
+    const t = await setup()
+    const pets = project()
+    const base = { ...project('3.0.0'), id: 'demo-base', npm: '@demo/base' }
+    base.releases[0].integrity = 'sha512-' + 'B'.repeat(86) + '=='
+    await t.publish(1, index([pets, base]))
+    const view = await t.client().refresh()
+    const target = resolveWorkshopRelease(view, '@demo/pets', '1.0.0')
+    const graph = [
+      { name: '@demo/pets', version: '1.0.0', integrity: pets.releases[0].integrity },
+      { name: '@demo/base', version: '3.0.0', integrity: base.releases[0].integrity },
+      { name: 'left-pad', version: '1.3.0', integrity: 'sha512-x' },
+    ]
+    expect(() => verifyWorkshopGraph(view, target, graph)).not.toThrow()
+    expect(() => verifyWorkshopGraph(view, target, [{ ...graph[0], integrity: 'sha512-y' }])).toThrow(
+      'WORKSHOP_INTEGRITY_MISMATCH',
+    )
+    expect(() => verifyWorkshopGraph(view, target, [graph[0], { ...graph[1], integrity: graph[0].integrity }])).toThrow(
+      'WORKSHOP_INTEGRITY_MISMATCH',
+    )
+    expect(() => verifyWorkshopGraph(view, target, [graph[0], { ...graph[1], version: '3.0.1' }])).toThrow(
+      'WORKSHOP_RELEASE_UNKNOWN',
+    )
+  })
+
+  it('verifies the bundled official root', async () => {
+    const root = OFFICIAL_WORKSHOP_ROOT.signed as unknown as WorkshopRoot
+    await expect(
+      verifyThreshold(
+        OFFICIAL_WORKSHOP_ROOT as unknown as SignedEnvelope<{ type: string }>,
+        root.keys,
+        root.roles.root,
+      ),
+    ).resolves.toBeUndefined()
+    expect(root.mirrors[0]).toBe(OFFICIAL_WORKSHOP_SITE)
   })
 })

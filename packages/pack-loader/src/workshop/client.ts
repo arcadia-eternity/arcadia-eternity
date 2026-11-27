@@ -1,4 +1,4 @@
-import { fail, parseJsonBytes, sha256Hex, WorkshopError } from './encoding'
+import { canonicalJson, fail, parseJsonBytes, sha256Hex, WorkshopError } from './encoding'
 import {
   INDEX_MAX_BYTES,
   ROOT_MAX_BYTES,
@@ -23,6 +23,8 @@ export type WorkshopFetch = (url: string, maxBytes: number, signal: AbortSignal)
 export interface WorkshopTrustState {
   root: SignedEnvelope<unknown>
   snapshot?: SignedEnvelope<unknown>
+  /** Root the cached snapshot was verified under, kept while a rotated root has no newer snapshot yet. */
+  snapshotRoot?: SignedEnvelope<unknown>
   index?: string
   checkedAt?: string
 }
@@ -131,7 +133,9 @@ export class WorkshopClient {
   async cached(): Promise<WorkshopView | undefined> {
     const state = await this.#options.store.read(this.registry)
     if (!state?.snapshot || !state.index) return undefined
-    const root = await this.#trustedRoot(state)
+    const current = await this.#trustedRoot(state)
+    const prior = state.snapshotRoot ? parseRoot(parseEnvelope(state.snapshotRoot).signed) : undefined
+    const root = prior && prior.registry === this.registry && prior.version < current.version ? prior : current
     const snapshot = await this.#verifySnapshot(state.snapshot, root, undefined, false)
     const index = this.#verifyIndex(new TextEncoder().encode(state.index), snapshot)
     return { registry: this.registry, root, snapshot, index, freshness: 'stale', checkedAt: state.checkedAt }
@@ -140,8 +144,11 @@ export class WorkshopClient {
   async #refresh(outer?: AbortSignal): Promise<WorkshopView> {
     const signal = AbortSignal.any([AbortSignal.timeout(this.#options.timeoutMs ?? 60_000), ...(outer ? [outer] : [])])
     const state = await this.#options.store.read(this.registry)
+    let rotated: { root: WorkshopRoot; envelope: SignedEnvelope<unknown> } | undefined
     try {
       const { root, envelope: rootEnvelope } = await this.#updateRoot(state, signal)
+      if (state && parseRoot(parseEnvelope(state.root).signed).version < root.version)
+        rotated = { root, envelope: rootEnvelope }
       const previous = state?.snapshot ? this.#previousSnapshot(state.snapshot) : undefined
       const { snapshot, envelope, index, indexText } = await this.#firstValid(root, signal, async base => {
         const bytes = await this.#fetch(base + 'snapshot.json', SNAPSHOT_MAX_BYTES, signal)
@@ -157,20 +164,46 @@ export class WorkshopClient {
         return { snapshot, envelope, index, indexText: new TextDecoder().decode(indexBytes) }
       })
       const checkedAt = new Date(this.#now()).toISOString()
-      await this.#options.store.write(this.registry, {
+      const written = await this.#writeMonotonic({
         root: rootEnvelope,
         snapshot: envelope,
         index: indexText,
         checkedAt,
       })
+      if (!written) {
+        // Another process saved newer trusted state while this refresh ran.
+        const cached = await this.cached()
+        if (cached) return { ...cached, freshness: 'fresh' }
+      }
       return { registry: this.registry, root, snapshot, index, freshness: 'fresh', checkedAt }
     } catch (error) {
       outer?.throwIfAborted()
+      // Keep a verified root rotation even when no snapshot verifies yet, so a revoked snapshot key stays revoked.
+      if (rotated && state?.snapshot && state.index)
+        await this.#writeMonotonic({
+          ...state,
+          root: rotated.envelope,
+          snapshotRoot: state.snapshotRoot ?? state.root,
+        }).catch(() => {})
       // A rejected update never overwrites trusted state; cached data remains available but stale.
       const cached = await this.cached().catch(() => undefined)
       if (cached) return { ...cached, error: errorInfo(error) }
       throw error
     }
+  }
+
+  /** Persist only when no newer root or snapshot was stored concurrently. */
+  async #writeMonotonic(next: WorkshopTrustState) {
+    const stored = await this.#options.store.read(this.registry)
+    if (stored) {
+      const storedRoot = parseRoot(parseEnvelope(stored.root).signed).version
+      const nextRoot = parseRoot(parseEnvelope(next.root).signed).version
+      const version = (value?: SignedEnvelope<unknown>) =>
+        value ? parseSnapshot(parseEnvelope(value).signed).version : 0
+      if (storedRoot > nextRoot || version(stored.snapshot) > version(next.snapshot)) return false
+    }
+    await this.#options.store.write(this.registry, next)
+    return true
   }
 
   async #trustedRoot(state: WorkshopTrustState | undefined) {
@@ -224,7 +257,7 @@ export class WorkshopClient {
     await verifyThreshold(envelope as SignedEnvelope<{ type: string }>, root.keys, root.roles.snapshot)
     if (previous) {
       if (snapshot.version < previous.version) fail('WORKSHOP_ROLLBACK', 'Snapshot version is older than trusted state')
-      if (snapshot.version === previous.version && snapshot.index.sha256 !== previous.index.sha256)
+      if (snapshot.version === previous.version && canonicalJson(snapshot) !== canonicalJson(previous))
         fail('WORKSHOP_ROLLBACK', 'Snapshot version was reused for different content')
     }
     if (checkExpiry && Date.parse(snapshot.expires) <= this.#now()) fail('WORKSHOP_SNAPSHOT_EXPIRED')
@@ -301,5 +334,34 @@ export function assertGraphNotRevoked(view: WorkshopView, graph: readonly { name
   for (const item of graph) {
     const revoked = revocationFor(view.index, item.name, item.version)
     if (revoked) fail('WORKSHOP_RELEASE_REVOKED', `${item.name}@${item.version}: ${revoked.reason}`)
+  }
+}
+
+export interface WorkshopGraphPackage {
+  name: string
+  version: string
+  integrity?: string
+}
+
+/**
+ * Check an installed or resolved npm graph against a fresh index: the root must be the resolved release,
+ * and every listed package must carry the signed integrity of its release. Unlisted dependencies pass unchanged.
+ */
+export function verifyWorkshopGraph(
+  view: WorkshopView,
+  target: WorkshopInstallTarget,
+  graph: readonly WorkshopGraphPackage[],
+) {
+  if (view.freshness !== 'fresh') fail('WORKSHOP_INDEX_STALE', 'Refresh the workshop index before installing')
+  const root = graph.find(item => item.name === target.project.npm)
+  if (!root || root.version !== target.release.version || root.integrity !== target.release.integrity)
+    fail('WORKSHOP_INTEGRITY_MISMATCH', `${target.project.npm}@${target.release.version}`)
+  assertGraphNotRevoked(view, graph)
+  for (const item of graph) {
+    const project = view.index.projects.find(entry => entry.npm === item.name)
+    if (!project) continue
+    const release = project.releases.find(entry => entry.version === item.version)
+    if (!release) fail('WORKSHOP_RELEASE_UNKNOWN', `${item.name}@${item.version}`)
+    if (item.integrity !== release.integrity) fail('WORKSHOP_INTEGRITY_MISMATCH', `${item.name}@${item.version}`)
   }
 }

@@ -52,7 +52,7 @@ interface LocalEnvironmentOptions {
     source: RecipeSource,
     destination: string,
     options: { signal: AbortSignal; offline: boolean },
-  ) => Promise<{ document: EnvironmentDocument; directory: string }>
+  ) => Promise<{ document: EnvironmentDocument; directory: string; integrity?: string }>
   resolvePackageChange: typeof resolveEnvironmentPackageChange
   baseRules?: EnvironmentDocument['rules']
   openBuiltin?: () => Promise<BuiltinEnvironment | undefined>
@@ -82,6 +82,9 @@ interface ApplyOptions {
   copyFrom?: string
   allowDownload?: boolean
 }
+
+/** Rejects an acquired recipe before it is applied, for example against a signed workshop index. */
+export type RecipeCheck = (recipe: { directory: string; integrity?: string }) => void | Promise<void>
 
 interface RecipeRequest {
   action: 'install-recipe'
@@ -369,6 +372,43 @@ export class LocalEnvironments {
         .reverse(),
     }
   }
+  /** Install an environment recipe into a new environment id. */
+  async installRecipe(
+    source: RecipeSource,
+    input: { environmentId?: string; allowDownload?: boolean; verify?: RecipeCheck },
+  ) {
+    const workspace = await this.ready()
+    return this.start('environment.install-recipe', async (signal, onProgress) => {
+      const staging = join(workspace.root, 'staging', 'recipe-' + randomUUID())
+      try {
+        onProgress({ stage: 'resolving' })
+        const acquired = await this.acquireRecipe(source, staging, {
+          signal,
+          offline: input.allowDownload !== true,
+        })
+        await input.verify?.(acquired)
+        const document = { ...acquired.document, id: input.environmentId ?? acquired.document.id }
+        signal.throwIfAborted()
+        if (this.#source(workspace, document.id).workspace !== workspace)
+          throw fail('BUILTIN_ENVIRONMENT_READ_ONLY', '内置环境为只读，请指定新的环境标识')
+        // A partial installation can have materials even when its draft is missing.
+        const exists = await lstat(join(workspace.root, 'environments', document.id)).catch(error => {
+          if (!hasErrorCode(error, 'ENOENT')) throw error
+        })
+        if (exists) throw fail('ENVIRONMENT_ALREADY_EXISTS', '环境标识已存在，请指定新的环境标识')
+        return await this.#apply(
+          workspace,
+          document,
+          { expectedRevision: null, allowDownload: input.allowDownload },
+          signal,
+          onProgress,
+          acquired.directory,
+        )
+      } finally {
+        await rm(staging, { recursive: true, force: true })
+      }
+    })
+  }
   start(kind: string, execute: ExecuteOperation) {
     if (this.#closed) throw fail('WORKSPACE_CLOSED', '环境库已关闭')
     if ([...this.#jobs.values()].filter(job => ['queued', 'running'].includes(job.status)).length >= 30)
@@ -529,35 +569,7 @@ export class LocalEnvironments {
         )
           throw fail('INVALID_REQUEST', '请选择本地 .tgz 或输入完整 npm 包名和版本')
         else source = requested
-        return this.start('environment.install-recipe', async (signal, onProgress) => {
-          const staging = join(workspace.root, 'staging', 'recipe-' + randomUUID())
-          try {
-            onProgress({ stage: 'resolving' })
-            const acquired = await this.acquireRecipe(source, staging, {
-              signal,
-              offline: input.allowDownload !== true,
-            })
-            const document = { ...acquired.document, id: input.environmentId ?? acquired.document.id }
-            signal.throwIfAborted()
-            if (this.#source(workspace, document.id).workspace !== workspace)
-              throw fail('BUILTIN_ENVIRONMENT_READ_ONLY', '内置环境为只读，请指定新的环境标识')
-            // A partial installation can have materials even when its draft is missing.
-            const exists = await lstat(join(workspace.root, 'environments', document.id)).catch(error => {
-              if (!hasErrorCode(error, 'ENOENT')) throw error
-            })
-            if (exists) throw fail('ENVIRONMENT_ALREADY_EXISTS', '环境标识已存在，请指定新的环境标识')
-            return await this.#apply(
-              workspace,
-              document,
-              { expectedRevision: null, allowDownload: input.allowDownload },
-              signal,
-              onProgress,
-              acquired.directory,
-            )
-          } finally {
-            await rm(staging, { recursive: true, force: true })
-          }
-        })
+        return this.installRecipe(source, input)
       }
       case 'add-package':
       case 'remove-package': {
