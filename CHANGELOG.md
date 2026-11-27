@@ -1,5 +1,17 @@
 # Changelog
 
+## [5.4.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v5.3.0...arcadia-eternity-v5.4.0) (2026-11-27)
+
+
+### ✨ Features
+
+* **workshop:** add signed registry protocol and registry tooling ([#350](https://github.com/arcadia-eternity/arcadia-eternity/issues/350)) ([b950f9d](https://github.com/arcadia-eternity/arcadia-eternity/commit/b950f9d9d154017dc8080e2be569371c7f0e7e1f))
+
+
+### 🐛 Bug Fixes
+
+* **web-ui:** center the battle loader tip on its strip ([c4a941a](https://github.com/arcadia-eternity/arcadia-eternity/commit/c4a941a93d224c8babf8fb772d289cd95a163434))
+
 ## [5.3.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v5.2.0...arcadia-eternity-v5.3.0) (2026-11-27)
 
 
