@@ -5,7 +5,6 @@ export interface ManagedServiceCredential {
   createdAt: number
   expiresAt: number
   serverId: string
-  legacyRestricted: boolean
 }
 export interface ManagementScope {
   kind: 'workspace' | 'server'

@@ -123,7 +123,7 @@ node dist/cli.js server admin login-code --data-dir /srv/arcadia
 
 管理后台使用独立的全页布局。主导航只在服务端确认当前身份有管理权限时显示“管理后台”；未登录用户从“服务器 → 更多 → 管理员登录”或直接访问 `/management` 进入登录页。本机客户端的服务器卡片直接提供后台入口，使用可信 bridge，无需玩家账户或登录码。
 
-G2 游客服可以在首次用登录码进入后，从“登录与安全”添加 WebAuthn 通行密钥。私钥由用户设备或通行密钥提供方保存，服务器只保存公钥；验证固定站点/RP、一次性挑战、签名、用户验证标志和计数器。通行密钥要求 HTTPS（开发时允许 localhost）；域名变化后需通过宿主恢复入口重新登记。注册只接受经过 Origin、CSRF 和管理会话校验的请求，不能用自动化服务 token 注册。新密钥绑定本服务器，登录按当前管理员名单校验。旧受限人工凭据需重新完整登录并登记，不会自动扩权。
+G2 游客服可以在首次用登录码进入后，从“登录与安全”添加 WebAuthn 通行密钥。私钥由用户设备或通行密钥提供方保存，服务器只保存公钥；验证固定站点/RP、一次性挑战、签名、用户验证标志和计数器。通行密钥要求 HTTPS（开发时允许 localhost）；域名变化后需通过宿主恢复入口重新登记。注册只接受经过 Origin、CSRF 和管理会话校验的请求，不能用自动化服务 token 注册。新密钥绑定本服务器，登录按当前管理员名单校验。
 
 网页先恢复管理会话；会话不存在时尝试恢复已记住的设备，再自动验证当前服务器的 G3 账户。G3 账户必须已被关联并授权，普通玩家身份不会升级为管理员。主动退出管理后，当前浏览器标签页中的自动检查（包括刷新页面后）不会立即重新登录该账户；可显式选择账户登录重新进入。
 
@@ -133,11 +133,11 @@ G2 游客服可以在首次用登录码进入后，从“登录与安全”添�
 
 独立管理的服务器使用各自的内容工作区；复用内容通过包或环境导入完成。检测到其他服务器共用同一工作区时，升级要求先拆分，避免跨服扩权。可信桌面入口拥有本机管理权，远程管理员不能获得桌面权限。
 
-升级前可执行 `server admin status --data-dir <目录>` 查看只读迁移清单，包括身份、旧授权、迁移结果、共享工作区和凭据处置。完整的旧服务器与工作区授权映射到管理员名单，部分授权不会自动提升，需服主在后台明确添加账户为管理员。启动以事务初始化名单并记录迁移审计；旧授权记录保留为恢复证据，不再参与日常授权。运行中名单修改使用修订号控制并发，失败全部回滚。`server admin login-code` 保留宿主恢复入口，`--name <名称>` 可签发独立具名管理员登录码。
+所有管理请求使用同一检查：凭据有效、签发给本服务器、主体在当前管理员名单内。没有逐项权限或角色。未绑定本服务器的旧凭据视为未认证。尚无名单的数据库在启动时建立空名单，不从旧授权推导管理员，用宿主登录码重新进入。运行中名单修改使用修订号控制并发，失败全部回滚。`server admin login-code` 保留宿主恢复入口，`--name <名称>` 可签发独立具名管理员登录码。
 
 网页管理会话使用独立的 HttpOnly、Secure Cookie，默认 `SameSite=Lax`。要求同站时可设 `strict`，跨站部署可设 `none`，此时发送 `SameSite=None; Secure; Partitioned`，由浏览器按顶层站点隔离会话。跨站页面的来源仍须获准，写请求仍检查 Origin 与 CSRF。自动化服务凭证另行限权与撤销。远程服务器窗口不能取得本机文件系统或管理 IPC；可信本地页面才可通过私有 bridge 管理本机资源。浏览器仍保持一站一服，不提供任意后端选择器。
 
-服务凭证的明文 token 仅在签发时展示。重新打开页面可通过 `GET /api/management/v1/credentials` 查询有权管理的服务凭证元数据：独立公开 ID、所属主体、创建/到期时间、服务器及旧凭据受限标记；列表不返回 token、存储摘要、bootstrap 或浏览器会话。撤销使用公开 ID，并再次校验本服管理员身份；凭据绑定当前服务器及签发管理员；撤销管理员同时撤销其管理能力。新凭据拥有本服完整管理权，不提供逐项限权；旧受限服务凭据在有效管理员身份下继续遵守原上限，直至撤销或到期。
+服务凭证的明文 token 仅在签发时展示。重新打开页面可通过 `GET /api/management/v1/credentials` 查询有权管理的服务凭证元数据：独立公开 ID、所属主体、创建/到期时间、服务器；列表不返回 token、存储摘要、bootstrap 或浏览器会话。撤销使用公开 ID，并再次校验本服管理员身份；凭据绑定当前服务器及签发管理员；撤销管理员同时撤销其管理能力。服务凭证拥有本服完整管理权，不提供逐项限权。
 
 独立服务默认由部署入口负责 HTTPS，应用可在代理后使用 HTTP。配置 `MANAGEMENT_TRUSTED_PROXY_IPS` 会默认开启应用内 TLS 检查，`MANAGEMENT_REQUIRE_TLS=true` 或 `false` 可显式指定策略。开启检查时，回环和直接 TLS 可通过；反向代理需设置 HTTPS 的 `PUBLIC_ORIGIN`，并在 `MANAGEMENT_TRUSTED_PROXY_IPS` 列出代理确切 IP，只有来自登记地址且带 `X-Forwarded-Proto: https` 的请求才通过代理检查。地址列表接受单个 IP，管理认证和权限在所有模式下都生效。桌面托管的局域网服务默认保留应用内 TLS 检查。
 
@@ -177,7 +177,7 @@ EnvironmentBinding 直接引用 environmentId，不保存 desired/effective 版�
 
 ## 在线服务器备份
 
-宿主配置备份回调后，capabilities 返回 `server.backup`。共享管理页提供“创建服务器备份”，调用 `POST /api/management/v1/servers/:id/backup` 并返回异步 operation；成功后用户在任务中手动下载 `GET /api/management/v1/backups/:operationId`。创建、提交和下载均校验本服管理员身份；旧受限凭据还需满足原服务器 `backup` 与工作区 `export` 上限。该入口不授予在线覆盖恢复能力。
+宿主配置备份回调后，capabilities 返回 `server.backup`。共享管理页提供“创建服务器备份”，调用 `POST /api/management/v1/servers/:id/backup` 并返回异步 operation；成功后用户在任务中手动下载 `GET /api/management/v1/backups/:operationId`。创建、提交和下载均校验本服管理员身份。该入口不授予在线覆盖恢复能力。
 
 一致性采用工作区 owner 内的文件捕获、数据库原子逻辑快照和捕获后复核：先取得带 owner/boot/generation 标识的工作区快照，再导出数据库，最后检查同一 owner 的捕获内容指纹仍然有效。复制材料和桌面 IPC 期间不持有数据库长事务，也不宣称暂停所有业务写入。材料正在变化、owner 更换或快照失效时重新捕获，默认最多三次；持续不稳定则返回 `BACKUP_BUSY`，不交付混合版本归档。
 
@@ -237,7 +237,7 @@ pnpm --filter @arcadia-eternity/web-ui exec vitest run src/services/__tests__/ma
 - `POST /workspaces/:workspace/environments/:id/packages/add`：`{ expectedRevision, name, version?, source? }`。须提供 `version`（版本或版本范围）或 `source: true`（使用宿主来源登记）；二者不能同时提供。缺少声明时返回 `ENVIRONMENT_PACKAGE_DECLARATION_REQUIRED`。显式声明可更新已有包的版本，或在版本声明与来源声明之间切换。
 - `POST /workspaces/:workspace/environments/:id/packages/remove`：`{ expectedRevision, name, cascade? }`。默认拒绝移出仍被其他包依赖的包；明确传入 `cascade: true` 才连同依赖它的直接包一起移出。依赖图未解析或与当前组合不匹配时，须先应用当前组合。
 
-两者均要求本服管理员身份（旧受限凭据仍检查 `edit` 和 `prepare` 上限），返回应用任务。仅在下载、安装与校验全部成功后更新环境 manifest 和安装内容；失败保留原环境。加入已登记来源不会允许调用者传入任意宿主文件路径。内置默认环境的依赖和规则只读；自定义依赖时先复制环境。旧 `disabled` 字段只在读取旧文档时忽略；工作区改写旧 manifest 前保存迁移备份，新声明不再包含此字段。能力 `workspace.environment-dependencies` 表示 add 必须携带声明、remove 不保留恢复记录。关联服务器加载当前安装，开放和执行权限仍由服务器绑定控制。
+两者均要求本服管理员身份，返回应用任务。仅在下载、安装与校验全部成功后更新环境 manifest 和安装内容；失败保留原环境。加入已登记来源不会允许调用者传入任意宿主文件路径。内置默认环境的依赖和规则只读；自定义依赖时先复制环境。旧 `disabled` 字段只在读取旧文档时忽略；工作区改写旧 manifest 前保存迁移备份，新声明不再包含此字段。能力 `workspace.environment-dependencies` 表示 add 必须携带声明、remove 不保留恢复记录。关联服务器加载当前安装，开放和执行权限仍由服务器绑定控制。
 
 CLI 与上述操作对应，通用连接参数仍使用 `--server`、`--token-file`、`--workspace`：
 

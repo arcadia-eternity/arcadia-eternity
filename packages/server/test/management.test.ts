@@ -1,4 +1,4 @@
-import { legacySession } from './fixtures/management'
+import { nonAdministratorSession } from './fixtures/management'
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { execFile } from 'node:child_process'
@@ -157,11 +157,7 @@ describe('unified management HTTP and durable environment publication', () => {
     expect(secondPage.body.players).toHaveLength(1)
     expect(secondPage.body.players[0].seatId).not.toBe(firstPage.body.players[0].seatId)
     expect((await env.request('/servers/managed-test/players?limit=10000')).response.status).toBe(422)
-    const viewer = await legacySession(
-      env.app.management!.auth,
-      [{ scope: { kind: 'server', id: 'managed-test' }, actions: ['read'] }],
-      'viewer',
-    )
+    const viewer = await nonAdministratorSession(env.app.management!.auth, 'viewer')
     for (const path of ['/servers/managed-test/players', '/servers/managed-test/battles']) {
       await expect(env.app.management!.request(viewer.actor, { method: 'GET', path })).rejects.toMatchObject({
         code: 'MANAGEMENT_FORBIDDEN',
@@ -436,7 +432,7 @@ describe('unified management HTTP and durable environment publication', () => {
     const local = env.app.management!
     const issued = await local.auth.issueBootstrapCode()
     await local.auth.exchangeBootstrap(issued.code)
-    const limited = await legacySession(local.auth, [{ scope: local.serverScope, actions: ['read'] }])
+    const limited = await nonAdministratorSession(local.auth)
     const response = await fetch(env.url + '/servers/managed-test/drain', {
       method: 'POST',
       headers: { Authorization: `Bearer ${limited.token}`, 'Content-Type': 'application/json' },
@@ -623,7 +619,15 @@ describe('workshop registry checks', () => {
 })
 
 describe('workshop installs through management', () => {
-  async function prepare(options: { revoked?: boolean; community?: boolean; thirdParty?: boolean } = {}) {
+  async function prepare(
+    options: {
+      revoked?: boolean
+      community?: boolean
+      thirdParty?: boolean
+      unlisted?: boolean
+      install?: boolean
+    } = {},
+  ) {
     const fixture = await portableFixture()
     cleanups.push(fixture.dispose)
     const manifest = JSON.parse(await readFile(join(fixture.directory, 'package.json'), 'utf8'))
@@ -632,7 +636,7 @@ describe('workshop installs through management', () => {
     const locked = lock.packages[`node_modules/${name}`]
     const recipe = { npm: '@test/recipe', version: '1.0.0', integrity: 'sha512-' + 'R'.repeat(86) + '==' }
     const listed = [
-      { npm: name, version: locked.version, integrity: locked.integrity },
+      ...(options.unlisted ? [] : [{ npm: name, version: locked.version, integrity: locked.integrity }]),
       { ...recipe, kind: 'environment' as const },
     ]
     const revocations = options.revoked ? [{ npm: name, version: locked.version, reason: 'malicious' }] : []
@@ -651,6 +655,7 @@ describe('workshop installs through management', () => {
     }
     const workshop = new ServerWorkshop({
       mode: 'available',
+      install: options.install,
       directory: state,
       allowThirdPartyContent: options.thirdParty ?? true,
       trustedRoot: official.trustedRoot,
@@ -764,6 +769,58 @@ describe('workshop installs through management', () => {
     const { recipe, install } = await prepare({ thirdParty: false })
     const result = await install({ npm: recipe.npm, version: recipe.version })
     expect((result.error as { code?: string }).code).toBe('THIRD_PARTY_CONTENT_NOT_AUTHORIZED')
+  }, 60000)
+
+  it('refuses recipes whose pinned graph contains packages no trusted registry lists', async () => {
+    const { env, recipe, install } = await prepare({ unlisted: true })
+    const result = await install({ npm: recipe.npm, version: recipe.version })
+    expect((result.error as { code?: string }).code).toBe('WORKSHOP_DEPENDENCY_UNLISTED')
+    expect(await env.workspace.listInstallations()).toEqual([])
+  }, 60000)
+
+  it('keeps browsing when the host disables installs', async () => {
+    const { env, base, name, version } = await prepare({ install: false })
+    expect((await env.request(base + '/registries/official?refresh=1')).body.freshness).toBe('fresh')
+    const features = (await env.request('/capabilities')).body.supportedFeatures
+    expect(features).toContain('workspace.workshop')
+    expect(features).not.toContain('workspace.workshop.install')
+    const started = await env.request(
+      base + '/install',
+      'POST',
+      { npm: name, version },
+      { 'Idempotency-Key': 'disabled' },
+    )
+    expect(started.response.status).toBe(403)
+    expect(started.body.error.code).toBe('WORKSHOP_INSTALL_DISABLED')
+  }, 60000)
+
+  it('refuses to install into a published environment', async () => {
+    const { env, base, name, version } = await prepare()
+    const draft = await emptyDraft(env)
+    await env.storage.create('bindings', {
+      id: 'published-target',
+      scope: 'server:managed-test',
+      value: {
+        serverId: 'managed-test',
+        workspaceId: env.workspace.workspaceId,
+        environmentId: 'target',
+        executionPolicy: 'server',
+        enabled: true,
+        visibility: 'public',
+        matchmakingEnabled: true,
+        condition: 'available',
+        observedBootId: 'test',
+      },
+    })
+    const started = await env.request(
+      base + '/install',
+      'POST',
+      { npm: name, version, environmentId: 'target', expectedRevision: draft.revision },
+      { 'Idempotency-Key': 'published' },
+    )
+    expect(started.response.status).toBe(409)
+    expect(started.body.error.code).toBe('WORKSHOP_ENVIRONMENT_PUBLISHED')
+    expect((await env.workspace.getDraft('target')).revision).toBe(draft.revision)
   }, 60000)
 
   it('rejects host registry roots that reuse the official ID or carry a bad signature', async () => {

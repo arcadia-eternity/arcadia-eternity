@@ -1,4 +1,3 @@
-import { legacySession } from './fixtures/management'
 import { createHash, generateKeyPairSync, randomBytes, sign } from 'node:crypto'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -111,7 +110,7 @@ describe('management passkeys and remembered devices', () => {
     const request = await auth.passkeyLoginOptions(origin)
     const input = { challengeId: request.challengeId, response: key.authentication(request.options.challenge) }
     const session = await auth.loginPasskey(origin, input)
-    await expect(auth.authorize(session.actor, scope, 'read')).resolves.toBeUndefined()
+    await expect(auth.authorize(session.actor, scope)).resolves.toBeUndefined()
     await expect(auth.loginPasskey(origin, input)).rejects.toMatchObject({ status: 401 })
     const [method] = await auth.loginMethods(owner.actor)
     await auth.revokeLoginMethod(owner.actor, method.id)
@@ -200,14 +199,5 @@ describe('management passkeys and remembered devices', () => {
     await expect(auth.refreshDevice(refreshed.token)).rejects.toMatchObject({ status: 401 })
     await expect(auth.authenticate(owner.token)).rejects.toMatchObject({ status: 401 })
     await expect(auth.authenticate(refreshed.session.token)).rejects.toMatchObject({ status: 401 })
-  })
-  it('requires reauthentication instead of turning a legacy restricted login into a new device', async () => {
-    const limited = await legacySession(auth, [{ scope, actions: ['read'] }])
-    await expect(auth.passkeyRegistrationOptions(limited.actor, origin)).rejects.toMatchObject({
-      code: 'SESSION_REQUIRED',
-    })
-    await expect(auth.rememberDevice(limited.actor, 'Restricted browser')).rejects.toMatchObject({
-      code: 'SESSION_REQUIRED',
-    })
   })
 })

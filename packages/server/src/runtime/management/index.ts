@@ -1,5 +1,5 @@
-export { ManagementAuth, ManagementAuthError, MANAGEMENT_ACTIONS, managementScopeKey } from './auth'
-export type { ManagementActor, ManagementPermission, ManagementScope } from './auth'
+export { ManagementAuth, ManagementAuthError, managementScopeKey } from './auth'
+export type { ManagementActor, ManagementScope } from './auth'
 export { ManagementService, ManagementError, validateWorkspaceProject } from './service'
 export type {
   ManagementOptions,

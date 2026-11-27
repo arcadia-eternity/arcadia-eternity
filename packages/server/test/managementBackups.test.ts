@@ -1,4 +1,4 @@
-import { legacySession } from './fixtures/management'
+import { nonAdministratorSession } from './fixtures/management'
 import { createHash, randomUUID } from 'node:crypto'
 import { lstat, mkdtemp, readdir, rm, utimes, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -105,19 +105,8 @@ async function fixture(driver: 'sqlite' | 'postgres', enabled = true) {
   await app.start()
   const management = app.management!
   const owner = await management.auth.exchangeBootstrap((await management.auth.issueBootstrapCode('backup-owner')).code)
-  const viewer = await legacySession(
-    management.auth,
-    [
-      { scope: management.serverScope, actions: ['read'] },
-      { scope: management.workspaceScope, actions: ['read', 'export'] },
-    ],
-    'viewer',
-  )
-  const serverOnly = await legacySession(
-    management.auth,
-    [{ scope: management.serverScope, actions: ['read', 'backup'] }],
-    'server-only',
-  )
+  const viewer = await nonAdministratorSession(management.auth, 'viewer')
+  const serverOnly = await nonAdministratorSession(management.auth, 'server-only')
   const base = `http://127.0.0.1:${app.address!.port}/api/management/v1`
   const request = async (
     path: string,

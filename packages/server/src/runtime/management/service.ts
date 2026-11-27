@@ -393,10 +393,20 @@ export class ManagementService {
     const bindings = (await this.options.storage.list<Binding>('bindings')).filter(
       row => row.value.workspaceId === this.options.workspace.workspaceId && row.value.environmentId === environmentId,
     )
-    if (!bindings.length) return
-    await this.auth.authorize(actor, this.workspaceScope, 'environment.use')
     for (const serverId of new Set(bindings.map(row => row.value.serverId)))
-      await this.auth.authorize(actor, { kind: 'server', id: serverId }, 'publish')
+      await this.auth.authorize(actor, { kind: 'server', id: serverId })
+  }
+  /** Workshop installs only change drafts; a published environment changes through an explicit apply. */
+  private async requireUnpublishedEnvironment(environmentId: string) {
+    if ((await this.builtinEnvironmentIds()).has(environmentId)) fail('BUILTIN_ENVIRONMENT_READ_ONLY', 409)
+    const bindings = await this.options.storage.list<Binding>('bindings')
+    if (
+      bindings.some(
+        row =>
+          row.value.workspaceId === this.options.workspace.workspaceId && row.value.environmentId === environmentId,
+      )
+    )
+      fail('WORKSHOP_ENVIRONMENT_PUBLISHED', 409)
   }
   private async binding(id: string) {
     const row = await this.options.storage.get<Binding>('bindings', id)
@@ -835,6 +845,7 @@ export class ManagementService {
         ...(this.transfers ? ['workspace.transfers'] : []),
         ...(this.backups ? ['server.backup'] : []),
         ...(this.options.workshop ? ['workspace.workshop'] : []),
+        ...(this.options.workshop?.installEnabled ? ['workspace.workshop.install'] : []),
       ],
       isAdministrator: actor ? await this.auth.isAdministrator(actor) : false,
       resourceRestrictions: [],
@@ -877,7 +888,7 @@ export class ManagementService {
     const op = await this.operations.get(id)
     const kind = op.scope.startsWith('workspace:') ? 'workspace' : 'server'
     const scope: ManagementScope = { kind, id: op.scope.slice(kind.length + 1) }
-    await this.auth.authorize(actor, scope, 'read')
+    await this.auth.authorize(actor, scope)
     return op
   }
   private async applyEnvironment(
@@ -889,8 +900,7 @@ export class ManagementService {
   ) {
     if (copyFrom && expectedRevision !== null) fail('INVALID_REQUEST')
     const document = normalizeEnvironmentDocument(value)
-    await this.auth.authorize(actor, this.workspaceScope, 'edit')
-    await this.auth.authorize(actor, this.workspaceScope, 'prepare')
+    await this.auth.authorize(actor)
     await this.authorizeEnvironmentUpdate(actor, document.id)
     return this.startOperation(
       actor,
@@ -901,9 +911,7 @@ export class ManagementService {
       async ctx => {
         const authorize = async () => {
           await ctx.checkCurrent()
-          if (copyFrom) await this.auth.authorize(actor, this.workspaceScope, 'read')
-          await this.auth.authorize(actor, this.workspaceScope, 'edit')
-          await this.auth.authorize(actor, this.workspaceScope, 'prepare')
+          await this.auth.authorize(actor)
           await this.authorizeEnvironmentUpdate(actor, document.id)
         }
         await authorize()
@@ -938,16 +946,15 @@ export class ManagementService {
    */
   private async installWorkshop(actor: ManagementActor, request: ManagementRequest, input: WorkshopInstallInput) {
     const workshop = this.options.workshop ?? fail('WORKSHOP_UNAVAILABLE', 404)
+    if (!workshop.installEnabled) fail('WORKSHOP_INSTALL_DISABLED', 403)
     const environmentId = input.environmentId
-    await this.auth.authorize(actor, this.workspaceScope, 'edit')
-    await this.auth.authorize(actor, this.workspaceScope, 'prepare')
-    if (environmentId) await this.authorizeEnvironmentUpdate(actor, environmentId)
+    await this.auth.authorize(actor)
+    if (environmentId) await this.requireUnpublishedEnvironment(environmentId)
     return this.startOperation(actor, request, 'workshop.install', this.workspaceScope, input, async ctx => {
       const authorize = async (id: string) => {
         await ctx.checkCurrent()
-        await this.auth.authorize(actor, this.workspaceScope, 'edit')
-        await this.auth.authorize(actor, this.workspaceScope, 'prepare')
-        await this.authorizeEnvironmentUpdate(actor, id)
+        await this.auth.authorize(actor)
+        await this.requireUnpublishedEnvironment(id)
       }
       await ctx.progress({ stage: 'resolving' })
       const resolved = await workshop.resolve(input.target, ctx.signal)
@@ -1009,8 +1016,7 @@ export class ManagementService {
     })
   }
   private async reload(actor: ManagementActor, request: ManagementRequest, id: string) {
-    await this.auth.authorize(actor, this.serverScope, 'publish')
-    await this.auth.authorize(actor, this.workspaceScope, 'environment.use')
+    await this.auth.authorize(actor)
     const expectedRevision = revision(request)
     return this.startOperation(
       actor,
@@ -1021,8 +1027,7 @@ export class ManagementService {
       async ctx =>
         this.exclusive(async () => {
           await ctx.checkCurrent()
-          await this.auth.authorize(actor, this.serverScope, 'publish')
-          await this.auth.authorize(actor, this.workspaceScope, 'environment.use')
+          await this.auth.authorize(actor)
           const current = await this.binding(id)
           if (current.revision !== expectedRevision) fail('REVISION_CONFLICT', 412)
           const updated = await this.reloadBinding(current, true)
@@ -1078,7 +1083,7 @@ export class ManagementService {
     }
     if (method === 'GET' && path === '/capabilities') return ok(await this.capabilities(actor))
     if (method === 'GET' && path === '/servers') {
-      await this.auth.authorize(actor, this.serverScope, 'read')
+      await this.auth.authorize(actor)
       const row = (await this.options.storage.get<ManagedServer>('servers', this.options.serverId))!
       return ok({
         servers: [
@@ -1097,7 +1102,7 @@ export class ManagementService {
       })
     }
     if (method === 'GET' && path === '/audit') {
-      await this.auth.authorize(actor, this.serverScope, 'read')
+      await this.auth.authorize(actor)
       const entries = await this.options.storage.list<{
         actor: string
         action: string
@@ -1123,14 +1128,13 @@ export class ManagementService {
       })
     }
     if (method === 'GET' && path === '/workspaces') {
-      await this.auth.authorize(actor, this.workspaceScope, 'read')
+      await this.auth.authorize(actor)
       return ok({ workspaces: [{ id: this.options.workspace.workspaceId, name: this.options.workspace.workspaceId }] })
     }
     if (parts[0] === 'workspaces') {
       if (parts[1] !== this.options.workspace.workspaceId) fail('WORKSPACE_NOT_FOUND', 404)
       if (this.transfers && parts[2] === 'import-preview' && parts.length === 3 && method === 'POST') {
-        await this.auth.authorize(actor, this.workspaceScope, 'edit')
-        await this.auth.authorize(actor, this.workspaceScope, 'prepare')
+        await this.auth.authorize(actor)
         return ok(await this.options.workspace.missingEnvironmentArchives(input.probe as EnvironmentImportProbe))
       }
       if (this.transfers && parts[2] === 'import' && parts.length === 3 && method === 'POST')
@@ -1149,7 +1153,7 @@ export class ManagementService {
         )
       if (parts[2] === 'installations' && parts.length === 5) {
         if (this.transfers && parts[4] === 'export-preview' && method === 'GET') {
-          await this.auth.authorize(actor, this.workspaceScope, 'export')
+          await this.auth.authorize(actor)
           return ok(await this.options.workspace.previewEnvironmentExport(parts[3]))
         }
         if (this.transfers && parts[4] === 'export' && method === 'POST')
@@ -1176,7 +1180,7 @@ export class ManagementService {
             input.copyFrom === undefined ? undefined : text(input.copyFrom),
           )
         if (method === 'GET' && parts.length === 3) {
-          await this.auth.authorize(actor, this.workspaceScope, 'read')
+          await this.auth.authorize(actor)
           const builtinIds = await this.builtinEnvironmentIds()
           return ok({
             environments: (await this.options.workspace.listDrafts()).map(draft =>
@@ -1188,7 +1192,7 @@ export class ManagementService {
           })
         }
         if (method === 'DELETE' && parts.length === 4) {
-          await this.auth.authorize(actor, this.workspaceScope, 'delete')
+          await this.auth.authorize(actor)
           if ((await this.builtinEnvironmentIds()).has(parts[3])) fail('BUILTIN_ENVIRONMENT_REQUIRED', 409)
           if ((await this.bindings()).some(row => row.value.environmentId === parts[3])) fail('ENVIRONMENT_IN_USE', 409)
           await this.options.workspace.deleteDraft({
@@ -1203,7 +1207,7 @@ export class ManagementService {
           ['add', 'remove'].includes(parts[5]) &&
           parts.length === 6
         ) {
-          await this.auth.authorize(actor, this.workspaceScope, 'edit')
+          await this.auth.authorize(actor)
           const adding = parts[5] === 'add'
           const allowed = adding
             ? ['expectedRevision', 'name', 'version', 'source']
@@ -1236,11 +1240,11 @@ export class ManagementService {
       }
       if (this.options.workshop && parts[2] === 'workshop') {
         if (method === 'GET' && parts.length === 4 && parts[3] === 'registries') {
-          await this.auth.authorize(actor, this.workspaceScope, 'read')
+          await this.auth.authorize(actor)
           return ok({ registries: this.options.workshop.registries() })
         }
         if (method === 'GET' && parts.length === 5 && parts[3] === 'registries') {
-          await this.auth.authorize(actor, this.workspaceScope, 'read')
+          await this.auth.authorize(actor)
           const refresh = new URL(request.path, 'http://management.local').searchParams.get('refresh') === '1'
           const view = await this.options.workshop.view(parts[4], refresh)
           const installations = (await this.options.workspace.listInstallations()).filter(
@@ -1280,7 +1284,7 @@ export class ManagementService {
         }
       }
       if (parts[2] === 'installations' && parts.length === 4 && method === 'DELETE') {
-        await this.auth.authorize(actor, this.workspaceScope, 'delete')
+        await this.auth.authorize(actor)
         const installation = await this.options.workspace.getInstallation(parts[3])
         if ((await this.builtinEnvironmentIds()).has(installation.environmentId))
           fail('BUILTIN_ENVIRONMENT_REQUIRED', 409)
@@ -1299,13 +1303,13 @@ export class ManagementService {
         }
       }
       if (parts[2] === 'players' && parts.length === 3 && method === 'GET') {
-        await this.auth.authorize(actor, this.serverScope, 'players.read')
+        await this.auth.authorize(actor)
         const { rows, ...metadata } = page(this.options.rooms.managementPlayers(), player => player.seatId)
         return ok({ players: rows, ...metadata })
       }
       if (parts[2] === 'battles') {
         if (method === 'GET' && (parts.length === 3 || parts.length === 4)) {
-          await this.auth.authorize(actor, this.serverScope, 'battles.read')
+          await this.auth.authorize(actor)
           const battles = this.options.rooms.managementBattles()
           if (parts.length === 3) {
             const { rows, ...metadata } = page(battles, battle => battle.id)
@@ -1316,15 +1320,15 @@ export class ManagementService {
           return ok(battle)
         }
         if (method === 'POST' && parts.length === 5 && parts[4] === 'terminate') {
-          await this.auth.authorize(actor, this.serverScope, 'battles.terminate')
+          await this.auth.authorize(actor)
           const id = text(parts[3])
           return this.startOperation(actor, request, 'battle.terminate', this.serverScope, { id }, async ctx => {
             await ctx.checkCurrent()
-            await this.auth.authorize(actor, this.serverScope, 'battles.terminate')
+            await this.auth.authorize(actor)
             return this.options.rooms.terminateManagedBattle(id, async () => {
               await ctx.commit(
                 async tx => {
-                  await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'battles.terminate')
+                  await this.auth.authorizeInTransaction(tx, actor)
                   await tx.create('audit', {
                     id: randomUUID(),
                     scope: managementScopeKey(this.serverScope),
@@ -1357,7 +1361,7 @@ export class ManagementService {
           return ok(await this.accounts.deactivate(actor, parts[3]))
       }
       if (parts.length === 2 && method === 'PATCH') {
-        await this.auth.authorize(actor, this.serverScope, 'settings.manage')
+        await this.auth.authorize(actor)
         return this.exclusive(async () => {
           const before = (await this.options.storage.get<ManagedServer>('servers', this.options.serverId))!
           const value = { ...before.value }
@@ -1375,7 +1379,7 @@ export class ManagementService {
             value.defaultBindingId = binding.id
           }
           const row = await this.options.storage.transaction(async tx => {
-            await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'settings.manage')
+            await this.auth.authorizeInTransaction(tx, actor)
             const saved = await tx.replace('servers', before.id, revision(request), value)
             await this.audit(tx, actor, 'server.update', before.id)
             return saved
@@ -1392,21 +1396,20 @@ export class ManagementService {
         })
       }
       if (parts[2] === 'drain' && parts.length === 3 && method === 'POST') {
-        await this.auth.authorize(actor, this.serverScope, 'drain')
+        await this.auth.authorize(actor)
         if (input.draining !== undefined && typeof input.draining !== 'boolean') fail('INVALID_REQUEST')
         await this.options.rooms.setDraining(input.draining !== false)
         return ok(this.options.rooms.managementStatus)
       }
       if (parts[2] === 'bindings') {
         if (parts.length === 3 && method === 'GET') {
-          await this.auth.authorize(actor, this.serverScope, 'read')
+          await this.auth.authorize(actor)
           return ok({ bindings: (await this.bindings()).map(flatten) })
         }
         if (parts.length === 3 && method === 'POST') {
-          await this.auth.authorize(actor, this.serverScope, 'bindings.manage')
-          await this.auth.authorize(actor, this.workspaceScope, 'environment.use')
+          await this.auth.authorize(actor)
           if (input.enabled === true || input.visibility === 'public' || input.matchmakingEnabled === true)
-            await this.auth.authorize(actor, this.serverScope, 'publish')
+            await this.auth.authorize(actor)
           return this.exclusive(async () => {
             const value: Binding = {
               serverId: this.options.serverId,
@@ -1422,10 +1425,9 @@ export class ManagementService {
             this.patchBinding(value, input)
             await this.options.workspace.getInstallation(value.environmentId)
             const row = await this.options.storage.transaction(async tx => {
-              await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'bindings.manage')
-              await this.auth.authorizeInTransaction(tx, actor, this.workspaceScope, 'environment.use')
+              await this.auth.authorizeInTransaction(tx, actor)
               if (value.enabled || value.visibility === 'public' || value.matchmakingEnabled)
-                await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'publish')
+                await this.auth.authorizeInTransaction(tx, actor)
               const existing = (await tx.list<Binding>('bindings', managementScopeKey(this.serverScope))).find(
                 row => row.value.workspaceId === value.workspaceId && row.value.environmentId === value.environmentId,
               )
@@ -1445,11 +1447,10 @@ export class ManagementService {
           })
         }
         if (parts.length === 4 && method === 'PATCH') {
-          await this.auth.authorize(actor, this.serverScope, 'bindings.manage')
+          await this.auth.authorize(actor)
           // Enabling or exposing a binding is a publication action, not just configuration editing.
           if (input.enabled === true || input.visibility === 'public' || input.matchmakingEnabled === true) {
-            await this.auth.authorize(actor, this.serverScope, 'publish')
-            await this.auth.authorize(actor, this.workspaceScope, 'environment.use')
+            await this.auth.authorize(actor)
           }
           return this.exclusive(async () => {
             const row = await this.binding(parts[3]),
@@ -1460,10 +1461,9 @@ export class ManagementService {
               if (server?.value.defaultBindingId === row.id) fail('DEFAULT_BINDING_REQUIRED', 409)
             }
             const saved = await this.options.storage.transaction(async tx => {
-              await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'bindings.manage')
+              await this.auth.authorizeInTransaction(tx, actor)
               if (value.enabled || value.visibility === 'public' || value.matchmakingEnabled) {
-                await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'publish')
-                await this.auth.authorizeInTransaction(tx, actor, this.workspaceScope, 'environment.use')
+                await this.auth.authorizeInTransaction(tx, actor)
               }
               const result = await tx.replace('bindings', row.id, revision(request), value)
               await this.audit(tx, actor, 'binding.update', row.id)
@@ -1477,13 +1477,13 @@ export class ManagementService {
         if (parts.length === 5 && parts[4] === 'reload' && method === 'POST')
           return this.reload(actor, request, parts[3])
         if (parts.length === 4 && method === 'DELETE') {
-          await this.auth.authorize(actor, this.serverScope, 'bindings.manage')
+          await this.auth.authorize(actor)
           return this.exclusive(async () => {
             const row = await this.binding(parts[3])
             const server = (await this.options.storage.get<ManagedServer>('servers', this.options.serverId))!
             if (server.value.defaultBindingId === row.id) fail('DEFAULT_BINDING_REQUIRED', 409)
             await this.options.storage.transaction(async tx => {
-              await this.auth.authorizeInTransaction(tx, actor, this.serverScope, 'bindings.manage')
+              await this.auth.authorizeInTransaction(tx, actor)
               await tx.delete('bindings', row.id, revision(request))
               await this.audit(tx, actor, 'binding.delete', row.id)
             })
@@ -1507,15 +1507,8 @@ export class ManagementService {
       return ok(await this.backups.download(actor, parts[1]))
     if (parts[0] === 'operations') {
       if (parts.length === 1 && method === 'GET') {
-        const scopes = new Set<string>()
-        for (const scope of [this.serverScope, this.workspaceScope]) {
-          try {
-            await this.auth.authorize(actor, scope, 'read')
-            scopes.add(managementScopeKey(scope))
-          } catch (error) {
-            if (!(error instanceof ManagementAuthError) || error.status !== 403) throw error
-          }
-        }
+        await this.auth.authorize(actor)
+        const scopes = new Set([managementScopeKey(this.serverScope), managementScopeKey(this.workspaceScope)])
         return ok({
           operations: (await this.operations.list()).filter(op => scopes.has(op.scope)).map(publicOperation),
         })
@@ -1574,14 +1567,11 @@ export class ManagementService {
         if (op.kind === 'server.backup') {
           if (!this.backups) fail('BACKUP_NOT_SUPPORTED', 409)
           await this.backups!.authorize(actor)
-        } else if (op.kind === 'battle.terminate')
-          await this.auth.authorize(actor, this.serverScope, 'battles.terminate')
-        else if (['environment.apply', 'environment.import'].includes(op.kind))
-          await this.auth.authorize(actor, this.workspaceScope, 'prepare')
-        else if (op.kind === 'environment.export') await this.auth.authorize(actor, this.workspaceScope, 'export')
+        } else if (op.kind === 'battle.terminate') await this.auth.authorize(actor)
+        else if (['environment.apply', 'environment.import'].includes(op.kind)) await this.auth.authorize(actor)
+        else if (op.kind === 'environment.export') await this.auth.authorize(actor)
         else {
-          await this.auth.authorize(actor, this.serverScope, 'publish')
-          await this.auth.authorize(actor, this.workspaceScope, 'environment.use')
+          await this.auth.authorize(actor)
         }
         return ok(publicOperation(await this.operations.cancel(op.id)))
       }

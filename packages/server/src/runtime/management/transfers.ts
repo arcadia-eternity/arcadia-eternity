@@ -151,7 +151,7 @@ export class ManagementTransfers {
     requestedMode: unknown = 'share',
   ): Promise<Operation> {
     await this.ready()
-    await this.options.auth.authorize(actor, this.scope, 'export')
+    await this.options.auth.authorize(actor)
     const selection = exportSelectionSchema.safeParse(requestedMode)
     const mode =
       requestedMode === 'share' || requestedMode === 'offline'
@@ -176,7 +176,7 @@ export class ManagementTransfers {
           commitAttempted = false
         try {
           await context.checkCurrent()
-          await this.options.auth.authorize(actor, this.scope, 'export')
+          await this.options.auth.authorize(actor)
           await context.progress({ stage: 'exporting' })
           const bundle = await this.options.workspace.exportEnvironment(installationId, mode)
           const bytes = Buffer.from(JSON.stringify(bundle))
@@ -190,7 +190,7 @@ export class ManagementTransfers {
           }
           commitAttempted = true
           const committed = await context.commit(async tx => {
-            await this.options.auth.authorizeInTransaction(tx, actor, this.scope, 'export')
+            await this.options.auth.authorizeInTransaction(tx, actor)
             return result
           })
           completed = true
@@ -220,8 +220,7 @@ export class ManagementTransfers {
     },
   ): Promise<Operation> {
     await this.ready()
-    await this.options.auth.authorize(actor, this.scope, 'edit')
-    await this.options.auth.authorize(actor, this.scope, 'prepare')
+    await this.options.auth.authorize(actor)
     if (
       !bundle ||
       typeof bundle !== 'object' ||
@@ -266,8 +265,7 @@ export class ManagementTransfers {
           const release = this.artifacts.pin(name)
           try {
             await context.checkCurrent()
-            await this.options.auth.authorize(actor, this.scope, 'edit')
-            await this.options.auth.authorize(actor, this.scope, 'prepare')
+            await this.options.auth.authorize(actor)
             const { file } = await this.metadata(name)
             const contents = await readFile(file)
             if (sha256Hex(contents) !== bundleDigest) fail('TRANSFER_ARTIFACT_INVALID', 409)
@@ -287,8 +285,7 @@ export class ManagementTransfers {
                   // may fail but can no longer be represented as a cancelled/no-op import.
                   await context.commit(
                     async tx => {
-                      await this.options.auth.authorizeInTransaction(tx, actor, this.scope, 'edit')
-                      await this.options.auth.authorizeInTransaction(tx, actor, this.scope, 'prepare')
+                      await this.options.auth.authorizeInTransaction(tx, actor)
                       return { imported: false, environmentId: input.environmentId ?? parsed.document.id }
                     },
                     { finalize: false },
@@ -319,8 +316,7 @@ export class ManagementTransfers {
     if (previous.committed) {
       if (previous.kind !== 'environment.import' || !['failed', 'interrupted'].includes(previous.status))
         return fail('OPERATION_ALREADY_COMMITTED', 409)
-      await this.options.auth.authorize(actor, this.scope, 'edit')
-      await this.options.auth.authorize(actor, this.scope, 'prepare')
+      await this.options.auth.authorize(actor)
       return this.recoverImport(previous)
     }
     if (!['failed', 'cancelled', 'interrupted'].includes(previous.status)) return fail('OPERATION_NOT_RETRYABLE', 409)
@@ -328,8 +324,7 @@ export class ManagementTransfers {
       const input = previous.input as { installationId: string; mode?: unknown }
       return this.export(actor, input.installationId, idempotencyKey, previous.id, input.mode)
     }
-    await this.options.auth.authorize(actor, this.scope, 'edit')
-    await this.options.auth.authorize(actor, this.scope, 'prepare')
+    await this.options.auth.authorize(actor)
     const input = previous.input as {
       allowDownload?: boolean
       uploadId: string
@@ -356,7 +351,7 @@ export class ManagementTransfers {
   }
   async download(actor: ManagementActor, operationId: string): Promise<TransferDownload> {
     await this.ready()
-    await this.options.auth.authorize(actor, this.scope, 'export')
+    await this.options.auth.authorize(actor)
     const id = validId(operationId)
     const operation = await this.options.operations.get(id)
     if (operation.scope !== managementScopeKey(this.scope) || operation.kind !== 'environment.export')

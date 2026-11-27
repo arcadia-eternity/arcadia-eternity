@@ -115,6 +115,12 @@ export async function runServerCli(args: string[]): Promise<number> {
         .default('available')
         .env('ARCADIA_WORKSHOP_CHECK'),
     )
+    .addOption(
+      new Option('--workshop-install <mode>', 'Allow administrators to install signed workshop releases remotely')
+        .choices(['on', 'off'])
+        .default('on')
+        .env('ARCADIA_WORKSHOP_INSTALL'),
+    )
     .option(
       '--workshop-registries <file>',
       'JSON list of signed third-party workshop roots trusted by this host',
@@ -162,6 +168,7 @@ export async function runServerCli(args: string[]): Promise<number> {
       allowThirdPartyExecution?: boolean
       allowThirdPartyContent?: boolean
       workshopCheck: WorkshopCheckMode
+      workshopInstall: 'on' | 'off'
       workshopRegistries?: string
       corsOrigin: string
       headless: boolean
@@ -481,6 +488,7 @@ export async function runServerCli(args: string[]): Promise<number> {
             ? undefined
             : new ServerWorkshop({
                 mode: options.workshopCheck,
+                install: options.workshopInstall === 'on',
                 directory: join(config.dataDirectory, 'workshop'),
                 offline: options.offlineContent,
                 allowThirdPartyContent: options.allowThirdPartyContent || options.allowThirdPartyExecution,

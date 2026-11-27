@@ -1,4 +1,4 @@
-import { legacySession } from './fixtures/management'
+import { nonAdministratorSession } from './fixtures/management'
 import { shippedCatalogMembers, shippedCatalogRoot, stageShippedCatalog } from './fixtures/npm'
 import { mkdtemp, readFile, readdir, rm, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -82,7 +82,7 @@ async function fixture(validator: StaticPreparer = validateWorkspaceProject) {
   const auth = new ManagementAuth(storage, { serverId: 'transfer-test', workspaceId: workspace.workspaceId })
   const scope = { kind: 'workspace' as const, id: workspace.workspaceId }
   const owner = await auth.exchangeBootstrap((await auth.issueBootstrapCode('export-owner')).code)
-  const viewer = await legacySession(auth, [{ scope, actions: ['read'] }], 'viewer')
+  const viewer = await nonAdministratorSession(auth, 'viewer')
   const operations = new OperationService(storage, { ownerId: 'transfer-test' })
   await operations.ready()
   cleanups.push(() => operations.close())

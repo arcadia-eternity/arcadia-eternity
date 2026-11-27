@@ -22,6 +22,7 @@ import {
   type WorkshopView,
 } from '@arcadia-eternity/pack-loader/workshop'
 import type { EnvironmentDocument } from '@arcadia-eternity/content-sdk/management-workspace'
+import { publicWorkshopFetch } from './workshop-fetch'
 
 /**
  * `required`: every install needs a fresh signed index. `available`: use a fresh index, else the verified offline
@@ -74,6 +75,25 @@ async function lockedPackages(directory: string): Promise<WorkshopGraphPackage[]
   })
 }
 
+/**
+ * An explicit install may only bring in releases some trusted registry lists; the per-registry checks have already
+ * matched each listed package's version and integrity. Host-provided packages are staged from the host's own copy.
+ */
+function requireListed(views: readonly WorkshopView[], graph: readonly WorkshopGraphPackage[]) {
+  const unlisted = graph.filter(
+    item => !hostProvided(item) && !views.some(view => view.index.projects.some(project => project.npm === item.name)),
+  )
+  if (unlisted.length)
+    failure(
+      'WORKSHOP_DEPENDENCY_UNLISTED',
+      422,
+      unlisted
+        .slice(0, 10)
+        .map(item => `${item.name}@${item.version}`)
+        .join(', '),
+    )
+}
+
 /** Official-registry graph checks only; `off` disables them. */
 export function createWorkshopGraphCheck(options: {
   mode: WorkshopCheckMode
@@ -114,6 +134,7 @@ export async function parseHostRegistryRoots(value: unknown, now = Date.now()) {
 export class ServerWorkshop implements WorkshopGraphCheck {
   readonly #options: {
     mode: WorkshopCheckMode
+    install: boolean
     directory: string
     offline?: boolean
     allowThirdPartyContent?: boolean
@@ -130,6 +151,8 @@ export class ServerWorkshop implements WorkshopGraphCheck {
 
   constructor(options: {
     mode: WorkshopCheckMode
+    /** Host switch for explicit installs through management; graph checks still run when it is off. Default on. */
+    install?: boolean
     /** Trust state and recipe staging. */
     directory: string
     offline?: boolean
@@ -138,6 +161,7 @@ export class ServerWorkshop implements WorkshopGraphCheck {
     trustedRoot?: SignedEnvelope<unknown>
     /** Third-party roots from host configuration, already checked with `parseHostRegistryRoots`. */
     registries?: readonly SignedEnvelope<unknown>[]
+    /** Defaults to HTTPS requests that only reach public addresses. */
     fetch?: WorkshopFetch
     now?: () => number
     /** npm registry and cache used to download environment recipes. */
@@ -151,15 +175,20 @@ export class ServerWorkshop implements WorkshopGraphCheck {
     onUnavailable?: (registry: string, error: unknown) => void
   }) {
     if (!isAbsolute(options.directory)) throw new Error('WORKSHOP_DIRECTORY_INVALID')
-    this.#options = options
+    this.#options = { ...options, install: options.install ?? true }
     const store = fileWorkshopTrustStore(join(options.directory, 'trust'))
+    const fetch = options.fetch ?? publicWorkshopFetch
     for (const root of [options.trustedRoot ?? OFFICIAL_WORKSHOP_ROOT, ...(options.registries ?? [])]) {
-      const client = new WorkshopClient({ trustedRoot: root, store, fetch: options.fetch, now: options.now })
+      const client = new WorkshopClient({ trustedRoot: root, store, fetch, now: options.now })
       if (this.#clients.has(client.registry)) throw new Error('WORKSHOP_REGISTRY_EXISTS')
       this.#clients.set(client.registry, client)
       this.#fingerprints.set(client.registry, sha256Hex(new TextEncoder().encode(canonicalJson(root))))
     }
     if (!this.#clients.has(OFFICIAL_REGISTRY)) throw new Error('WORKSHOP_REGISTRY_INVALID')
+  }
+
+  get installEnabled() {
+    return this.#options.install
   }
 
   registries() {
@@ -222,6 +251,7 @@ export class ServerWorkshop implements WorkshopGraphCheck {
 
   /** A fresh, unrevoked exact release. The official base is staged by the host and is never installed this way. */
   async resolve(target: WorkshopTarget, signal?: AbortSignal) {
+    if (!this.#options.install) failure('WORKSHOP_INSTALL_DISABLED', 403)
     if (this.#options.offline) failure('WORKSHOP_OFFLINE', 409)
     const view = await this.#client(target.registry).refresh(signal)
     if (view.freshness !== 'fresh') failure('WORKSHOP_INDEX_STALE', 409, view.error?.code)
@@ -275,7 +305,9 @@ export class ServerWorkshop implements WorkshopGraphCheck {
         { name: target.project.npm, version: target.release.version, integrity: acquired.integrity },
         ...pinned,
       ])
-      for (const other of await this.#others(view.registry, signal)) verifyWorkshopDependencies(other, pinned)
+      const others = await this.#others(view.registry, signal)
+      for (const other of others) verifyWorkshopDependencies(other, pinned)
+      requireListed([view, ...others], pinned)
       return { document: acquired.document, directory: acquired.directory, release }
     } catch (error) {
       await release()
@@ -290,8 +322,9 @@ export class ServerWorkshop implements WorkshopGraphCheck {
     signal?.throwIfAborted()
     if (resolved.project.kind === 'package') verifyWorkshopGraph(view, resolved, graph, { hostProvided })
     else verifyWorkshopDependencies(view, graph, { hostProvided })
-    for (const other of await this.#others(view.registry, signal))
-      verifyWorkshopDependencies(other, graph, { hostProvided })
+    const others = await this.#others(view.registry, signal)
+    for (const other of others) verifyWorkshopDependencies(other, graph, { hostProvided })
+    requireListed([view, ...others], graph)
   }
 
   /** Ready installations whose graph contains a version this view revokes. */

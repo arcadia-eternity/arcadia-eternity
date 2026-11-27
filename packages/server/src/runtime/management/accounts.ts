@@ -52,7 +52,7 @@ export class ManagementAccounts {
       throw new ManagementAccountError('INVALID_PAGE_LIMIT', 422)
     const cursor = input.cursor === undefined ? undefined : accountId(input.cursor)
     return this.storage.transaction(async tx => {
-      await this.auth.authorizeInTransaction(tx, actor, this.scope, 'accounts.manage')
+      await this.auth.authorizeInTransaction(tx, actor)
       const accounts = await tx.listAccounts(this.options.serverId, { limit, ...(cursor ? { cursor } : {}) })
       return {
         accounts,
@@ -65,7 +65,7 @@ export class ManagementAccounts {
     this.requireEnabled()
     const target = accountId(id)
     return this.storage.transaction(async tx => {
-      await this.auth.authorizeInTransaction(tx, actor, this.scope, 'accounts.manage')
+      await this.auth.authorizeInTransaction(tx, actor)
       const account = await tx.accountDetails(this.options.serverId, target)
       if (!account) throw new ManagementAccountError('ACCOUNT_NOT_FOUND', 404)
       return account
@@ -103,7 +103,7 @@ export class ManagementAccounts {
     try {
       await this.storage.transaction(async tx => {
         // Authority and the account transition serialize with revocation/login in the same transaction.
-        await this.auth.authorizeInTransaction(tx, actor, this.scope, 'accounts.manage')
+        await this.auth.authorizeInTransaction(tx, actor)
         await this.auth.beforeAccountDeactivation(tx, actor.principalId, target)
         if (!(await tx.deactivateAccount(this.options.serverId, target)))
           throw new ManagementAccountError('ACCOUNT_NOT_FOUND', 404)

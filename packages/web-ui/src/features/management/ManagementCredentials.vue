@@ -47,7 +47,6 @@ function issue() {
       <article v-for="credential in credentials" :key="credential.id">
         <code>{{ credential.id }}</code>
         <span>到期 {{ new Date(credential.expiresAt).toLocaleString() }}</span>
-        <span v-if="credential.legacyRestricted">旧版受限凭据</span>
         <ElButton :disabled="busy" @click="removing = credential.id">撤销凭据</ElButton>
         <div v-if="removing === credential.id" role="group" aria-label="确认撤销凭据">
           <ElButton :disabled="busy" @click="revoke(credential.id)">确认撤销</ElButton>

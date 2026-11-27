@@ -1,4 +1,4 @@
-import { legacySession } from './fixtures/management'
+import { nonAdministratorSession } from './fixtures/management'
 import { shippedCatalogMembers, stageShippedCatalog } from './fixtures/npm'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -261,11 +261,7 @@ it('removes snapshot publication and requires permission to activate a binding',
     body: {},
   })
   expect(result.status).toBe(404)
-  const viewer = await legacySession(
-    f.service.auth,
-    [{ scope: { kind: 'server', id: 'binding-server' }, actions: ['read'] }],
-    'viewer',
-  )
+  const viewer = await nonAdministratorSession(f.service.auth, 'viewer')
   await expect(
     f.service.request(viewer.actor, {
       method: 'POST',
@@ -280,16 +276,7 @@ it('preparing a bound environment requires publish permission before replacement
   const draft = await f.draft('Shared', null)
   await f.prepare(draft.revision)
   await f.createBinding()
-  const editor = await legacySession(
-    f.service.auth,
-    [
-      {
-        scope: { kind: 'workspace', id: f.workspace.workspaceId },
-        actions: ['read', 'edit', 'prepare', 'environment.use'],
-      },
-    ],
-    'workspace-editor',
-  )
+  const editor = await nonAdministratorSession(f.service.auth, 'workspace-editor')
   const current = await f.workspace.getDraft('shared')
   await expect(
     f.service.request(editor.actor, {

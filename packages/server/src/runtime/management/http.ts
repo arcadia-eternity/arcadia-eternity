@@ -206,8 +206,7 @@ export function mountManagementApi(
         if (importing) {
           if (decodeURIComponent(path.split('/')[2]) !== service.options.workspace.workspaceId)
             throw new ManagementAuthError('WORKSPACE_NOT_FOUND', 404)
-          await service.auth.authorize(actor, service.workspaceScope, 'edit')
-          await service.auth.authorize(actor, service.workspaceScope, 'prepare')
+          await service.auth.authorize(actor)
         }
         await bodyParser(req, res, importing)
       }

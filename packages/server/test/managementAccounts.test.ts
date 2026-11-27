@@ -1,4 +1,4 @@
-import { legacySession } from './fixtures/management'
+import { nonAdministratorSession } from './fixtures/management'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -93,12 +93,8 @@ for (const driver of ['sqlite', 'postgres'] as const)
 
       it('requires accounts.manage and target-server authority even for read-only listings', async () => {
         const account = await directory.resolveOrCreate(email('target@example.test'))
-        const viewer = await legacySession(auth, [{ scope, actions: ['read'] }], 'viewer')
-        const foreign = await legacySession(
-          auth,
-          [{ scope: { ...scope, id: 'other-server' }, actions: ['accounts.manage'] }],
-          'foreign',
-        )
+        const viewer = await nonAdministratorSession(auth, 'viewer')
+        const foreign = await nonAdministratorSession(auth, 'foreign')
         for (const actor of [viewer.actor, foreign.actor]) {
           await expect(accounts.list(actor)).rejects.toMatchObject({ code: 'MANAGEMENT_FORBIDDEN' })
           await expect(accounts.status(actor, account.accountId)).rejects.toMatchObject({

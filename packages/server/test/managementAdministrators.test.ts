@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { openStorage, SQLAccountDirectory } from '@arcadia-eternity/database'
 import { ContentWorkspace } from '@arcadia-eternity/content-sdk/management-workspace'
 import { createSingleProcessApp } from '../src/runtime/app'
-import { legacySession } from './fixtures/management'
+import { nonAdministratorSession } from './fixtures/management'
 const cleanups: (() => Promise<unknown>)[] = []
 afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup()
@@ -59,7 +59,7 @@ describe('administrator management entry points', () => {
     })
     expect(result.status).toBe(201)
     const login = await f.auth.exchangeAccount('server', f.account.accountId)
-    await expect(f.auth.authorize(login.actor, f.service.workspaceScope, 'edit')).resolves.toBeUndefined()
+    await expect(f.auth.authorize(login.actor, f.service.workspaceScope)).resolves.toBeUndefined()
     for (const path of ['/grants', '/principals'])
       await expect(f.service.request(f.owner.actor, { method: 'POST', path, body: {} })).rejects.toMatchObject({
         code: 'NOT_FOUND',
@@ -88,9 +88,9 @@ describe('administrator management entry points', () => {
     expect(await f.directory.getStatus(f.account.accountId)).toBe('active')
     expect((await f.auth.listAdministrators(login.actor)).administrators.map(a => a.principalId)).toEqual([principalId])
   })
-  it('keeps old server-only service credentials from seeing workspace tasks', async () => {
+  it('hides every task from credentials outside the administrator list', async () => {
     const f = await fixture()
-    const legacy = await legacySession(f.auth, [{ scope: f.service.serverScope, actions: ['read'] }])
+    const outsider = await nonAdministratorSession(f.auth)
     for (const scope of ['server:server', `workspace:${f.workspace.workspaceId}`])
       await f.storage.create('operations', {
         id: scope,
@@ -105,8 +105,13 @@ describe('administrator management entry points', () => {
           updatedAt: 1,
         },
       })
-    const result = await f.service.request(legacy.actor, { method: 'GET', path: '/operations' })
-    expect((result.body as { operations: { id: string }[] }).operations.map(op => op.id)).toEqual(['server:server'])
+    await expect(f.service.request(outsider.actor, { method: 'GET', path: '/operations' })).rejects.toMatchObject({
+      code: 'MANAGEMENT_FORBIDDEN',
+    })
+    const result = await f.service.request(f.owner.actor, { method: 'GET', path: '/operations' })
+    expect((result.body as { operations: { id: string }[] }).operations.map(op => op.id).sort()).toEqual(
+      ['server:server', `workspace:${f.workspace.workspaceId}`].sort(),
+    )
   })
   it('recovers trusted local management immediately after its cached owner membership is removed', async () => {
     const f = await fixture()

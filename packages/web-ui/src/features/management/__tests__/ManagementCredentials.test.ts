@@ -24,7 +24,6 @@ describe('administrator automation credentials', () => {
             serverId: 'server',
             createdAt: Date.now(),
             expiresAt: Date.now() + 60000,
-            legacyRestricted: true,
           },
         ],
       },

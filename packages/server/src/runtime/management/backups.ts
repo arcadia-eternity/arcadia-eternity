@@ -98,9 +98,9 @@ export class ManagementBackups {
     transaction?: StorageTransaction,
   ) {
     const check = async (tx: StorageTransaction) => {
-      await this.options.auth.authorizeInTransaction(tx, actor, this.workspaceScope, 'export')
+      await this.options.auth.authorizeInTransaction(tx, actor)
       for (const id of new Set([this.options.serverId, ...serverIds])) {
-        await this.options.auth.authorizeInTransaction(tx, actor, { kind: 'server', id }, 'backup')
+        await this.options.auth.authorizeInTransaction(tx, actor, { kind: 'server', id })
         const server = await tx.get<{ workspaceId: string }>('servers', id)
         if (!server || server.value.workspaceId !== this.options.workspaceId) fail('BACKUP_SCOPE_MISMATCH', 409)
       }

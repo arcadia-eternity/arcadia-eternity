@@ -14,10 +14,6 @@ export interface ManagementScope {
   kind: 'workspace' | 'server'
   id: string
 }
-export interface ManagementPermission {
-  scope: ManagementScope
-  actions: string[]
-}
 export interface ManagementActor {
   principalId: string
   credentialId: string
@@ -28,9 +24,6 @@ export interface ManagementPrincipal {
   status: 'active' | 'disabled'
   accountId?: string
   serverId?: string
-}
-export interface ManagementGrant extends ManagementPermission {
-  principalId: string
 }
 interface Credential {
   /** Public management handle; storage keys remain token digests and never leave this module. */
@@ -44,7 +37,6 @@ interface Credential {
   secretHash?: string
   passkey?: { id: string; publicKey: string; counter: number; rpId: string }
   csrfHash?: string
-  permissions?: ManagementPermission[]
   serverId?: string
   displayName?: string
   issuerPrincipalId?: string
@@ -55,7 +47,6 @@ export interface ServiceCredentialMetadata {
   createdAt: number
   expiresAt: number
   serverId: string
-  legacyRestricted: boolean
 }
 export interface ManagementSession {
   token: string
@@ -71,23 +62,6 @@ export class ManagementAuthError extends Error {
     super(code)
   }
 }
-export const MANAGEMENT_ACTIONS = {
-  workspace: ['read', 'environment.use', 'edit', 'prepare', 'delete', 'export', 'grants.manage'],
-  server: [
-    'read',
-    'bindings.manage',
-    'publish',
-    'settings.manage',
-    'drain',
-    'accounts.manage',
-    'players.read',
-    'battles.read',
-    'battles.terminate',
-    'grants.manage',
-    'backup',
-  ],
-} as const
-
 const fail = (code: string, status = 403): never => {
   throw new ManagementAuthError(code, status)
 }
@@ -103,9 +77,6 @@ export const managementScopeKey = (scope: ManagementScope): string => {
   if (!scope || !['server', 'workspace'].includes(scope.kind) || !validText(scope.id)) fail('INVALID_SCOPE', 422)
   return `${scope.kind}:${scope.id}`
 }
-// Only used to read pre-administrator credentials and migration records.
-const matches = (permission: ManagementPermission, scope: ManagementScope, action: string) =>
-  managementScopeKey(permission.scope) === managementScopeKey(scope) && permission.actions.includes(action)
 interface AdministratorRoster {
   format: 'arcadia.administrators/1'
   workspaceId: string
@@ -148,12 +119,6 @@ export class ManagementAuth {
     if (scope.id !== (scope.kind === 'server' ? this.options.serverId : this.options.workspaceId))
       fail('MANAGEMENT_FORBIDDEN')
   }
-  private fullLegacyPermissions(allowed: ManagementPermission[] = []) {
-    return (['server', 'workspace'] as const).every(kind => {
-      const scope = { kind, id: kind === 'server' ? this.options.serverId : this.options.workspaceId }
-      return MANAGEMENT_ACTIONS[kind].every(action => allowed.some(p => matches(p, scope, action)))
-    })
-  }
   private async roster(tx: StorageTransaction) {
     const existing = await tx.get<AdministratorRoster>('grants', this.rosterId)
     if (existing) {
@@ -167,37 +132,10 @@ export class ManagementAuth {
     const servers = await tx.list<{ workspaceId: string }>('servers')
     if (servers.some(row => row.id !== this.options.serverId && row.value.workspaceId === this.options.workspaceId))
       fail('SHARED_WORKSPACE_MIGRATION_REQUIRED', 409)
-    const legacy = (await tx.list<ManagementGrant>('grants')).filter(
-      row => row.value.scope && Array.isArray(row.value.actions),
-    )
-    const candidates = [
-      ...new Set(
-        legacy
-          .filter(row => row.value.scope.kind === 'server' && row.value.scope.id === this.options.serverId)
-          .map(row => row.value.principalId),
-      ),
-    ]
-    const principalIds: string[] = []
-    for (const id of candidates) {
-      const principal = await tx.get<ManagementPrincipal>('principals', id)
-      if (
-        principal?.value.status === 'active' &&
-        (!principal.value.accountId ||
-          (!!principal.value.serverId &&
-            (await tx.accountStatus(principal.value.serverId, principal.value.accountId)) === 'active')) &&
-        this.fullLegacyPermissions(legacy.filter(row => row.value.principalId === id).map(row => row.value))
-      )
-        principalIds.push(id)
-    }
-    // Reuse the existing document collection: old grants remain inert migration evidence.
     const result = await tx.create<AdministratorRoster>('grants', {
       id: this.rosterId,
       scope: `server:${this.options.serverId}`,
-      value: { format: 'arcadia.administrators/1', workspaceId: this.options.workspaceId, principalIds },
-    })
-    await this.audit(tx, 'host', 'administrators.migrate', `server:${this.options.serverId}`, {
-      principalIds,
-      excludedPrincipalIds: candidates.filter(id => !principalIds.includes(id)),
+      value: { format: 'arcadia.administrators/1', workspaceId: this.options.workspaceId, principalIds: [] },
     })
     return result
   }
@@ -259,11 +197,7 @@ export class ManagementAuth {
           ...principal.value,
           status: 'active',
         })
-      if (
-        existing.value.serverId !== this.options.serverId &&
-        (existing.value.serverId || !this.fullLegacyPermissions(existing.value.permissions))
-      )
-        fail('INVALID_BOOTSTRAP_CODE', 401)
+      if (existing.value.serverId !== this.options.serverId) fail('INVALID_BOOTSTRAP_CODE', 401)
       const roster = await this.roster(tx)
       if (!roster.value.principalIds.includes(principalId))
         await tx.replace('grants', roster.id, roster.revision, {
@@ -334,19 +268,12 @@ export class ManagementAuth {
       !credential ||
       credential.value.principalId !== actor.principalId ||
       credential.value.kind !== actor.kind ||
-      credential.value.expiresAt <= this.now()
+      credential.value.expiresAt <= this.now() ||
+      credential.value.serverId !== this.options.serverId
     )
       return fail('MANAGEMENT_UNAUTHENTICATED', 401)
     await this.validateParent(tx, credential.value)
     await this.requireMember(tx, actor.principalId)
-    if (credential.value.serverId !== undefined && credential.value.serverId !== this.options.serverId)
-      fail('MANAGEMENT_FORBIDDEN')
-    if (
-      !credential.value.serverId &&
-      credential.value.kind === 'session' &&
-      !this.fullLegacyPermissions(credential.value.permissions)
-    )
-      fail('ADMIN_LOGIN_REQUIRED', 401)
     return credential
   }
 
@@ -385,32 +312,16 @@ export class ManagementAuth {
     return { actor, csrfToken: sessionCsrf(token), expiresAt: credential.value.expiresAt }
   }
 
-  private async authorizeIn(tx: StorageTransaction, actor: ManagementActor, scope: ManagementScope, action: string) {
-    managementScopeKey(scope)
-    const credential = await this.credential(tx, actor)
-    if (
-      credential.value.kind === 'service' &&
-      credential.value.permissions &&
-      !credential.value.permissions.some(permission => matches(permission, scope, action))
-    )
-      fail('MANAGEMENT_FORBIDDEN')
-    this.ownedScope(scope)
+  /**
+   * Every management operation requires a valid credential of a current administrator of this server. A scope taken
+   * from stored records or request input must also belong to this server or its workspace.
+   */
+  async authorize(actor: ManagementActor, scope?: ManagementScope): Promise<void> {
+    await this.authorizeInTransaction(this.store, actor, scope)
   }
-
-  async authorize(actor: ManagementActor, scope: ManagementScope, action: string): Promise<void> {
-    await this.authorizeIn(this.store, actor, scope, action)
-  }
-  async authorizeInTransaction(tx: StorageTransaction, actor: ManagementActor, scope: ManagementScope, action: string) {
-    await this.authorizeIn(tx, actor, scope, action)
-  }
-  async authorizePolicyInTransaction(
-    tx: StorageTransaction,
-    principalId: string,
-    scope: ManagementScope,
-    _action: string,
-  ) {
-    this.ownedScope(scope)
-    await this.requireMember(tx, principalId)
+  async authorizeInTransaction(tx: StorageTransaction, actor: ManagementActor, scope?: ManagementScope) {
+    if (scope) this.ownedScope(scope)
+    await this.credential(tx, actor)
   }
   async isAdministrator(actor: ManagementActor) {
     await this.credential(this.store, actor)
@@ -429,7 +340,7 @@ export class ManagementAuth {
   }
 
   async listAdministrators(actor: ManagementActor) {
-    await this.requireFullAdministrator(this.store, actor)
+    await this.credential(this.store, actor)
     const roster = await this.roster(this.store)
     const administrators: Administrator[] = []
     for (const principalId of roster.value.principalIds) {
@@ -438,21 +349,12 @@ export class ManagementAuth {
     }
     return { revision: roster.revision, administrators }
   }
-  private async requireFullAdministrator(tx: StorageTransaction, actor: ManagementActor) {
-    const credential = await this.credential(tx, actor)
-    if (
-      credential.value.permissions &&
-      credential.value.kind === 'service' &&
-      !this.fullLegacyPermissions(credential.value.permissions)
-    )
-      fail('MANAGEMENT_FORBIDDEN')
-  }
   async inviteAdministrator(actor: ManagementActor, displayName: string, revision: number) {
     if (!validText(displayName, 80)) fail('INVALID_PRINCIPAL', 422)
     const code = secret(),
       expiresAt = this.now() + this.bootstrapTtlMs
     await this.store.transaction(async tx => {
-      await this.requireFullAdministrator(tx, actor)
+      await this.credential(tx, actor)
       const roster = await this.roster(tx)
       if (roster.revision !== revision) fail('REVISION_CONFLICT', 412)
       // Serializes invitation creation with concurrent removal of the issuer.
@@ -477,75 +379,10 @@ export class ManagementAuth {
     })
     return { code, expiresAt }
   }
-  /** Read-only host preflight. Old rows are retained for inspection and rollback. */
-  async migrationReport() {
-    const roster = await this.store.get<AdministratorRoster>('grants', this.rosterId)
-    const principals = await this.store.list<ManagementPrincipal>('principals')
-    const legacy = (await this.store.list<ManagementGrant>('grants')).filter(
-      row => row.value.scope && Array.isArray(row.value.actions),
-    )
-    const credentials = await this.store.list<Credential>('credentials')
-    return {
-      serverId: this.options.serverId,
-      workspaceId: this.options.workspaceId,
-      migrated: !!roster,
-      sharedServers: (await this.store.list<{ workspaceId: string }>('servers'))
-        .filter(row => row.id !== this.options.serverId && row.value.workspaceId === this.options.workspaceId)
-        .map(row => row.id),
-      identities: await Promise.all(
-        principals
-          .filter(
-            row =>
-              roster?.value.principalIds.includes(row.id) ||
-              legacy.some(
-                grant =>
-                  grant.value.principalId === row.id &&
-                  grant.value.scope.kind === 'server' &&
-                  grant.value.scope.id === this.options.serverId,
-              ),
-          )
-          .map(async row => {
-            const permissions = legacy
-              .filter(grant => grant.value.principalId === row.id)
-              .map(grant => ({ scope: grant.value.scope, actions: grant.value.actions }))
-            return {
-              principalId: row.id,
-              displayName: row.value.displayName,
-              accountId: row.value.accountId,
-              administrator: roster
-                ? roster.value.principalIds.includes(row.id)
-                : row.value.status === 'active' &&
-                  (!row.value.accountId ||
-                    (!!row.value.serverId &&
-                      (await this.store.accountStatus(row.value.serverId, row.value.accountId)) === 'active')) &&
-                  this.fullLegacyPermissions(permissions),
-              legacyPermissions: permissions,
-              credentials: credentials
-                .filter(
-                  c =>
-                    c.value.principalId === row.id &&
-                    (this.ownsCredential(c.value) ||
-                      (!c.value.serverId && row.value.serverId === this.options.serverId)),
-                )
-                .map(c => ({
-                  kind: c.value.kind,
-                  expiresAt: c.value.expiresAt,
-                  disposition:
-                    c.value.serverId || this.fullLegacyPermissions(c.value.permissions)
-                      ? 'current-membership'
-                      : c.value.kind === 'service'
-                        ? 'retain-ceiling'
-                        : 'reauthenticate',
-                })),
-            }
-          }),
-      ),
-    }
-  }
   async addAdministrator(actor: ManagementActor, input: { accountId: string }, revision: number) {
     if (!validText(input.accountId)) fail('INVALID_ACCOUNT', 422)
     return this.store.transaction(async tx => {
-      await this.requireFullAdministrator(tx, actor)
+      await this.credential(tx, actor)
       const roster = await this.roster(tx)
       if (roster.revision !== revision) fail('REVISION_CONFLICT', 412)
       if ((await tx.accountStatus(this.options.serverId, input.accountId)) !== 'active') fail('ACCOUNT_NOT_ACTIVE', 422)
@@ -593,7 +430,7 @@ export class ManagementAuth {
   }
   async removeAdministrator(actor: ManagementActor, principalId: string, revision: number) {
     await this.store.transaction(async tx => {
-      await this.requireFullAdministrator(tx, actor)
+      await this.credential(tx, actor)
       await this.removeMember(tx, principalId, revision)
       await this.audit(tx, actor.principalId, 'administrator.remove', `server:${this.options.serverId}`, {
         principalId,
@@ -625,7 +462,7 @@ export class ManagementAuth {
       storageId = sha256Hex(token),
       credentialId = randomUUID()
     await this.store.transaction(async tx => {
-      await this.requireFullAdministrator(tx, actor)
+      await this.credential(tx, actor)
       await tx.create<Credential>('credentials', {
         id: storageId,
         scope: principalId,
@@ -644,24 +481,16 @@ export class ManagementAuth {
   }
 
   private ownsCredential(value: Credential) {
-    return (
-      value.serverId === this.options.serverId ||
-      (!value.serverId &&
-        !!value.permissions?.length &&
-        value.permissions.every(
-          p => p.scope.id === (p.scope.kind === 'server' ? this.options.serverId : this.options.workspaceId),
-        ))
-    )
+    return value.serverId === this.options.serverId
   }
   private async authorizeCredentialManagement(
     tx: StorageTransaction,
     actor: ManagementActor,
     credential: StoredRecord<Credential>,
   ) {
-    // A credential may always revoke itself. Shared principal identity does not
-    // let an attenuated service token manage that principal's broader tokens.
+    // A credential may always revoke itself.
     if (credential.id === actor.credentialId) return
-    await this.requireFullAdministrator(tx, actor)
+    await this.credential(tx, actor)
     if (!this.ownsCredential(credential.value)) fail('MANAGEMENT_FORBIDDEN')
   }
 
@@ -688,7 +517,6 @@ export class ManagementAuth {
           createdAt: credential.value.createdAt,
           expiresAt: credential.value.expiresAt,
           serverId: this.options.serverId,
-          legacyRestricted: !credential.value.serverId && !this.fullLegacyPermissions(credential.value.permissions),
         })
       }
       return result.sort((a, b) => b.createdAt - a.createdAt || a.id.localeCompare(b.id))
@@ -733,11 +561,7 @@ export class ManagementAuth {
 
   private async loginSession(tx: StorageTransaction, principalId: string, source: Credential, parentId?: string) {
     await this.requireMember(tx, principalId)
-    if (
-      source.serverId !== this.options.serverId &&
-      (source.serverId || !this.fullLegacyPermissions(source.permissions))
-    )
-      fail('ADMIN_LOGIN_REQUIRED', 401)
+    if (source.serverId !== this.options.serverId) fail('ADMIN_LOGIN_REQUIRED', 401)
     const token = secret(),
       csrfToken = sessionCsrf(token),
       expiresAt = this.now() + this.sessionTtlMs

@@ -1,20 +1,27 @@
-import { createHash } from 'node:crypto'
 import type { DurableStorage } from '@arcadia-eternity/database'
-import type { ManagementAuth, ManagementPermission, ManagementSession } from '../../src/runtime/management/auth'
+import type { ManagementAuth, ManagementSession } from '../../src/runtime/management/auth'
 
-/** Pre-upgrade service credential fixture. Production cannot issue new scoped credentials. */
-export async function legacySession(
+/** A valid credential of an active principal who is not on the administrator list. */
+export async function nonAdministratorSession(
   auth: ManagementAuth,
-  permissions: ManagementPermission[],
-  id = 'legacy',
+  id = 'non-administrator',
+  kind: 'session' | 'service' = 'service',
 ): Promise<ManagementSession> {
-  const session = await auth.exchangeBootstrap((await auth.issueBootstrapCode(id)).code)
+  const login = await auth.exchangeBootstrap((await auth.issueBootstrapCode(id)).code)
+  const session =
+    kind === 'service'
+      ? {
+          ...login,
+          token: (await auth.createServiceToken(login.actor)).token,
+        }
+      : login
+  const actor = kind === 'service' ? await auth.authenticate(session.token) : login.actor
   const store = (auth as unknown as { store: DurableStorage }).store
-  const row = (await store.get<Record<string, unknown>>(
-    'credentials',
-    createHash('sha256').update(session.token).digest('hex'),
-  ))!
-  const { serverId: _server, ...value } = row.value
-  await store.replace('credentials', row.id, row.revision, { ...value, kind: 'service', permissions })
-  return { ...session, actor: { ...session.actor, kind: 'service' } }
+  const serverId = (auth as unknown as { options: { serverId: string } }).options.serverId
+  const roster = (await store.get<{ principalIds: string[] }>('grants', `administrators:${serverId}`))!
+  await store.replace('grants', roster.id, roster.revision, {
+    ...roster.value,
+    principalIds: roster.value.principalIds.filter(principal => principal !== id),
+  })
+  return { ...session, actor }
 }
