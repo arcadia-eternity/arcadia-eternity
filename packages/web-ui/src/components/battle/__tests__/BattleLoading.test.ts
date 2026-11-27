@@ -70,12 +70,12 @@ describe('BattleLoading', () => {
   })
 
   it.each([
-    ['standard', 2500, 1042],
-    ['simple', 0, 140],
-    ['reduced', 0, 140],
+    ['standard', 2500, 900],
+    ['simple', 0, 300],
+    ['reduced', 0, 300],
   ] as const)(
-    'holds the %s entrance for %ims, then plays the vanish cue once and exits in %ims',
-    async (motion, dwell, duration) => {
+    'holds the %s loader for %ims, flashes with the vanish cue for %ims, then finishes',
+    async (motion, dwell, flash) => {
       const wrapper = loader({ motion })
       expect(playLoadingSound.mock.calls).toEqual([['enter']])
       await wrapper.setProps({ progress: 100 })
@@ -83,26 +83,33 @@ describe('BattleLoading', () => {
       if (dwell) {
         vi.advanceTimersByTime(dwell - 1)
         await nextTick()
-        expect(wrapper.classes()).not.toContain('battle-loading--exiting')
+        expect(wrapper.classes()).not.toContain('battle-loading--complete')
         expect(playLoadingSound.mock.calls).toEqual([['enter']])
-        vi.advanceTimersByTime(1)
-        await nextTick()
       }
-      expect(wrapper.classes()).toContain('battle-loading--exiting')
-      await wrapper.setProps({ replay: true })
+      vi.advanceTimersByTime(dwell ? 1 : 0)
+      await nextTick()
+      expect(wrapper.classes()).toContain('battle-loading--complete')
       expect(playLoadingSound.mock.calls).toEqual([['enter'], ['vanish']])
-      vi.advanceTimersByTime(duration - 1)
+      vi.advanceTimersByTime(flash - 1)
       expect(wrapper.emitted('finished')).toBeUndefined()
       vi.advanceTimersByTime(1)
       expect(wrapper.emitted('finished')).toHaveLength(1)
+      await wrapper.setProps({ replay: true })
+      vi.advanceTimersByTime(2000)
+      expect(wrapper.emitted('finished')).toHaveLength(1)
+      expect(playLoadingSound.mock.calls).toEqual([['enter'], ['vanish']])
     },
   )
 
-  it('vanishes immediately when loading finishes after the entrance has played', async () => {
+  it('flashes as soon as loading completes after the entrance has played', async () => {
     const wrapper = loader({ progress: 60 })
     vi.advanceTimersByTime(4000)
     await wrapper.setProps({ progress: 100 })
-    expect(wrapper.classes()).toContain('battle-loading--exiting')
+    vi.advanceTimersByTime(0)
+    await nextTick()
+    expect(wrapper.classes()).toContain('battle-loading--complete')
     expect(playLoadingSound.mock.calls).toEqual([['enter'], ['vanish']])
+    vi.advanceTimersByTime(900)
+    expect(wrapper.emitted('finished')).toHaveLength(1)
   })
 })

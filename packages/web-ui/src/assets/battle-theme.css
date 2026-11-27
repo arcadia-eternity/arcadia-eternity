@@ -656,17 +656,13 @@
 .battle-loading__error button {
   margin: 10px 6px 0;
 }
-/* Matchup details appear when #572 reaches frame 40 and hide when it jumps to vanish. */
-.battle-loading--exiting .battle-loading__matchup {
-  visibility: hidden;
-}
 .battle-loading--animated .battle-loading__gears img {
   animation: battle-loading-gear 4125ms linear infinite;
 }
 .battle-loading--animated .battle-loading__spark img {
   animation: battle-loading-spark 833ms step-end infinite;
 }
-.battle-loading--animated:not(.battle-loading--exiting)
+.battle-loading--animated
   :is(
     .battle-loading__matchup,
     .battle-loading__shade,
@@ -680,38 +676,87 @@
   animation-timing-function: step-end;
   animation-fill-mode: both;
 }
-.battle-loading--animated:not(.battle-loading--exiting) .battle-loading__matchup {
+.battle-loading--animated .battle-loading__matchup {
   animation-name: battle-loading-reveal;
 }
-.battle-loading--animated:not(.battle-loading--exiting) .battle-loading__shade {
+.battle-loading--animated .battle-loading__shade {
   animation-name: battle-loading-shade;
 }
-.battle-loading--animated:not(.battle-loading--exiting) .battle-loading__band-mask {
+.battle-loading--animated .battle-loading__band-mask {
   animation-name: battle-loading-band-mask;
 }
-.battle-loading--animated:not(.battle-loading--exiting) .battle-loading__outline span {
+.battle-loading--animated .battle-loading__outline span {
   animation-name: battle-loading-outline;
 }
-.battle-loading--animated:not(.battle-loading--exiting) .battle-loading__flash {
+.battle-loading--animated .battle-loading__flash {
   animation-name: battle-loading-flash;
 }
-.battle-loading--animated:not(.battle-loading--exiting) .battle-loading__glass--left {
+.battle-loading--animated .battle-loading__glass--left {
   animation-name: battle-loading-glass-left;
 }
-.battle-loading--animated:not(.battle-loading--exiting) .battle-loading__glass--right {
+.battle-loading--animated .battle-loading__glass--right {
   animation-name: battle-loading-glass-right;
 }
-.battle-loading--animated:not(.battle-loading--exiting) .battle-loading__versus {
+.battle-loading--animated .battle-loading__versus {
   animation-name: battle-loading-versus;
 }
-.battle-loading--animated.battle-loading--exiting .battle-loading__glass {
-  animation: battle-loading-glass-left-vanish var(--loading-exit-duration) step-end both;
+/* Completion replaces #572's vanish: the frames hold while the counter, VS and frame rims flash. */
+.battle-loading--complete .battle-loading__gears img,
+.battle-loading--complete .battle-loading__spark img {
+  animation-play-state: paused;
 }
-.battle-loading--animated.battle-loading--exiting .battle-loading__glass--right {
-  animation-name: battle-loading-glass-right-vanish;
+.battle-loading--complete :is(.battle-loading__progress, .battle-loading__versus img, .battle-loading__glass img) {
+  animation: battle-loading-complete-glow var(--loading-complete-duration) ease-out both;
 }
-.battle-loading--exiting:not(.battle-loading--animated) {
-  animation: battle-loading-fade var(--loading-exit-duration) ease-in both;
+.battle-loading--complete .battle-loading__outline svg {
+  animation: battle-loading-complete-outline var(--loading-complete-duration) ease-out both;
+}
+.battle-loading--animated.battle-loading--complete .battle-loading__flash {
+  animation: battle-loading-complete-flash var(--loading-complete-duration) ease-out both;
+}
+.battle-loading--animated.battle-loading--complete
+  :is(.battle-loading__progress, .battle-loading__versus img, .battle-loading__glass img) {
+  animation-name: battle-loading-complete-pulse;
+}
+@keyframes battle-loading-complete-glow {
+  from,
+  to {
+    filter: brightness(1.45) drop-shadow(0 0 6px #99ffff);
+  }
+}
+@keyframes battle-loading-complete-pulse {
+  0%,
+  100% {
+    filter: none;
+  }
+  20%,
+  60% {
+    filter: brightness(1.6) drop-shadow(0 0 8px #99ffff);
+  }
+  40% {
+    filter: brightness(1.15) drop-shadow(0 0 3px #99ffff);
+  }
+}
+@keyframes battle-loading-complete-outline {
+  0%,
+  100% {
+    filter: brightness(1.6);
+  }
+}
+@keyframes battle-loading-complete-flash {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  45% {
+    opacity: 0.3;
+  }
+  60% {
+    opacity: 0.9;
+  }
 }
 @keyframes battle-loading-gear {
   to {
@@ -884,35 +929,6 @@
     transform: matrix(0.863, 0, 0, 0.864, 139.25, 215) translate(2px, 1.95px);
   }
 }
-@keyframes battle-loading-glass-left-vanish {
-  0% {
-    transform: matrix(0.863, 0, 0, 0.864, 139.25, 215) translate(2px, 1.95px);
-  }
-  4% {
-    transform: matrix(0.863, 0, 0, 0.864, 106.7, 215.15) translate(2px, 1.95px);
-  }
-  12% {
-    transform: matrix(0.863, 0, 0, 0.864, 74.15, 215.3) translate(2px, 1.95px);
-  }
-  20% {
-    transform: matrix(0.863, 0, 0, 0.864, 41.6, 215.45) translate(2px, 1.95px);
-  }
-  28% {
-    transform: matrix(0.863, 0, 0, 0.864, 9.1, 215.55) translate(2px, 1.95px);
-  }
-  36% {
-    transform: matrix(0.863, 0, 0, 0.864, -23.45, 215.7) translate(2px, 1.95px);
-  }
-  44% {
-    transform: matrix(0.863, 0, 0, 0.864, -55.95, 215.8) translate(2px, 1.95px);
-  }
-  52% {
-    transform: matrix(0.863, 0, 0, 0.864, -88.5, 215.95) translate(2px, 1.95px);
-  }
-  56% {
-    transform: matrix(0.863, 0, 0, 0.864, -104.75, 216) translate(2px, 1.95px);
-  }
-}
 @keyframes battle-loading-glass-right {
   0% {
     transform: matrix(2.395, 0, 0, 2.399, 1001.9, -63.3) translate(2px, 1.95px);
@@ -958,35 +974,6 @@
   }
   71.795% {
     transform: matrix(0.863, 0, 0, 0.864, 744.4, 285) translate(2px, 1.95px);
-  }
-}
-@keyframes battle-loading-glass-right-vanish {
-  0% {
-    transform: matrix(0.863, 0, 0, 0.864, 744.4, 285) translate(2px, 1.95px);
-  }
-  4% {
-    transform: matrix(0.863, 0, 0, 0.864, 777.45, 284.75) translate(2px, 1.95px);
-  }
-  12% {
-    transform: matrix(0.863, 0, 0, 0.864, 810.5, 284.5) translate(2px, 1.95px);
-  }
-  20% {
-    transform: matrix(0.863, 0, 0, 0.864, 843.55, 284.25) translate(2px, 1.95px);
-  }
-  28% {
-    transform: matrix(0.863, 0, 0, 0.864, 876.6, 283.95) translate(2px, 1.95px);
-  }
-  36% {
-    transform: matrix(0.863, 0, 0, 0.864, 909.65, 283.7) translate(2px, 1.95px);
-  }
-  44% {
-    transform: matrix(0.863, 0, 0, 0.864, 942.75, 283.4) translate(2px, 1.95px);
-  }
-  52% {
-    transform: matrix(0.863, 0, 0, 0.864, 975.8, 283.15) translate(2px, 1.95px);
-  }
-  56% {
-    transform: matrix(0.863, 0, 0, 0.864, 992.35, 283) translate(2px, 1.95px);
   }
 }
 @keyframes battle-loading-versus {
@@ -1065,134 +1052,6 @@
   }
   100% {
     transform: matrix(0.487, 0, 0, 0.487, 109.1, 204.95) translate(10.15px, 13.2px);
-  }
-}
-46.154% mult=256,
-256,
-256,
-0 add=0,
-0,
-0,
-0 51.282% mult=256,
-256,
-256,
-84 add=0,
-0,
-0,
-0 56.41% mult=256,
-256,
-256,
-172 add=0,
-0,
-0,
-0 61.538% mult=256,
-256,
-256,
-256 add=0,
-0,
-0,
-0 46.154% - 51.282% mult=256,
-256,
-256,
-154 add=0,
-0,
-0,
-0 56.41% mult=256,
-256,
-256,
-51 add=0,
-0,
-0,
-0 58.974% mult=256,
-256,
-256,
-0 add=0,
-0,
-0,
-0 82.051% mult=256,
-256,
-256,
-0 add=0,
-0,
-0,
-0 87.179% mult=166,
-166,
-166,
-102 add=89,
-89,
-89,
-0 92.308% mult=77,
-77,
-77,
-205 add=178,
-178,
-178,
-0 94.872% mult=33,
-33,
-33,
-256 add=222,
-222,
-222,
-0 100% mult=90,
-90,
-90,
-256 add=167,
-167,
-167,
-0 105.128% mult=146,
-146,
-146,
-256 add=111,
-111,
-111,
-0 110.256% mult=202,
-202,
-202,
-256 add=56,
-56,
-56,
-0 115.385% mult=256,
-256,
-256,
-256 add=0,
-0,
-0,
-0
-  24
-  58.974%
-  25
-  61.538%
-  26
-  64.103%
-  27
-  66.667%
-  28
-  69.231%
-  29
-  71.795%
-  33
-  82.051%
-  34
-  84.615%
-  35
-  87.179%
-  36
-  89.744%
-  @keyframes
-  battle-loading-fade {
-  to {
-    opacity: 0;
-  }
-}
-.battle-loading--exiting .battle-loading__outline span {
-  color: #4ce8f7;
-}
-.battle-shell[data-motion='reduced'] .battle-loading.battle-loading--exiting {
-  animation-duration: var(--loading-exit-duration) !important;
-}
-@media (prefers-reduced-motion: reduce) {
-  .battle-shell .battle-loading.battle-loading--exiting {
-    animation-duration: var(--loading-exit-duration) !important;
   }
 }
 .battle-degraded {

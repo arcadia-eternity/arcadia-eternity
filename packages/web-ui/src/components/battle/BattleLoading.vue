@@ -35,10 +35,10 @@ const data = useGameDataStore()
 const { playLoadingSound } = useSound()
 const preferredMotion = usePreferredReducedMotion()
 const animate = computed(() => preferredMotion.value !== 'reduce' && (!props.motion || props.motion === 'standard'))
-// #572 closes when its vanish label (frame 56) reaches frame 81, at 24 fps.
-const exitDuration = computed(() => (animate.value ? Math.round((25 * 1000) / 24) : 140))
-// The entrance reaches its frame-40 resting state after 1,625 ms; hold the matchup briefly before vanishing.
+// The entrance reaches its frame-40 resting state after 1,625 ms; hold the matchup briefly before cutting to the battle.
 const minimumDwell = computed(() => (animate.value ? 1625 + 875 : 0))
+// Replaces #572's vanish: the finished counter, VS and frames flash with cue #571, then the battle cuts in.
+const completeDuration = computed(() => (animate.value ? 900 : 300))
 
 // The original client scales its 1200×660 loader independently on each axis.
 const root = useTemplateRef<HTMLElement>('root')
@@ -83,8 +83,8 @@ const status = computed(() => {
 })
 
 const shownProgress = ref(0)
-const exiting = ref(false)
-let exitCuePlayed = false
+let finished = false
+const completing = ref(false)
 // Three right-aligned slots with leading zeroes hidden, as in the original counter.
 const digits = computed(() => {
   const value = String(shownProgress.value).padStart(3, ' ')
@@ -102,23 +102,12 @@ watch(
   { immediate: true },
 )
 
-const dwellElapsed = ref(false)
 const dwellRun = ref(0)
 let dwellStart = Date.now()
-watch(
-  [minimumDwell, dwellRun],
-  ([dwell], _, onCleanup) => {
-    const remaining = dwellStart + dwell - Date.now()
-    dwellElapsed.value = remaining <= 0
-    if (remaining <= 0) return
-    const timer = setTimeout(() => (dwellElapsed.value = true), remaining)
-    onCleanup(() => clearTimeout(timer))
-  },
-  { immediate: true },
-)
 
 function restart() {
   shownProgress.value = 0
+  completing.value = false
   dwellStart = Date.now()
   dwellRun.value++
   emit('retry')
@@ -131,20 +120,28 @@ onMounted(() => {
   }, 3000)
 
   watch(
-    [() => props.progress, () => props.error, exitDuration, dwellElapsed],
-    ([progress, error, duration, elapsed], _, onCleanup) => {
-      const ready = Number.isFinite(progress) && progress >= 100 && !error
-      exiting.value = ready && (exiting.value || elapsed)
-      if (!exiting.value) return
-      if (!exitCuePlayed) {
-        exitCuePlayed = true
-        playLoadingSound('vanish')
-      }
-      const exitTimer = setTimeout(() => emit('finished'), duration)
-      onCleanup(() => clearTimeout(exitTimer))
+    [() => props.progress, () => props.error, minimumDwell, dwellRun],
+    ([progress, error, dwell], _, onCleanup) => {
+      if (finished || completing.value || error || !Number.isFinite(progress) || progress < 100) return
+      const timer = setTimeout(
+        () => {
+          completing.value = true
+          playLoadingSound('vanish')
+        },
+        Math.max(0, dwellStart + dwell - Date.now()),
+      )
+      onCleanup(() => clearTimeout(timer))
     },
     { immediate: true },
   )
+  watch(completing, (active, _, onCleanup) => {
+    if (!active) return
+    const timer = setTimeout(() => {
+      finished = true
+      emit('finished')
+    }, completeDuration.value)
+    onCleanup(() => clearTimeout(timer))
+  })
 })
 onUnmounted(() => clearInterval(tipTimer))
 </script>
@@ -153,10 +150,10 @@ onUnmounted(() => clearInterval(tipTimer))
   <section
     ref="root"
     class="battle-loading"
-    :class="{ 'battle-loading--animated': animate, 'battle-loading--exiting': exiting }"
-    :style="{ '--loading-exit-duration': `${exitDuration}ms` }"
+    :class="{ 'battle-loading--animated': animate, 'battle-loading--complete': completing }"
+    :style="{ '--loading-complete-duration': `${completeDuration}ms` }"
     data-testid="battle-loading-overlay"
-    :aria-busy="!error && !exiting"
+    :aria-busy="!error"
     :aria-label="heading"
   >
     <div class="battle-loading__stage" :style="{ transform: stageScale }">

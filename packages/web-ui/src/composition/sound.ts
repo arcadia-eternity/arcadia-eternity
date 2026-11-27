@@ -27,7 +27,8 @@ export function useSound() {
     }
   })
   const activeMedia = new Set<() => void>()
-  const playOnce = async (source: string, prepared?: Blob, bundled?: string) => {
+  // A detached clip outlives the component that started it, such as the loader's closing cue.
+  const playOnce = async (source: string, prepared?: Blob, bundled?: string, detached = false) => {
     if (selfMute.value || !source) return
     const controller = new AbortController()
     let url: string | undefined
@@ -42,7 +43,7 @@ export function useSound() {
       if (url) URL.revokeObjectURL(url)
       activeMedia.delete(dispose)
     }
-    activeMedia.add(dispose)
+    if (!detached) activeMedia.add(dispose)
     try {
       if (!bundled || source !== bundled) {
         try {
@@ -97,7 +98,7 @@ export function useSound() {
   }
   const playLoadingSound = (cue: keyof typeof loadingAudio) => {
     const bundled = loadingAudio[cue]
-    void playOnce(battleUiUrl(`loading-${cue}`, false) || bundled, undefined, bundled)
+    void playOnce(battleUiUrl(`loading-${cue}`, false) || bundled, undefined, bundled, cue === 'vanish')
   }
 
   return {
