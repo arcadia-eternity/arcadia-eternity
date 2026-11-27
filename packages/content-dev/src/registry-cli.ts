@@ -19,7 +19,7 @@ export const registryUsage = [
   'arcadia-content registry root --registry <id> --version <n> --root-key <file>... --snapshot-key <file>... --mirror <url>... [--root-threshold <n>] [--expires-days <n>] --out <file>',
   'arcadia-content registry sign <envelope.json> --key-env <NAME>',
   'arcadia-content registry check [<directory>] [--project <id>]...',
-  'arcadia-content registry build [<directory>] --out <directory> --key-env <NAME> [--published <url>]',
+  'arcadia-content registry build [<directory>] --out <directory> --key-env <NAME> [--published <url>] [--first]',
 ].join('\n')
 
 const signingKey = async (name: string | undefined) => {
@@ -52,6 +52,7 @@ export async function registryCli(args: string[]) {
       'key-env': { type: 'string' },
       project: { type: 'string', multiple: true },
       published: { type: 'string' },
+      first: { type: 'boolean' },
     },
   })
   if (operation === 'keygen' && values['public-out'] && !positionals.length) {
@@ -122,7 +123,12 @@ export async function registryCli(args: string[]) {
     const signer = await signingKey(values['key-env'])
     const signal = AbortSignal.timeout(30 * 60_000)
     const published = values.published ?? source.root.mirrors[0]
-    const previous = published ? await readPublishedState(published, source, signal) : undefined
+    if (!published) throw new Error('Declare a mirror in the root or pass --published.')
+    const previous = await readPublishedState(published, source, signal)
+    // A transient 404 must not restart snapshot versions, which clients would reject as a rollback.
+    if (!previous && !values.first)
+      throw new Error(`No published snapshot at ${published}. Pass --first for the initial publish.`)
+    if (previous && values.first) throw new Error(`${published} already has snapshot ${previous.snapshot.version}.`)
     const result = await buildRegistrySite(source, resolve(values.out), {
       npm: npmRegistry(),
       signer,

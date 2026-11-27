@@ -80,7 +80,7 @@ const commands: Command[] = [
       ['check', '[<directory>] [--project <id>]...', 'Verify Registry declarations and their npm releases.'],
       [
         'build',
-        '[<directory>] --out <directory> --key-env <NAME> [--published <url>]',
+        '[<directory>] --out <directory> --key-env <NAME> [--published <url>] [--first]',
         'Discover npm releases and write a signed Registry site.',
       ],
     ] as const
