@@ -1,11 +1,16 @@
 <script setup lang="ts">
-defineProps<{ name: 'fight' | 'switch' | 'wait' | 'flag' | 'log' | 'fullscreen' | 'training' | 'motion' | 'shield' }>()
+defineProps<{
+  name:
+    'fight' | 'switch' | 'wait' | 'flag' | 'log' | 'expand' | 'close' | 'fullscreen' | 'training' | 'motion' | 'shield'
+}>()
 const paths = {
   fight: 'M4 3l7 3 7 12-3 3L4 10V3zm16 0-7 3-7 12 3 3 11-11V3M3 17l4 4m10-4 4 4',
   switch: 'M4 8h15l-4-4m4 4-4 4M20 16H5l4 4m-4-4 4-4',
   wait: 'M8 4v16M16 4v16',
   flag: 'M5 21V3h14l-3 5 3 5H5',
   log: 'M5 3h14v18H5V3m4 5h6m-6 4h6m-6 4h4',
+  expand: 'M14 4h6v6m0-6-7 7M10 20H4v-6m0 6 7-7',
+  close: 'M6 6l12 12M18 6 6 18',
   fullscreen: 'M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6',
   training: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18m0 5a4 4 0 1 0 0 8 4 4 0 0 0 0-8m0 3v2',
   motion: 'M3 12h4l3-7 4 14 3-7h4',

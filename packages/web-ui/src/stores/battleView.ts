@@ -21,8 +21,8 @@ export const useBattleViewStore = defineStore('battleView', () => {
   // 是否启用自适应缩放模式
   const adaptiveScaling = ref(false)
 
-  // 日志面板显示状态
-  const showLogPanel = ref(true)
+  // 日志详情窗口显示状态
+  const showLogDetail = ref(false)
 
   // 计算自适应缩放比例
   const calculateAdaptiveScale = (containerW: number, containerH: number, padding = 0) => {
@@ -61,9 +61,12 @@ export const useBattleViewStore = defineStore('battleView', () => {
     return Math.max(calculatedScale, MIN_SCALE)
   })
 
-  // 切换日志面板显示状态
-  const toggleLogPanel = () => {
-    showLogPanel.value = !showLogPanel.value
+  const openLogDetail = () => {
+    showLogDetail.value = true
+  }
+
+  const closeLogDetail = () => {
+    showLogDetail.value = false
   }
 
   // 设置父容器尺寸（用于自适应缩放）
@@ -84,8 +87,9 @@ export const useBattleViewStore = defineStore('battleView', () => {
     BATTLE_VIEW_HEIGHT,
 
     // UI状态
-    showLogPanel,
-    toggleLogPanel,
+    showLogDetail,
+    openLogDetail,
+    closeLogDetail,
 
     // 自适应缩放
     setContainerSize,

@@ -21,7 +21,7 @@ async function setMarkCount(page: Page, count: number) {
   }, count)
 }
 
-test('marks fill two rows across the health bar before collapsing, including after resize', async ({ page }) => {
+test('marks fill six slots per row in mirrored order and keep that capacity after resize', async ({ page }) => {
   test.setTimeout(60000)
   await page.addInitScript(() => localStorage.setItem('gameSetting.battleRenderer', '"image"'))
   await page.route(/seer2-resource\.yuuinih\.com\/png\//, route =>
@@ -38,40 +38,34 @@ test('marks fill two rows across the health bar before collapsing, including aft
   await page.waitForURL(/\/battle\?dev=true/)
   await expect(page.getByTestId('battle-loading-overlay')).toHaveCount(0, { timeout: 30000 })
 
-  for (const count of [5, 20, 26, 27, 40]) {
+  for (const count of [5, 6, 7, 12, 13, 40]) {
     await setMarkCount(page, count)
     for (const side of ['left', 'right']) {
       const status = page.locator(`[data-battle-status="${side}"]`)
       const marks = status.locator('.battle-status__marks')
-      await expect(marks.locator(':scope > [data-tooltip-parent]')).toHaveCount(count > 26 ? 25 : count)
-      await expect(marks.locator('summary')).toHaveCount(count > 26 ? 1 : 0)
-      const layout = await status.evaluate(el => {
-        const marks = el.querySelector('.battle-status__marks') as HTMLElement
-        const bars = el.querySelector('.battle-bars') as HTMLElement
-        const icons = [...marks.querySelectorAll(':scope > [data-tooltip-parent]')]
+      await expect(marks.locator(':scope > [data-tooltip-parent]')).toHaveCount(count > 12 ? 11 : count)
+      await expect(marks.locator('summary')).toHaveCount(count > 12 ? 1 : 0)
+      const layout = await marks.evaluate(el => {
+        const icons = [...el.querySelectorAll<HTMLElement>(':scope > [data-tooltip-parent]')]
         return {
-          width: marks.offsetWidth,
-          barWidth: bars.offsetWidth,
-          height: marks.offsetHeight,
-          rows: new Set(icons.map(icon => Math.round(icon.getBoundingClientRect().top))).size,
+          columns: icons.slice(0, 6).map(icon => icon.offsetLeft),
+          rows: [...new Set(icons.map(icon => icon.offsetTop))],
         }
       })
-      expect(layout.width).toBe(layout.barWidth)
-      expect(layout.height).toBe(76)
-      expect(layout.rows).toBe(count > 13 ? 2 : 1)
-      if (count > 26) {
+      expect(layout.columns).toEqual(
+        Array.from({ length: Math.min(6, count) }, (_, i) => 32 * (side === 'left' ? i : 5 - i)),
+      )
+      expect(layout.rows).toEqual(count > 6 ? [0, 34] : [0])
+      if (count > 12) {
         await marks.locator('summary').click()
-        await expect(marks.locator('details > div > [data-tooltip-parent]')).toHaveCount(count - 25)
+        await expect(marks.locator('details > div > [data-tooltip-parent]')).toHaveCount(count - 11)
         await expect(marks.locator('details > div')).toBeVisible()
         await marks.locator('summary').click()
       }
     }
   }
 
-  // Resize the HUD itself: viewport changes only scale the fixed battle canvas.
-  await page.locator('[data-battle-status]').evaluateAll(elements => {
-    elements.forEach(el => ((el as HTMLElement).style.width = '360px'))
-  })
+  await page.setViewportSize({ width: 900, height: 600 })
   for (const side of ['left', 'right']) {
     const marks = page.locator(`[data-battle-status="${side}"] .battle-status__marks`)
     await expect(marks.locator(':scope > [data-tooltip-parent]')).toHaveCount(11)

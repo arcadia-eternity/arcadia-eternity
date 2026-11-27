@@ -7,6 +7,10 @@ import { storeToRefs } from 'pinia'
 import type { baseSkillId } from '@arcadia-eternity/const'
 import { useGameDataStore } from '@/stores/gameData'
 import { resolveSkillSfxUrl } from '@/utils/resourceResolver'
+import loadingEnterAudio from '@/assets/battle/sounds/loading-enter.mp3'
+import loadingVanishAudio from '@/assets/battle/sounds/loading-vanish.mp3'
+
+const loadingAudio = { enter: loadingEnterAudio, vanish: loadingVanishAudio }
 
 export function useSound() {
   const gameSettingStore = useGameSettingStore()
@@ -23,7 +27,8 @@ export function useSound() {
     }
   })
   const activeMedia = new Set<() => void>()
-  const playOnce = async (source: string, prepared?: Blob) => {
+  // A detached clip outlives the component that started it, such as the loader's closing cue.
+  const playOnce = async (source: string, prepared?: Blob, bundled?: string, detached = false) => {
     if (selfMute.value || !source) return
     const controller = new AbortController()
     let url: string | undefined
@@ -38,12 +43,18 @@ export function useSound() {
       if (url) URL.revokeObjectURL(url)
       activeMedia.delete(dispose)
     }
-    activeMedia.add(dispose)
+    if (!detached) activeMedia.add(dispose)
     try {
-      const blob = prepared ?? (await loadMedia('audio', source, controller.signal))
-      if (controller.signal.aborted) return
-      url = URL.createObjectURL(blob)
-      audio = new Audio(url)
+      if (!bundled || source !== bundled) {
+        try {
+          const blob = prepared ?? (await loadMedia('audio', source, controller.signal))
+          if (controller.signal.aborted) return
+          url = URL.createObjectURL(blob)
+        } catch (error) {
+          if (controller.signal.aborted || !bundled) throw error
+        }
+      }
+      audio = new Audio(url ?? bundled)
       audio.volume = volume.value
       audio.muted = selfMute.value
       playing.add(audio)
@@ -85,11 +96,16 @@ export function useSound() {
       victory?.source === source && victory.environment === mediaEnvironment() ? victory.blob : undefined,
     )
   }
+  const playLoadingSound = (cue: keyof typeof loadingAudio) => {
+    const bundled = loadingAudio[cue]
+    void playOnce(battleUiUrl(`loading-${cue}`, false) || bundled, undefined, bundled, cue === 'vanish')
+  }
 
   return {
     playSkillSound,
     playPetSound,
     playVictorySound,
     prepareVictorySound,
+    playLoadingSound,
   }
 }

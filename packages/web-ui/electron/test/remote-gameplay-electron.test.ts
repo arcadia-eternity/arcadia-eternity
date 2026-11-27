@@ -334,7 +334,6 @@ test(
       }
       async function captureClimax(page) {
         const log = page.getByRole('button', { name: '战斗日志', exact: true })
-        const before = await log.getAttribute('aria-pressed')
         await page.waitForFunction(
           () => document.querySelector('.climax-effect-container.playing .effect-frame.visible'),
           null,
@@ -384,9 +383,11 @@ test(
           page.screenshot({ path: join(evidence, 'climax-over-both-pets.png'), fullPage: true }),
           page.mouse.click(layers.clickPoint.x, layers.clickPoint.y),
         ])
-        await expect(log).toHaveAttribute('aria-pressed', before === 'true' ? 'false' : 'true')
-        audit.climax.push({ ...layers, clickToggledLog: true })
-        await log.click()
+        await expect(log).toHaveAttribute('aria-expanded', 'true')
+        await expect(page.getByRole('dialog', { name: '战斗日志' })).toBeVisible()
+        audit.climax.push({ ...layers, clickOpenedLog: true })
+        await page.getByRole('dialog', { name: '战斗日志' }).getByRole('button', { name: '关闭' }).click()
+        await expect(log).toHaveAttribute('aria-expanded', 'false')
       }
       const tokensByServer = []
       for (let serverIndex = 0; serverIndex < servers.length; serverIndex++) {

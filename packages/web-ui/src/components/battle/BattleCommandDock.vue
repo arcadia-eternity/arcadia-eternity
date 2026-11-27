@@ -42,7 +42,7 @@ const view = useBattleViewStore()
 const settings = useGameSettingStore()
 </script>
 <template>
-  <section class="battle-dock" data-testid="battle-command-dock" :class="{ 'battle-dock--log': view.showLogPanel }">
+  <section class="battle-dock" data-testid="battle-command-dock">
     <div class="battle-dock__toolbar">
       <div class="battle-dock__tabs" v-if="!spectator">
         <button class="battle-control" :aria-pressed="panel === 'skills'" @click="$emit('panel', 'skills')">
@@ -59,8 +59,9 @@ const settings = useGameSettingStore()
           class="battle-control battle-control--icon"
           title="战斗日志"
           aria-label="战斗日志"
-          :aria-pressed="view.showLogPanel"
-          @click="view.toggleLogPanel()"
+          aria-haspopup="dialog"
+          :aria-expanded="view.showLogDetail"
+          @click="view.openLogDetail()"
         >
           <BattleGlyph name="log" />
         </button>
@@ -93,7 +94,7 @@ const settings = useGameSettingStore()
         </button>
       </div>
     </div>
-    <div v-if="view.showLogPanel" class="battle-dock__log"><BattleLogPanel /></div>
+    <div class="battle-dock__log"><BattleLogPanel /></div>
     <div class="battle-dock__commands">
       <div v-show="panel === 'skills' && !spectator" class="battle-dock__skills">
         <SkillButton

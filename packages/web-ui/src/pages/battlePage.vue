@@ -8,6 +8,7 @@ import BattleFrame from '@/components/battle/BattleFrame.vue'
 import { useBattlePreparation, withDeadline } from '@/composition/useBattlePreparation'
 import { usePreferredReducedMotion } from '@vueuse/core'
 import BattleLogPanel from '@/components/battle/BattleLogPanel.vue'
+import BattleLogDetail from '@/components/battle/BattleLogDetail.vue'
 import BattleStatus from '@/components/battle/BattleStatus.vue'
 import TrainingPanel from '@/components/battle/TrainingPanel.vue'
 import TeamSelectionPanel from '@/components/battle/TeamSelectionPanel.vue'
@@ -297,9 +298,12 @@ const koBannerRef = useTemplateRef('koBannerRef') // 新增：KO横幅的模板�
 
 // 等待对手响应状态 - 使用store中的waitingForResponse
 const isWaitingForOpponent = computed(() => store.waitingForResponse)
+const battleEntered = ref(props.replayMode)
+const petsShown = ref(props.replayMode)
+const startupError = ref<string | null>(null)
 const battleActionsReady = computed(
   () =>
-    isFullyLoaded.value &&
+    battleEntered.value &&
     !isReplayMode.value &&
     !isSpectatorMode.value &&
     Array.isArray(store.availableActions) &&
@@ -453,6 +457,7 @@ watchEffect(() => {
 onUnmounted(() => {
   battleMedia.stop()
   resetBattleScene()
+  battleViewStore.closeLogDetail()
 })
 const { playSkillSound, playPetSound, playVictorySound, prepareVictorySound } = useSound()
 
@@ -883,6 +888,9 @@ const {
   progress: overallProgress,
   degraded: degradedResources,
 } = preparation
+// The resource handshake can finish before the loading screen's exit animation.
+const loadingFinished = ref(false)
+const battlePresentationReady = computed(() => isFullyLoaded.value && loadingFinished.value)
 const isReplayFullyLoaded = ref(false)
 const resourceAttempt = ref(0)
 
@@ -890,10 +898,11 @@ provide(
   battleTooltipsDisabledKey,
   computed(
     () =>
-      !isFullyLoaded.value ||
+      !battlePresentationReady.value ||
       showOrientationHint.value ||
       (showTeamSelectionPanel.value && !isSpectatorMode.value) ||
-      showCustomConfirm.value,
+      showCustomConfirm.value ||
+      battleViewStore.showLogDetail,
   ),
 )
 
@@ -940,9 +949,9 @@ async function waitForTeamMedia() {
 }
 
 const initializeBattleResources = async () => {
+  loadingFinished.value = false
   // A direct battle-page load shares these downloads with application startup.
   const startupTimeoutMs = 60_000
-  const petStartupTimeoutMs = 15 * 60_000
   awaitedTeamBatch = undefined
   resourceAttempt.value++
   await preparation.prepare([
@@ -1037,58 +1046,64 @@ const initializeBattleResources = async () => {
       timeoutMs: startupTimeoutMs,
       run: checkPetSpritesReady,
     },
-    ...(!props.replayMode
-      ? [
-          {
-            id: 'connection',
-            label: '对战连接',
-            required: true,
-            // The other client may still be preparing its starting sprites.
-            timeoutMs: petStartupTimeoutMs,
-            run: async () => {
-              if (!messageSubscription) {
-                await setupMessageSubscription()
-                setupDisconnectHandlers()
-              }
-              const isPlayer = store.battleState?.players.some(player => player.id === store.playerId)
-              if (isPlayer && !playerReadySent) {
-                await store.ready()
-                playerReadySent = true
-              }
-              // The handshake can reveal the opposing starter. Keep the loading screen
-              // until that state (or the team-selection phase) has reached the page.
-              const started = () =>
-                store.battleState?.status !== BattleStatusEnum.Unstarted ||
-                store.teamSelectionActive ||
-                !!snapshotSelection.value?.enabled
-              if (!started()) {
-                await new Promise<void>(resolve => {
-                  const stop = watch(started, value => {
-                    if (value) finish()
-                  })
-                  const finish = () => {
-                    stop()
-                    resolve()
-                  }
-                  releaseBattleStartWait?.()
-                  releaseBattleStartWait = finish
-                })
-              }
-            },
-          },
-          {
-            id: 'scene-pets',
-            label: '场上精灵',
-            required: false,
-            timeoutMs: startupTimeoutMs,
-            run: () => waitForMediaGroup([checkPetSpritesReady(), waitForTeamMedia()]),
-          },
-        ]
-      : []),
   ])
-  if (isFullyLoaded.value) {
-    isReplayFullyLoaded.value = props.replayMode && store.replaySnapshots.length > 0
-    startMusic()
+  if (isFullyLoaded.value) isReplayFullyLoaded.value = props.replayMode && store.replaySnapshots.length > 0
+}
+
+// The battle stays frozen behind the loading screen: the ready handshake, music and
+// the entry animation start only after the loader has finished its exit.
+let startupRunning = false
+async function enterBattle() {
+  if (startupRunning || battleEntered.value) return
+  startupRunning = true
+  startupError.value = null
+  try {
+    if (!messageSubscription) {
+      await setupMessageSubscription()
+      setupDisconnectHandlers()
+    }
+    // The other client may still be preparing its starting sprites.
+    const handshakeTimeoutMs = 15 * 60_000
+    const isPlayer = store.battleState?.players.some(player => player.id === store.playerId)
+    if (isPlayer && !playerReadySent) {
+      await withDeadline(store.ready(), handshakeTimeoutMs, '对战连接超时')
+      playerReadySent = true
+    }
+    // The handshake can reveal the opposing starter or open team selection.
+    const started = () =>
+      store.battleState?.status !== BattleStatusEnum.Unstarted ||
+      store.teamSelectionActive ||
+      !!snapshotSelection.value?.enabled
+    if (!started()) {
+      const startWait = new Promise<void>(resolve => {
+        const stop = watch(started, value => {
+          if (value) finish()
+        })
+        const finish = () => {
+          stop()
+          resolve()
+        }
+        releaseBattleStartWait?.()
+        releaseBattleStartWait = finish
+      })
+      await withDeadline(startWait, handshakeTimeoutMs, '对战连接超时')
+    }
+    if (battleDisposed) return
+    // A revealed starter may still be loading; enter with whatever has arrived.
+    await withDeadline(waitForMediaGroup([checkPetSpritesReady(), waitForTeamMedia()]), 60_000).catch(() => {})
+    if (battleDisposed) return
+    initialEntranceRunning = true
+    petsShown.value = true
+    try {
+      await initialPetEntryAnimation()
+    } finally {
+      initialEntranceRunning = false
+    }
+    battleEntered.value = true
+  } catch (cause) {
+    if (!battleDisposed) startupError.value = cause instanceof Error ? cause.message : '对战连接失败'
+  } finally {
+    startupRunning = false
   }
 }
 
@@ -1295,6 +1310,45 @@ async function animatePetTransition(
 }
 
 const switchMovieWaitMs = 3000
+const presentTimeoutMs = 5000
+// Covers the message hop to the player and its next 24 fps frame.
+const presentRevealDelayMs = 150
+// A pet with its own entrance (个性出场) plays it in place; otherwise it slides in from offscreen.
+async function playPetEntrance(
+  sprite: InstanceType<typeof PetSprite>,
+  side: 'left' | 'right',
+  offScreenX: number,
+  signal?: AbortSignal,
+) {
+  if (!sprite.availableState.includes(ActionState.PRESENT)) {
+    gsapSet(sprite.$el, { x: offScreenX, opacity: 0 })
+    await animatePetTransition(sprite, 0, 1, 1, 'power2.out')
+    return
+  }
+  // The movie loops its idle pose until the play command reaches the player, so stay hidden until then.
+  gsapSet(sprite.$el, { x: 0, opacity: 0 })
+  let stop = () => {}
+  const completed = new Promise<void>(resolve => {
+    const handler = (completeSide: 'left' | 'right') => {
+      if (completeSide === side) resolve()
+    }
+    emitter.on('animation-complete', handler)
+    stop = () => emitter.off('animation-complete', handler)
+  })
+  const operation = (async () => {
+    await sprite.setState(ActionState.PRESENT).catch(() => {})
+    await new Promise<void>(resolve => setTimeout(resolve, presentRevealDelayMs))
+    gsapSet(sprite.$el, { opacity: 1 })
+    await Promise.race([completed, new Promise<void>(resolve => setTimeout(resolve, presentTimeoutMs))])
+  })()
+  try {
+    await (signal ? waitForAnimationOperation(operation, signal) : operation)
+  } finally {
+    stop()
+    gsapSet(sprite.$el, { opacity: 1 })
+  }
+}
+
 async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitchMessage: PetSwitchMessage) {
   const execution = runningExecution
   assertExecution(execution)
@@ -1352,7 +1406,7 @@ async function switchPetAnimate(toPetId: petId, side: 'left' | 'right', petSwitc
     if (newPetInfo) {
       playPetSound(newPetInfo.speciesID)
     }
-    await animatePetTransition(newPetSprite, 0, 1, animationDuration, 'power2.out')
+    await playPetEntrance(newPetSprite, side, offScreenX, execution.signal)
     assertExecution(execution)
   } finally {
     // 结束动画追踪（仅在非回放模式下）
@@ -1787,7 +1841,10 @@ watch(
   { flush: 'sync' },
 )
 
+// Queue tasks that settle while the starters enter must not reveal them early.
+let initialEntranceRunning = false
 function restorePetContainers() {
+  if (initialEntranceRunning) return
   for (const sprite of [leftPetRef.value, rightPetRef.value]) {
     if (sprite?.$el) gsapSet(sprite.$el, { x: 0, opacity: 1, zIndex: '' })
   }
@@ -1897,57 +1954,28 @@ const animatesubscribe = animationQueue
   )
   .subscribe()
 
-async function animatePetEntry(
-  petSprite: InstanceType<typeof PetSprite> | null,
-  initialX: number,
-  targetX: number,
-  duration: number,
-  onCompleteCallback?: () => void,
-) {
-  if (petSprite && petSprite.$el) {
-    gsapSet(petSprite.$el, { x: initialX, opacity: 0 })
-    return animatePetTransition(petSprite, targetX, 1, duration, 'power2.out', onCompleteCallback)
-  }
-  return Promise.resolve()
-}
-
 async function initialPetEntryAnimation() {
-  const leftPet = petSprites.value.left
-  const rightPet = petSprites.value.right
   const battleViewWidth = 1600 // 固定的战斗视图宽度
-  const animationDuration = 1
-  const entryTimeout = 5
-  const animations = []
-  for (const [pet, initialX, side] of [
-    [leftPet, -battleViewWidth / 2 - 100, 'left'],
-    [rightPet, battleViewWidth / 2 + 100, 'right'],
-  ] as const) {
-    if (pet && pet.$el) {
-      playPetSound(side === 'left' ? leftActiveSpecies.value?.id : rightActiveSpecies.value?.id)
-      if (pet.availableState.includes(ActionState.PRESENT)) {
-        animations.push(
-          new Promise<void>(resolve => {
-            const handler = (completeSide: 'left' | 'right') => {
-              if (completeSide === side) {
-                emitter.off('animation-complete', handler)
-                resolve()
-              }
-            }
-            emitter.on('animation-complete', handler)
-            setTimeout(async () => {
-              if (pet && pet.$el && (await pet.getState()) !== ActionState.PRESENT) {
-                resolve()
-              }
-            }, entryTimeout * 1000)
-          }),
-          pet.setState(ActionState.PRESENT),
-        )
-      } else {
-        animations.push(animatePetEntry(pet, initialX, 0, animationDuration))
-      }
-    }
-  }
-  await Promise.all(animations)
+  const sides = [
+    ['left', -battleViewWidth / 2 - 100, leftActiveSpecies.value?.id],
+    ['right', battleViewWidth / 2 + 100, rightActiveSpecies.value?.id],
+  ] as const
+  const sprites = sides.map(([side]) => petSprites.value[side]).filter(sprite => sprite?.$el)
+  for (const sprite of sprites) gsapSet(sprite.$el, { opacity: 0 })
+  // As on a switch, a movie that finishes shortly lets the starter play its own entrance.
+  await Promise.all(sprites.map(sprite => withDeadline(sprite.movieReady, switchMovieWaitMs).catch(() => {})))
+  if (battleDisposed) return
+  for (const sprite of sprites) sprite.activateLoadedSwf()
+  await nextTick()
+  if (battleDisposed) return
+  await Promise.all(
+    sides.map(([side, offScreenX, species]) => {
+      const sprite = petSprites.value[side]
+      if (!sprite?.$el) return
+      playPetSound(species)
+      return playPetEntrance(sprite, side, offScreenX)
+    }),
+  )
 }
 
 // 初始化自适应缩放
@@ -2043,8 +2071,12 @@ onMounted(async () => {
     // 用户可以手动点击播放按钮来开始回放
     return
   }
+})
 
-  await initialPetEntryAnimation()
+watch(battlePresentationReady, presented => {
+  if (!presented || battleDisposed) return
+  startMusic()
+  if (!props.replayMode) void enterBattle()
 })
 
 // 设置消息订阅
@@ -2405,20 +2437,19 @@ watch(
         :data-motion="effectiveMotion"
         :style="{ transform: `translate(-50%, -50%) scale(${battleViewScale})` }"
       >
-        <Transition name="fade">
-          <BattleLoading
-            v-if="!isFullyLoaded"
-            :left="currentPlayer"
-            :right="opponentPlayer"
-            :background="background"
-            :tasks="loadingTasks"
-            :progress="overallProgress"
-            :error="loadingError"
-            :replay="isReplayMode"
-            @retry="retryReplayLoading"
-            @exit="isReplayMode ? goBackFromReplay() : navigateToHome()"
-          />
-        </Transition>
+        <BattleLoading
+          v-if="!battlePresentationReady"
+          :left="currentPlayer"
+          :right="opponentPlayer"
+          :tasks="loadingTasks"
+          :progress="overallProgress"
+          :error="loadingError"
+          :replay="isReplayMode"
+          :motion="effectiveMotion"
+          @retry="retryReplayLoading"
+          @exit="isReplayMode ? goBackFromReplay() : navigateToHome()"
+          @finished="loadingFinished = true"
+        />
 
         <!-- 自定义确认对话框（覆盖整个战斗容器） -->
         <Transition name="fade">
@@ -2466,7 +2497,7 @@ watch(
           </div>
         </Transition>
 
-        <div class="battle-stage" data-testid="battle-stage">
+        <div class="battle-stage" data-testid="battle-stage" :inert="!battlePresentationReady">
           <div
             ref="backgroundContainerRef"
             class="battle-stage__backdrop"
@@ -2538,6 +2569,10 @@ watch(
           <div v-if="isFullyLoaded && degradedResources.length" class="battle-degraded" role="status">
             {{ degradedResources.join('、') }} · 简化显示
           </div>
+          <div v-if="startupError" class="battle-degraded battle-degraded--error" role="alert">
+            {{ startupError }}
+            <button type="button" class="battle-control" @click="enterBattle">重试</button>
+          </div>
           <div
             ref="battleViewRef"
             class="battle-scene"
@@ -2580,7 +2615,10 @@ watch(
             />
             <div class="battle-scenery">
               <!-- 精灵容器 - 绝对定位相对于整个battleView，不受其他元素挤压 -->
-              <div class="absolute inset-0 pointer-events-none">
+              <div
+                class="absolute inset-0 pointer-events-none"
+                :style="{ visibility: petsShown ? undefined : 'hidden' }"
+              >
                 <!-- 左侧精灵 - 绝对定位在画面左侧 -->
                 <PetSprite
                   v-if="leftPetSpriteAsset.customSwfUrl || leftPetSpriteAsset.customImageUrl"
@@ -2638,7 +2676,7 @@ watch(
 
         <!-- 回放模式控制界面 -->
         <div v-if="isReplayMode" class="battle-replay-dock flex">
-          <div v-if="battleViewStore.showLogPanel" class="w-1/5 h-full p-2">
+          <div class="w-1/5 h-full p-2">
             <BattleLogPanel />
           </div>
 
@@ -2748,17 +2786,17 @@ watch(
         </div>
 
         <BattleCommandDock
-          v-if="isFullyLoaded && !isReplayMode"
+          v-if="battlePresentationReady && !isReplayMode"
           :panel="panelState"
           :skills="availableSkills"
           :pets="currentPlayer?.team || []"
           :waiting="isWaitingForOpponent"
           :spectator="isSpectatorMode"
           :training="isTrainingMode"
-          :can-wait="!!store.availableActions.find(a => a.type === 'do-nothing')"
-          :can-surrender="!!store.availableActions.find(a => a.type === 'surrender')"
-          :skill-available="isSkillAvailable"
-          :pet-selectable="isPetSelectable"
+          :can-wait="battleEntered && !!store.availableActions.find(a => a.type === 'do-nothing')"
+          :can-surrender="battleEntered && !!store.availableActions.find(a => a.type === 'surrender')"
+          :skill-available="id => battleEntered && isSkillAvailable(id)"
+          :pet-selectable="id => battleEntered && isPetSelectable(id)"
           :modifier="getSkillModifierInfo"
           :effectiveness="getTypeEffectiveness"
           @panel="panelState = $event === 'skills' ? PanelState.SKILLS : PanelState.PETS"
@@ -2804,6 +2842,12 @@ watch(
             </div>
           </div>
         </Transition>
+
+        <BattleLogDetail
+          v-if="battleViewStore.showLogDetail"
+          :class="Z_INDEX_CLASS.LOG_DETAIL"
+          @close="battleViewStore.closeLogDetail()"
+        />
 
         <!-- 训练面板 -->
         <TrainingPanel v-if="isTrainingMode && isTrainingPanelOpen" @close="isTrainingPanelOpen = false" />

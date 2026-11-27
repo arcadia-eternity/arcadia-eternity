@@ -1,5 +1,14 @@
 # Changelog
 
+## [5.2.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v5.1.0...arcadia-eternity-v5.2.0) (2026-11-27)
+
+
+### ✨ Features
+
+* **web-ui:** flash the loader on completion and play pets' own entrances ([23d886b](https://github.com/arcadia-eternity/arcadia-eternity/commit/23d886bca9aaaa94a2a341a7466c7a03b9138ab3))
+* **web-ui:** keep the battle log visible and add a turn-grouped detail window ([c4c7d56](https://github.com/arcadia-eternity/arcadia-eternity/commit/c4c7d5613b7d315fc461a12e008fa2a0829ba2d9))
+* **web-ui:** restore the original Seer 2 battle loader, HUD and skill dock ([da96f13](https://github.com/arcadia-eternity/arcadia-eternity/commit/da96f13c7398697c7d6846ce9616c3f0a318f3ef))
+
 ## [5.1.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v5.0.3...arcadia-eternity-v5.1.0) (2026-11-26)
 
 

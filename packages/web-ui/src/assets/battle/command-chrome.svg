@@ -1,10 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 200" preserveAspectRatio="none">
   <defs>
-    <linearGradient id="edge" x2="0" y2="1"><stop stop-color="#d2d9df"/><stop offset=".2" stop-color="#778491"/><stop offset=".7" stop-color="#39434f"/><stop offset="1" stop-color="#d2d9df"/></linearGradient>
-    <linearGradient id="gloss" x2="0" y2="1"><stop stop-color="#ffffff" stop-opacity=".15"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
+    <linearGradient id="recess" x2="0" y2="1">
+      <stop stop-color="#29303b" />
+      <stop offset=".38" stop-color="#1b222f" />
+      <stop offset=".8" stop-color="#040d1b" />
+    </linearGradient>
+    <linearGradient id="cap" x2="0" y2="1">
+      <stop stop-color="#455569" />
+      <stop offset=".28" stop-color="#223243" />
+      <stop offset="1" stop-color="#090f1c" />
+    </linearGradient>
+    <linearGradient id="edge" x2="0" y2="1">
+      <stop stop-color="#bac7d2" />
+      <stop offset=".3" stop-color="#637482" />
+      <stop offset=".83" stop-color="#3d4755" />
+      <stop offset="1" stop-color="#dddfe3" />
+    </linearGradient>
+    <linearGradient id="reflection" x2="0" y2="1">
+      <stop stop-color="#d7eafa" stop-opacity=".48" />
+      <stop offset="1" stop-color="#92a9bf" stop-opacity="0" />
+    </linearGradient>
   </defs>
-  <rect x="2" y="2" width="1596" height="196" rx="12" fill="#040d1b" stroke="#000" stroke-width="4"/>
-  <rect x="2" y="2" width="1596" height="196" rx="12" fill="none" stroke="url(#edge)" stroke-width="2"/>
-  <rect x="5" y="5" width="1590" height="190" rx="9" fill="none" stroke="#47515f"/>
-  <path d="M14 6H1586Q1594 6 1594 14V80H6V14Q6 6 14 6" fill="url(#gloss)"/>
+  <path d="M1 21Q1 1 23 1H310Q318 1 322 4T332 7H1438Q1444 7 1448 4T1460 1H1577Q1599 1 1599 21V182Q1599 199 1581 199H19Q1 199 1 182Z" fill="#242329" />
+  <path d="M5 23Q5 5 23 5H310Q317 5 320 8T332 11H1438Q1445 11 1448 8T1460 5H1577Q1595 5 1595 23V181Q1595 194 1581 194H19Q5 194 5 181Z" fill="url(#recess)" stroke="url(#edge)" stroke-width="2" />
+  <path d="M7 25Q7 7 25 7H308Q322 7 322 21V174Q322 189 306 189H23Q7 189 7 174Z" fill="url(#cap)" />
+  <path d="M1448 21Q1448 7 1462 7H1575Q1593 7 1593 25V174Q1593 189 1577 189H1464Q1448 189 1448 174Z" fill="url(#cap)" />
+  <path d="M322 21V189M1448 21V189" stroke="#dddfe3" stroke-opacity=".55" />
+  <path d="M11 26Q11 10 27 10H302Q316 10 318 22C224 15 124 81 11 73Z" fill="url(#reflection)" />
+  <path d="M10 43V171Q10 186 24 186H71M1589 60V176Q1589 186 1576 186H1542" fill="none" stroke="#78dcec" stroke-opacity=".65" stroke-width="2" />
+  <path d="M24 194H1576" stroke="#dddfe3" stroke-width="2" />
 </svg>

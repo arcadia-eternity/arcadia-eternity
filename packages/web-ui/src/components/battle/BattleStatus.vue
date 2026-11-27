@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { getNumericAttributeModifier } from '@/utils/modifierStyles'
-import { computed, ref, useTemplateRef } from 'vue'
-import { onClickOutside, useElementSize, useMediaQuery } from '@vueuse/core'
+import { computed, ref, useTemplateRef, watch } from 'vue'
+import { onClickOutside } from '@vueuse/core'
+import statusChrome from '@/assets/battle/status-chrome.svg'
 import HealthRageBar from './HealthRageBar.vue'
 import PetIcon from '../PetIcon.vue'
 import Mark from './Mark.vue'
@@ -11,7 +12,6 @@ import type { PlayerMessage, SkillMessage, AttributeModifierInfo } from '@arcadi
 import ElementIcon from './ElementIcon.vue'
 import { useGameDataStore } from '@/stores/gameData'
 import { useBattleStore } from '@/stores/battle'
-import { Z_INDEX } from '@/constants/zIndex'
 import i18next from 'i18next'
 import { getCurrentSkillEffectiveness } from '@/utils/typeEffectiveness'
 
@@ -23,37 +23,34 @@ const props = defineProps<{
   side: 'left' | 'right'
 }>()
 
-const containerClass = computed(() => [
-  'battle-status',
-  `battle-status--${props.side}`,
-  props.side === 'left' ? 'flex-row' : 'flex-row-reverse',
-])
-
-const statusBarClass = computed(() => ['flex flex-col gap-2 min-w-[200px] flex-1'])
-
-const markContainerClass = computed(() => [
-  'flex flex-wrap gap-1 w-full mt-1',
-  props.side === 'right' ? 'flex-row-reverse' : '',
-])
-
 const activePet = computed(() => {
   return battleStore.getPetById(props.player.activePet)
 })
 
 const statsOpen = ref(false)
-const canHover = useMediaQuery('(hover: hover) and (pointer: fine)')
+const statsHovered = ref(false)
 const portraitButton = useTemplateRef('portraitButton')
-onClickOutside(portraitButton, () => {
+const showStats = computed(() => statsOpen.value || statsHovered.value)
+function closeStats() {
   statsOpen.value = false
-})
+  statsHovered.value = false
+}
+onClickOutside(portraitButton, closeStats)
+watch(() => props.player.activePet, closeStats)
 
-const statusBody = ref<HTMLElement | null>(null)
-const { width: statusWidth } = useElementSize(statusBody)
-// Each slot is a 36px mark with a 4px gap, matching the layout below.
-const markCapacity = computed(() => Math.max(1, Math.floor((statusWidth.value + 4) / 40)) * 2)
+function updatePortraitHover(event: PointerEvent, hovered: boolean) {
+  if (event.pointerType === 'mouse' || event.pointerType === 'pen') statsHovered.value = hovered
+}
+
+function toggleStats() {
+  statsOpen.value = !statsOpen.value
+  if (!statsOpen.value) statsHovered.value = false
+}
+
+const markCapacity = 12
 const visibleMarkCount = computed(() => {
   const count = activePet.value?.marks?.length ?? 0
-  return count > markCapacity.value ? markCapacity.value - 1 : count
+  return count > markCapacity ? markCapacity - 1 : count
 })
 const visibleMarks = computed(() => activePet.value?.marks?.slice(0, visibleMarkCount.value) ?? [])
 const overflowMarks = computed(() => activePet.value?.marks?.slice(visibleMarkCount.value) ?? [])
@@ -141,19 +138,6 @@ const typeEffectivenessConfig = computed(() => {
   }
 })
 
-// 精灵图标的样式类（包含属性相性背景色）
-const petIconClasses = computed(() => {
-  const baseClasses = ['battle-status__portrait']
-  const zIndexClass = `z-[${Z_INDEX.BATTLE_STATUS_ICON}]`
-
-  // 添加属性相性背景色
-  if (typeEffectivenessConfig.value.bgColor) {
-    baseClasses.push(typeEffectivenessConfig.value.bgColor)
-  }
-
-  return [...baseClasses, zIndexClass]
-})
-
 // 格式化精灵属性信息（用于显示是否有 modifier）
 const petStatsInfo = computed(() => {
   const pet = activePet.value
@@ -208,68 +192,76 @@ const petStatsInfo = computed(() => {
 </script>
 
 <template>
-  <div v-if="activePet" :class="containerClass" :data-battle-status="side">
-    <Tooltip
-      v-model:show="statsOpen"
-      portal
-      :position="side === 'right' ? 'left' : 'right'"
-      :trigger="statsOpen || !canHover ? 'click' : 'hover'"
-      class="self-start"
-    >
-      <template #trigger>
-        <button
-          ref="portraitButton"
-          type="button"
-          class="block"
-          :aria-label="`${activePet.name} ${i18next.t('stats.title', { ns: 'webui' })}`"
-          :aria-expanded="canHover ? undefined : statsOpen"
-          @click="statsOpen = !statsOpen"
-        >
-          <PetIcon
-            :id="gameDataStore.getSpecies(activePet.speciesID)?.num"
-            :species="gameDataStore.getSpecies(activePet.speciesID)"
-            :class="petIconClasses"
-            :reverse="side === 'right'"
-          />
-        </button>
-      </template>
-      <div class="text-sm">
-        <div class="font-semibold mb-2">{{ activePet!.name }} {{ i18next.t('stats.title', { ns: 'webui' }) }}</div>
-        <div v-if="petStatsInfo?.hasStats" class="space-y-1">
-          <div v-for="stat in petStatsInfo.statEntries" :key="stat.key" class="flex justify-between items-center">
-            <span>{{ stat.name }}:</span>
-            <ModifiedValue
-              :value="stat.value"
-              :format="
-                stat.key === 'critRate' || stat.key === 'accuracy' || stat.key === 'evasion'
-                  ? formatPercentage
-                  : undefined
-              "
-              :attribute-info="stat.modifierInfo"
-              size="sm"
-              inline
+  <div v-if="activePet" class="battle-status" :class="`battle-status--${side}`" :data-battle-status="side">
+    <div class="battle-status__panel">
+      <img :src="statusChrome" class="battle-status__chrome" alt="" />
+      <Tooltip
+        :show="showStats"
+        @update:show="
+          visible => {
+            if (!visible) closeStats()
+          }
+        "
+        portal
+        :position="side === 'right' ? 'left' : 'right'"
+        trigger="click"
+        class="battle-status__portrait-anchor"
+      >
+        <template #trigger>
+          <button
+            ref="portraitButton"
+            type="button"
+            class="battle-status__portrait"
+            :aria-label="`${activePet.name} ${i18next.t('stats.title', { ns: 'webui' })}`"
+            :aria-expanded="showStats"
+            @pointerenter="updatePortraitHover($event, true)"
+            @pointerleave="updatePortraitHover($event, false)"
+            @click="toggleStats"
+          >
+            <span class="battle-status__tint" :class="typeEffectivenessConfig.bgColor"></span>
+            <PetIcon
+              :id="gameDataStore.getSpecies(activePet.speciesID)?.num"
+              :species="gameDataStore.getSpecies(activePet.speciesID)"
+              class="battle-status__pet"
+              :reverse="side === 'right'"
             />
+          </button>
+        </template>
+        <div class="text-sm">
+          <div class="font-semibold mb-2">{{ activePet!.name }} {{ i18next.t('stats.title', { ns: 'webui' }) }}</div>
+          <div v-if="petStatsInfo?.hasStats" class="space-y-1">
+            <div v-for="stat in petStatsInfo.statEntries" :key="stat.key" class="flex justify-between items-center">
+              <span>{{ stat.name }}:</span>
+              <ModifiedValue
+                :value="stat.value"
+                :format="
+                  stat.key === 'critRate' || stat.key === 'accuracy' || stat.key === 'evasion'
+                    ? formatPercentage
+                    : undefined
+                "
+                :attribute-info="stat.modifierInfo"
+                size="sm"
+                inline
+              />
+            </div>
+          </div>
+          <div v-else class="text-gray-400">
+            {{ petStatsInfo?.message }}
           </div>
         </div>
-        <div v-else class="text-gray-400">
-          {{ petStatsInfo?.message }}
-        </div>
-      </div>
-    </Tooltip>
+      </Tooltip>
 
-    <div ref="statusBody" :class="statusBarClass" class="battle-status__body">
-      <div class="flex items-center gap-2 mb-1" :class="[side === 'right' ? 'flex-row-reverse' : '']">
-        <span class="font-semibold text-base">{{ activePet!.name }}</span>
-        <span class="text-sm opacity-80">
-          Lv.<ModifiedValue :value="activePet!.level" :attribute-info="levelModifierInfo" size="sm" inline />
-        </span>
-        <div class="flex-1"></div>
-        <ElementIcon :element="activePet!.element" class="w-5 h-5"></ElementIcon>
+      <div class="battle-status__name">{{ activePet.name }}</div>
+      <div class="battle-status__level">
+        <span>LV:</span>
+        <ModifiedValue :value="activePet.level" :attribute-info="levelModifierInfo" size="sm" inline />
       </div>
+      <ElementIcon :element="activePet.element" :size="17" class="battle-status__element" />
 
       <HealthRageBar
-        :current="activePet!.currentHp"
-        :max="activePet!.maxHp"
+        :key="activePet.id"
+        :current="activePet.currentHp"
+        :max="activePet.maxHp"
         :rage="player.rage"
         :maxRage="player.maxRage"
         :reverse="props.side === 'right'"
@@ -279,7 +271,7 @@ const petStatsInfo = computed(() => {
         :max-rage-modifier-info="rageModifierInfo?.maxRage"
       />
 
-      <div v-if="activePet!.marks?.length" :class="markContainerClass" class="battle-status__marks">
+      <div v-if="visibleMarks.length" class="battle-status__marks">
         <Mark v-for="mark in visibleMarks" :key="mark.id" :mark="mark" />
         <details v-if="overflowMarks.length" class="battle-status__more">
           <summary :aria-label="`展开其余 ${overflowMarks.length} 个印记`">+{{ overflowMarks.length }}</summary>
@@ -293,44 +285,129 @@ const petStatsInfo = computed(() => {
 <style scoped>
 .battle-status {
   position: relative;
-  display: flex;
-  gap: 12px;
-  padding: 14px 16px;
-  min-width: 0;
+  grid-column: 1;
+  width: 508px;
+  height: 151px;
 }
-.battle-status > :not(svg) {
+.battle-status--right {
+  grid-column: 3;
+}
+.battle-status__panel {
   position: relative;
+  width: 381px;
+  height: 110px;
+  scale: calc(4 / 3);
+  transform-origin: top left;
+}
+.battle-status__chrome {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+}
+.battle-status--right .battle-status__chrome,
+.battle-status--right .battle-status__element {
+  scale: -1 1;
+}
+.battle-status :deep(.battle-status__portrait-anchor) {
+  position: absolute;
+  top: 7px;
+  left: 6px;
+  pointer-events: auto;
+}
+.battle-status--right :deep(.battle-status__portrait-anchor) {
+  left: auto;
+  right: 6px;
 }
 .battle-status__portrait {
+  position: relative;
+  display: block;
   width: 72px;
   height: 72px;
-  flex: none;
-  background-color: transparent;
-  border-radius: 9px;
-  border: 2px solid #cee2e6;
-  box-shadow:
-    inset 0 0 0 2px #263448,
-    0 1px 2px #000;
+  cursor: pointer;
 }
-.battle-status__body {
-  min-width: 0;
-  gap: 0;
+.battle-status__tint,
+.battle-status__pet {
+  position: absolute;
+  inset: 0;
 }
-.battle-status__body > div:first-child span:first-child {
+.battle-status__tint {
+  clip-path: polygon(0 14%, 14% 0, 83% 0, 100% 14%, 100% 88%, 86% 100%, 14% 100%, 0 88%);
+}
+.battle-status__name {
+  position: absolute;
+  top: 86px;
+  left: 4px;
+  width: 74px;
+  padding-inline: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #52e5f9;
+  text-align: center;
+  font:
+    12px/19.6px system-ui,
+    sans-serif;
 }
+.battle-status--right .battle-status__name {
+  left: auto;
+  right: 4px;
+}
+.battle-status__level {
+  position: absolute;
+  top: 53px;
+  left: 88px;
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  height: 15px;
+  color: #9de8f9;
+  font:
+    italic 800 11px/1 system-ui,
+    sans-serif;
+  text-shadow:
+    0 1px 2px #10182c,
+    0 0 4px #10182c;
+}
+.battle-status--right .battle-status__level {
+  left: auto;
+  right: 88px;
+}
+.battle-status__element {
+  position: absolute;
+  top: 51.5px;
+  left: 139px;
+}
+.battle-status--right .battle-status__element {
+  left: auto;
+  right: 139px;
+}
+/* Marks hang below the panel in rows of six, mirrored on the right. */
 .battle-status__marks {
-  min-height: 76px;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  gap: 4px;
-  margin: 4px 0 0;
+  position: absolute;
+  top: 86px;
+  left: 86px;
+  display: grid;
+  grid-template-columns: repeat(6, 27px);
+  grid-auto-rows: 27px;
+  gap: 7px 5px;
+  pointer-events: auto;
+}
+.battle-status--right .battle-status__marks {
+  left: auto;
+  right: 86px;
+  direction: rtl;
 }
 .battle-status__marks > * {
-  flex: 0 0 36px;
-  height: 36px;
+  direction: ltr;
+}
+.battle-status__marks :deep(.battle-mark__trigger) {
+  width: 27px;
+  height: 27px;
+}
+.battle-status__marks :deep(.battle-mark__stack) {
+  font-size: 10px;
+  line-height: 11px;
+  min-width: 12px;
 }
 .battle-status__more {
   position: relative;
@@ -338,8 +415,8 @@ const petStatsInfo = computed(() => {
 .battle-status__more summary {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 27px;
+  height: 27px;
   background: var(--battle-panel-soft);
   color: var(--battle-cyan);
   cursor: pointer;
@@ -352,7 +429,7 @@ const petStatsInfo = computed(() => {
 }
 .battle-status__more > div {
   position: absolute;
-  top: 42px;
+  top: 32px;
   right: 0;
   width: 190px;
   display: flex;
@@ -362,8 +439,5 @@ const petStatsInfo = computed(() => {
   background: var(--battle-panel);
   border: 1px solid var(--battle-line);
   z-index: 100;
-}
-.battle-status :deep(.battle-frame__fill) {
-  fill: none;
 }
 </style>
