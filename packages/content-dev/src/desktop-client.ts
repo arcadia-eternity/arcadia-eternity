@@ -29,6 +29,16 @@ export type DesktopOperation =
   | { operation: 'server'; action: 'start'; configuration?: DesktopServerConfiguration }
   | { operation: 'battle-environment-acquire'; environmentId: string }
   | { operation: 'battle-environment-release'; leaseId: string }
+  | { operation: 'workshop'; action: 'registries' }
+  | { operation: 'workshop'; action: 'view' | 'refresh'; registry?: string }
+  | {
+      operation: 'workshop'
+      action: 'install'
+      registry?: string
+      npm: string
+      version: string
+      environmentId?: string
+    }
 
 type Transport = (
   instance: Instance,
@@ -101,6 +111,7 @@ async function postToOwner(instance: Instance, input: DesktopOperation, signal?:
     server: input.operation === 'server' && input.action === 'status' ? 30_000 : undefined,
     'battle-environment-acquire': 120_000,
     'battle-environment-release': 10_000,
+    workshop: input.operation === 'workshop' && input.action === 'install' ? 15 * 60_000 : 90_000,
   }[input.operation]
   const deadline = timeout === undefined ? signal : AbortSignal.timeout(timeout)
 

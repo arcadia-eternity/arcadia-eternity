@@ -155,6 +155,36 @@ export const outputSchemas = {
       integrity: z.string(),
     })
     .passthrough(),
+  'workshop-list': z.object({
+    registry: z.string(),
+    snapshot: z.number().int(),
+    freshness: z.enum(['fresh', 'stale']),
+    checkedAt: z.string().optional(),
+    error: z.object({ code: z.string(), message: z.string() }).optional(),
+    projects: z.array(
+      z.object({
+        id: z.string(),
+        kind: z.enum(['package', 'environment']),
+        npm: z.string(),
+        title: z.string(),
+        summary: z.string(),
+        official: z.boolean(),
+        repository: z.string(),
+        versions: z.array(z.object({ version: z.string(), containsCode: z.boolean() })),
+      }),
+    ),
+  }),
+  'workshop-install': z
+    .object({
+      directory: z.string(),
+      id: identifier,
+      name: z.string(),
+      version: z.string(),
+      integrity: z.string(),
+      registry: z.string(),
+      snapshot: z.number().int(),
+    })
+    .passthrough(),
   reference: z
     .object({
       topic: z.string(),

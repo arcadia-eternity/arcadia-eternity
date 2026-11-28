@@ -91,6 +91,13 @@ const commands: Command[] = [
     description,
   })),
   {
+    name: 'workshop declare',
+    arguments:
+      '[<directory>] --id <owner.project> [--title <text>] [--summary <text>] [--author <name>]... [--tag <tag>]...',
+    target: 'project',
+    description: 'Write the Workshop Registry declaration and verify the latest npm releases.',
+  },
+  {
     name: 'desktop instances',
     arguments: '',
     target: 'desktop',
@@ -113,6 +120,24 @@ const commands: Command[] = [
       description: 'Install into the selected Desktop library. Downloads require --allow-download.',
     },
   ]),
+  {
+    name: 'desktop workshop registries',
+    arguments: '[--instance <id>]',
+    target: 'desktop',
+    description: 'List the Workshop registries trusted by the selected Desktop.',
+  },
+  {
+    name: 'desktop workshop list',
+    arguments: '[--registry <id>] [--refresh] [--instance <id>]',
+    target: 'desktop',
+    description: 'List projects and installable versions from a verified Workshop index.',
+  },
+  {
+    name: 'desktop workshop install',
+    arguments: '<name@version> [--registry <id>] [--id <environment-id>] [--instance <id>]',
+    target: 'desktop',
+    description: 'Install an exact release listed in a fresh signed Workshop index.',
+  },
 ]
 
 export const desktopHelp = commands

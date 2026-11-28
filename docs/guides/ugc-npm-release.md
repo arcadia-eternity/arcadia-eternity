@@ -75,3 +75,17 @@ npx arcadia-content workspace . release --execute
 推送分支和版本标签后，从桌面启动 **Release content pack**。工作流须先存在于仓库默认分支。GitHub 会在所选标签上使用 Node 24、锁定的公开 SDK 和模板脚本构建，检查发行清单，独立安装，再用临时消费者目录中的发行内容运行机制测试。桌面发起的工作流还要求归档 SHA-512 与本机已验证文件一致。工作台显示 Actions 的状态和失败记录。公开仓库上传当前版本的发行归档后，发行页会自动显示安装链接。点击「复制安装链接」发给玩家，玩家在「安装内容包」选择「HTTPS 发行归档」并粘贴即可安装。使用私有仓库的作者可以把该版本的 .tgz 文件直接发给玩家导入。
 
 npm 发布为可选项。先选择「将仓库地址写入包声明」并提交，或把源项目的 `repository.url` 填为当前 GitHub 仓库的 HTTPS 地址，再为该包配置仓库、工作流 `release-pack.yml` 及允许直接发布的 Trusted Publisher。GitHub Release 和 npm 两个任务校验并使用同一个构建产物。npm 发布任务通过 OIDC 获取临时权限。[npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/)
+
+## 收录到创意工坊
+
+官方工坊只收录通过 npm Trusted Publishing 发布、带 Sigstore 来源证明的版本。npm 包的 `repository.url` 须指向发行工作流所在的 GitHub 仓库，且包内不得有安装生命周期脚本。
+
+在源项目生成声明并核对 npm 上最近的版本：
+
+```sh
+npx arcadia-content workshop declare . --id your-name.my-pack --tag 精灵
+```
+
+命令输出声明内容、目标文件 `projects/<id>.json` 和每个版本的检查结果，没有通过的版本时以非零状态退出。首次收录时，向 [arcadia-workshop](https://github.com/arcadia-eternity/arcadia-workshop) 提交一个只添加该文件的 Pull Request，Registry CI 会用同一规则复查。合并后，后续发布到 npm 的版本由定时任务自动发现并签入索引，无需再提交 PR。修改仓库地址会使已收录版本重新验证。
+
+MCP 会话用 `workshop_list` 读取已验证的官方索引。安装内容包时，把精确版本写入 `package.json` 的 `dependencies`，再运行 `dependency_install`。`workshop_install_environment` 安装索引列出的环境，npm 归档须与签名索引中的摘要一致。

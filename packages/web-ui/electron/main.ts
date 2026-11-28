@@ -1524,6 +1524,7 @@ app
         serverController: localServerController,
         library: getContentLibrary(),
         environments: getLocalEnvironments(),
+        workshop: getWorkshop,
       })
     } catch (error) {
       const problem = error as DesktopError

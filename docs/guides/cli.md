@@ -30,6 +30,14 @@ arcadia battle simulate -1 blue.yaml -2 orange.yaml --environment ENV_ID --seed 
 arcadia battle replay final.json --environment ENV_ID --verify --json
 ```
 
+The running player also exposes its Workshop sources. `list` reads the verified index the player already holds; add `--refresh` to fetch a new snapshot and `--registry ID` for a third-party source the player trusts. `install` takes an exact version, requires a fresh index and adds the package or environment to the player's library. Add `--id` to choose the new environment's ID. Adding or removing sources stays in the player window.
+
+```sh
+arcadia-content desktop workshop registries
+arcadia-content desktop workshop list --refresh
+arcadia-content desktop workshop install @arcadia-eternity/environment-training-120@5.1.0 --id training
+```
+
 Use `arcadia desktop server` to manage the running player's server. A plain `start` reuses its saved settings. On first launch, supply the scope or another launch setting. The example requests a loopback server on an available port. Status and lifecycle commands return JSON. To run a separate foreground server from the terminal, choose its own port and data directory.
 
 ```sh

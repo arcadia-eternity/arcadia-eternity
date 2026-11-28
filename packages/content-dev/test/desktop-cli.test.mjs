@@ -206,3 +206,109 @@ test('the SDK authenticates to the desktop HTTP owner and waits for the installe
     { id: 'cup', name: 'Local cup', selected: false },
   ])
 })
+
+test('workshop commands read a verified index and install exact releases through the desktop owner', async t => {
+  const { directory, descriptor } = await registry(t)
+  const owner = await descriptor('Local')
+  const workshop = []
+  const dispatch = playerLibraryRequest({
+    id: owner.id,
+    label: owner.label,
+    library: { list: async () => ({ packages: [] }) },
+    environments: {
+      snapshot: async () => ({ environments: [] }),
+      async waitForOperation(id) {
+        assert.equal(id, 'env-job')
+        return { environmentId: 'cup', document: { id: 'cup', name: 'Cup' } }
+      },
+    },
+    workshop: () => ({
+      async request(input) {
+        workshop.push(input)
+        if (input.action === 'registries') return { registries: [{ id: 'official', official: true }] }
+        if (input.action === 'view' || input.action === 'refresh')
+          return {
+            registry: input.registry ?? 'official',
+            official: true,
+            freshness: input.action === 'refresh' ? 'fresh' : 'stale',
+            snapshot: 3,
+            expires: '2026-12-01T00:00:00.000Z',
+            projects: [
+              {
+                id: 'demo.cup',
+                kind: 'environment',
+                npm: '@demo/cup',
+                title: 'Cup',
+                summary: 'A cup.',
+                authors: ['demo'],
+                repository: 'demo/cup',
+                tags: [],
+                official: false,
+                featured: false,
+                releases: [
+                  { version: '1.1.0', containsCode: false },
+                  { version: '1.0.0', containsCode: false },
+                ],
+              },
+            ],
+            revocations: [
+              { npm: '@demo/cup', version: '1.1.0', reason: 'broken', revokedAt: '2026-11-01T00:00:00.000Z' },
+            ],
+            revokedInstalled: [],
+          }
+        if (input.npm === '@demo/cup') return { operationId: 'env-job' }
+        return { packageId: 'pkg-1' }
+      },
+    }),
+  })
+  const options = {
+    directory,
+    transport: async (_entry, input) => {
+      try {
+        return { status: 200, payload: { result: await dispatch(input) } }
+      } catch (error) {
+        return { status: 400, payload: { error: { code: error.code ?? error.message, message: error.message } } }
+      }
+    },
+  }
+  assert.deepEqual(await desktopCommand(['workshop', 'registries'], options), {
+    registries: [{ id: 'official', official: true }],
+  })
+  const listed = await desktopCommand(['workshop', 'list', '--refresh'], options)
+  assert.equal(listed.freshness, 'fresh')
+  assert.deepEqual(listed.projects[0].versions, ['1.0.0'])
+  assert.equal(listed.projects[0].containsCode, false)
+  assert.deepEqual(workshop.pop(), { action: 'refresh' })
+  await desktopCommand(['workshop', 'list', '--registry', 'local-community'], options)
+  assert.deepEqual(workshop.pop(), { action: 'view', registry: 'local-community' })
+  assert.deepEqual(await desktopCommand(['workshop', 'install', '@demo/cup@1.0.0', '--id', 'cup'], options), {
+    kind: 'environment',
+    id: 'cup',
+    name: 'Cup',
+  })
+  assert.deepEqual(workshop.pop(), { action: 'install', npm: '@demo/cup', version: '1.0.0', environmentId: 'cup' })
+  assert.deepEqual(await desktopCommand(['workshop', 'install', '@demo/pets@2.0.0'], options), {
+    kind: 'pack',
+    id: 'pkg-1',
+  })
+  assert.deepEqual(workshop.pop(), { action: 'install', npm: '@demo/pets', version: '2.0.0' })
+  workshop.length = 0
+  for (const args of [
+    ['workshop', 'install'],
+    ['workshop', 'install', '@demo/cup@1.0.0', '--refresh'],
+    ['workshop', 'install', '@demo/cup@1.0.0', '--id', 'default'],
+    ['workshop', 'install', '@demo/cup@1.0.0', '--allow-download'],
+    ['workshop', 'list', '--registry', '../x'],
+    ['workshop', 'registries', '--refresh'],
+    ['workshop', 'add-registry', 'https://example.org/'],
+    ['packages', 'list', '--registry', 'official'],
+  ])
+    await assert.rejects(desktopCommand(args, options), /arcadia-content desktop/)
+  await assert.rejects(desktopCommand(['workshop', 'install', 'nameonly'], options), /exact release/)
+  // The owner rejects trust changes even from an authenticated local caller.
+  for (const action of ['add-registry', 'remove-registry', 'preview-registry'])
+    await assert.rejects(dispatch({ operation: 'workshop', action, site: 'https://example.org/' }), {
+      message: '不支持的工坊操作',
+    })
+  assert.equal(workshop.length, 0)
+})

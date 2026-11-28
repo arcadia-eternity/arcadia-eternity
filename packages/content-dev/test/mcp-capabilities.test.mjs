@@ -194,6 +194,7 @@ test('read-only and non-executing MCP connections hide mutation and battle contr
     'environment_save',
     'dependency_install',
     'environment_install',
+    'workshop_install_environment',
     'battle_create',
     'battle_action',
     'source_apply',
@@ -202,9 +203,11 @@ test('read-only and non-executing MCP connections hide mutation and battle contr
     assert.ok(!names.includes(name), name)
   assert.ok(names.includes('team_list'))
   assert.ok(names.includes('asset_inspect'))
+  assert.ok(names.includes('workshop_list'))
   const ordinary = await connect(t, root)
   const ordinaryTools = (await ordinary.client.listTools()).tools.map(tool => tool.name)
   assert.ok(!ordinaryTools.some(name => name.startsWith('battle_')))
   assert.ok(ordinaryTools.includes('dependency_install'))
   assert.ok(ordinaryTools.includes('environment_install'))
+  assert.ok(ordinaryTools.includes('workshop_install_environment'))
 })

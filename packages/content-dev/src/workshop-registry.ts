@@ -540,36 +540,44 @@ export async function checkRegistrySource(
   source: RegistrySource,
   options: { npm: WorkshopNpm; projects?: string[]; signal?: AbortSignal; maxVersions?: number },
 ) {
-  const signal = options.signal ?? new AbortController().signal
   const results: CheckResult[] = []
   for (const project of source.projects) {
     if (options.projects && !options.projects.includes(project.id)) continue
-    const diagnostics: ReleaseDiagnostic[] = []
-    const packument = await options.npm.packument(project.npm, signal)
-    const verified: string[] = []
-    if (!packument)
-      diagnostics.push({ project: project.id, version: '*', code: 'WORKSHOP_NPM_MISSING', message: 'Not on npm' })
-    else {
-      const versions = Object.keys(packument.versions)
-        .filter(item => valid(item))
-        .sort((a, b) => compare(b, a))
-        .slice(0, options.maxVersions ?? 3)
-      for (const version of versions)
-        try {
-          await verifyNpmRelease(project, packument, version, options.npm, signal)
-          verified.push(version)
-        } catch (error) {
-          diagnostics.push({
-            project: project.id,
-            version,
-            code: (error as { code?: string }).code ?? 'WORKSHOP_RELEASE_INVALID',
-            message: errorMessage(error),
-          })
-        }
-    }
-    results.push({ project: project.id, verified, diagnostics })
+    results.push(await checkRegistryProject(project, options))
   }
   for (const id of options.projects ?? [])
     if (!source.projects.some(project => project.id === id)) throw contentError('WORKSHOP_PROJECT_UNKNOWN', id)
   return results
+}
+
+/** Verify the latest npm releases of one declaration with the same rules the Registry applies. */
+export async function checkRegistryProject(
+  project: Pick<WorkshopProject, 'id' | 'kind' | 'npm' | 'repository'>,
+  options: { npm: WorkshopNpm; signal?: AbortSignal; maxVersions?: number },
+): Promise<CheckResult> {
+  const signal = options.signal ?? new AbortController().signal
+  const diagnostics: ReleaseDiagnostic[] = []
+  const packument = await options.npm.packument(project.npm, signal)
+  const verified: string[] = []
+  if (!packument)
+    diagnostics.push({ project: project.id, version: '*', code: 'WORKSHOP_NPM_MISSING', message: 'Not on npm' })
+  else {
+    const versions = Object.keys(packument.versions)
+      .filter(item => valid(item))
+      .sort((a, b) => compare(b, a))
+      .slice(0, options.maxVersions ?? 3)
+    for (const version of versions)
+      try {
+        await verifyNpmRelease(project, packument, version, options.npm, signal)
+        verified.push(version)
+      } catch (error) {
+        diagnostics.push({
+          project: project.id,
+          version,
+          code: (error as { code?: string }).code ?? 'WORKSHOP_RELEASE_INVALID',
+          message: errorMessage(error),
+        })
+      }
+  }
+  return { project: project.id, verified, diagnostics }
 }

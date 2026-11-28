@@ -54,7 +54,19 @@ async function alreadyInstalled(path: string, integrity: string) {
 }
 
 /** Each distinct archive owns an editable project. A repeated import preserves its author's edits. */
-export async function installAuthorEnvironment(workspace: AuthorWorkspace, input: unknown, signal?: AbortSignal) {
+export interface AuthorEnvironmentInstallCheck {
+  /** Called with the captured archive identity before anything is installed. */
+  archive?(acquired: { name: string; version: string; integrity: string }): void
+  /** Called with the installed dependency graph before the project is published to the workspace. */
+  graph?(packages: readonly { name: string; version: string }[]): void
+}
+
+export async function installAuthorEnvironment(
+  workspace: AuthorWorkspace,
+  input: unknown,
+  signal?: AbortSignal,
+  check: AuthorEnvironmentInstallCheck = {},
+) {
   signal?.throwIfAborted()
   const { source, offline } = parseAuthorEnvironmentInstall(input)
   await workspace.assertWritable()
@@ -70,6 +82,7 @@ export async function installAuthorEnvironment(workspace: AuthorWorkspace, input
   try {
     const acquired = await acquireAuthorEnvironment(capture, join(staging, 'project'), { offline, signal, cache })
     const { name, version, integrity, document } = acquired
+    check.archive?.({ name, version, integrity })
     const path = join(projects, createHash('sha256').update(integrity).digest('hex'))
     const result = { directory: path, name, version, integrity, id: document.id }
     if (await alreadyInstalled(path, integrity)) return { ...result, reused: true }
@@ -78,7 +91,8 @@ export async function installAuthorEnvironment(workspace: AuthorWorkspace, input
     const project = await AuthorWorkspace.open(acquired.directory, { watch: false })
     try {
       const manifest = await project.read('package.json')
-      await installAuthorDependencies(project, { expectedVersion: manifest.version, offline, signal })
+      const installed = await installAuthorDependencies(project, { expectedVersion: manifest.version, offline, signal })
+      check.graph?.(installed.packages)
       const metadata = await directory(project.root, '.arcadia')
       await writeFile(join(metadata, 'environment-source.json'), JSON.stringify({ name, version, integrity }) + '\n', {
         flag: 'wx',

@@ -23,6 +23,7 @@ import {
   purl,
   verifyNpmRelease,
 } from '../src/workshop-registry.ts'
+import { prepareWorkshopSubmission, workshopDeclaration } from '../src/workshop-author.ts'
 
 const now = Date.parse('2026-11-26T00:00:00.000Z')
 const day = 86_400_000
@@ -377,3 +378,82 @@ test(
     )
   },
 )
+
+test('an author declaration is derived from package.json and checked with the Registry rules', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'arcadia-workshop-author-'))
+  t.after(() => rm(directory, { recursive: true, force: true }))
+  const manifest = {
+    name: '@demo/cup',
+    version: '1.0.0',
+    license: 'MIT',
+    description: 'A small cup.',
+    repository: { type: 'git', url: 'git+https://github.com/demo/cup.git' },
+    arcadiaEnvironment: { schemaVersion: 2, id: 'cup', name: 'Demo cup', sources: [], rules: {}, requires: {} },
+  }
+  await writeFile(join(directory, 'package.json'), JSON.stringify(manifest))
+  const npm = new FakeNpm()
+  npm.publish('@demo/cup', '1.0.0', {
+    repository: 'demo/cup',
+    manifest: { arcadia: undefined, arcadiaEnvironment: {} },
+  })
+  const submission = await prepareWorkshopSubmission(directory, { id: 'demo.cup', tags: ['cup'] }, { npm, signal })
+  assert.deepEqual(submission.declaration, {
+    id: 'demo.cup',
+    kind: 'environment',
+    npm: '@demo/cup',
+    title: 'Demo cup',
+    summary: 'A small cup.',
+    authors: ['demo'],
+    license: 'MIT',
+    repository: 'demo/cup',
+    tags: ['cup'],
+  })
+  assert.equal(submission.file, 'projects/demo.cup.json')
+  assert.deepEqual(submission.check, { project: 'demo.cup', verified: ['1.0.0'], diagnostics: [] })
+  // The written declaration passes the same loader the Registry CI uses.
+  const registryDirectory = join(directory, 'registry')
+  await mkdir(join(registryDirectory, 'projects'), { recursive: true })
+  await mkdir(join(registryDirectory, 'root'))
+  const key = await importSigningKey((await generateSigningKey()).pkcs8)
+  const root = await signEnvelope(
+    {
+      type: 'root',
+      spec: 1,
+      registry: 'test',
+      version: 1,
+      expires: new Date(Date.now() + day).toISOString(),
+      keys: { [key.keyid]: key.publicKey },
+      roles: { root: { keyids: [key.keyid], threshold: 1 }, snapshot: { keyids: [key.keyid], threshold: 1 } },
+      mirrors: ['https://registry.test/'],
+    },
+    [key],
+  )
+  await writeFile(join(registryDirectory, 'root/1.json'), canonicalJson(root))
+  await writeFile(join(registryDirectory, submission.file), JSON.stringify(submission.declaration))
+  const source = await loadRegistrySource(registryDirectory)
+  assert.equal(source.projects[0].npm, '@demo/cup')
+  const [checked] = await checkRegistrySource(source, { npm, signal })
+  assert.deepEqual(checked.verified, ['1.0.0'])
+
+  npm.publish('@demo/cup', '1.1.0', { repository: 'demo/cup', builtFrom: 'evil/cup' })
+  const failing = await prepareWorkshopSubmission(directory, { id: 'demo.cup' }, { npm, signal })
+  assert.deepEqual(failing.check.verified, ['1.0.0'])
+  assert.equal(failing.check.diagnostics[0].code, 'WORKSHOP_PROVENANCE_REPOSITORY')
+})
+
+test('author declarations need a publishable npm name, a GitHub repository and a valid project ID', () => {
+  const base = {
+    name: '@demo/pets',
+    repository: 'https://github.com/demo/pets',
+    arcadia: { projectId: 'pets' },
+  }
+  assert.equal(workshopDeclaration(base, { id: 'demo.pets' }).kind, 'package')
+  for (const [manifest, id, code] of [
+    [{ ...base, name: '@arcadia-local/pets' }, 'demo.pets', 'WORKSHOP_NPM_NAME_REQUIRED'],
+    [{ ...base, repository: 'https://gitlab.com/demo/pets' }, 'demo.pets', 'WORKSHOP_REPOSITORY_REQUIRED'],
+    [{ ...base, repository: undefined }, 'demo.pets', 'WORKSHOP_REPOSITORY_REQUIRED'],
+    [{ name: '@demo/pets', repository: base.repository }, 'demo.pets', 'WORKSHOP_KIND_MISMATCH'],
+    [base, 'Demo Pets', 'WORKSHOP_DECLARATION_INVALID'],
+  ])
+    assert.throws(() => workshopDeclaration(manifest, { id }), { code })
+})

@@ -10,6 +10,7 @@ import { acquireAuthorEnvironment, parseAuthorEnvironmentNpmSpec } from '../src/
 import { installAuthorEnvironment } from '../src/author-environment-install.ts'
 import { AuthorWorkspace } from '../src/workspace.ts'
 import { findAuthorInstallation } from '../src/author-install.ts'
+import { authorWorkshop } from '../src/author-workshop.ts'
 
 const recipe = {
   name: '@sample/training',
@@ -39,13 +40,7 @@ async function scratch(t) {
   return path
 }
 
-test('reads the exact scoped npm recipe and its original archive integrity from a primed offline cache', async t => {
-  const root = await scratch(t)
-  const cache = join(root, 'npm-cache')
-  const source = parseAuthorEnvironmentNpmSpec('@sample/training@1.0.1')
-  const archiveBytes = await readFile(
-    await archive(root, { ...recipe, scripts: { prepare: 'exit 1' } }, { 'code.cjs': 'throw Error()' }),
-  )
+async function primeCache(cache, source, archiveBytes) {
   const integrity = 'sha512-' + createHash('sha512').update(archiveBytes).digest('base64')
   // Populate the same npm HTTP cache entries that pacote reads on a subsequent offline install.
   const require = createRequire(import.meta.url)
@@ -73,6 +68,17 @@ test('reads the exact scoped npm recipe and its original archive integrity from 
       },
     })
   }
+  return integrity
+}
+
+test('reads the exact scoped npm recipe and its original archive integrity from a primed offline cache', async t => {
+  const root = await scratch(t)
+  const cache = join(root, 'npm-cache')
+  const source = parseAuthorEnvironmentNpmSpec('@sample/training@1.0.1')
+  const archiveBytes = await readFile(
+    await archive(root, { ...recipe, scripts: { prepare: 'exit 1' } }, { 'code.cjs': 'throw Error()' }),
+  )
+  const integrity = await primeCache(cache, source, archiveBytes)
   const result = await acquireAuthorEnvironment(source, join(root, 'project'), { offline: true, cache })
   assert.equal(result.integrity, integrity)
   assert.equal(result.document.id, 'training')
@@ -160,4 +166,114 @@ test('durably imports a recipe, preserves author edits on repeat, and scopes arc
       code: 'MATERIAL_PATH_ESCAPE',
     })
   }
+})
+
+test('installs a Workshop environment only from a fresh index with a matching archive digest', async t => {
+  const root = await scratch(t)
+  const cache = join(root, 'npm-cache')
+  const source = parseAuthorEnvironmentNpmSpec('@sample/training@1.0.1')
+  const integrity = await primeCache(cache, source, await readFile(await archive(root)))
+  await mkdir(join(root, 'owner'))
+  await writeFile(join(root, 'owner/package.json'), JSON.stringify({ ...recipe, name: '@sample/owner' }))
+  const owner = await AuthorWorkspace.open(join(root, 'owner'), { watch: false })
+  t.after(() => owner.close())
+  const release = (version, digest = integrity) => ({ version, integrity: digest, containsCode: false })
+  let view = {
+    registry: 'official',
+    snapshot: { version: 4 },
+    freshness: 'fresh',
+    index: {
+      projects: [
+        {
+          id: 'sample.training',
+          kind: 'environment',
+          npm: '@sample/training',
+          title: 'Training',
+          summary: 'Practice rules.',
+          official: false,
+          repository: 'sample/training',
+          tags: ['practice'],
+          releases: [release('1.0.2'), release('1.0.1'), release('1.0.0', 'sha512-' + 'A'.repeat(86) + '==')],
+        },
+        {
+          id: 'sample.pets',
+          kind: 'package',
+          npm: '@sample/pets',
+          title: 'Pets',
+          summary: 'Creatures.',
+          official: false,
+          repository: 'sample/pets',
+          tags: [],
+          releases: [{ version: '2.0.0', integrity, containsCode: true }],
+        },
+      ],
+      revocations: [
+        { npm: '@sample/training', version: '1.0.2', reason: 'broken', revokedAt: '2026-11-01T00:00:00.000Z' },
+      ],
+    },
+  }
+  const refreshes = []
+  const workshop = authorWorkshop(owner, () => ({
+    async refresh() {
+      refreshes.push(view.freshness)
+      return view
+    },
+    cached: async () => ({ ...view, freshness: 'stale' }),
+  }))
+  const listed = await workshop.list({ search: 'PRACTICE' })
+  assert.equal(listed.freshness, 'stale')
+  assert.deepEqual(
+    listed.projects.map(project => [project.id, project.versions.map(item => item.version)]),
+    [['sample.training', ['1.0.1', '1.0.0']]],
+  )
+  assert.deepEqual((await workshop.list({ kind: 'package', refresh: true })).projects[0].versions, [
+    { version: '2.0.0', containsCode: true },
+  ])
+  assert.deepEqual(refreshes, ['fresh'])
+
+  const priorCache = process.env.npm_config_cache
+  const priorOffline = process.env.npm_config_offline
+  process.env.npm_config_cache = cache
+  process.env.npm_config_offline = 'true'
+  t.after(() => {
+    if (priorCache === undefined) delete process.env.npm_config_cache
+    else process.env.npm_config_cache = priorCache
+    if (priorOffline === undefined) delete process.env.npm_config_offline
+    else process.env.npm_config_offline = priorOffline
+  })
+  const installs = join(owner.root, '.arcadia/installed-environments')
+  for (const [input, code] of [
+    [{ name: '@sample/training', version: '1.0.2' }, 'WORKSHOP_RELEASE_REVOKED'],
+    [{ name: '@sample/training', version: '9.0.0' }, 'WORKSHOP_RELEASE_UNKNOWN'],
+    [{ name: '@sample/other', version: '1.0.0' }, 'WORKSHOP_PROJECT_UNKNOWN'],
+    [{ name: '@sample/pets', version: '2.0.0' }, 'WORKSHOP_KIND_MISMATCH'],
+  ])
+    await assert.rejects(workshop.installEnvironment(input), { code })
+  const listedTraining = view.index.projects[0]
+  const fresh = view
+  view = {
+    ...fresh,
+    index: {
+      ...fresh.index,
+      projects: [{ ...listedTraining, releases: [release('1.0.1', 'sha512-' + 'A'.repeat(86) + '==')] }],
+    },
+  }
+  await assert.rejects(workshop.installEnvironment({ name: '@sample/training', version: '1.0.1' }), {
+    code: 'WORKSHOP_INTEGRITY_MISMATCH',
+  })
+  view = fresh
+  assert.deepEqual(
+    (await readdir(installs).catch(() => [])).filter(name => !name.startsWith('.')),
+    [],
+  )
+  view = { ...view, freshness: 'stale' }
+  await assert.rejects(workshop.installEnvironment({ name: '@sample/training', version: '1.0.1' }), {
+    code: 'WORKSHOP_INDEX_STALE',
+  })
+  view = { ...view, freshness: 'fresh' }
+  const installed = await workshop.installEnvironment({ name: '@sample/training', version: '1.0.1' })
+  assert.equal(installed.integrity, integrity)
+  assert.equal(installed.registry, 'official')
+  assert.equal(installed.snapshot, 4)
+  assert.ok(await findAuthorInstallation(installed.directory, {}))
 })

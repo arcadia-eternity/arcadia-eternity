@@ -343,6 +343,25 @@ if (!session.workspace.readOnly) {
   )
 }
 tool(
+  'workshop_list',
+  'Read the official Workshop index verified against the bundled signing root. Each version notes whether it contains effect code; revoked versions are omitted. stale results come from the offline cache and cannot authorize installs. Packages are used by adding the exact npm version to package.json dependencies, then dependency_install.',
+  {
+    search: z.string().max(200).optional(),
+    kind: z.enum(['package', 'environment']).optional(),
+    refresh: z.boolean().optional(),
+  },
+  'workshop-list',
+  undefined,
+  true,
+)
+if (!session.workspace.readOnly)
+  tool(
+    'workshop_install_environment',
+    'Install an exact environment release listed in a freshly verified Workshop index. The npm archive must match the signed digest and no installed dependency may be revoked. Returns a directory that can be opened as an independent author project.',
+    { name: z.string().min(1).max(214), version: z.string().min(1).max(256) },
+    'workshop-install',
+  )
+tool(
   'author_reference',
   'Look up an exact creator SDK symbol (e.g. EffectTrigger.OnHit or addMark), or search SDK names with query and offset. A trigger includes its typed parent, accessible fields, method receivers and example. Exact symbols include the documentation URL. Supply a handbook topic and symbol for online HTML and Markdown links, or a topic alone for its index or schema.',
   {

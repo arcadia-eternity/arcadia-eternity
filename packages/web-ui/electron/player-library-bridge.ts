@@ -7,6 +7,7 @@ import { PlayerBattleEnvironments } from './player-battle-environment.ts'
 import { isExactPackageSpec } from './content-library.ts'
 import type { LocalEnvironments } from './local-environments.ts'
 import type { LocalServerController } from './local-server-controller.ts'
+import type { DesktopWorkshop } from './workshop.ts'
 
 const protocol = 'arcadia.player-library/v1'
 export const playerLibraryRoute = '/v1/player-library'
@@ -30,6 +31,7 @@ interface PlayerLibraryOptions {
   environments: Pick<LocalEnvironments, 'snapshot' | 'acquireProject' | 'request' | 'waitForOperation'>
   serverController?: Pick<LocalServerController, 'request'>
   battleEnvironments?: Pick<PlayerBattleEnvironments, 'request'>
+  workshop?: () => Pick<DesktopWorkshop, 'request'>
 }
 
 interface PlayerLibraryRegistration extends Omit<PlayerLibraryOptions, 'id' | 'battleEnvironments'> {
@@ -84,6 +86,7 @@ export function playerLibraryRequest({
   library,
   environments,
   serverController,
+  workshop,
   battleEnvironments = new PlayerBattleEnvironments(environments),
 }: PlayerLibraryOptions) {
   return async (input: unknown) => {
@@ -108,6 +111,20 @@ export function playerLibraryRequest({
     }
     if (input.operation === 'battle-environment-acquire' || input.operation === 'battle-environment-release')
       return battleEnvironments.request(input)
+    if (input.operation === 'workshop') {
+      // Trust changes (adding or removing a registry) stay in the desktop window.
+      const { operation: _operation, ...request } = input
+      if (!['registries', 'view', 'refresh', 'install'].includes(request.action as string))
+        throw fail('INVALID_REQUEST', '不支持的工坊操作')
+      if (!workshop) throw fail('WORKSHOP_UNAVAILABLE')
+      const result = await workshop().request(request as Parameters<DesktopWorkshop['request']>[0])
+      if (request.action !== 'install') return result
+      if ('packageId' in result) return { kind: 'pack', id: result.packageId }
+      if (!('operationId' in result)) throw fail('WORKSHOP_INSTALL_FAILED')
+      const installed = await environments.waitForOperation(result.operationId)
+      if (!('document' in installed)) throw fail('ENVIRONMENT_FAILED', '环境操作失败')
+      return { kind: 'environment', id: installed.environmentId, name: installed.document.name }
+    }
     if (input.operation === 'list' && exactFields(input, ['operation', 'kind'])) {
       if (input.kind === 'pack') {
         const { packages } = await library.list()
@@ -235,6 +252,7 @@ export async function registerPlayerLibrary({
   library,
   environments,
   serverController,
+  workshop,
 }: PlayerLibraryRegistration) {
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw fail('PLAYER_LIBRARY_PORT_INVALID')
   const parent = await restrictedDirectory(await realpath(home), '.arcadia', 0o022)
@@ -246,7 +264,15 @@ export async function registerPlayerLibrary({
   const file = join(directory, id + '.json')
   const token = randomBytes(32).toString('hex')
   const battleEnvironments = new PlayerBattleEnvironments(environments)
-  const dispatch = playerLibraryRequest({ id, label, library, environments, serverController, battleEnvironments })
+  const dispatch = playerLibraryRequest({
+    id,
+    label,
+    library,
+    environments,
+    serverController,
+    battleEnvironments,
+    workshop,
+  })
   let active = true
   const handle = playerLibraryHttpHandler({
     token,

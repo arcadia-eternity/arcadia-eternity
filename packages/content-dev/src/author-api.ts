@@ -17,6 +17,7 @@ import { isRecord, type UnknownRecord } from './types.ts'
 import { authorGit } from './author-git.ts'
 import { installAuthorDependencies } from './author-install.ts'
 import { installAuthorEnvironment } from './author-environment-install.ts'
+import { authorWorkshop } from './author-workshop.ts'
 export { installAuthorDependencies, installAuthorEnvironment }
 export { authorGit, cloneAuthorRepository } from './author-git.ts'
 export { updateAuthorLock, createSourceProject, connectDevelopmentSdk, authorConnection } from './project.ts'
@@ -38,6 +39,7 @@ export async function openAuthorSession(directory: string, options: AuthorSessio
   const workspace = await AuthorWorkspace.open(directory, options)
   const jobs = new AuthorJobs(workspace, options)
   await jobs.initialize()
+  const workshop = authorWorkshop(workspace)
   return {
     workspace,
     jobs,
@@ -139,6 +141,11 @@ export async function openAuthorSession(directory: string, options: AuthorSessio
         case 'environment-install':
           await workspace.assertWritable()
           return installAuthorEnvironment(workspace, input, signal)
+        case 'workshop-list':
+          return workshop.list(input, signal)
+        case 'workshop-install':
+          await workspace.assertWritable()
+          return workshop.installEnvironment(input, signal)
         case 'team-validate':
         case 'battle': {
           if (operation === 'battle' && (workspace.readOnly || !jobs.execute))
