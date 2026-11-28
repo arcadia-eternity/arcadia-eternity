@@ -432,7 +432,7 @@ onBeforeUnmount(() => {
             {{ environmentId.trim() === 'default' ? 'default 已被内置环境使用' : '小写字母或数字开头，可含 - 和 _' }}
           </p>
           <ElAlert
-            v-if="stale && source.canInstall"
+            v-if="stale && source.canInstall && !error"
             type="warning"
             title="离线，刷新后安装"
             :closable="false"
@@ -629,7 +629,7 @@ onBeforeUnmount(() => {
   margin: 0;
 }
 .registry-select {
-  width: 140px;
+  width: 200px;
 }
 .workshop-body {
   flex: 1;
