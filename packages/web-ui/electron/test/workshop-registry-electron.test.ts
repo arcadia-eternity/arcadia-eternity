@@ -285,13 +285,12 @@ test(
       const after = (await snapshot(page)).environments.find(item => item.document.id === copy.document.id)
       assert.equal(after.revision, current.revision)
 
-      // What an already-prepared environment does after revocation is reported, not asserted.
+      // Revocation blocks new installs and commits only. An environment already prepared stays usable.
       const select = await page.evaluate(
         id => window.arcadiaDesktop.localEnvironment({ action: 'select', environmentId: id }),
         copy.document.id,
       )
-      const selected = select.result?.operationId ? await waitFor(select.result.operationId) : select
-      t.diagnostic('select after revocation: ' + JSON.stringify({ status: selected.status, error: selected.error }))
+      assert.equal((await waitFor(select.result.operationId)).status, 'succeeded')
 
       await workshop(page, { action: 'remove-registry', registry: 'local-community' })
       const registries = await workshop(page, { action: 'registries' })
