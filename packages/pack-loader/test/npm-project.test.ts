@@ -421,6 +421,24 @@ it('allows local code edits without renewed approval while preserving the existi
   }
 })
 
+it('gives a same-name, same-version package with different gameplay data a different revision', async () => {
+  const before = await prepare(),
+    file = join(environment, 'node_modules/@arcadia-test/slow/content.json')
+  const old = await readFile(file, 'utf8')
+  try {
+    const changed = JSON.parse(old)
+    changed.data.species[0].baseStats.hp += 1
+    await writeFile(file, JSON.stringify(changed))
+    const next = await prepare()
+    const member = (value: typeof before) => value.installation.members.find(item => item.name === '@arcadia-test/slow')
+    expect(member(next)).toEqual(member(before))
+    expect(next.revision).not.toBe(before.revision)
+    expect(next.sandbox.revision).not.toBe(before.sandbox.revision)
+  } finally {
+    await writeFile(file, old)
+  }
+})
+
 it('restores runtime parameters and source bindings at an existing selection checkpoint, then expires naturally', async () => {
   const loaded = await prepare(),
     content = await reference(loaded),
