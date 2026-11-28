@@ -21,6 +21,8 @@ import {
   loadRegistrySource,
   npmRegistry,
   purl,
+  readLatestPublishedState,
+  readPublishedState,
   verifyNpmRelease,
 } from '../src/workshop-registry.ts'
 import { prepareWorkshopSubmission, workshopDeclaration } from '../src/workshop-author.ts'
@@ -456,4 +458,81 @@ test('author declarations need a publishable npm name, a GitHub repository and a
     [base, 'Demo Pets', 'WORKSHOP_DECLARATION_INVALID'],
   ])
     assert.throws(() => workshopDeclaration(manifest, { id }), { code })
+})
+
+test('a lagging published copy cannot make the build reuse a snapshot version', async t => {
+  const snapshotKey = await key()
+  const { directory } = await registry(t, [await key()], snapshotKey)
+  const npm = new FakeNpm()
+  npm.publish('@demo/pets', '1.0.0')
+  const source = await loadRegistrySource(directory)
+  const lagging = join(directory, 'cdn')
+  const deployed = join(directory, 'site-branch')
+  await buildRegistrySite(source, lagging, { npm, signer: snapshotKey, now })
+  npm.publish('@demo/pets', '1.1.0')
+  const second = await buildRegistrySite(source, deployed, {
+    npm,
+    signer: snapshotKey,
+    previous: await readPublishedState(lagging, source, signal),
+    now,
+  })
+  assert.equal(second.snapshot.version, 2)
+
+  // The cached copy still serves version 1 while the deployed branch already has version 2.
+  const { latest, found } = await readLatestPublishedState(
+    [lagging, join(directory, 'absent'), deployed],
+    source,
+    signal,
+  )
+  assert.deepEqual(
+    found.map(item => item.version),
+    [1, 2],
+  )
+  assert.equal(latest.snapshot.version, 2)
+  source.revocations.push({
+    npm: '@demo/pets',
+    version: '1.0.0',
+    reason: 'broken',
+    revokedAt: new Date(now).toISOString(),
+  })
+  const revoked = await buildRegistrySite(source, join(directory, 'next'), {
+    npm,
+    signer: snapshotKey,
+    previous: latest,
+    now,
+  })
+  assert.equal(revoked.snapshot.version, 3)
+
+  // A copy that differs from its signed snapshot is rejected instead of being built upon.
+  const tampered = join(directory, 'next')
+  await writeFile(join(tampered, revoked.snapshot.index.path), '{}')
+  await rejects(readPublishedState(tampered, source, signal), 'WORKSHOP_PUBLISHED_UNTRUSTED')
+})
+
+test('bump signs the next snapshot version for an unchanged index', async t => {
+  const snapshotKey = await key()
+  const { directory } = await registry(t, [await key()], snapshotKey)
+  const npm = new FakeNpm()
+  npm.publish('@demo/pets', '1.0.0')
+  const source = await loadRegistrySource(directory)
+  const site = join(directory, 'site')
+  const first = await buildRegistrySite(source, site, { npm, signer: snapshotKey, now })
+  const previous = await readPublishedState(site, source, signal)
+  const unchanged = await buildRegistrySite(source, join(directory, 'same'), {
+    npm,
+    signer: snapshotKey,
+    previous,
+    now,
+  })
+  assert.equal(unchanged.changed, false)
+  const bumped = await buildRegistrySite(source, join(directory, 'bumped'), {
+    npm,
+    signer: snapshotKey,
+    previous,
+    now,
+    bump: true,
+  })
+  assert.equal(bumped.changed, true)
+  assert.equal(bumped.snapshot.version, first.snapshot.version + 1)
+  assert.equal(bumped.snapshot.index.sha256, first.snapshot.index.sha256)
 })
