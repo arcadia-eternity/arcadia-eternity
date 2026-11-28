@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.1](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v5.4.0...arcadia-eternity-v5.4.1) (2026-11-28)
+
+
+### 🐛 Bug Fixes
+
+* **content:** never reuse a published workshop snapshot version ([#351](https://github.com/arcadia-eternity/arcadia-eternity/issues/351)) ([a51f4f3](https://github.com/arcadia-eternity/arcadia-eternity/commit/a51f4f34385bfb6e629acea8c30d277ef5c77a0e))
+
 ## [5.4.0](https://github.com/arcadia-eternity/arcadia-eternity/compare/arcadia-eternity-v5.3.0...arcadia-eternity-v5.4.0) (2026-11-27)
 
 
