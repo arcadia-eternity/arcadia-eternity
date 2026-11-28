@@ -428,25 +428,59 @@ export interface PublishedState {
   indexBytes: Uint8Array
 }
 
-/** Read the currently deployed snapshot and verify it against the local root chain. Absent means first publish. */
+async function localBytes(file: string, maxBytes: number) {
+  try {
+    const info = await lstat(file)
+    if (!info.isFile() || info.size > maxBytes) throw contentError('WORKSPACE_FILE_INVALID', file)
+    return await readFile(file)
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
+    throw error
+  }
+}
+
+/**
+ * Read a deployed snapshot and verify it against the local root chain. Absent means nothing is published there.
+ * `base` is an HTTPS site or a local checkout of the published site.
+ */
 export async function readPublishedState(
   base: string,
   source: RegistrySource,
   signal: AbortSignal,
 ): Promise<PublishedState | undefined> {
-  const url = base.endsWith('/') ? base : base + '/'
-  const raw = await bytes(url + 'snapshot.json', 64 * 1024, signal)
+  const remote = /^https:\/\//.test(base)
+  const read = (path: string, maxBytes: number) =>
+    remote
+      ? bytes((base.endsWith('/') ? base : base + '/') + path, maxBytes, signal)
+      : localBytes(join(base, path), maxBytes)
+  const raw = await read('snapshot.json', 64 * 1024)
   if (!raw) return undefined
   const envelope = parseEnvelope(JSON.parse(raw.toString('utf8')))
   const snapshot = parseSnapshot(envelope.signed)
   const root = source.roots.find(item => item.signed.version === snapshot.rootVersion)?.signed
   if (!root || snapshot.registry !== source.root.registry) throw contentError('WORKSHOP_PUBLISHED_UNTRUSTED')
   await verifyThreshold(envelope as SignedEnvelope<{ type: string }>, root.keys, root.roles.snapshot)
-  const indexBytes = await bytes(url + snapshot.index.path, INDEX_MAX_BYTES, signal)
+  const indexBytes = await read(snapshot.index.path, INDEX_MAX_BYTES)
   if (!indexBytes || indexBytes.length !== snapshot.index.length || sha256Hex(indexBytes) !== snapshot.index.sha256)
     throw contentError('WORKSHOP_PUBLISHED_UNTRUSTED', 'Published index differs from its snapshot')
   const index = parseIndex(JSON.parse(Buffer.from(indexBytes).toString('utf8')))
   return { snapshot, envelope: { signed: snapshot, signatures: envelope.signatures }, index, indexBytes }
+}
+
+/**
+ * The newest snapshot across every published copy. CDN caches can serve an older snapshot for minutes after a
+ * deploy; building on it would sign a second, different snapshot with an already used version.
+ */
+export async function readLatestPublishedState(bases: string[], source: RegistrySource, signal: AbortSignal) {
+  let latest: PublishedState | undefined
+  const found: { base: string; version: number }[] = []
+  for (const base of bases) {
+    const state = await readPublishedState(base, source, signal)
+    if (!state) continue
+    found.push({ base, version: state.snapshot.version })
+    if (!latest || state.snapshot.version > latest.snapshot.version) latest = state
+  }
+  return { latest, found }
 }
 
 export interface BuildOptions {
@@ -460,6 +494,8 @@ export interface BuildOptions {
   /** Re-sign an unchanged index when the published snapshot expires within this margin. */
   renewWithinMs?: number
   maxVerifications?: number
+  /** Sign a new snapshot version even when the index is unchanged, superseding any conflicting copy. */
+  bump?: boolean
 }
 export interface BuildResult {
   changed: boolean
@@ -498,6 +534,7 @@ export async function buildRegistrySite(source: RegistrySource, output: string, 
     ...content,
   })
   const fresh =
+    !options.bump &&
     unchanged &&
     previous.snapshot.rootVersion === source.root.version &&
     Date.parse(previous.snapshot.expires) - now > (options.renewWithinMs ?? 3 * DAY)
