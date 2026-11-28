@@ -359,6 +359,7 @@ function activeBaseRoot() {
 function loadPackageUpdates() {
   return loadRuntimeModule('@arcadia-eternity/content-sdk/managed-projects')
 }
+const contentNpmCache = () => path.join(app.getPath('userData'), 'content-packages', 'acquisition', 'npm-cache')
 function getContentLibrary() {
   if (contentLibrary) return contentLibrary
   const root = path.join(app.getPath('userData'), 'content-packages')
@@ -455,7 +456,8 @@ function getContentLibrary() {
       runContentCommand(
         {
           ...localBattleHost,
-          npmCacheDirectory: path.join(app.getPath('userData'), 'npm-content-cache'),
+          // Offline environment preparation resolves library installs from this same cache.
+          npmCacheDirectory: contentNpmCache(),
         },
         args,
         signal,
@@ -499,7 +501,7 @@ function getLocalEnvironments() {
         {
           ...options,
           clientVersion: app.isPackaged ? app.getVersion() : require('../package.json').version,
-          cache: path.join(app.getPath('userData'), 'content-packages', 'acquisition', 'npm-cache'),
+          cache: contentNpmCache(),
         },
       )
     },
@@ -517,7 +519,7 @@ function getLocalEnvironments() {
         get bundledPackageRoot() {
           return activeBaseRoot()
         },
-        npmCache: path.join(app.getPath('userData'), 'content-packages', 'acquisition', 'npm-cache'),
+        npmCache: contentNpmCache(),
         retentions: { list: async () => [] },
       })
     },
