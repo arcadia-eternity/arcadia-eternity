@@ -1,0 +1,94 @@
+name: Release environment
+on:
+  workflow_dispatch:
+    inputs:
+      expected_integrity:
+        description: SHA-512 integrity of the desktop release archive
+        type: string
+        required: false
+      publish_npm:
+        description: Publish the verified archive to npm
+        type: boolean
+        default: false
+permissions: {}
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check selected tag
+        run: |
+          test "$GITHUB_REF_TYPE" = tag
+          test "$GITHUB_REF_NAME" = "v$(node -p 'require("./package.json").version')"
+      - run: npm ci --ignore-scripts
+      - name: Build and verify release archive
+        env:
+          EXPECTED_INTEGRITY: ${{ inputs.expected_integrity }}
+        run: |
+          set -o pipefail
+          npx --offline arcadia-content pack --release | tee pack.log
+          node --input-type=module -e '
+            import { createHash } from "node:crypto"
+            import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs"
+            const line = readFileSync("pack.log", "utf8").split(/\r?\n/).find(line => line.startsWith("ARCADIA_RESULT="))
+            const receipt = JSON.parse(line.slice("ARCADIA_RESULT=".length))
+            if (!receipt.verifiedRelease || !/^[a-z0-9][a-z0-9._-]*\.tgz$/.test(receipt.filename)) throw Error("Invalid release receipt")
+            const bytes = readFileSync(receipt.filename)
+            const integrity = "sha512-" + createHash("sha512").update(bytes).digest("base64")
+            if (integrity !== receipt.integrity) throw Error("Archive differs from the release receipt")
+            if (process.env.EXPECTED_INTEGRITY && integrity !== process.env.EXPECTED_INTEGRITY)
+              throw Error("Archive differs from the verified desktop release")
+            mkdirSync("release-output")
+            renameSync(receipt.filename, "release-output/" + receipt.filename)
+            writeFileSync("release-output/SHA512SUMS", createHash("sha512").update(bytes).digest("hex") + "  " + receipt.filename + "\n")
+          '
+      - uses: actions/upload-artifact@v4
+        with:
+          name: environment
+          path: release-output/
+          if-no-files-found: error
+  github:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: environment
+      - run: sha512sum -c SHA512SUMS
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" ./*.tgz SHA512SUMS --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes
+  npm:
+    if: inputs.publish_npm
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: environment
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: sha512sum -c SHA512SUMS
+      - name: Check npm repository identity
+        run: |
+          tar -xOf ./*.tgz package/package.json | node --input-type=commonjs -e '
+            const {repository} = JSON.parse(require("node:fs").readFileSync(0, "utf8"))
+            const actual = repository?.url?.replace(/^git\+/, "").replace(/\.git$/, "")
+            if (actual !== process.env.GITHUB_SERVER_URL + "/" + process.env.GITHUB_REPOSITORY)
+              throw Error("Set package.json repository.url to the HTTPS address of this GitHub repository")
+          '
+      - run: npm publish ./*.tgz --ignore-scripts --access public --registry=https://registry.npmjs.org/

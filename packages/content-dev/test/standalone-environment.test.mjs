@@ -173,3 +173,46 @@ test('an MCP preview enforces the saved environment rules on isolated battles', 
   await call('battle_close', { jobId, sessionId: battle.sessionId, expectedRevision: advanced.revision })
   await call('job_cancel', { jobId })
 })
+
+test('a CLI-created environment builds a verified release archive with its workflow', { timeout: 180000 }, async t => {
+  const { directory, run, call, wait } = await fixture(t)
+  const workflow = await readFile(join(directory, '.github/workflows/release-pack.yml'), 'utf8')
+  assert.match(workflow, /arcadia-content pack --release/)
+  assert.match(await readFile(join(directory, 'LICENSE'), 'utf8'), /MIT License/)
+  const manifest = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'))
+  manifest.repository = { type: 'git', url: 'git+https://github.com/demo/local-cup.git' }
+  await writeFile(join(directory, 'package.json'), JSON.stringify(manifest, null, 2) + '\n')
+  const released = outputResult(await run('pack', '--release'))
+  assert.equal(released.verifiedRelease, true)
+  assert.deepEqual(released.files.map(file => file.path ?? file).sort(), [
+    'LICENSE',
+    'debug/teams/blue.yaml',
+    'debug/teams/orange.yaml',
+    'package.json',
+  ])
+  const { extract } = await import('tar')
+  const unpacked = join(dirname(directory), 'unpacked')
+  await mkdir(unpacked)
+  await extract({ file: join(directory, released.filename), cwd: unpacked, strip: 1 })
+  const recipe = JSON.parse(await readFile(join(unpacked, 'package.json'), 'utf8'))
+  assert.equal(recipe.private, undefined)
+  assert.deepEqual(recipe.repository, manifest.repository)
+  assert.deepEqual(recipe.engines, { arcadia: manifest.engines.arcadia })
+  assert.equal(recipe.scripts, undefined)
+  assert.equal(recipe.devDependencies, undefined)
+  const job = await wait(await call('release_check'))
+  assert.equal(job.result.integrity, released.integrity)
+
+  await mkdir(join(directory, 'candidates'))
+  await writeFile(join(directory, 'candidates/local.tgz'), '')
+  await writeFile(
+    join(directory, 'package.json'),
+    JSON.stringify({
+      ...manifest,
+      dependencies: { ...manifest.dependencies, '@demo/local': 'file:candidates/local.tgz' },
+    }),
+  )
+  await assert.rejects(run('pack', '--release'), /发行环境的依赖须使用 npm 版本或范围/)
+  await writeFile(join(directory, 'package.json'), JSON.stringify({ ...manifest, license: undefined }))
+  await assert.rejects(run('pack', '--release'), /license/)
+})

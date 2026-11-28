@@ -28,7 +28,7 @@ test('watch rebuilds sources, templates and bundled skills, removes stale files 
     await watcher?.close()
     await rm(root, { recursive: true, force: true })
   })
-  for (const dir of ['src', 'template']) await mkdir(join(directory, dir), { recursive: true })
+  for (const dir of ['src', 'template', 'environment-template']) await mkdir(join(directory, dir), { recursive: true })
   for (const skill of ['ugc-authoring-agent', 'seer2-recreate-pet']) {
     await mkdir(join(root, 'docs/guides', skill), { recursive: true })
     await writeFile(join(root, 'docs/guides', skill, 'SKILL.md'), 'original skill')

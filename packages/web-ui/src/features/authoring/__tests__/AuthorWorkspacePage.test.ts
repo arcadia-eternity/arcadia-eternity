@@ -182,7 +182,7 @@ it('opens a standalone environment source with its own debug action and AI conne
     expect(wrapper.get('a[href$="view=settings"]').attributes('aria-current')).toBe('page')
     expect(wrapper.get('.project-metadata').text()).toContain('league')
     expect(wrapper.find('a[href$="view=editor"]').exists()).toBe(false)
-    expect(wrapper.find('a[href$="view=release"]').exists()).toBe(false)
+    expect(wrapper.find('a[href$="view=release"]').exists()).toBe(true)
     expect(wrapper.text()).not.toContain('构建内容包')
     await button.trigger('click')
     await flushPromises()

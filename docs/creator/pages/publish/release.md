@@ -15,4 +15,12 @@
 3. 工作流成功后，从公开 Release 取得实际 `.tgz` 资产的安装链接。在另一份本机库中安装，用目标环境建队，验证新内容能进入对战。
 4. 需要让其他资料包以 npm 依赖复用时，再为该包配置 Trusted Publishing；GitHub Release 与 npm 应分发同一份已检查归档。
 
+## 发布环境
+
+独立环境项目同样通过「发布新版本」发行，模板自带同名工作流 **Release environment**。发行环境须声明 `license`、`engines.arcadia` 并附带 `LICENSE`，所有依赖都要使用 npm 版本或范围；`file:candidates/*.tgz` 只用于本机调试，发行前请先发布这些资料包并改用它们的版本号。发行检查会在干净目录从 npm 安装依赖并准备环境，归档只含清单、测试队伍和许可证。
+
+## 收录到创意工坊
+
+npm 版本通过 Trusted Publishing 发布后，运行 `arcadia-content workshop declare . --id <你的名字>.<项目>` 生成声明，并向 [arcadia-workshop](https://github.com/arcadia-eternity/arcadia-workshop) 提交只添加 `projects/<id>.json` 的 Pull Request。之后发布到 npm 的版本会被自动收录。Registry CI 会按同样规则复查来源证明、仓库与归档。
+
 助手可用 `git_status` 和 `git_diff` 帮你查看磁盘变更，用 `release_check` 和 `job_get` 跟踪发行检查。提交、推送、发布的目标由作者选择，外部助手使用自己的 Git/GitHub 授权。

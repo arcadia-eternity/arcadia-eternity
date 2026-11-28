@@ -69,11 +69,10 @@ try {
     else if (command === 'pack') {
       const standalone = await checkStandaloneEnvironment(command)
       const release = args[0] === '--release'
-      if (standalone && release) throw new Error('Use pack to build an installable environment recipe.')
       if (!standalone) await build()
       const { packBuiltProject, packEnvironmentProject } = await import('./pack-project.ts')
       const packed = standalone
-        ? await packEnvironmentProject(process.cwd())
+        ? await packEnvironmentProject(process.cwd(), { release })
         : await packBuiltProject(process.cwd(), { release })
       console.log(`Packed ${packed.filename}`)
       console.log(

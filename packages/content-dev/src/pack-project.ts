@@ -118,8 +118,42 @@ async function verifyRelease(directory: string, archive: string, name: string) {
   }
 }
 
+// A release recipe must install from the public registry in a clean directory.
+async function verifyEnvironmentRelease(directory: string, archive: string) {
+  const { acquireAuthorEnvironment } = await import('./author-environment-source.ts')
+  const { installAuthorDependencies } = await import('./author-install.ts')
+  const acquired = await acquireAuthorEnvironment({ kind: 'archive', file: archive }, join(directory, 'consumer'))
+  const consumer = await AuthorWorkspace.open(acquired.directory, { watch: false })
+  try {
+    const manifest = await consumer.read('package.json')
+    const installed = await installAuthorDependencies(consumer, { expectedVersion: manifest.version })
+    const prepared = await prepareNpmProject(
+      installed.directory,
+      emptyNpmContentHost,
+      { policy: { profile: 'local-development' } },
+      { effectPreparation: 'prebuilt-only' },
+    )
+    await prepared.dispose()
+  } finally {
+    await consumer.close()
+  }
+}
+
+const releaseRepository = (value: unknown) => {
+  const raw =
+    typeof value === 'string'
+      ? value
+      : value && typeof value === 'object'
+        ? (value as { url?: unknown }).url
+        : undefined
+  if (typeof raw !== 'string' || !/^(?:git\+)?https:\/\//.test(raw)) return undefined
+  const url = new URL(raw.replace(/^git\+/, ''))
+  if (url.username || url.password || url.search || url.hash) fail('发行仓库地址不能包含凭据、查询参数或片段')
+  return { type: 'git', url: 'git+' + url.href }
+}
+
 // Environment archives carry the declarative recipe and its portable inputs.
-export async function packEnvironmentProject(directory: string) {
+export async function packEnvironmentProject(directory: string, { release = false }: { release?: boolean } = {}) {
   const workspace = await AuthorWorkspace.open(directory, { watch: false })
   let temporary: string | undefined
   try {
@@ -132,11 +166,22 @@ export async function packEnvironmentProject(directory: string) {
     if (document.sources.length)
       throw new Error('请先把本机源码依赖打包，改用已发布版本或 file:candidates/*.tgz 后再分发环境。')
     const { packages: dependencies, ...arcadiaEnvironment } = document
+    if (release) {
+      requireClientRange(manifest)
+      if (typeof manifest.license !== 'string' || !manifest.license.trim()) fail('请先设置 package.json 的 license')
+      for (const [name, spec] of Object.entries(dependencies))
+        if (spec.startsWith('file:')) fail(`发行环境的依赖须使用 npm 版本或范围，请先发布 ${name} 并改用其版本号`)
+    }
     const teamLibrary = new ProjectTeams(workspace)
     const teams = await teamLibrary.list()
     const files = new Set(teams.map(team => teamLibrary.file(team.id)))
     for (const spec of Object.values(dependencies)) {
       if (spec.startsWith('file:')) files.add(spec.slice(5))
+    }
+    if (release) {
+      const license = (await workspace.files()).find(entry => /^licen[cs]e(?:\.(?:md|txt))?$/i.test(entry.file))
+      if (!license) fail('发行环境缺少 LICENSE 文件')
+      files.add(license.file)
     }
     temporary = await mkdtemp(join(await stagingRoot(workspace.root), 'environment-'))
     const payload = join(temporary, 'package')
@@ -149,13 +194,17 @@ export async function packEnvironmentProject(directory: string) {
       await mkdir(dirname(target), { recursive: true })
       await copyFile(source.path, target)
     }
+    const repository = release ? releaseRepository(manifest.repository) : undefined
     const recipe = {
       name: manifest.name,
       version: manifest.version,
       description: manifest.description,
       license: manifest.license,
-      engines: manifest.engines,
-      private: manifest.private,
+      ...(repository && { repository }),
+      engines: release
+        ? { arcadia: (manifest.engines as { arcadia?: string } | undefined)?.arcadia }
+        : manifest.engines,
+      ...(!release && { private: manifest.private }),
       files: [...files],
       dependencies,
       arcadiaEnvironment,
@@ -177,6 +226,10 @@ export async function packEnvironmentProject(directory: string) {
     const actual = new Set(packed.files.map(file => file.path))
     if (actual.size !== files.size + 1 || !actual.has('package.json') || [...files].some(file => !actual.has(file)))
       fail('Environment archive does not match the declared files')
+    if (release) {
+      Object.assign(packed, await normalizeReleaseArchive(join(temporary, packed.filename)))
+      await verifyEnvironmentRelease(temporary, join(temporary, packed.filename))
+    }
     await verifyCapture(captured)
     if ((await workspace.read('package.json')).version !== manifestSource.version)
       fail('Environment manifest changed during packaging')

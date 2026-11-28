@@ -54,7 +54,8 @@ const commands: Command[] = [
     name: 'pack',
     arguments: '[--release]',
     target: 'project',
-    description: 'Build a content pack or environment archive. --release verifies a content pack in a clean consumer.',
+    description:
+      'Build a content pack or environment archive. --release verifies the release archive in a clean consumer.',
   },
   {
     name: 'setup',
@@ -168,7 +169,7 @@ export async function commandsCli(args: string[]) {
         jobs: jobKind.options.map(name => ({
           name,
           requiresExecute: name !== 'check',
-          projectKinds: name === 'release' ? ['pack'] : ['pack', 'environment'],
+          projectKinds: ['pack', 'environment'],
           options: [
             ...(name === 'preview' || name === 'demo' ? ['--environment <id>'] : []),
             ...(name === 'demo' ? ['--seed <seed>'] : []),

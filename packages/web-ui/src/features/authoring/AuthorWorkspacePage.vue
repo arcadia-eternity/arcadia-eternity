@@ -82,7 +82,7 @@ const environmentProject = computed(() => snapshot.value?.project.kind === 'envi
 const visibleProjectViews = computed(() =>
   projectViews.filter(view => {
     if (view.id === 'editor') return !environmentProject.value
-    if (view.id === 'release') return !environmentProject.value && !readOnly.value
+    if (view.id === 'release') return !readOnly.value
     return view.id !== 'git' || !readOnly.value
   }),
 )
@@ -1358,11 +1358,7 @@ onBeforeUnmount(() => {
             <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('demo'))">
               无界面演示对战
             </button>
-            <button
-              v-if="!environmentProject"
-              :disabled="busy || running || hasUnsavedChanges"
-              @click="attempt(() => start('release'))"
-            >
+            <button :disabled="busy || running || hasUnsavedChanges" @click="attempt(() => start('release'))">
               检查并生成发行包
             </button>
             <small>任务使用已保存的内容</small>

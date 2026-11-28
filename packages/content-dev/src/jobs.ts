@@ -265,7 +265,6 @@ export class AuthorJobs {
     if (!['check', 'test', 'demo', 'preview', 'pack', 'release'].includes(kind))
       throw new WorkspaceError('TASK_INVALID', '不支持的作者任务')
     const standalone = this.workspace.projectKind === 'environment'
-    if (standalone && kind === 'release') throw new WorkspaceError('TASK_INVALID', '此发行检查需要内容包源项目')
     if (seed !== undefined && (kind !== 'demo' || typeof seed !== 'string' || !seed.length || seed.length > 200))
       throw new WorkspaceError('TASK_INVALID', '演示对战的随机种子需要 1–200 个字符')
     if (kind !== 'check' && !this.execute) throw new WorkspaceError('EXECUTION_DISABLED', '此会话未启用项目代码执行')
@@ -495,7 +494,10 @@ export class AuthorJobs {
         if (job.kind === 'release') await this.#process([cli, 'pack', '--release'], job, signal)
         else if (this.workspace.projectKind !== 'environment')
           await this.#process([cli, 'build'], job, signal, false, capture)
-        if (job.kind === 'demo' || job.kind === 'preview')
+        if (job.kind === 'release' && this.workspace.projectKind === 'environment') {
+          // The packer installed and prepared the recipe in a clean consumer; there are no scenarios.
+          if (!job.result?.verifiedRelease) throw new WorkspaceError('RELEASE_INVALID', '缺少已验证的发行归档')
+        } else if (job.kind === 'demo' || job.kind === 'preview')
           await this.#process([cli, job.kind], job, signal, job.kind === 'preview', capture)
         else {
           const files = (await this.workspace.files()).filter(entry =>

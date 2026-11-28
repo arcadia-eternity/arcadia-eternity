@@ -1,7 +1,8 @@
 import { constants } from 'node:fs'
-import { copyFile, lstat, mkdir, readdir, rename, rm, rmdir, writeFile } from 'node:fs/promises'
+import { cp, copyFile, lstat, mkdir, readdir, rename, rm, rmdir, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { basename, dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
 import { connectDevelopmentSdk, copyAuthorSkill, createSourceProject } from './project.ts'
 import { errorCode } from './types.ts'
@@ -9,6 +10,19 @@ import { errorCode } from './types.ts'
 const require = createRequire(import.meta.url)
 const usage = 'Usage: arcadia-content init <pack|environment> <directory> [--id <id>]'
 const basePackage = '@arcadia-eternity/data-pack-base'
+
+async function environmentTemplate() {
+  for (const location of ['./environment-template/', '../environment-template/']) {
+    const path = fileURLToPath(new URL(location, import.meta.url))
+    try {
+      await lstat(path)
+      return path
+    } catch (error) {
+      if (errorCode(error) !== 'ENOENT') throw error
+    }
+  }
+  throw new Error('The SDK is missing its environment template')
+}
 
 async function createEnvironment(directory: string, id: string) {
   const sdkVersion: string = require('../package.json').version
@@ -22,6 +36,7 @@ async function createEnvironment(directory: string, id: string) {
     name: '@arcadia-local/' + id,
     version: '0.1.0',
     private: true,
+    license: 'MIT',
     type: 'module',
     files: ['debug/teams', 'candidates'],
     scripts: {
@@ -29,16 +44,18 @@ async function createEnvironment(directory: string, id: string) {
       demo: 'arcadia-content demo',
       preview: 'arcadia-content preview',
       pack: 'arcadia-content pack',
+      release: 'arcadia-content pack --release',
     },
     engines: { arcadia: '^' + sdkVersion },
     devDependencies: { '@arcadia-eternity/content-sdk': sdkVersion },
     dependencies: { [basePackage]: baseVersion },
     arcadiaEnvironment: { schemaVersion: 2, id, name: id, sources: [], rules: { schemaVersion: 1 }, requires: {} },
   }
+  await cp(await environmentTemplate(), directory, { recursive: true, force: false, errorOnExist: true })
   const teams = join(directory, 'debug', 'teams')
   await mkdir(teams, { recursive: true })
   await writeFile(join(directory, 'package.json'), JSON.stringify(manifest, null, 2) + '\n')
-  await writeFile(join(directory, '.gitignore'), 'node_modules/\n.arcadia/\n/*.tgz\n')
+  await writeFile(join(directory, '.gitignore'), 'node_modules/\n.arcadia/\n/*.tgz\nrelease-output/\npack.log\n')
   for (const [name, species, skill] of [
     ['Blue', 'pet_dilan', 'skill_paida'],
     ['Orange', 'pet_xiuxiu', 'skill_lizhua'],

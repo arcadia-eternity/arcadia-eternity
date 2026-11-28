@@ -33,6 +33,13 @@ await rewriteDeclarationImports(output)
 await writeFile(new URL('sdk-reference.json', output), JSON.stringify(generateSdkReference(ts, import.meta.filename)))
 
 await cp(new URL('./template/', import.meta.url), new URL('./dist/template/', import.meta.url), { recursive: true })
+await cp(
+  new URL('./environment-template/', import.meta.url),
+  new URL('./dist/environment-template/', import.meta.url),
+  {
+    recursive: true,
+  },
+)
 for (const script of ['release-payload.mjs', 'release-test-npm.mjs'])
   await cp(new URL(script, import.meta.url), new URL('template/.github/scripts/' + script, output))
 // npm excludes .gitignore files from published packages. Restore its name when scaffolding.

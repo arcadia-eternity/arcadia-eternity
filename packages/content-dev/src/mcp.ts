@@ -200,7 +200,6 @@ for (const [name, kind] of [
   ['release_check', 'release'],
 ]) {
   if (session.workspace.readOnly) continue
-  if (standaloneEnvironment && kind === 'release') continue
   if (kind !== 'check' && !options.has('--execute')) continue
   tool(
     name,

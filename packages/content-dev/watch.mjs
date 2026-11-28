@@ -20,6 +20,7 @@ export async function watchContentDev(
     [
       'src',
       'template',
+      'environment-template',
       'build.mjs',
       'generate-sdk-reference.mjs',
       '../battle/src/engine',

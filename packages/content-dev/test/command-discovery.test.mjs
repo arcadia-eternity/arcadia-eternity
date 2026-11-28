@@ -40,7 +40,7 @@ test('CLI inventories project and Desktop commands from an empty directory', asy
   assert.equal(demo.requiresExecute, true)
   assert.deepEqual(demo.projectKinds, ['pack', 'environment'])
   assert.ok(demo.options.includes('--seed <seed>'))
-  assert.deepEqual(workspace.jobs.find(job => job.name === 'release').projectKinds, ['pack'])
+  assert.deepEqual(workspace.jobs.find(job => job.name === 'release').projectKinds, ['pack', 'environment'])
   assert.equal(workspace.jobs.find(job => job.name === 'check').requiresExecute, false)
   for (const operation of [...Object.keys(outputSchemas), 'snapshot', 'job', 'jobs', 'cancel'])
     assert.ok(workspace.operations.includes(operation), operation)
