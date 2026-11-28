@@ -19,7 +19,7 @@ export const registryUsage = [
   'arcadia-content registry root --registry <id> --version <n> --root-key <file>... --snapshot-key <file>... --mirror <url>... [--root-threshold <n>] [--expires-days <n>] --out <file>',
   'arcadia-content registry sign <envelope.json> --key-env <NAME>',
   'arcadia-content registry check [<directory>] [--project <id>]...',
-  'arcadia-content registry build [<directory>] --out <directory> --key-env <NAME> [--published <url>] [--first]',
+  'arcadia-content registry build [<directory>] --out <directory> --key-env <NAME> [--published <url|directory>]... [--first] [--bump]',
 ].join('\n')
 
 const signingKey = async (name: string | undefined) => {
@@ -51,8 +51,9 @@ export async function registryCli(args: string[]) {
       out: { type: 'string' },
       'key-env': { type: 'string' },
       project: { type: 'string', multiple: true },
-      published: { type: 'string' },
+      published: { type: 'string', multiple: true },
       first: { type: 'boolean' },
+      bump: { type: 'boolean' },
     },
   })
   if (operation === 'keygen' && values['public-out'] && !positionals.length) {
@@ -106,7 +107,7 @@ export async function registryCli(args: string[]) {
     console.log(`Signed with ${key.keyid}`)
     return
   }
-  const { buildRegistrySite, checkRegistrySource, loadRegistrySource, npmRegistry, readPublishedState } =
+  const { buildRegistrySite, checkRegistrySource, loadRegistrySource, npmRegistry, readLatestPublishedState } =
     await import('./workshop-registry.ts')
   if (operation === 'check' && positionals.length <= 1) {
     const source = await loadRegistrySource(resolve(positionals[0] ?? '.'))
@@ -122,18 +123,25 @@ export async function registryCli(args: string[]) {
     const source = await loadRegistrySource(resolve(positionals[0] ?? '.'))
     const signer = await signingKey(values['key-env'])
     const signal = AbortSignal.timeout(30 * 60_000)
-    const published = values.published ?? source.root.mirrors[0]
-    if (!published) throw new Error('Declare a mirror in the root or pass --published.')
-    const previous = await readPublishedState(published, source, signal)
+    const published = values.published?.length ? values.published : source.root.mirrors
+    if (!published.length) throw new Error('Declare a mirror in the root or pass --published.')
+    const { latest: previous, found } = await readLatestPublishedState(
+      published.map(item => (/^https:\/\//.test(item) ? item : resolve(item))),
+      source,
+      signal,
+    )
+    for (const item of found) console.log(`Published snapshot ${item.version} at ${item.base}`)
     // A transient 404 must not restart snapshot versions, which clients would reject as a rollback.
     if (!previous && !values.first)
-      throw new Error(`No published snapshot at ${published}. Pass --first for the initial publish.`)
-    if (previous && values.first) throw new Error(`${published} already has snapshot ${previous.snapshot.version}.`)
+      throw new Error(`No published snapshot at ${published.join(', ')}. Pass --first for the initial publish.`)
+    if (previous && values.first) throw new Error(`Snapshot ${previous.snapshot.version} is already published.`)
+    if (values.first && values.bump) throw new Error(registryUsage)
     const result = await buildRegistrySite(source, resolve(values.out), {
       npm: npmRegistry(),
       signer,
       previous,
       signal,
+      bump: values.bump,
     })
     for (const item of result.diagnostics) console.log(`${item.project}@${item.version} ${item.code} ${item.message}`)
     console.log(
