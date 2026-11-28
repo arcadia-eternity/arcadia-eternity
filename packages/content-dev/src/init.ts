@@ -4,11 +4,11 @@ import { createRequire } from 'node:module'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
-import { connectDevelopmentSdk, copyAuthorSkill, createSourceProject } from './project.ts'
+import { connectDevelopmentSdk, copyAuthorSkill, createSourceProject, writeInitialAuthorLock } from './project.ts'
 import { errorCode } from './types.ts'
 
 const require = createRequire(import.meta.url)
-const usage = 'Usage: arcadia-content init <pack|environment> <directory> [--id <id>]'
+const usage = 'Usage: arcadia-content init <pack|environment> <directory> [--id <id>] [--offline]'
 const basePackage = '@arcadia-eternity/data-pack-base'
 
 async function environmentTemplate() {
@@ -74,7 +74,9 @@ export async function initCommand(args: string[]) {
     console.log(usage)
     return
   }
-  const [kind, path, ...flags] = args
+  const [kind, path, ...rest] = args
+  const offline = rest.includes('--offline') || process.env.npm_config_offline === 'true'
+  const flags = rest.filter(flag => flag !== '--offline')
   if (
     (kind !== 'pack' && kind !== 'environment') ||
     !path ||
@@ -106,11 +108,22 @@ export async function initCommand(args: string[]) {
   await mkdir(staging)
   const project = join(staging, 'project')
   const installed: string[] = []
+  let lock = false
   try {
     if ((await readdir(directory)).some(name => name !== '.arcadia-init'))
       throw new Error('Project destination is no longer empty: ' + directory)
     if (kind === 'pack') await createSourceProject(project, id)
     else await createEnvironment(project, id)
+    if (!offline)
+      lock = await writeInitialAuthorLock(project).then(
+        () => true,
+        (error: unknown) => {
+          console.error(
+            `package-lock.json was not created (${errorCode(error) ?? 'npm failed'}). Run npm install before releasing.`,
+          )
+          return false
+        },
+      )
     const entries = await readdir(project, { withFileTypes: true })
     // package.json is the completion marker for tools opening the new project.
     entries.sort((a, b) => Number(a.name === 'package.json') - Number(b.name === 'package.json'))
@@ -135,5 +148,5 @@ export async function initCommand(args: string[]) {
     await rm(staging, { recursive: true, force: true })
     if (created && !(await readdir(directory)).length) await rmdir(directory)
   }
-  console.log(JSON.stringify({ kind, directory, id }))
+  console.log(JSON.stringify({ kind, directory, id, lock }))
 }

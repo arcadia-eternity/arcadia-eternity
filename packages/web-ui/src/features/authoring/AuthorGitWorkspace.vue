@@ -21,6 +21,7 @@ const props = defineProps<{
   dirty: boolean
   running: boolean
   version?: string
+  hasLock?: boolean
   pack?: AuthorJob
 }>()
 const emit = defineEmits<{ git: []; release: []; version: [] }>()
@@ -349,19 +350,22 @@ onBeforeUnmount(() => {
               <div>
                 <h2>本地发行检查</h2>
                 <p role="status" :class="{ passed: checkedRelease }">{{ checkLabel }}</p>
+                <p v-if="!hasLock" class="error" role="alert">缺少 package-lock.json，GitHub 发行需要它</p>
                 <p v-for="(item, index) in pack?.diagnostics" :key="index" class="error" role="alert">
                   {{ item.message }}
                 </p>
                 <div class="actions">
                   <button
-                    :class="{ primary: !checkedRelease }"
+                    :class="{ primary: hasLock && !checkedRelease }"
                     :disabled="busy || dirty || running"
                     @click="emit('release')"
                   >
                     {{ checkedRelease ? '重新检查发行包' : '检查并生成发行包' }}
                   </button>
                   <button :disabled="busy || dirty || running" @click="emit('version')">更改发行版本</button>
-                  <button :disabled="busy || dirty || running" @click="run('lock')">更新 npm 锁文件</button>
+                  <button :class="{ primary: !hasLock }" :disabled="busy || dirty || running" @click="run('lock')">
+                    {{ hasLock ? '更新 npm 锁文件' : '生成 npm 锁文件' }}
+                  </button>
                 </div>
               </div>
             </section>

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, readdir, readlink, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -21,9 +21,15 @@ async function fixture(t) {
 test('init creates a content starter and initializes an empty current directory as a standalone environment', async t => {
   const root = await fixture(t)
   const pack = join(root, 'playable-pack')
-  await run(process.execPath, [cli, 'init', 'pack', pack])
+  const created = JSON.parse((await run(process.execPath, [cli, 'init', 'pack', pack, '--offline'])).stdout)
+  assert.equal(created.lock, false)
   const content = JSON.parse(await readFile(join(pack, 'package.json'), 'utf8'))
   assert.equal(content.arcadia.namespace, 'playable-pack')
+  // Scaffolds ship no pinned lock; offline creation leaves it to the author's first npm install.
+  await assert.rejects(readFile(join(pack, 'package-lock.json')), { code: 'ENOENT' })
+  // npm publishes declared bin scripts executable; built modules may not be.
+  if (process.platform !== 'win32')
+    assert.match(await readlink(join(pack, 'node_modules/.bin/arcadia-content')), /[\\/]bin[\\/]arcadia-content\.mjs$/)
   assert.ok(await readFile(join(pack, 'skills/arcadia-content-authoring/SKILL.md'), 'utf8'))
   const environment = join(root, 'My tournament')
   await mkdir(environment)

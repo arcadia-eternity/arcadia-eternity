@@ -16,9 +16,10 @@ const commands: Command[] = [
   },
   {
     name: 'init',
-    arguments: '<pack|environment> <directory> [--id <id>]',
+    arguments: '<pack|environment> <directory> [--id <id>] [--offline]',
     target: 'sdk',
-    description: 'Create an author project in a new or empty directory.',
+    description:
+      'Create an author project in a new or empty directory. Online creation also resolves package-lock.json.',
   },
   {
     name: 'check',

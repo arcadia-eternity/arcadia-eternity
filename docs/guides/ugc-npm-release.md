@@ -12,15 +12,11 @@ npm install --save-dev --save-exact @arcadia-eternity/content-sdk
 
 效果代码从 `@arcadia-eternity/content-sdk` 导入类型，测试从 `@arcadia-eternity/content-sdk/testing` 导入助手。SDK 同时提供 `arcadia-content` 和 `arcadia-content-mcp`。如果项目的 `.npmrc` 还把 `@arcadia-eternity` 指向 GitHub Packages，请移除这条 scope 配置。
 
-要从发行包自带的模板创建项目，在空目录执行：
+要从发行包自带的模板创建项目：
 
 ```sh
-sdk_dir=$(mktemp -d)
-npm install --prefix "$sdk_dir" --ignore-scripts --no-save @arcadia-eternity/content-sdk
-cp -R "$sdk_dir/node_modules/@arcadia-eternity/content-sdk/dist/template/." .
-[ ! -f gitignore-template ] || mv gitignore-template .gitignore
-[ ! -f npm-lock-template.json ] || mv npm-lock-template.json package-lock.json
-rm -r "$sdk_dir"
+npx -p @arcadia-eternity/content-sdk arcadia-content init pack my-pack
+cd my-pack
 npm install
 npm run check
 npm test
@@ -28,7 +24,9 @@ npm run demo
 npm run pack
 ```
 
-模板固定 SDK 的发行版本。提交项目的 `package-lock.json` 后，可以用 `npm ci` 重现安装。`arcadia.sdkApi` 表示效果接口版本，宿主准备环境时也会检查构建身份和代码准入。
+`init environment` 创建独立环境项目。联网时 `init` 会按项目的 `package.json` 生成 `package-lock.json`。离线（`--offline`）或依赖无法解析时项目照常创建，只是不带锁文件，之后运行一次 `npm install` 即可补上。
+
+模板固定 SDK 的发行版本。提交项目的 `package-lock.json` 后，可以用 `npm ci` 重现安装；GitHub 发行工作流缺少锁文件时会直接提示。`arcadia.sdkApi` 表示效果接口版本，宿主准备环境时也会检查构建身份和代码准入。
 
 如果内容包引用了官方数据，在运行依赖中声明相应的基础包版本：
 
@@ -58,7 +56,7 @@ npx arcadia-content workspace . release --execute
 
 计划发布到 npm 时，先选定你有发布权限的包名。首次分发前可使用模板已有的 `npm run rename -- --name @your-scope/my-pack --project-id my-pack --namespace my-pack` 一起更新引用。分发后的同一个包应保留项目身份与命名空间。
 
-在「项目设置」查看身份、SDK API、宿主兼容范围，编辑 npm 版本与运行依赖。改动运行依赖后，在发行面板选择「更新 npm 锁文件」，或使用 npm 更新项目的开发安装和锁文件。在干净的源项目副本执行 `npm install --package-lock-only --ignore-scripts` 可仅生成锁文件。将 `package-lock.json` 与声明一同提交，以便 Actions 执行 `npm ci`。
+在「项目设置」查看身份、SDK API、宿主兼容范围，编辑 npm 版本与运行依赖。桌面离线创建项目，新项目没有锁文件，发行面板会提示并提供「生成 npm 锁文件」。改动运行依赖后，在发行面板选择「更新 npm 锁文件」，或使用 npm 更新项目的开发安装和锁文件。在干净的源项目副本执行 `npm install --package-lock-only --ignore-scripts` 可仅生成锁文件。将 `package-lock.json` 与声明一同提交，以便 Actions 执行 `npm ci`。
 
 保存源码、提交版本变更，运行「检查并生成发行包」。成功后在「发布新版本」创建对应的本地版本标签；推送分支与推送标签有各自的目标确认。没有远端也可完成本地发行检查、标记版本，并将产物用于环境。只读工具可以用 `arcadia-content workspace . git-status`，或给 `git-diff` 传入 JSON，例如 `{"file":"data/skills/strike.yaml","staged":true}`。MCP 对应 `git_status` 和 `git_diff`。
 

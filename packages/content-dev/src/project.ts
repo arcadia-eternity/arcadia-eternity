@@ -2,7 +2,7 @@ import { cp, lstat, mkdir, mkdtemp, rm, readFile, realpath, readdir, symlink, wr
 import { tmpdir } from 'node:os'
 import { ManagedProjects } from './managed-projects.ts'
 import type { AuthorWorkspace } from './workspace.ts'
-import { dirname, join, relative } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { WorkspaceError, normalizeArcadiaRange } from './workspace.ts'
@@ -110,18 +110,13 @@ export async function connectDevelopmentSdk(root: string) {
     }
   }
   // npm scripts use the shared CLI, while the desktop invokes its absolute entry directly.
+  // Link the package's declared bin scripts: npm publishes them executable, unlike built modules.
   const bin = join(root, 'node_modules/.bin')
   await directory(['node_modules', '.bin'])
-  for (const [name, entry] of [
-    ['arcadia-content', 'cli'],
-    ['arcadia-content-mcp', 'mcp'],
-  ]) {
+  for (const name of ['arcadia-content', 'arcadia-content-mcp']) {
     const target = join(bin, process.platform === 'win32' ? name + '.cmd' : name)
     if (!(await missing(target))) continue
-    const script = join(
-      (await packages())['@arcadia-eternity/content-sdk'],
-      relative(moduleRoot, siblingModulePath(entry)),
-    )
+    const script = join((await packages())['@arcadia-eternity/content-sdk'], 'bin', name + '.mjs')
     if (process.platform === 'win32')
       await writeFile(target, `@echo off\r\nnode "${script}" %*\r\n`, { flag: 'wx' }).catch(e => {
         if (errorCode(e) !== 'EEXIST') throw e
@@ -168,22 +163,11 @@ export async function createSourceProject(
   await mkdir(directory) // No overwrite or merge with existing directories.
   const template = await templateDirectory()
   for (const entry of await readdir(template))
-    await cp(
-      join(template, entry),
-      join(
-        directory,
-        entry === 'gitignore-template'
-          ? '.gitignore'
-          : entry === 'npm-lock-template.json'
-            ? 'package-lock.json'
-            : entry,
-      ),
-      {
-        recursive: true,
-        force: false,
-        errorOnExist: true,
-      },
-    )
+    await cp(join(template, entry), join(directory, entry === 'gitignore-template' ? '.gitignore' : entry), {
+      recursive: true,
+      force: false,
+      errorOnExist: true,
+    })
   async function renameText(root: string) {
     for (const entry of await readdir(root, { withFileTypes: true })) {
       const file = join(root, entry.name)
@@ -203,13 +187,23 @@ export async function createSourceProject(
   else delete manifest.engines.arcadia
   manifest.name = `@arcadia-local/${identity}`
   await writeFile(join(directory, 'package.json'), JSON.stringify(manifest, null, 2) + '\n')
-  const lockPath = join(directory, 'package-lock.json')
-  const lock = JSON.parse(await readFile(lockPath, 'utf8'))
-  lock.name = lock.packages[''].name = manifest.name
-  lock.packages[''].engines = manifest.engines
-  await writeFile(lockPath, JSON.stringify(lock, null, 2) + '\n')
   await connectDevelopmentSdk(directory)
   return directory
+}
+
+/** Resolve `package-lock.json` for a new project from its manifest. Scaffolds ship no lock: one pinned at
+ * template build time drifts from each SDK release, and `npm ci` rejects a lock that differs from package.json. */
+export async function writeInitialAuthorLock(directory: string) {
+  const manifest = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8')) as Record<string, unknown>
+  const root = await mkdtemp(join(tmpdir(), 'arcadia-author-lock-'))
+  const installer = new ManagedProjects(root, { registry: process.env.ARCADIA_NPM_REGISTRY })
+  try {
+    const text = await installer.authorLock(manifest)
+    await writeFile(join(directory, 'package-lock.json'), text, { flag: 'wx' })
+  } finally {
+    await installer.close()
+    await rm(root, { recursive: true, force: true })
+  }
 }
 
 export async function updateAuthorLock(workspace: AuthorWorkspace) {

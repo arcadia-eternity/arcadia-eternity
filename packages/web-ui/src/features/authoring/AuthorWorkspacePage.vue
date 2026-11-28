@@ -1526,6 +1526,7 @@ onBeforeUnmount(() => {
       :dirty="hasUnsavedChanges"
       :running="running || busy"
       :version="snapshot?.version"
+      :has-lock="snapshot.files.some(file => file.file === 'package-lock.json')"
       :pack="jobs.find(job => job.kind === 'release')"
       @git="router.push(projectLocation('git'))"
       @release="attempt(() => start('release'))"
